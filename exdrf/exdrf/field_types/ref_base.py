@@ -2,10 +2,9 @@ from typing import Optional
 
 from attrs import define, field
 
+from exdrf.constants import RelType
 from exdrf.field import ExField, FieldInfo
 from exdrf.resource import ExResource
-
-from exdrf.constants import RelType
 
 
 @define

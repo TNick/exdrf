@@ -1,7 +1,6 @@
 # Constants for field types
 from typing import Literal
 
-
 FIELD_TYPE_BLOB = "blob"
 FIELD_TYPE_BOOL = "bool"
 FIELD_TYPE_DT = "date-time"

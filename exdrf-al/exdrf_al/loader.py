@@ -2,6 +2,7 @@ import re
 from typing import TYPE_CHECKING, Any, Dict, Tuple, Type
 
 from attrs import define, field
+from exdrf.constants import RelType
 from exdrf.field_types.blob_field import BlobField, BlobInfo
 from exdrf.field_types.bool_field import BoolField, BoolInfo
 from exdrf.field_types.date_field import DateField, DateInfo
@@ -15,8 +16,6 @@ from exdrf.field_types.ref_m2o import RefManyToOneField
 from exdrf.field_types.ref_o2m import RefOneToManyField
 from exdrf.field_types.ref_o2o import RefOneToOneField
 from exdrf.field_types.str_field import StrField, StrInfo
-
-from exdrf.constants import RelType
 
 if TYPE_CHECKING:
     from exdrf.dataset import ExDataset
