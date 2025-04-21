@@ -1,0 +1,32 @@
+{
+    "cSpell.words": [
+        "aflake",
+        "autoflake",
+        "celerybeat",
+        "Connor",
+        "dmypy",
+        "exdrf",
+        "htmlcov",
+        "ipynb",
+        "ipython",
+        "isort",
+        "mkdocs",
+        "nosetests",
+        "pflake",
+        "popd",
+        "pushd",
+        "pycache",
+        "pyenv",
+        "pyflow",
+        "pypackages",
+        "pyproject",
+        "ropeproject",
+        "scrapy",
+        "sdist",
+        "setuptools",
+        "Spyder",
+        "spyderproject",
+        "spyproject",
+        "webassets"
+    ]
+}
