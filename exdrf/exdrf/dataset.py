@@ -1,4 +1,5 @@
-from typing import TYPE_CHECKING, List, Type, Union
+from collections import OrderedDict
+from typing import TYPE_CHECKING, List, Optional, Type, Union, cast
 
 from attrs import define, field
 
@@ -26,7 +27,7 @@ class ExDataset:
 
     name: str = field(default="Dataset")
     resources: List["ExResource"] = field(factory=list, repr=False)
-    category_map: dict = field(factory=dict, repr=False)
+    category_map: dict = field(factory=OrderedDict, repr=False)
     res_class: Type["ExResource"] = field(
         default=ExResource, repr=False, kw_only=True
     )
@@ -63,11 +64,31 @@ class ExDataset:
             )
         self.resources.append(resource)
 
-    def visit(self, visitor: "ExVisitor") -> bool:
+        # Place the resource in the category map.
+        crt = self.category_map
+        for part in resource.categories:
+            next_crt = crt.get(part)
+            if next_crt is None:
+                next_crt = OrderedDict()
+                crt[part] = next_crt
+            crt = next_crt
+        crt[resource.name] = resource
+
+    def visit(
+        self,
+        visitor: "ExVisitor",
+        omit_fields: Optional[bool] = False,
+        omit_categories: Optional[bool] = False,
+    ) -> bool:
         """Visit the dataset and its resources.
 
         Args:
             visitor: The visitor to use.
+            omit_fields: If True, resource fields will not be visited.
+            omit_categories: If True, categories will not be visited.
+                This means that the visitor will only visit the resources in
+                the dataset, not the categories, making the process a bit more
+                efficient.
 
         Returns:
             bool: True if the visit should continue, False otherwise.
@@ -75,8 +96,21 @@ class ExDataset:
         if not visitor.visit_dataset(self):  # type: ignore
             return False
 
-        for resource in self.resources:
-            if not resource.visit(visitor):
-                return False
+        if omit_categories:
+            for res in self.resources:
+                if not res.visit(visitor, omit_fields=omit_fields):
+                    return False
+            return True
 
-        return True
+        def do_category_map(crt_map: dict, level: int = 0) -> bool:
+            for k, v in crt_map.items():
+                if isinstance(v, dict):
+                    visitor.visit_category(k, level, v)
+                    do_category_map(v)
+                else:
+                    resource = cast("ExResource", v)
+                    if not resource.visit(visitor, omit_fields=omit_fields):
+                        return False
+            return True
+
+        return do_category_map(self.category_map)

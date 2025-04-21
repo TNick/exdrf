@@ -1,0 +1,284 @@
+import re
+from typing import TYPE_CHECKING, Any, Dict, Tuple, Type
+
+from attrs import define, field
+from exdrf.field_types.blob_field import BlobField, BlobInfo
+from exdrf.field_types.bool_field import BoolField, BoolInfo
+from exdrf.field_types.date_field import DateField, DateInfo
+from exdrf.field_types.date_time import DateTimeField, DateTimeInfo
+from exdrf.field_types.float_field import FloatField, FloatInfo
+from exdrf.field_types.formatted import FormattedField, FormattedInfo
+from exdrf.field_types.int_field import IntField, IntInfo
+from exdrf.field_types.ref_base import RelExtraInfo
+from exdrf.field_types.ref_m2m import RefManyToManyField
+from exdrf.field_types.ref_m2o import RefManyToOneField
+from exdrf.field_types.ref_o2m import RefOneToManyField
+from exdrf.field_types.ref_o2o import RefOneToOneField
+from exdrf.field_types.str_field import StrField, StrInfo
+
+from exdrf.constants import RelType
+
+if TYPE_CHECKING:
+    from exdrf.dataset import ExDataset
+    from exdrf.field import ExField, FieldInfo
+    from exdrf.resource import ExResource
+    from sqlalchemy.orm.relationships import RelationshipProperty  # noqa: F401
+    from sqlalchemy.sql.elements import KeyedColumnElement  # noqa: F401
+
+    from exdrf_al.base import Base
+    from exdrf_al.visitor import DbVisitor
+
+
+def res_by_table_name(dataset: "ExDataset", table_name: str) -> "ExResource":
+    """Get a resource by its table name.
+
+    When constructing the dataset from sqlalchemy the src attribute of the
+    resource contains the original ORM class. The table name can be
+    retrieved from the class using the `__tablename__` attribute.
+
+    Args:
+        dataset: The dataset to search in.
+        table_name: The table name to search for.
+    """
+    results = []
+    for model in dataset.resources:
+        if hasattr(model.src, "__tablename__"):
+            if model.src.__tablename__ == table_name:
+                results.append(model)
+
+    if len(results) == 1:
+        return results[0]
+    elif len(results) > 1:
+        raise ValueError(
+            f"Multiple resources found for table name: {table_name}"
+        )
+    else:
+        raise KeyError(f"No resource found for table name: {table_name}")
+
+
+def sql_col_to_type(
+    column: "KeyedColumnElement[Any]", extra: Dict[str, Any]
+) -> Tuple[type["ExField"], type["FieldInfo"]]:
+    """Select the type of the field and information parser from the SQLAlchemy
+    column.
+
+    Args:
+        column: The SQLAlchemy column to convert.
+        extra: Extra information to pass to the field constructor.
+    """
+    str_type = str(column.type)
+
+    if str_type == "BLOB":
+        result = BlobField, BlobInfo
+    elif str_type == "INTEGER":
+        result = IntField, IntInfo
+    elif str_type == "TEXT":
+        result = StrField, StrInfo
+    elif str_type == "FLOAT":
+        result = FloatField, FloatInfo
+    elif str_type == "BOOLEAN":
+        result = BoolField, BoolInfo
+    elif str_type == "DATE":
+        result = DateField, DateInfo
+    elif str_type == "DATETIME":
+        result = DateTimeField, DateTimeInfo
+    elif str_type == "VARCHAR":
+        result = StrField, StrInfo
+    elif str_type == "JSON":
+        extra["format"] = "json"
+        result = FormattedField, FormattedInfo
+    else:
+        varchar_m = re.match(r"VARCHAR\((\d+)\)", str_type)
+        if varchar_m:
+            max_len = int(varchar_m.group(1))
+            extra["max_length"] = max_len
+            result = StrField, StrInfo
+        else:
+            assert False, f"Unknown field type: {column} / {column.type}"
+    return result
+
+
+def field_from_sql_col(
+    resource: "ExResource",
+    column: "KeyedColumnElement[Any]",
+    **kwargs: Any,
+) -> "ExField":
+    """Create a field object from a SQLAlchemy column.
+
+    Args:
+        resource: The resource to which the field belongs.
+        column: The SQLAlchemy column to convert.
+        **kwargs: Additional arguments to pass to the Field constructor.
+    """
+    extra = {
+        "resource": resource,
+        "src": column,
+        "name": column.key,
+        "title": column.key.replace("_", " ").title(),
+        "description": column.doc,
+        "nullable": column.nullable,
+        "primary": column.primary_key,
+    }
+
+    # Determine the type of the field.
+    Ctor, Parser = sql_col_to_type(column, kwargs)
+
+    # Validate the extra information from the column's info attribute.
+    parsed_info = Parser.model_validate(column.info, strict=True)
+    got_back = parsed_info.model_dump()
+
+    # Update extra with non-None values from got_back
+    for key, value in got_back.items():
+        if value is not None:
+            extra[key] = value
+
+    # Construct the field instance.
+    result = Ctor(
+        **extra,
+        **kwargs,
+    )
+
+    # The field is added to the resource.
+    resource.fields.append(result)
+    return result
+
+
+def field_from_sql_rel(
+    resource: "ExResource",
+    relation: "RelationshipProperty",
+    **kwargs: Any,
+) -> "ExField":
+    """Create a field object from a SQLAlchemy relationship.
+
+    Args:
+        resource: The resource to which the field belongs.
+        relation: The SQLAlchemy relationship to convert.
+        **kwargs: Additional arguments to pass to the Field constructor.
+    """
+    parsed_info = RelExtraInfo.model_validate(relation.info, strict=True)
+
+    extra = {
+        "resource": resource,
+        "src": relation,
+        "name": relation.key,
+        "title": relation.key.replace("_", " ").title(),
+        **parsed_info.model_dump(),
+        **kwargs,
+    }
+
+    # Get the direction of the relationship.
+    assert "direction" in extra, (
+        "Direction must be specified for all relationships; "
+        f"missing in {resource.name}.{relation.key}"
+    )
+    in_dir: RelType = extra["direction"]
+    del extra["direction"]
+
+    # Select the correct field class based on the direction.
+    Ctor = None
+    if in_dir == "OneToMany":
+        Ctor = RefOneToManyField
+    elif in_dir == "OneToOne":
+        Ctor = RefOneToOneField
+    elif in_dir == "ManyToMany":
+        Ctor = RefManyToManyField
+        extra["ref_intermediate"] = res_by_table_name(
+            resource.dataset, getattr(relation.secondary, "key")
+        )
+    elif in_dir == "ManyToOne":
+        Ctor = RefManyToOneField
+    else:
+        raise ValueError(
+            f"Invalid dir: {in_dir}; expected OneToMany, ManyToOne, "
+            f"OneToOne or ManyToMany in {resource.name}.{relation.key}"
+        )
+
+    # Check the correct use of the `is_list` argument.
+    if in_dir in ("OneToMany", "ManyToMany"):
+        assert relation.uselist, (
+            f"Invalid use of `uselist` in {resource.name}.{relation.key}; "
+            f"expected True for {in_dir}"
+        )
+        is_list = True
+    else:
+        assert not relation.uselist, (
+            f"Invalid use of `uselist` in {resource.name}.{relation.key}; "
+            f"expected False for {in_dir}"
+        )
+        is_list = False
+
+    # Create the field instance.
+    result = Ctor(
+        ref=resource.dataset[relation.mapper.class_.__name__],
+        is_list=is_list,
+        **extra,
+    )
+    resource.fields.append(result)
+    return result
+
+
+def dataset_from_sqlalchemy(d_set: "ExDataset") -> "ExDataset":
+    """Create a dataset from a SQLAlchemy database.
+
+    Args:
+        d_set: The dataset to populate.
+
+    Returns:
+        The populated dataset.
+    """
+    models_by_name: Dict[str, "ExResource"] = {}
+    ResClass: Type["ExResource"] = d_set.res_class
+
+    @define
+    class Visitor(DbVisitor):
+        res: "ExResource" = field(default=None, init=False)
+
+        def visit_model(self, model: Type["Base"]) -> None:
+            # Get the docstring and format it.
+            _, doc_lines = self.get_docs(model)
+
+            extra_info = self.extra_info(model)
+            try:
+                label_ast = extra_info.get_layer_ast()
+            except Exception as e:
+                raise ValueError(
+                    f"Error parsing label for {model.__name__}"
+                ) from e
+
+            # Create a Resource object for the model.
+            rs = ResClass(
+                src=model,
+                dataset=d_set,
+                name=model.__name__,
+                categories=self.category(model),
+                description="\n".join(doc_lines),
+                label_ast=label_ast,
+            )
+            self.res = rs
+            models_by_name[rs.name] = rs
+
+            # Add the resource to the dataset.
+            d_set.add_resource(rs)
+
+        def visit_column(
+            self,
+            model: Type["Base"],
+            column: "KeyedColumnElement[Any]",
+        ) -> None:
+            field_from_sql_col(resource=self.res, column=column)
+
+    @define
+    class VisitorRel(DbVisitor):
+        def visit_relation(
+            self, model: Type["Base"], relation: "RelationshipProperty"
+        ) -> None:
+            res = models_by_name[model.__name__]
+            field_from_sql_rel(resource=res, relation=relation)
+
+    # Iterate all models and create resources and fields for columns.
+    Visitor.run()
+
+    # Iterate again to create fields from resources.
+    VisitorRel.run()
+
+    return d_set

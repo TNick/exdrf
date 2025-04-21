@@ -3,6 +3,7 @@
         "aflake",
         "autoflake",
         "BYTEBUFFER",
+        "categ",
         "celerybeat",
         "Connor",
         "dmypy",

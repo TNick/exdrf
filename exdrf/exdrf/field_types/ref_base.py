@@ -1,9 +1,11 @@
-from typing import Literal, Optional
+from typing import Optional
 
 from attrs import define, field
 
 from exdrf.field import ExField, FieldInfo
 from exdrf.resource import ExResource
+
+from exdrf.constants import RelType
 
 
 @define
@@ -25,6 +27,4 @@ class RelExtraInfo(FieldInfo):
             "ManyToOne", "OneToOne", or "ManyToMany".
     """
 
-    direction: Optional[
-        Literal["OneToMany", "ManyToOne", "OneToOne", "ManyToMany"]
-    ] = None
+    direction: Optional[RelType] = None

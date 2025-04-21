@@ -40,11 +40,16 @@ class ExResource:
         """
         return doc_lines(self.description)
 
-    def visit(self, visitor: "ExVisitor") -> bool:
+    def visit(
+        self,
+        visitor: "ExVisitor",
+        omit_fields: Optional[bool] = False,
+    ) -> bool:
         """Visit the resource and its fields.
 
         Args:
             visitor: The visitor to use.
+            omit_fields: If True, resource fields will not be visited.
 
         Returns:
             bool: True if the visit should continue, False otherwise.
@@ -52,9 +57,10 @@ class ExResource:
         if not visitor.visit_resource(self):  # type: ignore
             return False
 
-        for fld in self.fields:
-            if not fld.visit(visitor):
-                return False
+        if not omit_fields:
+            for fld in self.fields:
+                if not fld.visit(visitor):
+                    return False
 
         return True
 

@@ -1,4 +1,7 @@
 # Constants for field types
+from typing import Literal
+
+
 FIELD_TYPE_BLOB = "blob"
 FIELD_TYPE_BOOL = "bool"
 FIELD_TYPE_DT = "date-time"
@@ -42,3 +45,6 @@ PY_TYPE_INT = "int"
 PY_TYPE_STRING_LIST = "list[str]"
 PY_TYPE_INT_LIST = "list[int]"
 PY_TYPE_FLOAT_LIST = "list[float]"
+
+
+RelType = Literal["OneToMany", "ManyToOne", "OneToOne", "ManyToMany"]
