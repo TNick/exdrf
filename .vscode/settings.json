@@ -2,6 +2,7 @@
     "cSpell.words": [
         "aflake",
         "autoflake",
+        "BYTEBUFFER",
         "celerybeat",
         "Connor",
         "dmypy",
@@ -20,6 +21,7 @@
         "pyflow",
         "pypackages",
         "pyproject",
+        "qsearch",
         "ropeproject",
         "scrapy",
         "sdist",

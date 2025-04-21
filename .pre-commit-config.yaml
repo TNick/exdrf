@@ -2,22 +2,32 @@
 # See https://pre-commit.com/hooks.html for more hooks
 repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.4.0
+    rev: v5.0.0
     hooks:
+    -   id: check-docstring-first
+    -   id: check-json
+    -   id: check-toml
+    -   id: check-xml
+    -   id: check-yaml
+    -   id: debug-statements
+    -   id: destroyed-symlinks
+    -   id: check-illegal-windows-names
+    -   id: check-vcs-permalinks
+    -   id: mixed-line-ending
+    -   id: check-merge-conflict
+    -   id: name-tests-test
     -   id: check-added-large-files
     -   id: fix-byte-order-marker
     -   id: check-case-conflict
     -   id: end-of-file-fixer
     -   id: detect-private-key
-    -   id: debug-statements
-    -   id: check-merge-conflict
 -   repo: https://github.com/psf/black
-    rev: 22.12.0
+    rev: 25.1.0
     hooks:
     -   id: black
         language_version: python3
         args: [--line-length, "80", --target-version, py33]
 -   repo: https://github.com/PyCQA/flake8
-    rev: 3.7.9
+    rev: 7.2.0
     hooks:
     - id: flake8
