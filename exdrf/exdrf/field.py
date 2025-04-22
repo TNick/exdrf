@@ -12,6 +12,7 @@ from exdrf.constants import (
 from exdrf.utils import doc_lines, inflect_e
 
 if TYPE_CHECKING:
+    from exdrf.dataset import ExDataset  # noqa: F401
     from exdrf.resource import ExResource  # noqa: F401
     from exdrf.visitor import ExVisitor  # noqa: F401
 
@@ -202,6 +203,25 @@ class ExField:
             bool: True if the visit should continue, False otherwise.
         """
         return visitor.visit_field(self)  # type: ignore
+
+    def extra_ref(self, d_set: "ExDataset") -> List["ExResource"]:
+        """Additional dependencies of this field.
+
+        Usually only dependencies that reference other fields generate
+        dependencies (other resources that are used by a particular resource).
+
+        This method allows the field to specify additional dependencies that
+        are not automatically detected.
+
+        See `Resource.get_dependencies()` for more details.
+
+        Args:
+            d_set: The dataset to which the resource belongs.
+
+        Returns:
+            A list of resources that this field depends on.
+        """
+        return []
 
 
 class FieldInfo(BaseModel):

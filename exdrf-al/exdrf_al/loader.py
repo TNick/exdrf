@@ -2,20 +2,32 @@ import re
 from typing import TYPE_CHECKING, Any, Dict, Tuple, Type
 
 from attrs import define, field
+from exdrf.api import (
+    BlobField,
+    BlobInfo,
+    BoolField,
+    BoolInfo,
+    DateField,
+    DateInfo,
+    DateTimeField,
+    DateTimeInfo,
+    FloatField,
+    FloatInfo,
+    FormattedField,
+    FormattedInfo,
+    IntField,
+    IntInfo,
+    RefManyToManyField,
+    RefManyToOneField,
+    RefOneToManyField,
+    RefOneToOneField,
+    RelExtraInfo,
+    StrField,
+    StrInfo,
+)
 from exdrf.constants import RelType
-from exdrf.field_types.blob_field import BlobField, BlobInfo
-from exdrf.field_types.bool_field import BoolField, BoolInfo
-from exdrf.field_types.date_field import DateField, DateInfo
-from exdrf.field_types.date_time import DateTimeField, DateTimeInfo
-from exdrf.field_types.float_field import FloatField, FloatInfo
-from exdrf.field_types.formatted import FormattedField, FormattedInfo
-from exdrf.field_types.int_field import IntField, IntInfo
-from exdrf.field_types.ref_base import RelExtraInfo
-from exdrf.field_types.ref_m2m import RefManyToManyField
-from exdrf.field_types.ref_m2o import RefManyToOneField
-from exdrf.field_types.ref_o2m import RefOneToManyField
-from exdrf.field_types.ref_o2o import RefOneToOneField
-from exdrf.field_types.str_field import StrField, StrInfo
+
+from exdrf_al.visitor import DbVisitor
 
 if TYPE_CHECKING:
     from exdrf.dataset import ExDataset
@@ -25,7 +37,6 @@ if TYPE_CHECKING:
     from sqlalchemy.sql.elements import KeyedColumnElement  # noqa: F401
 
     from exdrf_al.base import Base
-    from exdrf_al.visitor import DbVisitor
 
 
 def res_by_table_name(dataset: "ExDataset", table_name: str) -> "ExResource":
@@ -124,10 +135,9 @@ def field_from_sql_col(
 
     # Validate the extra information from the column's info attribute.
     parsed_info = Parser.model_validate(column.info, strict=True)
-    got_back = parsed_info.model_dump()
 
-    # Update extra with non-None values from got_back
-    for key, value in got_back.items():
+    # Update extra with non-None values from extra info.
+    for key, value in parsed_info.model_dump().items():
         if value is not None:
             extra[key] = value
 
@@ -138,7 +148,7 @@ def field_from_sql_col(
     )
 
     # The field is added to the resource.
-    resource.fields.append(result)
+    resource.add_field(result)
     return result
 
 
@@ -161,9 +171,11 @@ def field_from_sql_rel(
         "src": relation,
         "name": relation.key,
         "title": relation.key.replace("_", " ").title(),
-        **parsed_info.model_dump(),
-        **kwargs,
     }
+    # Update extra with non-None values from got_back
+    for key, value in parsed_info.model_dump().items():
+        if value is not None:
+            extra[key] = value
 
     # Get the direction of the relationship.
     assert "direction" in extra, (
@@ -211,8 +223,9 @@ def field_from_sql_rel(
         ref=resource.dataset[relation.mapper.class_.__name__],
         is_list=is_list,
         **extra,
+        **kwargs,
     )
-    resource.fields.append(result)
+    resource.add_field(result)
     return result
 
 

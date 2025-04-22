@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import TYPE_CHECKING, List, Optional, Type, Union, cast
+from typing import TYPE_CHECKING, Dict, List, Optional, Type, Union, cast
 
 from attrs import define, field
 
@@ -63,6 +63,7 @@ class ExDataset:
                 f"but got {type(resource)}."
             )
         self.resources.append(resource)
+        resource.dataset = self  # type: ignore
 
         # Place the resource in the category map.
         crt = self.category_map
@@ -114,3 +115,54 @@ class ExDataset:
             return True
 
         return do_category_map(self.category_map)
+
+    def sorted_by_deps(self) -> List["ExResource"]:
+        # Build a dependency map where key is the resource name and value is a
+        # set of names of resources it depends on.
+        deps: Dict[str, List["ExResource"]] = {}
+        short_deps: Dict[str, List["ExResource"]] = {}
+        name_to_resource: Dict[str, "ExResource"] = {}
+        for resource in self.resources:
+            deps[resource.name] = list(resource.get_dependencies())
+            short_deps[resource.name] = list(
+                resource.get_dependencies(fk_only=True)
+            )
+            name_to_resource[resource.name] = resource
+
+        # Start with those that have no dependencies.
+        result = OrderedDict(
+            (name, name_to_resource[name])
+            for name, deps in sorted(deps.items(), key=lambda x: x[0])
+            if len(deps) == 0
+        )
+
+        def recursive(name: str, visited: List[str], fk_only: bool = False):
+            """Examine the dependency chain of a resource."""
+            if name in visited:
+                print(
+                    f"Circular dependency detected: {name} -> "
+                    + " -> ".join(visited)
+                )
+                return
+
+            if name in result:
+                return
+
+            if fk_only:
+                my_deps = short_deps[name]
+            else:
+                my_deps = deps[name]
+            for dep in my_deps:
+                recursive(dep.name, visited + [name], fk_only=fk_only)
+
+            # Add the resource to the sorted list.
+            result[name] = name_to_resource[name]
+
+        for name in sorted(short_deps.keys()):
+            recursive(name, [], fk_only=True)
+
+        if len(result) != len(deps):
+            for name in sorted(deps.keys()):
+                recursive(name, [], fk_only=False)
+
+        return list(result.values())

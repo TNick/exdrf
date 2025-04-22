@@ -1,14 +1,28 @@
-from typing import TYPE_CHECKING, Any, List, Optional
+import os
+import re
+from collections import OrderedDict as OrDict
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    List,
+    Optional,
+    OrderedDict,
+    Set,
+    Union,
+    cast,
+)
 
 from attrs import define, field
 from pydantic import BaseModel
 
-from exdrf.label_dsl import parse_expr
-from exdrf.utils import doc_lines
+from exdrf.label_dsl import get_used_fields, parse_expr
+from exdrf.utils import doc_lines, inflect_e
 
 if TYPE_CHECKING:
     from exdrf.dataset import ExDataset
     from exdrf.field import ExField
+    from exdrf.field_types.ref_base import RefBaseField
     from exdrf.label_dsl import ASTNode
     from exdrf.visitor import ExVisitor
 
@@ -29,7 +43,57 @@ class ExResource:
     categories: List[str] = field(factory=list)
     description: str = ""
     src: Any = field(default=None)
-    label_ast: ASTNode = field(default=None)
+    label_ast: "ASTNode" = field(default=None)
+
+    def __str__(self) -> str:
+        return self.__repr__()
+
+    def __repr__(self) -> str:
+        return f"<Resource {self.name} ({len(self.fields)} fields)>"
+
+    def __hash__(self):
+        return hash(f'{self.name}.{".".join(self.categories)}')
+
+    def __getitem__(self, key: Union[int, str]) -> "ExField":
+        # If it is an index, return the field at that index.
+        if isinstance(key, int):
+            return self.fields[key]
+
+        # Locate the field by name.
+        for m in self.fields:
+            if m.name == key:
+                return m
+
+        # If the field is not found, raise an error.
+        raise KeyError(f"No field found for key `{key}` in model `{self.name}`")
+
+    @property
+    def pascal_case_name(self) -> str:
+        """Return the name of the resource in PascalCase."""
+        return self.name
+
+    @property
+    def snake_case_name(self) -> str:
+        """Return the name of the resource in snake_case."""
+        return re.sub(r"(?<!^)(?=[A-Z])", "_", self.name).lower()
+
+    @property
+    def snake_case_name_plural(self) -> str:
+        """Return the name of the resource in snake_case."""
+        return inflect_e.plural(
+            re.sub(r"(?<!^)(?=[A-Z])", "_", self.name).lower()  # type: ignore
+        )
+
+    @property
+    def camel_case_name(self) -> str:
+        """Return the name of the resource in camelCase."""
+        return self.name[0].lower() + self.name[1:]
+
+    @property
+    def text_name(self) -> str:
+        """Return the name of the resource in `Text case`."""
+        tmp = re.sub(r"(?<!^)(?=[A-Z])", " ", self.name).lower()
+        return tmp[0].upper() + tmp[1:]
 
     @property
     def doc_lines(self) -> List[str]:
@@ -39,6 +103,30 @@ class ExResource:
             The docstring of the field as a set of lines.
         """
         return doc_lines(self.description)
+
+    def add_field(self, fld: "ExField") -> None:
+        """Add a field to the resource.
+
+        Args:
+            field: The field to add.
+        """
+        assert fld.name, "Field name must be set"
+        assert fld.type_name, "Field type must be set"
+
+        self.fields.append(fld)
+        fld.resource = self  # type: ignore
+
+        if not fld.category:
+            fld.category = self.get_default_field_category(fld)
+
+    def get_default_field_category(self, fld: "ExField") -> str:
+        """Get the default category for a field.
+
+        When adding a new field with an empty category the `add_field()`
+        method will call this method to get the default category. Reimplement
+        it if you want to assign categories to fields automatically.
+        """
+        return ""
 
     def visit(
         self,
@@ -64,6 +152,225 @@ class ExResource:
 
         return True
 
+    def get_dependencies(self, fk_only: bool = False) -> Set["ExResource"]:
+        """Get the set of resources that this resource depends on.
+
+        The method interrogates the fields of the resource and checks if any of
+        them are references to other resources. If so, it adds them to the set
+        of dependencies. This is useful for generating import statements or for
+        determining the order in which resources should be processed.
+
+        Note that only the first level of dependencies is considered so, if
+        resource A depends on resource B, and resource B depends on resource C,
+        resource C will not be reported by this method.
+
+        Args:
+            fk_only: If True, only dependencies that have their foreign key
+                in the current resources are returned (ManyToOne and OneToOne).
+
+        Returns:
+            The set of resources that this resource depends on.
+        """
+        deps = set()
+        for fld in self.fields:
+            if fk_only:
+                if fld.is_many_to_one_type or fld.is_one_to_one_type:
+                    fld = cast("RefBaseField", fld)
+                    if fld.ref is not self:
+                        deps.add(fld.ref)
+
+                # Extra dependencies are not included when fk_only is True.
+                continue
+
+            fld = cast("RefBaseField", fld)
+            if fld.is_ref_type and fld.ref is not self:
+                deps.add(fld.ref)
+            for extra in fld.extra_ref(self.dataset):
+                if extra is not self:
+                    deps.add(extra)
+        return deps
+
+    def get_dep_fields(self, dep: "ExResource") -> List["ExField"]:
+        """Get the fields that references a dependency.
+
+        Args:
+            dep: The dependency to look for.
+
+        Returns:
+            The fields that references the dependency.
+        """
+        result = []
+        for fld in self.fields:
+            if fld.is_ref_type:
+                fld = cast("RefBaseField", fld)
+                if fld.ref is dep:
+                    result.append(fld)
+        return result
+
+    def minimum_field_set(self) -> List[str]:
+        """Get the minimum set of fields that are used to represent the
+        resource.
+
+        This set includes all the fields that are used in the label definition
+        and all the primary-key fields (fields that contribute to computing
+        the identity of the resource).
+        """
+        names: Set[str] = set(get_used_fields(self.label_ast))
+        for f in self.fields:
+            if f.primary:
+                names.add(f.name)
+        return sorted(names)
+
+    def rel_import(
+        self,
+        other: Union["ExResource", List[str]],
+        path_up: str = "..",
+        path_sep: str = "/",
+    ) -> str:
+        """Compute the import path for a resource relative to another resource.
+
+        Resources are assumed to live at the end of the path indicated by the
+        `categories` list. The import path is computed by finding the common
+        prefix between the two resources and then computing the relative path
+        from the other resource to this one.
+
+        Args:
+            other: The resource to import from or a path as a list of strings.
+            path_up: The string to use to go up in the path. Defaults to '..'.
+            path_sep: The string to use to separate the elements of the path.
+                Defaults to '/'.
+
+        Returns:
+            The relative import path, with elements separated by slashes.
+        """
+        if isinstance(other, ExResource):
+            other_categories = other.categories
+        else:
+            other_categories = other
+
+        # Find the common prefix.
+        i = 0
+        while (
+            i < len(self.categories)
+            and i < len(other_categories)
+            and self.categories[i] == other_categories[i]
+        ):
+            i += 1
+
+        # Compute the relative path.
+        path = [path_up] * (len(other_categories) - i)
+        path.extend(other_categories[i:])
+
+        return path_sep.join(path)
+
+    def ensure_path(
+        self, path: str, extension: str, name: Optional[str] = None
+    ):
+        """Ensure that a path exists and computes file path.
+
+        The final path is computed by joining the base `path` with the
+        categories of the resource and the name of the resource, and appending
+        the `extension`.
+
+        Args:
+            path: The base path to write the file to.
+            extension: The extension of the file without a dot.
+            name: override the name of the resource; the resource name is
+                stored as a Pascal-case string and you may want to use a
+                different case convention for the file; also, there's nothing
+                preventing you from including a prefix path with the name
+                that will be applied at the end of the categories path.
+
+        Returns:
+            The full path to the file.
+        """
+        # Create the output file path.
+        file_path = os.path.join(
+            path, *self.categories, f"{name or self.name}.{extension}"
+        )
+
+        # Create the output directory if it doesn't exist.
+        dir_path = os.path.dirname(file_path)
+        os.makedirs(dir_path, exist_ok=True)
+
+        return file_path
+
+    def field_sort_key(self, fld: "ExField") -> str:
+        """Get the sort key for a field.
+
+        The sort key is used to sort the fields in the resource. By default it
+        is computed by joining the categories of the resource with the name of
+        the field.
+
+        You may want to reimplement this method in a subclass if you want to
+        the fields ranked before the alphabetical sort.
+
+        Args:
+            fld: The field to get the sort key for.
+
+        Returns:
+            The sort key for the field.
+        """
+        category = fld.category or ""
+        return f"{category}.{fld.name}"
+
+    def sorted_fields(self) -> List["ExField"]:
+        """Get a sorted list of fields.
+
+        You can customize the order of the fields by reimplementing the
+        `field_sort_key` method.
+        """
+        return sorted(
+            self.fields,
+            key=self.field_sort_key,
+        )
+
+    def fields_by_category(self) -> Dict[str, List["ExField"]]:
+        """Get a dictionary that maps categories to fields.
+
+        The keys of the dictionary are the categories and the values are lists
+        of sorted fields in that category. The fields are sorted using the
+        `field_sort_key()` key.
+        """
+        categories = {}
+        for f in self.sorted_fields():
+            category = f.category
+            lst = categories.get(category, None)
+            if lst is None:
+                categories[category] = lst = []
+            lst.append(f)
+        return categories
+
+    def category_sort_key(self, cat: str) -> str:
+        """Get the sort key for a category.
+
+        The sort key is used to sort the categories in the resource. By
+        default it is the category itself.
+
+        You may want to reimplement this method in a subclass if you want to
+        the categories ranked before the alphabetical sort.
+
+        Args:
+            cat: The category to get the sort key for.
+
+        Returns:
+            The sort key for the category.
+        """
+        return cat
+
+    def sorted_fields_and_categories(self) -> OrderedDict[str, List["ExField"]]:
+        """Get a dictionary that maps categories to fields.
+
+        Both the fields and the categories are sorted:
+        - the fields are sorted using the `field_sort_key()` key.
+        - the categories are sorted using the `category_sort_key()` function.
+        """
+        categories = self.fields_by_category()
+        result = OrDict()
+        for k in sorted(categories.keys(), key=self.category_sort_key):
+            result[k] = categories[k]
+        return result
+
 
 class ResExtraInfo(BaseModel):
     """The layout of the dictionary associated with resources in the model.
@@ -75,7 +382,7 @@ class ResExtraInfo(BaseModel):
 
     label: Optional[str] = None
 
-    def get_layer_ast(self) -> ASTNode:
+    def get_layer_ast(self) -> "ASTNode":
         """Return the layer composition function using layer_dsl syntax."""
         if not self.label:
             return []
