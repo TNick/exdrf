@@ -1,11 +1,10 @@
 import textwrap
-from typing import TYPE_CHECKING, List, Type
+from typing import List, Type
 
 from attrs import define, field
 from pydantic.fields import FieldInfo
 
-if TYPE_CHECKING:
-    from exdrf_pd.base import ExModel
+from exdrf_pd.base import ExModel
 
 
 @define

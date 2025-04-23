@@ -1,5 +1,5 @@
 # Constants for field types
-from typing import Literal
+from typing import Any, List, Literal, Union
 
 FIELD_TYPE_BLOB = "blob"
 FIELD_TYPE_BOOL = "bool"
@@ -45,5 +45,9 @@ PY_TYPE_STRING_LIST = "list[str]"
 PY_TYPE_INT_LIST = "list[int]"
 PY_TYPE_FLOAT_LIST = "list[float]"
 
-
+# This are the types of relations that we know of.
 RelType = Literal["OneToMany", "ManyToOne", "OneToOne", "ManyToMany"]
+
+# A record ID can be an int in the simple case or a list of various types
+# when there are multiple primary keys.
+RecIdType = Union[int, List[Any]]
