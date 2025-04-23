@@ -12,6 +12,8 @@
         "ipynb",
         "ipython",
         "isort",
+        "lightgray",
+        "lightred",
         "mkdocs",
         "nosetests",
         "pflake",
