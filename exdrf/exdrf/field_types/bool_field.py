@@ -28,7 +28,12 @@ class BoolField(ExField):
 
 
 class BoolInfo(FieldInfo):
-    """Parser for information about a boolean field."""
+    """Parser for information about a boolean field.
+
+    Attributes:
+        true_str: The string representation of the boolean value `True`.
+        false_str: The string representation of the boolean value `False`.
+    """
 
     true_str: Optional[str] = None
     false_str: Optional[str] = None

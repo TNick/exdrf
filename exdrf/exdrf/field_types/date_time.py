@@ -12,8 +12,8 @@ class DateTimeField(ExField):
     """A field that stores moments in time.
 
     Attributes:
-        true_str: The string representation of the boolean value `True`.
-        false_str: The string representation of the boolean value `False`.
+        min: The minimum date-time that can be stored in the field.
+        max: The maximum date-time that can be stored in the field.
     """
 
     type_name: str = field(default=FIELD_TYPE_DT)
@@ -26,7 +26,12 @@ class DateTimeField(ExField):
 
 
 class DateTimeInfo(FieldInfo):
-    """Parser for information about a date-time field."""
+    """Parser for information about a date-time field.
+
+    Attributes:
+        min: The minimum date-time that can be stored in the field.
+        max: The maximum date-time that can be stored in the field.
+    """
 
     min: Optional[datetime] = None
     max: Optional[datetime] = None

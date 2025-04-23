@@ -29,6 +29,10 @@ class BlobField(ExField):
 
 
 class BlobInfo(FieldInfo):
-    """Parser for information about a blob field."""
+    """Parser for information about a blob field.
+
+    Attributes:
+        mime_type: The MIME type of the data stored in the field.
+    """
 
     mime_type: Optional[str] = None

@@ -11,7 +11,8 @@ class DurationField(ExField):
     """A field that stores the duration of time.
 
     Attributes:
-
+        min: The minimum duration that can be stored in the field.
+        max: The maximum duration that can be stored in the field.
     """
 
     type_name: str = field(default=FIELD_TYPE_DURATION)
@@ -24,7 +25,12 @@ class DurationField(ExField):
 
 
 class DurationInfo(FieldInfo):
-    """Parser for information about a time duration field."""
+    """Parser for information about a time duration field.
+
+    Attributes:
+        min: The minimum duration that can be stored in the field.
+        max: The maximum duration that can be stored in the field.
+    """
 
     min: Optional[float] = None
     max: Optional[float] = None

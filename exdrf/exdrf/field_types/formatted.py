@@ -24,6 +24,10 @@ class FormattedField(StrField):
 
 
 class FormattedInfo(FieldInfo):
-    """Parser for information about a string field."""
+    """Parser for information about a string field.
+
+    Attributes:
+        format: The format of the string. Can be "json", "html", or "xml".
+    """
 
     format: Optional[Literal["json", "html", "xml"]] = None

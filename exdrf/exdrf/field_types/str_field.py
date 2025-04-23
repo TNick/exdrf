@@ -27,7 +27,16 @@ class StrField(ExField):
 
 
 class StrInfo(FieldInfo):
-    """Parser for information about a string field."""
+    """Parser for information about a string field.
+
+    Attributes:
+        multiline: Whether the string can span multiple lines.
+        min_length: The minimum length of the string.
+        max_length: The maximum length of the string. Note that providing a
+            value for this attribute will override the derived value from the
+            database column (like `VARCHAR(255)`; see `field_from_sql_col()`
+            implementation).
+    """
 
     multiline: Optional[bool] = None
     min_length: Optional[int] = None

@@ -11,8 +11,10 @@ class IntField(ExField):
     """A field that stores integers.
 
     Attributes:
-        true_str: The string representation of the boolean value `True`.
-        false_str: The string representation of the boolean value `False`.
+        min: The minimum integer that can be stored in the field.
+        max: The maximum integer that can be stored in the field.
+        unit: The unit of measurement for the field.
+        unit_symbol: The symbol for the unit of measurement.
     """
 
     type_name: str = field(default=FIELD_TYPE_INTEGER)
@@ -27,7 +29,14 @@ class IntField(ExField):
 
 
 class IntInfo(FieldInfo):
-    """Parser for information about an integer field."""
+    """Parser for information about an integer field.
+
+    Attributes:
+        min: The minimum integer that can be stored in the field.
+        max: The maximum integer that can be stored in the field.
+        unit: The unit of measurement for the field.
+        unit_symbol: The symbol for the unit of measurement.
+    """
 
     min: Optional[int] = None
     max: Optional[int] = None

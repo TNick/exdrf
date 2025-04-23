@@ -11,8 +11,7 @@ class EnumField(ExField):
     """A field that stores moments in time.
 
     Attributes:
-        true_str: The string representation of the boolean value `True`.
-        false_str: The string representation of the boolean value `False`.
+        values: The list of possible values for the field.
     """
 
     type_name: str = field(default=FIELD_TYPE_ENUM)
@@ -24,6 +23,10 @@ class EnumField(ExField):
 
 
 class EnumInfo(FieldInfo):
-    """Parser for information about an enum field."""
+    """Parser for information about an enum field.
+
+    Attributes:
+        values: The list of possible values for the field.
+    """
 
     values: List[str] = field(factory=list)

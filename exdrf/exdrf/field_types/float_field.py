@@ -11,8 +11,12 @@ class FloatField(ExField):
     """A field that stores real numbers.
 
     Attributes:
-        true_str: The string representation of the boolean value `True`.
-        false_str: The string representation of the boolean value `False`.
+        min: The minimum value that can be stored in the field.
+        max: The maximum value that can be stored in the field.
+        precision: The number of digits that can be stored in the field.
+        scale: The number of digits to the right of the decimal point.
+        unit: The unit of measurement for the field.
+        unit_symbol: The symbol for the unit of measurement.
     """
 
     type_name: str = field(default=FIELD_TYPE_FLOAT)
@@ -29,7 +33,16 @@ class FloatField(ExField):
 
 
 class FloatInfo(FieldInfo):
-    """Parser for information about a real-number field."""
+    """Parser for information about a real-number field.
+
+    Attributes:
+        min: The minimum value that can be stored in the field.
+        max: The maximum value that can be stored in the field.
+        precision: The number of digits that can be stored in the field.
+        scale: The number of digits to the right of the decimal point.
+        unit: The unit of measurement for the field.
+        unit_symbol: The symbol for the unit of measurement.
+    """
 
     min: Optional[float] = None
     max: Optional[float] = None
