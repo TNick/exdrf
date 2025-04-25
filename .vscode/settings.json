@@ -15,6 +15,7 @@
         "ipynb",
         "ipython",
         "isort",
+        "joinedload",
         "lightgray",
         "lightred",
         "mkdocs",

@@ -23,11 +23,12 @@ class DbConn:
     s_stack: List[Session] = field(factory=list)
     cache: dict = field(factory=dict)
 
-    def connect(self):
+    def connect(self) -> Engine:
         """Connect to the database."""
         if self.engine:
-            return
+            return self.engine
         self.engine = create_engine(self.c_string)
+        return self.engine
 
     def close(self):
         """Close the connection to the database."""
@@ -107,3 +108,12 @@ class DbConn:
             if is_new:
                 session.close()
                 self.s_stack.pop()
+
+    def create_all_tables(self, Base):
+        """Creates all tables defined in the Base metadata.
+
+        Args:
+            Base: The declarative base class containing the table metadata.
+        """
+        engine = self.connect()
+        Base.metadata.create_all(bind=engine)
