@@ -10,6 +10,7 @@ class RecordRequest:
     Attributes:
         start: The starting index of the items to load.
         count: The number of items to load.
+        uniq_id: A unique identifier for the request.
     """
 
     start: int = field(hash=True)
@@ -24,6 +25,7 @@ class RecordRequestManager:
     """A class that manages requests for items from the database.
 
     Attributes:
+        uniq_gen: A unique identifier generator for requests.
         requests: A list of requests for items from the database.
     """
 

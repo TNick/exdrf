@@ -111,7 +111,7 @@ class ExResource:
             field: The field to add.
         """
         assert fld.name, "Field name must be set"
-        assert fld.type_name, "Field type must be set"
+        assert fld.type_name, f"Field type must be set in {fld.name}"
 
         self.fields.append(fld)
         fld.resource = self  # type: ignore

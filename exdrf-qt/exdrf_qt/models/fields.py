@@ -6,6 +6,7 @@ from exdrf.api import (
     DateTimeField,
     DurationField,
     EnumField,
+    FilterField,
     FloatField,
     FloatListField,
     FormattedField,
@@ -16,10 +17,10 @@ from exdrf.api import (
     RefManyToOneField,
     RefOneToManyField,
     RefOneToOneField,
+    SortField,
     StrField,
     StrListField,
-    FilterField,
-    SortField,
+    TimeField,
 )
 
 from exdrf_qt.models.field import DBM, QtField
@@ -42,6 +43,11 @@ class QtDateTimeField(DateTimeField, QtField[DBM]):
 
 @define
 class QtDateField(DateField, QtField[DBM]):
+    pass
+
+
+@define
+class QtTimeField(TimeField, QtField[DBM]):
     pass
 
 

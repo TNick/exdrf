@@ -17,7 +17,7 @@ class BlobField(ExField):
         mime_type: The MIME type of the data stored in the field.
     """
 
-    type: str = field(default=FIELD_TYPE_BLOB)
+    type_name: str = field(default=FIELD_TYPE_BLOB)
     visible: bool = field(default=False)
     sortable: bool = field(default=False)
     filterable: bool = field(default=False)

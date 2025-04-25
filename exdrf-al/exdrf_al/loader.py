@@ -1,5 +1,6 @@
+import logging
 import re
-from typing import TYPE_CHECKING, Any, Dict, Tuple, Type
+from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple, Type
 
 from attrs import define, field
 from exdrf.api import (
@@ -24,6 +25,8 @@ from exdrf.api import (
     RelExtraInfo,
     StrField,
     StrInfo,
+    TimeField,
+    TimeInfo,
 )
 from exdrf.constants import RelType
 
@@ -37,6 +40,8 @@ if TYPE_CHECKING:
     from sqlalchemy.sql.elements import KeyedColumnElement  # noqa: F401
 
     from exdrf_al.base import Base
+
+logger = logging.getLogger(__name__)
 
 
 def res_by_table_name(dataset: "ExDataset", table_name: str) -> "ExResource":
@@ -90,6 +95,8 @@ def sql_col_to_type(
         result = BoolField, BoolInfo
     elif str_type == "DATE":
         result = DateField, DateInfo
+    elif str_type == "TIME":
+        result = TimeField, TimeInfo
     elif str_type == "DATETIME":
         result = DateTimeField, DateTimeInfo
     elif str_type == "VARCHAR":
@@ -142,10 +149,14 @@ def field_from_sql_col(
             extra[key] = value
 
     # Construct the field instance.
-    result = Ctor(
+    final_args = {
         **extra,
         **kwargs,
+    }
+    logger.debug(
+        "Creating field %s for %s.%s", Ctor.__name__, resource.name, column
     )
+    result = Ctor(**final_args)
 
     # The field is added to the resource.
     resource.add_field(result)
@@ -229,7 +240,9 @@ def field_from_sql_rel(
     return result
 
 
-def dataset_from_sqlalchemy(d_set: "ExDataset") -> "ExDataset":
+def dataset_from_sqlalchemy(
+    d_set: "ExDataset", base: Optional[Type["Base"]] = None
+) -> "ExDataset":
     """Create a dataset from a SQLAlchemy database.
 
     Args:
@@ -288,9 +301,9 @@ def dataset_from_sqlalchemy(d_set: "ExDataset") -> "ExDataset":
             field_from_sql_rel(resource=res, relation=relation)
 
     # Iterate all models and create resources and fields for columns.
-    Visitor.run()
+    Visitor.run(base=base)
 
     # Iterate again to create fields from resources.
-    VisitorRel.run()
+    VisitorRel.run(base=base)
 
     return d_set

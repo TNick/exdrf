@@ -40,5 +40,5 @@ class IntInfo(FieldInfo):
 
     min: Optional[int] = None
     max: Optional[int] = None
-    unit: Optional[int] = None
-    unit_symbol: Optional[int] = None
+    unit: Optional[str] = None
+    unit_symbol: Optional[str] = None

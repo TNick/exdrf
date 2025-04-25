@@ -1,5 +1,5 @@
 # This lists all the packages that are hosted in this mono-repo.
-DIRS = exdrf exdrf-al exdrf-pd exdrf-qt
+DIRS = exdrf exdrf-al exdrf-pd exdrf-qt exdrf-dev
 
 # These are all python files in all the repository (including venv ones).
 PYTHON_FILES := $(wildcard *.py)
@@ -63,6 +63,9 @@ delint: aflake
 		python -m black . && \
 		popd)
 
+# Collects all the .ui files.
+UI_FILES := $(shell powershell -Command "Get-ChildItem '$(MODULE_NAME)' -Recurse -Filter '*.ui' | ForEach-Object { $$_.FullName }")
+
 
 # ========================= [ Linux-specific targets ] =========================
 else
@@ -117,5 +120,22 @@ delint: aflake
 		cd - > /dev/null; \
 	done
 
+
+# Collects all the .ui files.
+UI_FILES := $(shell find $(MODULE_NAME) -type f -name '*.ui')
+
 endif
 # ==================== [ End of platform-specific targets ] ====================
+
+
+# All the files generated from the .ui files.
+PY_UI_FILES := $(UI_FILES:.ui=_ui.py)
+
+
+# Define the .ui to _ui.py conversion rule
+%_ui.py: %.ui exdrf-qt/exdrf_qt/scripts/gen_ui_file.py
+	python -m exdrf_qt.scripts.gen_ui_file $< $@
+
+
+# Add a dependency rule to regenerate _ui.py files only if .ui files change
+build-ui: $(PY_UI_FILES) delint

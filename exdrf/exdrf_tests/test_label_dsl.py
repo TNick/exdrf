@@ -67,7 +67,7 @@ def test_generate_typescript_code_with_identifier():
     expr = '(concat "foo" bar)'
     ast = parse_expr(expr)
     ts_code = generate_typescript_code(ast)
-    assert '"foo" + instance.bar' == ts_code
+    assert '"foo" + record.bar' == ts_code
 
 
 def test_get_used_fields():
@@ -142,10 +142,10 @@ def test_if():
     assert result == "Yes"
 
     py_code = generate_python_code(ast)
-    assert '("Yes" if instance.name else "No")' in py_code
+    assert '("Yes" if record.name else "No")' in py_code
 
     ts_code = generate_typescript_code(ast)
-    assert '(instance.name ? "Yes" : "No")' in ts_code
+    assert '(record.name ? "Yes" : "No")' in ts_code
 
 
 def test_upper():
@@ -156,10 +156,10 @@ def test_upper():
     assert result == "TEST"
 
     py_code = generate_python_code(ast)
-    assert "str(instance.name).upper()" in py_code
+    assert "str(record.name).upper()" in py_code
 
     ts_code = generate_typescript_code(ast)
-    assert "String(instance.name).toUpperCase()" in ts_code
+    assert "String(record.name).toUpperCase()" in ts_code
 
 
 def test_lower():
@@ -170,10 +170,10 @@ def test_lower():
     assert result == "test"
 
     py_code = generate_python_code(ast)
-    assert "str(instance.name).lower()" in py_code
+    assert "str(record.name).lower()" in py_code
 
     ts_code = generate_typescript_code(ast)
-    assert "String(instance.name).toLowerCase()" in ts_code
+    assert "String(record.name).toLowerCase()" in ts_code
 
 
 def test_is_none():
@@ -184,12 +184,12 @@ def test_is_none():
     assert result == "Yes"
 
     py_code = generate_python_code(ast)
-    assert '("Yes" if instance.name is None else "No")' in py_code
+    assert '("Yes" if record.name is None else "No")' in py_code
 
     ts_code = generate_typescript_code(ast)
     assert (
-        "(instance.name == null || "
-        "instance.name == undefined) ? "
+        "(record.name == null || "
+        "record.name == undefined) ? "
         '"Yes" : "No"' in ts_code
     )
 
@@ -208,10 +208,10 @@ def test_equals():
     assert result == "Yes"
 
     py_code = generate_python_code(ast)
-    assert '("Yes" if instance.name == "test" else "No")' in py_code
+    assert '("Yes" if record.name == "test" else "No")' in py_code
 
     ts_code = generate_typescript_code(ast)
-    assert '((instance.name == "test") ? "Yes" : "No")' in ts_code
+    assert '((record.name == "test") ? "Yes" : "No")' in ts_code
 
     context = DummyContext(name="not")
     expr = '(= name "test" "Yes" "No")'
@@ -228,10 +228,10 @@ def test_date_str():
     assert result == "2023-10-01"
 
     py_code = generate_python_code(ast)
-    assert 'instance.date.strftime("%Y-%m-%d")' in py_code
+    assert 'record.date.strftime("%Y-%m-%d")' in py_code
 
     ts_code = generate_typescript_code(ast)
-    assert 'instance.date.strftime("%Y-%m-%d")' in ts_code
+    assert 'record.date.strftime("%Y-%m-%d")' in ts_code
 
 
 if __name__ == "__main__":

@@ -74,10 +74,10 @@ class DbVisitor:
     @classmethod
     def run(cls, base: Optional[Type["Base"]] = None, *args, **kwargs):
         """Run the visitor."""
-        from exdrf_al.base import Base as DbBase
-
         v = cls(*args, **kwargs)
         if base is None:
+            from exdrf_al.base import Base as DbBase
+
             base = DbBase
         base.visit(v)  # type: ignore
         return v
@@ -92,4 +92,18 @@ class DbVisitor:
         Returns:
             The extra information for the model.
         """
-        return ResExtraInfo.model_validate(model.__table_args__.get("info", {}))
+
+        # __table_args__ may be defined as:
+        #   A dictionary of table options
+        #   A tuple of positional arguments (e.g., constraints, indexes),
+        #       optionally ending in a dictionary of table options
+
+        args = model.__table_args__
+        if args is None:
+            args = {}
+        elif not isinstance(args, dict):
+            args = args[-1]
+            if not isinstance(args, dict):
+                args = {}
+
+        return ResExtraInfo.model_validate(args.get("info", {}))

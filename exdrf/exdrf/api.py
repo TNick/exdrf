@@ -35,6 +35,8 @@ from exdrf.field_types.api import (  # noqa: F401
     StrInfo,
     StrListField,
     StrListInfo,
+    TimeField,
+    TimeInfo,
 )
 from exdrf.label_dsl import (  # noqa: F401
     evaluate,

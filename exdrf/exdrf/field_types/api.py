@@ -30,3 +30,4 @@ from exdrf.field_types.ref_o2o import RefOneToOneField  # noqa: F401
 from exdrf.field_types.sort_field import SortField  # noqa: F401
 from exdrf.field_types.str_field import StrField, StrInfo  # noqa: F401
 from exdrf.field_types.str_list import StrListField, StrListInfo  # noqa: F401
+from exdrf.field_types.time_field import TimeField, TimeInfo  # noqa: F401

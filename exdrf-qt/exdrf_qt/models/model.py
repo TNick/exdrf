@@ -13,9 +13,10 @@ from typing import (
     cast,
 )
 
+from exdrf.constants import RecIdType
 from exdrf.filter import FilterType
 from PyQt5.QtCore import QAbstractItemModel, QModelIndex, Qt, pyqtSignal
-from sqlalchemy import func, select
+from sqlalchemy import func, select, tuple_
 
 from exdrf_qt.context_use import QtUseContext
 from exdrf_qt.models.field_list import FieldsList
@@ -93,6 +94,18 @@ class QtModel(
         prevent_total_count: Optional[bool] = False,
         batch_size: int = DEFAULT_CHUNK_SIZE,
     ):
+        """Initialize the model.
+
+        Args:
+            ctx: The top level context.
+            db_model: The database model class.
+            fields: The fields of the model.
+            parent: The parent object.
+            selection: The SQLAlchemy select statement for the model.
+            prevent_total_count: If True, the total count is not computed
+                in the constructor.
+            batch_size: The number of items to load at once.
+        """
         # super().__init__(parent=parent)
         QAbstractItemModel.__init__(self, parent=parent)
         RecordRequestManager.__init__(self)
@@ -180,7 +193,7 @@ class QtModel(
         return self.db_model.__name__
 
     @property
-    def filtered_selection(self):
+    def filtered_selection(self) -> "Select":
         """Return the selection with filtering applied.
 
         The function starts from the `root_selection` and asks all filters
@@ -345,8 +358,14 @@ class QtModel(
         """Return the ID of the database item.
 
         In common cases this is the `id` attribute of the database item.
-        Reimplement this method if the database table has a different ID
-        mechanism.
+        When the model has a composite primary key, the function returns a tuple
+        of IDs. If the model has no primary key, the function raises an error.
+
+        Args:
+            item: The database item.
+
+        Throws:
+            ValueError: If the model has no primary key.
         """
         result = []
         for f in self.fields:
@@ -360,6 +379,39 @@ class QtModel(
             f"Item {item} does not have a primary key. "
             "Cannot convert to record."
         )
+
+    def get_primary_columns(self) -> Any:
+        """The result of this function can be used with the `.in_` attribute.
+
+        If the model has a single primary key the result is the sqlalchemy
+        column. If the model has a composite primary key, the result is a tuple
+        of columns. If the model has no primary key, the function raises an
+        error.
+
+        Throws:
+            ValueError: If the model has no primary key.
+        """
+        result = []
+        for f in self.fields:
+            if f.primary:
+                result.append(getattr(self.db_model, f.name))
+        assert len(result) > 0, "No primary columns found"
+        if len(result) == 1:
+            return result[0]
+        return tuple_(*result)
+
+    def get_id_filter(self, id_list: List[RecIdType]) -> Any:
+        """Compute the select statement that filters by ID.
+
+        Args:
+            id_list: The list of IDs to filter by. If the model has a single
+                primary key, the list should consist of single values. If the
+                model has a composite primary key, the list should consist
+                of tuples of values (the order of the items in the tuple
+                should be the same as the order of the primary columns in
+                the `self.fields` array).
+        """
+        return self.get_primary_columns().in_(id_list)
 
     def clone_me(self):
         """Clone the model.

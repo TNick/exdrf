@@ -122,6 +122,18 @@ class ParsedLiteral(Parsed):
         else:
             raise ValueError(f"Unknown type: {self.type}")
 
+    @property
+    def ensure_str(self) -> Any:
+        """Python value representation."""
+        if self.type == "string":
+            return self.value
+        elif self.type == "int":
+            return int(self.value)
+        elif self.type == "float":
+            return float(self.value)
+        else:
+            raise ValueError(f"Unknown type: {self.type}")
+
 
 @define(eq=False)
 class ParsedIdentifier(Parsed):
@@ -195,10 +207,10 @@ class Concat(Operation):
         return "".join(map(str, args))
 
     def to_python(self, *args) -> str:
-        return " + ".join(args)
+        return "(" + " + ".join([f"str({a})" for a in args]) + ")"
 
     def to_typescript(self, *args) -> str:
-        return " + ".join(args)
+        return "(" + " + ".join(args) + ")"
 
 
 @define
@@ -212,17 +224,26 @@ class If(Operation):
     key: str = field(default="if", init=False)
 
     def evaluate(self, *args) -> Any:
-        assert len(args) == 3, "If operation takes three arguments"
+        assert len(args) == 3, (
+            f"If operation takes three arguments, got {len(args)}: "
+            f"{'\n'.join(map(str, args))}"
+        )
         cond, a, b = args
         return a if cond else b
 
     def to_python(self, *args) -> str:
-        assert len(args) == 3, "If operation takes three arguments"
+        assert len(args) == 3, (
+            f"If operation takes three arguments, got {len(args)}: "
+            f"{'\n'.join(map(str, args))}"
+        )
         cond, a, b = args
         return f"({a} if {cond} else {b})"
 
     def to_typescript(self, *args) -> str:
-        assert len(args) == 3, "If operation takes three arguments"
+        assert len(args) == 3, (
+            f"If operation takes three arguments, got {len(args)}: "
+            f"{'\n'.join(map(str, args))}"
+        )
         cond, a, b = args
         return f"({cond} ? {a} : {b})"
 
@@ -238,17 +259,26 @@ class Upper(Operation):
     key: str = field(default="upper", init=False)
 
     def evaluate(self, *args) -> Any:
-        assert len(args) == 1, "Upper operation takes one argument"
+        assert len(args) == 1, (
+            f"Upper operation takes one argument, got {len(args)}: "
+            f"{'\n'.join(map(str, args))}"
+        )
         (s,) = args
         return str(s).upper()
 
     def to_python(self, *args) -> str:
-        assert len(args) == 1, "Upper operation takes one argument"
+        assert len(args) == 1, (
+            f"Upper operation takes one argument, got {len(args)}: "
+            f"{'\n'.join(map(str, args))}"
+        )
         (s,) = args
         return f"str({s}).upper()"
 
     def to_typescript(self, *args) -> str:
-        assert len(args) == 1, "Upper operation takes one argument"
+        assert len(args) == 1, (
+            f"Upper operation takes one argument, got {len(args)}: "
+            f"{'\n'.join(map(str, args))}"
+        )
         (s,) = args
         return f"String({s}).toUpperCase()"
 
@@ -264,17 +294,26 @@ class Lower(Operation):
     key: str = field(default="lower", init=False)
 
     def evaluate(self, *args) -> Any:
-        assert len(args) == 1, "Lower operation takes one argument"
+        assert len(args) == 1, (
+            f"Lower operation takes one argument, got {len(args)}: "
+            f"{'\n'.join(map(str, args))}"
+        )
         (s,) = args
         return str(s).lower()
 
     def to_python(self, *args) -> str:
-        assert len(args) == 1, "Lower operation takes one argument"
+        assert len(args) == 1, (
+            f"Lower operation takes one argument, got {len(args)}: "
+            f"{'\n'.join(map(str, args))}"
+        )
         (s,) = args
         return f"str({s}).lower()"
 
     def to_typescript(self, *args) -> str:
-        assert len(args) == 1, "Lower operation takes one argument"
+        assert len(args) == 1, (
+            f"Lower operation takes one argument, got {len(args)}: "
+            f"{'\n'.join(map(str, args))}"
+        )
         (s,) = args
         return f"String({s}).toLowerCase()"
 
@@ -290,17 +329,26 @@ class IsNone(Operation):
     key: str = field(default="is_none", init=False)
 
     def evaluate(self, *args) -> Any:
-        assert len(args) == 3, "IsNone operation takes three arguments"
+        assert len(args) == 3, (
+            f"IsNone operation takes three arguments, got {len(args)}: "
+            f"{'\n'.join(map(str, args))}"
+        )
         cond, a, b = args
         return a if cond is None else b
 
     def to_python(self, *args) -> str:
-        assert len(args) == 3, "IsNone operation takes three arguments"
+        assert len(args) == 3, (
+            f"IsNone operation takes three arguments, got {len(args)}: "
+            f"{'\n'.join(map(str, args))}"
+        )
         cond, a, b = args
         return f"({a} if {cond} is None else {b})"
 
     def to_typescript(self, *args) -> str:
-        assert len(args) == 3, "IsNone operation takes three arguments"
+        assert len(args) == 3, (
+            f"IsNone operation takes three arguments, got {len(args)}: "
+            f"{'\n'.join(map(str, args))}"
+        )
         cond, a, b = args
         return f"(({cond} == null || {cond} == undefined) ? {a} : {b})"
 
@@ -316,17 +364,26 @@ class Equals(Operation):
     key: str = field(default="=", init=False)
 
     def evaluate(self, *args) -> Any:
-        assert len(args) == 4, "Equals operation takes four arguments"
+        assert len(args) == 4, (
+            f"Equals operation takes four arguments, got {len(args)}: "
+            f"{'\n'.join(map(str, args))}"
+        )
         cond1, cond2, a, b = args
         return a if cond1 == cond2 else b
 
     def to_python(self, *args) -> str:
-        assert len(args) == 4, "Equals operation takes four arguments"
+        assert len(args) == 4, (
+            f"Equals operation takes four arguments, got {len(args)}: "
+            f"{'\n'.join(map(str, args))}"
+        )
         cond1, cond2, a, b = args
         return f"({a} if {cond1} == {cond2} else {b})"
 
     def to_typescript(self, *args) -> str:
-        assert len(args) == 4, "Equals operation takes four arguments"
+        assert len(args) == 4, (
+            f"Equals operation takes four arguments, got {len(args)}: "
+            f"{'\n'.join(map(str, args))}"
+        )
         cond1, cond2, a, b = args
         return f"(({cond1} == {cond2}) ? {a} : {b})"
 
@@ -345,17 +402,26 @@ class DateStr(Operation):
     key: str = field(default="date_str", init=False)
 
     def evaluate(self, *args) -> Any:
-        assert len(args) == 2, "DateStr operation takes two arguments"
+        assert len(args) == 2, (
+            f"DateStr operation takes two arguments, got {len(args)}: "
+            f"{'\n'.join(map(str, args))}"
+        )
         date, format = args
         return date.strftime(format)
 
     def to_python(self, *args) -> str:
-        assert len(args) == 2, "DateStr operation takes two arguments"
+        assert len(args) == 2, (
+            f"DateStr operation takes two arguments, got {len(args)}: "
+            f"{'\n'.join(map(str, args))}"
+        )
         date, format = args
         return f"({date}.strftime({format}))"
 
     def to_typescript(self, *args) -> str:
-        assert len(args) == 2, "DateStr operation takes two arguments"
+        assert len(args) == 2, (
+            f"DateStr operation takes two arguments, got {len(args)}: "
+            f"{'\n'.join(map(str, args))}"
+        )
         date, format = args
         return f"({date}.strftime({format}))"
 
@@ -371,12 +437,18 @@ class FloatStr(Operation):
     key: str = field(default="float_str", init=False)
 
     def evaluate(self, *args) -> Any:
-        assert len(args) == 2, "FloatStr operation takes two arguments"
+        assert len(args) == 2, (
+            f"FloatStr operation takes two arguments, got {len(args)}: "
+            f"{'\n'.join(map(str, args))}"
+        )
         number, digits = args
         return ("{:." + str(digits) + "f}").format(number)
 
     def to_python(self, *args) -> str:
-        assert len(args) == 2, "FloatStr operation takes two arguments"
+        assert len(args) == 2, (
+            f"FloatStr operation takes two arguments, got {len(args)}: "
+            f"{'\n'.join(map(str, args))}"
+        )
         number, digits = args
         return (
             '("{:." + str('
@@ -387,7 +459,10 @@ class FloatStr(Operation):
         )
 
     def to_typescript(self, *args) -> str:
-        assert len(args) == 2, "FloatStr operation takes two arguments"
+        assert len(args) == 2, (
+            f"FloatStr operation takes two arguments, got {len(args)}: "
+            f"{'\n'.join(map(str, args))}"
+        )
         number, digits = args
         return (
             f"({number})."
@@ -409,17 +484,26 @@ class IntStr(Operation):
     key: str = field(default="int_str", init=False)
 
     def evaluate(self, *args) -> Any:
-        assert len(args) == 1, "IntStr operation takes one argument"
+        assert len(args) == 1, (
+            f"IntStr operation takes one argument, got {len(args)}: "
+            f"{'\n'.join(map(str, args))}"
+        )
         (number,) = args
         return "{:,}".format(number)
 
     def to_python(self, *args) -> str:
-        assert len(args) == 1, "IntStr operation takes one argument"
+        assert len(args) == 1, (
+            f"IntStr operation takes one argument, got {len(args)}: "
+            f"{'\n'.join(map(str, args))}"
+        )
         (number,) = args
         return '("{:,}").format({' + str(number) + "})"
 
     def to_typescript(self, *args) -> str:
-        assert len(args) == 1, "IntStr operation takes one argument"
+        assert len(args) == 1, (
+            f"IntStr operation takes one argument, got {len(args)}: "
+            f"{'\n'.join(map(str, args))}"
+        )
         (number,) = args
         return (
             f"({number})."
@@ -554,7 +638,7 @@ def generate_python_code(ast_node: ASTNode) -> Any:
         return ast_node.as_string
 
     elif isinstance(ast_node, ParsedIdentifier):
-        return f"instance.{ast_node}"
+        return f"record.{ast_node}"
 
     elif isinstance(ast_node, list):
         op = cast(ParsedOp, ast_node[0])
@@ -576,7 +660,7 @@ def generate_typescript_code(ast_node: ASTNode) -> Any:
         The generated TypeScript code as a string.
     """
     if isinstance(ast_node, ParsedIdentifier):
-        return f"instance.{ast_node}"
+        return f"record.{ast_node}"
 
     elif isinstance(ast_node, ParsedLiteral):
         return ast_node.as_string

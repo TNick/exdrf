@@ -48,5 +48,5 @@ class FloatInfo(FieldInfo):
     max: Optional[float] = None
     precision: Optional[int] = None
     scale: Optional[int] = None
-    unit: Optional[float] = None
-    unit_symbol: Optional[float] = None
+    unit: Optional[str] = None
+    unit_symbol: Optional[str] = None
