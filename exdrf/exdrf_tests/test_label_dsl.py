@@ -67,7 +67,7 @@ def test_generate_typescript_code_with_identifier():
     expr = '(concat "foo" bar)'
     ast = parse_expr(expr)
     ts_code = generate_typescript_code(ast)
-    assert '"foo" + record.bar' == ts_code
+    assert '("foo" + record.bar)' == ts_code
 
 
 def test_get_used_fields():
