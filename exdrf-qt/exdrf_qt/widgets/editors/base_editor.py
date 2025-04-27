@@ -1,13 +1,14 @@
 import logging
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Generic, Optional, Type, TypeVar, Union
+from typing import TYPE_CHECKING, Generic, Optional, Type, TypeVar, Union, cast
 
 from exdrf.constants import RecIdType
 from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtWidgets import QMessageBox, QWidget
+from PyQt5.QtWidgets import QDialogButtonBox, QMessageBox, QStyle, QWidget
 from sqlalchemy import select
 
 from exdrf_qt.context_use import QtUseContext
+from exdrf_qt.widgets.auto_slots import auto_connect_change_signals
 
 if TYPE_CHECKING:
     from sqlalchemy import Select  # noqa: F401
@@ -33,6 +34,7 @@ class EditorDb(QWidget, QtUseContext, Generic[DBM]):
     db_model: Type[DBM]
     selection: "Select"
     record_id: Union[RecIdType, None]
+    btn_box: Optional[QDialogButtonBox] = None
 
     _is_dirty: bool = False
     _is_editing: bool = False
@@ -42,7 +44,6 @@ class EditorDb(QWidget, QtUseContext, Generic[DBM]):
     editingChanged = pyqtSignal(bool)
     editorCleared = pyqtSignal()
     recordChanged = pyqtSignal(object)
-    recordSaved = pyqtSignal(object)
 
     def __init__(
         self,
@@ -59,15 +60,26 @@ class EditorDb(QWidget, QtUseContext, Generic[DBM]):
             selection if selection is not None else select(db_model)
         )
 
+        # Prepare widgets loaded from UI file.
+        if hasattr(self, "setup_ui"):
+            self.setup_ui(self)
+
         # Populate the editor if a record ID is provided.
         self.record_id = None
         if record_id is not None:
             self.set_record(record_id)
 
+        # Connect the change signal from each field editor.
+        auto_connect_change_signals(self, self.set_dirty)
+
     @property
     def is_dirty(self) -> bool:
         """True if the record has been modified in this editor."""
         return self._is_dirty
+
+    def set_dirty(self):
+        """Set the dirty flag to True."""
+        self.is_dirty = True
 
     @is_dirty.setter
     def is_dirty(self, value: bool):
@@ -224,7 +236,7 @@ class EditorDb(QWidget, QtUseContext, Generic[DBM]):
         self.set_record(self.db_id)
         return True
 
-    def on_discard_edit(self):
+    def on_reset_edit(self):
         """Read the record from the database but remain in edit mode.
 
         The function leaves the editor in editing mode but reads the record
@@ -347,3 +359,80 @@ class EditorDb(QWidget, QtUseContext, Generic[DBM]):
             return
         self.is_editing = True
         self._clear_editor()
+
+    def create_button_box(self) -> QDialogButtonBox:
+        """Create a button box for the editor.
+
+        The default implementation returns None. Reimplement this method to
+        create a button box for the editor.
+        """
+        result = QDialogButtonBox(
+            cast(
+                QDialogButtonBox.StandardButtons,
+                QDialogButtonBox.StandardButton.Save
+                | QDialogButtonBox.StandardButton.Cancel
+                | QDialogButtonBox.StandardButton.Discard
+                | QDialogButtonBox.StandardButton.Reset,
+            ),
+            self,
+        )
+
+        result.accepted.connect(self.on_save)  # type: ignore[union-attr]
+        result.rejected.connect(self.on_cancel_edit)  # type: ignore[union-attr]
+        # type: ignore[union-attr]
+        result.rejected.connect(lambda: self.close_window(self))
+
+        style = self.style()
+        assert style is not None
+
+        discard_btn = result.button(QDialogButtonBox.StandardButton.Discard)
+        assert discard_btn is not None
+        discard_btn.clicked.connect(self.on_cancel_edit)  # type: ignore
+        discard_btn.setIcon(
+            style.standardIcon(QStyle.StandardPixmap.SP_DialogDiscardButton)
+        )
+
+        reset_btn = result.button(QDialogButtonBox.StandardButton.Reset)
+        assert reset_btn is not None
+        reset_btn.clicked.connect(self.on_reset_edit)  # type: ignore
+        reset_btn.setIcon(
+            style.standardIcon(QStyle.StandardPixmap.SP_DialogResetButton)
+        )
+
+        save_btn = result.button(QDialogButtonBox.StandardButton.Save)
+        assert save_btn is not None
+        save_btn.setIcon(
+            style.standardIcon(QStyle.StandardPixmap.SP_DialogSaveButton)
+        )
+
+        cancel_btn = result.button(QDialogButtonBox.StandardButton.Cancel)
+        assert cancel_btn is not None
+        cancel_btn.setIcon(
+            style.standardIcon(QStyle.StandardPixmap.SP_DialogCancelButton)
+        )
+
+        self.recordSaved.connect(lambda: self.bbox_react_to_dirty(False))
+        self.dirtyChanged.connect(self.bbox_react_to_dirty)
+
+        self.btn_box = result
+        return result
+
+    def bbox_react_to_dirty(self, dirty: bool):
+        """React to the dirty state of the editor."""
+        if self.btn_box is None:
+            return
+
+        reset_btn = self.btn_box.button(QDialogButtonBox.StandardButton.Reset)
+        assert reset_btn is not None
+        reset_btn.clicked.connect(self.on_reset_edit)  # type: ignore
+
+        save_btn = self.btn_box.button(QDialogButtonBox.StandardButton.Save)
+        assert save_btn is not None
+        discard_btn = self.btn_box.button(
+            QDialogButtonBox.StandardButton.Discard
+        )
+        assert discard_btn is not None
+
+        save_btn.setEnabled(dirty)
+        reset_btn.setEnabled(dirty)
+        discard_btn.setEnabled(dirty)

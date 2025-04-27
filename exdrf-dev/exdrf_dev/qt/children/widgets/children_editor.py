@@ -24,7 +24,7 @@ class QtChildEditor(EditorDb["Child"], Ui_QtChildEditor):
         from exdrf_dev.db.models import Child as DbChild
 
         super().__init__(ctx=ctx, db_model=DbChild, **kwargs)
-        self.setup_ui(self)
+        self.verticalLayout.addWidget(self.create_button_box())
 
     def editing_changed(self, value: bool):
         pass

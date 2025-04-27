@@ -26,6 +26,8 @@ class QtParentEditor(EditorDb["Parent"], Ui_QtParentEditor):
         super().__init__(ctx=ctx, db_model=DbParent, **kwargs)
         self.setup_ui(self)
 
+        self.verticalLayout.addChildWidget(self.create_button_box())
+
     def editing_changed(self, value: bool):
         pass
 

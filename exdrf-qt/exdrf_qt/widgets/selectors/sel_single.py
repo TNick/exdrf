@@ -1,5 +1,6 @@
 from typing import TYPE_CHECKING, Generic, Optional, TypeVar
 
+from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import QLineEdit
 
 from exdrf_qt.context_use import QtUseContext
@@ -20,6 +21,8 @@ class SingleSelDb(QLineEdit, QtUseContext, Generic[DBM]):
     """
 
     qt_model: "QtModel[DBM]"
+
+    selectedItemsChanged = pyqtSignal(list)  # type: ignore[valid-type]
 
     def __init__(
         self,

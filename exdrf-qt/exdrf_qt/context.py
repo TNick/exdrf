@@ -41,6 +41,22 @@ class QtContext(DbConn):
         w.show()
         return result
 
+    def close_window(self, w: "QWidget"):
+        """Closes a stand-alone window.
+
+        The default implementation assumes that the `top_widget` has a
+        `mdi_area` attribute that is an instance of `QMdiArea`. Reimplement
+        this method if you want to use a different type of window manager.
+
+        Args:
+            w: The widget to close.
+        """
+        if not w:
+            return
+        self.top_widget.mdi_area.removeSubWindow(w.parent())
+        w.close()
+        w.deleteLater
+
     def set_db_string(self, c_string: str) -> None:
         """Sets the database connection string.
 

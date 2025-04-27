@@ -1,6 +1,8 @@
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    from PyQt5.QtWidgets import QWidget  # noqa: F401
+
     from exdrf_qt.context import QtContext
 
 
@@ -8,6 +10,30 @@ class QtUseContext:
     """Utility methods for classes that have a context."""
 
     ctx: "QtContext"
+
+    def create_window(self, w: "QWidget"):
+        """Creates a stand-alone window.
+
+        The default implementation assumes that the `top_widget` has a
+        `mdi_area` attribute that is an instance of `QMdiArea`. Reimplement
+        this method if you want to use a different type of window manager.
+
+        Args:
+            w: The widget to create a window for.
+        """
+        return self.ctx.create_window(w)
+
+    def close_window(self, w: "QWidget"):
+        """Closes a stand-alone window.
+
+        The default implementation assumes that the `top_widget` has a
+        `mdi_area` attribute that is an instance of `QMdiArea`. Reimplement
+        this method if you want to use a different type of window manager.
+
+        Args:
+            w: The widget to close.
+        """
+        return self.ctx.close_window(w)
 
     def get_icon(self, name: str):
         """Returns an icon from the resource file.

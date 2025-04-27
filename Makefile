@@ -21,6 +21,27 @@ ifeq ($(OS),Windows_NT)
 
 # Set the shell that will execute the commands.
 SHELL = cmd.exe
+SETENV = set
+
+# Load environment variables from .env file
+load-env:
+	@echo Loading environment from .env file...
+	@for /F "tokens=*" %%i in (.env) do ( \
+		set "%%i" \
+	)
+
+# Run a command with environment variables loaded
+with-env:
+	@echo Loading environment from .env file...
+	@for /F "usebackq tokens=1,* delims==" %%G in (.env) do ( \
+		setlocal EnableDelayedExpansion && \
+		set "line=%%G=%%H" && \
+		if not "!line:~0,1!" == "#" ( \
+			endlocal && set "%%G=%%H" \
+		) else ( \
+			endlocal \
+		) \
+	)
 
 
 # Installs all the packages in the mono-repo into the current environment.
@@ -72,6 +93,20 @@ else
 
 # Set the shell that will execute the commands.
 SHELL = /bin/bash
+SETENV = export
+
+# Load environment variables from .env file
+load-env:
+	@echo "Loading environment from .env file..."
+	@set -a && \
+	source .env && \
+	set +a
+
+
+# Run a command with environment variables loaded
+with-env:
+	@echo "Loading environment from .env file..."
+	@export $$(grep -v '^#' .env | xargs -d '\n')
 
 
 # Installs all the packages in the mono-repo into the current environment.
@@ -139,3 +174,8 @@ PY_UI_FILES := $(UI_FILES:.ui=_ui.py)
 
 # Add a dependency rule to regenerate _ui.py files only if .ui files change
 build-ui: $(PY_UI_FILES) delint
+
+
+# Set the PYQTDESIGNERPATH environment variable to a path inside this directory
+design:
+	python -m exdrf_dev.cli run env:DESIGNER

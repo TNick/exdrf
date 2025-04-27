@@ -26,6 +26,8 @@ class QtTagEditor(EditorDb["Tag"], Ui_QtTagEditor):
         super().__init__(ctx=ctx, db_model=DbTag, **kwargs)
         self.setup_ui(self)
 
+        self.verticalLayout.addChildWidget(self.create_button_box())
+
     def editing_changed(self, value: bool):
         pass
 

@@ -48,16 +48,76 @@ Available fixtures:
 """
 
 import pytest
-from sqlalchemy.orm import clear_mappers
+from exdrf.dataset import ExDataset
+from exdrf.resource import ExResource
+from sqlalchemy import Integer
+from sqlalchemy.orm import Mapped, clear_mappers, mapped_column
 
 from exdrf_al.base import Base
+from exdrf_al.connection import DbConn
 
 
 @pytest.fixture
 def LocalBase():
-    """
-    Fixture to provide a local instance of the Base class for testing. This is
+    """Fixture to provide a local instance of the Base class for testing. This is
     useful for creating mock models without affecting the global registry.
     """
     yield Base
     clear_mappers()
+    Base.metadata.clear()
+
+
+@pytest.fixture
+def LocalBase2Tables(LocalBase):
+    db_conn = DbConn(c_string="sqlite:///:memory:")
+    assert len(db_conn.s_stack) == 0
+
+    class MockModelA(LocalBase):
+        __tablename__ = "mock_a"
+        id: Mapped[int] = mapped_column(
+            Integer, primary_key=True, doc="Primary key of mock_a."
+        )
+
+    class MockModelB(LocalBase):
+        __tablename__ = "mock_b"
+        id: Mapped[int] = mapped_column(
+            Integer, primary_key=True, doc="Primary key of mock_b."
+        )
+
+    db_conn.create_all_tables(LocalBase)
+    yield db_conn, MockModelA, MockModelB
+    db_conn.close()
+
+
+@pytest.fixture
+def Dataset():
+    """Fixture to provide a local instance of the Dataset class for testing."""
+
+    yield ExDataset(name="test")
+
+
+@pytest.fixture
+def TwoResNoFields(Dataset, LocalBase2Tables):
+    db_conn, MockModelA, MockModelB = LocalBase2Tables
+    dataset = Dataset
+
+    dataset.resources = [
+        ExResource(
+            name="MockModelA",
+            src=MockModelA,
+            dataset=dataset,
+        ),
+        ExResource(
+            name="MockModelB",
+            src=MockModelB,
+            dataset=dataset,
+        ),
+    ]
+    r1, r2 = dataset.resources
+    dataset.category_map = {
+        "c1": {
+            "MockModelA": r1,
+            "MockModelB": r2,
+        }
+    }
+    yield dataset, db_conn, MockModelA, MockModelB

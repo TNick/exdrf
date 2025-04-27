@@ -14,5 +14,13 @@
             ],
             "justMyCode": false
         },
+        {
+            "name": "[Dev] Print Env",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "exdrf_dev.cli",
+            "args": ["print-env"],
+            "justMyCode": false
+        },
     ]
 }
