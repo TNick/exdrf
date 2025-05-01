@@ -1,16 +1,17 @@
-from PyQt5.QtWidgets import QSpinBox
+from typing import TYPE_CHECKING
 
-from exdrf_qt.widgets.field_ed.fed_base import DBM, QtFieldEditorBase
+from exdrf_qt.widgets.common.integer import NullableIntegerEdit
+from exdrf_qt.widgets.field_ed.fed_base import DBM, DrfFieldEditor
+
+if TYPE_CHECKING:
+    from exdrf_qt.context import QtContext
 
 
-class DrfIntEditor(QSpinBox, QtFieldEditorBase[DBM]):
+class DrfIntEditor(NullableIntegerEdit, DrfFieldEditor[DBM]):
     """Spin editor for integer numbers."""
 
-    def __init__(self, parent=None) -> None:
-        self._field_name = []
-        self._nullable = False
-        self._is_null = False
-        super().__init__(parent)
+    def __init__(self, ctx: "QtContext", parent=None) -> None:
+        super().__init__(parent, ctx=ctx)  # type: ignore
 
     def read_value(self, record: DBM) -> None:
         value = self._get_value(record)

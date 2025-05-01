@@ -1,16 +1,17 @@
-from PyQt5.QtWidgets import QDateEdit
+from typing import TYPE_CHECKING
 
-from exdrf_qt.widgets.field_ed.fed_base import DBM, QtFieldEditorBase
+from exdrf_qt.widgets.common.date import DateLineEdit
+from exdrf_qt.widgets.field_ed.fed_base import DBM, DrfFieldEditor
+
+if TYPE_CHECKING:
+    from exdrf_qt.context import QtContext
 
 
-class DrfDateEditor(QDateEdit, QtFieldEditorBase[DBM]):
+class DrfDateEditor(DateLineEdit, DrfFieldEditor[DBM]):
     """Editor for dates."""
 
-    def __init__(self, parent=None) -> None:
-        self._field_name = []
-        self._nullable = False
-        self._is_null = False
-        super().__init__(parent)
+    def __init__(self, ctx: "QtContext", parent=None) -> None:
+        super().__init__(parent, ctx=ctx)  # type: ignore
 
     def read_value(self, record: DBM) -> None:
         value = self._get_value(record)
@@ -26,19 +27,3 @@ class DrfDateEditor(QDateEdit, QtFieldEditorBase[DBM]):
         else:
             value = self.date()
             self._set_value(record, value)
-
-    def clear_to_null(self):
-        self.clear()
-        super().clear_to_null()
-
-    def keyPressEvent(self, e):
-        if self._nullable and e and e.key() == 16777223:  # Key_Delete
-            self.clear_to_null()
-        else:
-            super().keyPressEvent(e)
-
-    def contextMenuEvent(self, e):
-        assert e is not None
-        menu = self.createStandardContextMenu()
-        self.create_clear_action(menu)
-        menu.exec_(e.globalPos())

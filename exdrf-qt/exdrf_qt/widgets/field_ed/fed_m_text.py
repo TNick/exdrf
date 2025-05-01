@@ -1,15 +1,18 @@
+from typing import TYPE_CHECKING
+
 from PyQt5.QtWidgets import QPlainTextEdit
 
-from exdrf_qt.widgets.field_ed.fed_base import DBM, QtFieldEditorBase
+from exdrf_qt.widgets.field_ed.fed_base import DBM, DrfFieldEditor
+
+if TYPE_CHECKING:
+    from exdrf_qt.context import QtContext
 
 
-class DrfTextEditor(QPlainTextEdit, QtFieldEditorBase[DBM]):
+class DrfTextEditor(QPlainTextEdit, DrfFieldEditor[DBM]):
     """Text editor for multi-line text fields."""
 
-    def __init__(self, parent=None) -> None:
-        self._field_name = []
-        self._nullable = False
-        super().__init__(parent)
+    def __init__(self, ctx: "QtContext", parent=None) -> None:
+        super().__init__(parent, ctx=ctx)  # type: ignore
         self._field_name = []
 
     def read_value(self, record: DBM) -> None:

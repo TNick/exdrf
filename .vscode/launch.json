@@ -5,10 +5,20 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "[Qt] Run",
+            "name": "[Qt] Main App",
             "type": "debugpy",
             "request": "launch",
             "module": "exdrf_dev.app.__main__",
+            "args": [
+                "sqlite:///${workspaceFolder}/playground/qt-dev-db.sqlite",
+            ],
+            "justMyCode": false
+        },
+        {
+            "name": "[Qt] Field Editors Showcase",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "exdrf_dev.field_ed_show.__main__",
             "args": [
                 "sqlite:///${workspaceFolder}/playground/qt-dev-db.sqlite",
             ],

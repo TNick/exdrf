@@ -1,3 +1,11 @@
+"""Work in progress.
+
+The designer plugin for ExDrf widgets.
+
+This is a work in progress. The goal is to create a plugin that can be used in
+Qt Designer to create ExDrf widgets.
+"""
+
 import os
 
 from PyQt5.QtDesigner import (

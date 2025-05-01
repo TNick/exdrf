@@ -1,12 +1,28 @@
-from typing import Any, Dict, Generic, List, TypeVar, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Generic,
+    List,
+    Optional,
+    TypeVar,
+    Union,
+)
 
 from PyQt5.QtCore import pyqtProperty  # type: ignore
-from PyQt5.QtWidgets import QAction, QMenu, QStyle  # type: ignore
+from PyQt5.QtWidgets import QAction, QMenu  # type: ignore
+
+from exdrf_qt.context_use import QtUseContext
+from exdrf_qt.widgets.common.clear_action import create_clear_action
+from exdrf_qt.widgets.common.nullable import NullableCtrl
+
+if TYPE_CHECKING:
+    from exdrf_qt.context import QtContext
 
 DBM = TypeVar("DBM")
 
 
-class QtFieldEditorBase(Generic[DBM]):
+class DrfFieldEditor(QtUseContext, Generic[DBM], NullableCtrl):
     """Base class for all field editors.
 
     A field editor is a control that can extract the value from a record,
@@ -14,9 +30,14 @@ class QtFieldEditorBase(Generic[DBM]):
     """
 
     _field_name: List[str]
-    _nullable: bool
-    _is_null: bool
     clear_ac: QAction
+
+    def __init__(self, ctx: "QtContext") -> None:
+        self._field_name = []
+        self._nullable = False
+        self._is_null = False
+        self.ctx = ctx
+        self.clear_ac = None  # type: ignore
 
     def get_field_name(self) -> str:
         return ".".join(self._field_name)
@@ -29,24 +50,7 @@ class QtFieldEditorBase(Generic[DBM]):
         self._field_name = []
         self.update()  # type: ignore
 
-    color = pyqtProperty(
-        str, fget=get_field_name, fset=set_field_name, reset=reset_field_name
-    )
-
-    def get_nullable(self) -> bool:
-        return self._nullable
-
-    def set_nullable(self, nullable: bool) -> None:
-        self._nullable = nullable
-        self.update()  # type: ignore
-
-    def reset_nullable(self):
-        self._nullable = False
-        self.update()  # type: ignore
-
-    nullable = pyqtProperty(
-        bool, fget=get_nullable, fset=set_nullable, reset=reset_nullable
-    )
+    field_name = pyqtProperty(str, fget=get_field_name, fset=set_field_name)
 
     def read_value(self, record: DBM) -> None:
         """Read the value from the record and set it to the editor.
@@ -102,7 +106,7 @@ class QtFieldEditorBase(Generic[DBM]):
         else:
             setattr(crt, self._field_name[-1], value)
 
-    def create_clear_action(self, menu: QMenu) -> QAction:
+    def create_clear_action(self, menu: Optional[QMenu] = None) -> QAction:
         """Create a clear_to_null action for the field editor.
 
         Args:
@@ -111,21 +115,12 @@ class QtFieldEditorBase(Generic[DBM]):
         Returns:
             The created action.
         """
-        style = self.style()  # type: ignore
-        assert style is not None
-
-        clear_action = menu.addAction(
-            style.standardIcon(QStyle.StandardPixmap.SP_DialogResetButton),
-            "Set to Null",
-        )
-        assert clear_action is not None
-        clear_action.triggered.connect(self.clear_to_null)
-
-        self.clear_ac = clear_action
-        clear_action.setEnabled(self._nullable)
-        return clear_action
+        self.clear_ac = create_clear_action(self, menu=menu)  # type: ignore
+        return self.clear_ac
 
     def clear_to_null(self):
         """Clear the value of the field editor to NULL."""
         if self._nullable:
             self._is_null = True
+        if hasattr(self, "_clear_to_null_hook"):
+            self._clear_to_null_hook()  # type: ignore

@@ -23,6 +23,8 @@
         "exresource",
         "formeditor",
         "Frameless",
+        "horstretch",
+        "hsizetype",
         "htmlcov",
         "ipynb",
         "ipython",
@@ -51,11 +53,15 @@
         "setdefault",
         "setlocal",
         "setuptools",
+        "sizepolicy",
         "Spyder",
         "spyderproject",
         "spyproject",
+        "stdset",
         "trolltech",
         "usebackq",
+        "verstretch",
+        "vsizetype",
         "webassets"
     ]
 }

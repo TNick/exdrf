@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>239</width>
+    <height>468</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>MainWindow</string>
+  </property>
+  <widget class="QWidget" name="central_widget">
+   <layout class="QFormLayout" name="formLayout">
+    <item row="1" column="0">
+     <widget class="QLabel" name="lbl_bool">
+      <property name="text">
+       <string>Boolean Editor</string>
+      </property>
+     </widget>
+    </item>
+    <item row="1" column="1">
+     <widget class="DrfBoolEditor" name="ed_bool">
+      <property name="text">
+       <string/>
+      </property>
+      <property name="nullable" stdset="0">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item row="2" column="0">
+     <widget class="QLabel" name="lbl_date">
+      <property name="text">
+       <string>Date Editor</string>
+      </property>
+     </widget>
+    </item>
+    <item row="2" column="1">
+     <widget class="DrfDateEditor" name="ed_date">
+      <property name="calendarPopup">
+       <bool>true</bool>
+      </property>
+      <property name="nullable" stdset="0">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item row="3" column="0">
+     <widget class="QLabel" name="lbl_date_time">
+      <property name="text">
+       <string>Date &amp; Time Editor</string>
+      </property>
+     </widget>
+    </item>
+    <item row="3" column="1">
+     <widget class="DrfDateTimeEditor" name="ed_date_time">
+      <property name="nullable" stdset="0">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item row="4" column="0">
+     <widget class="QLabel" name="lbl_time">
+      <property name="text">
+       <string>Time Editor</string>
+      </property>
+     </widget>
+    </item>
+    <item row="4" column="1">
+     <widget class="DrfTimeEditor" name="ed_time">
+      <property name="nullable" stdset="0">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item row="5" column="0">
+     <widget class="QLabel" name="lbl_int">
+      <property name="text">
+       <string>Integer  Editor</string>
+      </property>
+     </widget>
+    </item>
+    <item row="5" column="1">
+     <widget class="DrfIntEditor" name="ed_int">
+      <property name="nullable" stdset="0">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item row="6" column="0">
+     <widget class="QLabel" name="lbl_real">
+      <property name="text">
+       <string>Real Nr.  Editor</string>
+      </property>
+     </widget>
+    </item>
+    <item row="6" column="1">
+     <widget class="QDoubleSpinBox" name="ed_real"/>
+    </item>
+    <item row="7" column="0">
+     <widget class="QLabel" name="lbl_string">
+      <property name="text">
+       <string>String Editor</string>
+      </property>
+     </widget>
+    </item>
+    <item row="7" column="1">
+     <widget class="DrfLineEditor" name="ed_string">
+      <property name="nullable" stdset="0">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item row="8" column="0">
+     <widget class="QLabel" name="lbl_text">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="text">
+       <string>Text Editor</string>
+      </property>
+     </widget>
+    </item>
+    <item row="11" column="0">
+     <widget class="QLabel" name="lbl_single">
+      <property name="text">
+       <string>Single Selector</string>
+      </property>
+     </widget>
+    </item>
+    <item row="11" column="1">
+     <widget class="QLineEdit" name="ed_single"/>
+    </item>
+    <item row="12" column="0">
+     <widget class="QLabel" name="lbl_multi">
+      <property name="text">
+       <string>Multiple Selector</string>
+      </property>
+     </widget>
+    </item>
+    <item row="12" column="1">
+     <widget class="QLineEdit" name="ed_multi"/>
+    </item>
+    <item row="10" column="0" colspan="2">
+     <widget class="DrfTextEditor" name="ed_text">
+      <property name="nullable" stdset="0">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item row="0" column="0">
+     <widget class="QLabel" name="lbl_blob">
+      <property name="text">
+       <string>Blob Editor</string>
+      </property>
+     </widget>
+    </item>
+    <item row="0" column="1">
+     <widget class="DrfBlobEditor" name="ed_blob">
+      <property name="readOnly">
+       <bool>false</bool>
+      </property>
+      <property name="nullable" stdset="0">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>DrfBlobEditor</class>
+   <extends>QLineEdit</extends>
+   <header location="global">exdrf_qt.widgets.field_ed.fed_blob</header>
+  </customwidget>
+  <customwidget>
+   <class>DrfBoolEditor</class>
+   <extends>QCheckBox</extends>
+   <header location="global">exdrf_qt.widgets.field_ed.fed_bool</header>
+  </customwidget>
+  <customwidget>
+   <class>DrfDateEditor</class>
+   <extends>QDateEdit</extends>
+   <header location="global">exdrf_qt.widgets.field_ed.fed_date</header>
+  </customwidget>
+  <customwidget>
+   <class>DrfDateTimeEditor</class>
+   <extends>QDateTimeEdit</extends>
+   <header location="global">exdrf_qt.widgets.field_ed.fed_dt</header>
+  </customwidget>
+  <customwidget>
+   <class>DrfTimeEditor</class>
+   <extends>QTimeEdit</extends>
+   <header location="global">exdrf_qt.widgets.field_ed.fed_time</header>
+  </customwidget>
+  <customwidget>
+   <class>DrfIntEditor</class>
+   <extends>QSpinBox</extends>
+   <header location="global">exdrf_qt.widgets.field_ed.fed_int</header>
+  </customwidget>
+  <customwidget>
+   <class>DrfLineEditor</class>
+   <extends>QLineEdit</extends>
+   <header location="global">exdrf_qt.widgets.field_ed.fed_s_text</header>
+  </customwidget>
+  <customwidget>
+   <class>DrfTextEditor</class>
+   <extends>QPlainTextEdit</extends>
+   <header location="global">exdrf_qt.widgets.field_ed.fed_m_text</header>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>
