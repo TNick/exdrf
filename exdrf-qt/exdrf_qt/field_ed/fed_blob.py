@@ -13,7 +13,16 @@ from exdrf_qt.field_ed.base_line import LineBase
 
 
 class DrfBlobEditor(LineBase):
-    """Editor for binary large objects (BLOBs)."""
+    """Editor for binary large objects (BLOBs).
+
+    The control is a read-only line edit with two actions: one for uploading a
+    file and one for downloading the content of the field to a file. For
+    nullable fields the control shows an action for clearing the field to null.
+
+    Attributes:
+        ac_download: Action for downloading the file.
+        ac_upload: Action for uploading a file.
+    """
 
     ac_download: QAction
     ac_upload: QAction
@@ -33,11 +42,15 @@ class DrfBlobEditor(LineBase):
         )
 
     def set_line_null(self):
+        """Sets the value of the control to NULL.
+
+        If the control does not
+        """
         self.field_value = None
         self.set_line_empty()
         self.ac_download.setEnabled(False)
         if self.nullable:
-            self.clear_ac.setEnabled(False)
+            self.ac_clear.setEnabled(False)
 
     def change_field_value(self, new_value: Any) -> None:
         """Change the field value."""
@@ -51,7 +64,7 @@ class DrfBlobEditor(LineBase):
             )
             self.ac_download.setEnabled(True)
             if self.nullable:
-                self.clear_ac.setEnabled(True)
+                self.ac_clear.setEnabled(True)
 
     def create_upload_action(self) -> QAction:
         """Create an action to upload a file."""

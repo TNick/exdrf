@@ -71,5 +71,9 @@ class DrfFieldEd(QtUseContext):
             )
         return ValidationResult(
             reason="NULL",
-            error=self.t("cmn.err.field_is_empty", "Field cannot be empty"),
+            error=self.null_error(),
         )
+
+    def null_error(self):
+        """Create the error message for NULL when the field is not nullable."""
+        return self.t("cmn.err.field_is_empty", "Field cannot be empty")
