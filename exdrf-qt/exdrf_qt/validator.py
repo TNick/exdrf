@@ -10,7 +10,8 @@ class ValidationResult(Generic[T]):
     """Validation result class.
 
     Attributes:
-        error: The error message if validation fails.
+        result: A code indicating the error.
+        reason: The error message if validation fails.
         value: The validated value of type T if validation succeeds.
     """
 

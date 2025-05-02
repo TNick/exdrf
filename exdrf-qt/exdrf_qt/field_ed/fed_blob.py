@@ -1,0 +1,126 @@
+from typing import Any
+
+from PyQt5.QtWidgets import (
+    QAction,
+    QApplication,
+    QFileDialog,
+    QLineEdit,
+    QVBoxLayout,
+    QWidget,
+)
+
+from exdrf_qt.field_ed.base_line import LineBase
+
+
+class DrfBlobEditor(LineBase):
+    """Editor for binary large objects (BLOBs)."""
+
+    ac_download: QAction
+    ac_upload: QAction
+
+    def __init__(self, parent=None, **kwargs) -> None:
+        super().__init__(parent, **kwargs)
+        self.setReadOnly(True)
+        if self.nullable:
+            self.add_clear_to_null_action()
+        self.addAction(
+            self.create_upload_action(),
+            QLineEdit.ActionPosition.TrailingPosition,
+        )
+        self.addAction(
+            self.create_download_action(),
+            QLineEdit.ActionPosition.TrailingPosition,
+        )
+
+    def set_line_null(self):
+        self.field_value = None
+        self.set_line_empty()
+        self.ac_download.setEnabled(False)
+        if self.nullable:
+            self.clear_ac.setEnabled(False)
+
+    def change_field_value(self, new_value: Any) -> None:
+        """Change the field value."""
+        if new_value is None:
+            self.set_line_null()
+        else:
+            self.field_value = new_value
+            self.set_line_normal()
+            self.setText(
+                self.t("cmn.bytes_length", "({cnt} bytes)", cnt=len(new_value))
+            )
+            self.ac_download.setEnabled(True)
+            if self.nullable:
+                self.clear_ac.setEnabled(True)
+
+    def create_upload_action(self) -> QAction:
+        """Create an action to upload a file."""
+        action = QAction(
+            self.get_icon("folder"),
+            self.t("cmn.upload_file", "Upload File"),
+            self,
+        )
+        action.triggered.connect(self.upload_file)
+        self.ac_upload = action
+        return action
+
+    def create_download_action(self) -> QAction:
+        """Create an action to download a file."""
+        action = QAction(
+            self.get_icon("download"),
+            self.t("cmn.download_file", "Download File"),
+            self,
+        )
+        action.triggered.connect(self.download_file)
+        action.setEnabled(False)
+        self.ac_download = action
+        return action
+
+    def upload_file(self) -> None:
+        """Select a file and set it's content as the value."""
+        file_name, _ = QFileDialog.getOpenFileName(self, "Select File")
+        if file_name:
+            with open(file_name, "rb") as f:
+                self.change_field_value(f.read())
+
+    def download_file(self) -> None:
+        """Select a file and save the content of the value to it."""
+        if self.field_value is None:
+            return
+        file_name, _ = QFileDialog.getSaveFileName(self, "Save File")
+        if file_name:
+            with open(file_name, "wb") as f:
+                if self._data is not None:
+                    f.write(self._data)
+
+
+if __name__ == "__main__":
+    from exdrf_qt.context import QtContext
+
+    # Create the main window
+    app = QApplication([])
+    main_window = QWidget()
+    main_window.setWindowTitle("DrfBlobEditor Example")
+
+    ctx = QtContext(c_string="sqlite:///:memory:")
+
+    # Create a layout and add three DrfBlobEditor controls
+    layout = QVBoxLayout()
+    editor1 = DrfBlobEditor(ctx=ctx, nullable=True, description="Nullable BLOB")
+    editor1.change_field_value(None)
+
+    editor2 = DrfBlobEditor(
+        ctx=ctx, nullable=False, description="Non-nullable BLOB"
+    )
+    editor2.change_field_value(None)
+
+    editor3 = DrfBlobEditor(ctx=ctx)
+    editor3.change_field_value(b"Sample data")
+
+    layout.addWidget(editor1)
+    layout.addWidget(editor2)
+    layout.addWidget(editor3)
+
+    main_window.setLayout(layout)
+    main_window.show()
+    app.exec_()
