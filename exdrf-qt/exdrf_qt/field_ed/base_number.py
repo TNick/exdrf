@@ -129,6 +129,7 @@ class NumberBase(LineBase, Generic[T]):
                     new_value = f"{new_value}{self.suffix}"
                 self.setText(new_value)
                 if self.nullable:
+                    assert self.ac_clear is not None
                     self.ac_clear.setEnabled(True)
 
     def set_line_null(self):
@@ -140,6 +141,7 @@ class NumberBase(LineBase, Generic[T]):
         self.field_value = None
         self.set_line_empty()
         if self.nullable:
+            assert self.ac_clear is not None
             self.ac_clear.setEnabled(False)
 
     def change_by_delta(self, delta: int) -> None:

@@ -94,6 +94,7 @@ class DrfLineEditor(LineBase):
         self.field_value = None
         self.set_line_empty()
         if self.nullable:
+            assert self.ac_clear is not None
             self.ac_clear.setEnabled(False)
 
 
