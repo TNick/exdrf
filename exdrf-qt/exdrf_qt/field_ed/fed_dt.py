@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any
 
 from PyQt5.QtWidgets import QLineEdit
@@ -9,8 +9,10 @@ from exdrf_qt.field_ed.base_date import DateBase
 class DrfDateTimeEditor(DateBase):
     """Editor for dates."""
 
-    def __init__(self, parent=None, **kwargs) -> None:
-        super().__init__(parent=parent, **kwargs)
+    def __init__(
+        self, parent=None, format: str = "DD-MM-YYYY HH:mm:ss", **kwargs
+    ) -> None:
+        super().__init__(parent=parent, format=format, **kwargs)
         self.addAction(
             self.create_calendar_action(),
             QLineEdit.ActionPosition.TrailingPosition,
@@ -33,12 +35,11 @@ class DrfDateTimeEditor(DateBase):
             self.set_line_normal()
             self.setText(self.formatter.moment_to_string(new_value))
             if self.nullable:
+                assert self.ac_clear is not None
                 self.ac_clear.setEnabled(True)
 
 
 if __name__ == "__main__":
-    from datetime import date
-
     from PyQt5.QtWidgets import QApplication, QVBoxLayout, QWidget
 
     from exdrf_qt.context import QtContext as LocalContext

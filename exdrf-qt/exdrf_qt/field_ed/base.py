@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING, Any, Optional
 
-from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtCore import pyqtProperty, pyqtSignal  # type: ignore
 from PyQt5.QtWidgets import QWidget
 
 from exdrf_qt.context_use import QtUseContext
@@ -24,10 +24,13 @@ class DrfFieldEd(QtUseContext):
             It will only be emitted for valid values for that field.
         enteredErrorState: Signal emitted when the field enters an error state.
             The value is the error message.
+
+    Qt Properties:
+        clearable: Indicates if the field is nullable.
     """
 
     field_value: Any
-    nullable: bool = False
+    _nullable: bool = False
     description: Optional[str] = ""
 
     controlChanged = pyqtSignal()
@@ -77,3 +80,51 @@ class DrfFieldEd(QtUseContext):
     def null_error(self):
         """Create the error message for NULL when the field is not nullable."""
         return self.t("cmn.err.field_is_empty", "Field cannot be empty")
+
+    @property
+    def nullable(self) -> bool:
+        """Get the nullable property."""
+        return self._nullable
+
+    @nullable.setter
+    def nullable(self, value: bool) -> None:
+        """Set the nullable property."""
+        self._nullable = value
+        if hasattr(self, "ac_clear") and self.ac_clear is not None:
+            # We have an action to clear the field...
+            if value:
+                # ... and so we should.
+                self.ac_clear.setEnabled(self.field_value is not None)
+            else:
+                # ... but we should not.
+                self.ac_clear.deleteLater()
+                self.ac_clear = None
+        else:
+            # We don't have an action to clear the field...
+            if value:
+                # ... but we should have one.
+                self.add_clear_to_null_action()
+            else:
+                # ... and we should not so all is well in the world.
+                pass
+
+    def add_clear_to_null_action(self) -> None:
+        pass
+
+    def getClearable(self) -> bool:
+        """Tell if the field is nullable.
+
+        This is a support function for implementing the clearable property.
+        """
+        return self.nullable
+
+    def setClearable(self, clearable: bool) -> None:
+        """Set the nullable property and update the editor accordingly.
+
+        Because of the way Qt implements properties, the subclass method will
+        not be called. To work around this, reimplement set_nullable_hooks
+        instead.
+        """
+        self.nullable = clearable
+
+    clearable = pyqtProperty(bool, fget=getClearable, fset=setClearable)

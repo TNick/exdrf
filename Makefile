@@ -85,7 +85,7 @@ delint: aflake
 		popd)
 
 # Collects all the .ui files.
-UI_FILES := $(shell powershell -Command "Get-ChildItem '$(MODULE_NAME)' -Recurse -Filter '*.ui' | ForEach-Object { $$_.FullName }")
+UI_FILES := $(shell python -c "import os; [print(os.path.relpath(os.path.join(root, f)).replace('\\', '/')) for root, _, files in os.walk('.') if 'venv' not in root for f in files if f.endswith('.ui')]")
 
 
 # ========================= [ Linux-specific targets ] =========================
@@ -157,7 +157,7 @@ delint: aflake
 
 
 # Collects all the .ui files.
-UI_FILES := $(shell find $(MODULE_NAME) -type f -name '*.ui')
+UI_FILES := $(shell find $(CURDIR) -type f -name '*.ui')
 
 endif
 # ==================== [ End of platform-specific targets ] ====================
@@ -169,6 +169,7 @@ PY_UI_FILES := $(UI_FILES:.ui=_ui.py)
 
 # Define the .ui to _ui.py conversion rule
 %_ui.py: %.ui exdrf-qt/exdrf_qt/scripts/gen_ui_file.py
+	@echo "Generating $@ from $<..."
 	python -m exdrf_qt.scripts.gen_ui_file $< $@
 
 

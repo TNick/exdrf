@@ -27,7 +27,7 @@
       <property name="text">
        <string/>
       </property>
-      <property name="nullable" stdset="0">
+      <property name="clearable" stdset="0">
        <bool>true</bool>
       </property>
      </widget>
@@ -41,10 +41,7 @@
     </item>
     <item row="2" column="1">
      <widget class="DrfDateEditor" name="ed_date">
-      <property name="calendarPopup">
-       <bool>true</bool>
-      </property>
-      <property name="nullable" stdset="0">
+      <property name="clearable" stdset="0">
        <bool>true</bool>
       </property>
      </widget>
@@ -58,7 +55,7 @@
     </item>
     <item row="3" column="1">
      <widget class="DrfDateTimeEditor" name="ed_date_time">
-      <property name="nullable" stdset="0">
+      <property name="clearable" stdset="0">
        <bool>true</bool>
       </property>
      </widget>
@@ -72,7 +69,7 @@
     </item>
     <item row="4" column="1">
      <widget class="DrfTimeEditor" name="ed_time">
-      <property name="nullable" stdset="0">
+      <property name="clearable" stdset="0">
        <bool>true</bool>
       </property>
      </widget>
@@ -86,7 +83,7 @@
     </item>
     <item row="5" column="1">
      <widget class="DrfIntEditor" name="ed_int">
-      <property name="nullable" stdset="0">
+      <property name="clearable" stdset="0">
        <bool>true</bool>
       </property>
      </widget>
@@ -99,7 +96,11 @@
      </widget>
     </item>
     <item row="6" column="1">
-     <widget class="QDoubleSpinBox" name="ed_real"/>
+     <widget class="DrfRealEditor" name="ed_real">
+      <property name="clearable" stdset="0">
+       <bool>true</bool>
+      </property>
+     </widget>
     </item>
     <item row="7" column="0">
      <widget class="QLabel" name="lbl_string">
@@ -110,7 +111,7 @@
     </item>
     <item row="7" column="1">
      <widget class="DrfLineEditor" name="ed_string">
-      <property name="nullable" stdset="0">
+      <property name="clearable" stdset="0">
        <bool>true</bool>
       </property>
      </widget>
@@ -150,7 +151,7 @@
     </item>
     <item row="10" column="0" colspan="2">
      <widget class="DrfTextEditor" name="ed_text">
-      <property name="nullable" stdset="0">
+      <property name="clearable" stdset="0">
        <bool>true</bool>
       </property>
      </widget>
@@ -165,9 +166,9 @@
     <item row="0" column="1">
      <widget class="DrfBlobEditor" name="ed_blob">
       <property name="readOnly">
-       <bool>false</bool>
+       <bool>true</bool>
       </property>
-      <property name="nullable" stdset="0">
+      <property name="clearable" stdset="0">
        <bool>true</bool>
       </property>
      </widget>
@@ -180,42 +181,47 @@
   <customwidget>
    <class>DrfBlobEditor</class>
    <extends>QLineEdit</extends>
-   <header location="global">exdrf_qt.widgets.field_ed.fed_blob</header>
+   <header location="global">exdrf_qt.field_ed.fed_blob</header>
   </customwidget>
   <customwidget>
    <class>DrfBoolEditor</class>
    <extends>QCheckBox</extends>
-   <header location="global">exdrf_qt.widgets.field_ed.fed_bool</header>
+   <header location="global">exdrf_qt.field_ed.fed_bool</header>
   </customwidget>
   <customwidget>
    <class>DrfDateEditor</class>
-   <extends>QDateEdit</extends>
-   <header location="global">exdrf_qt.widgets.field_ed.fed_date</header>
+   <extends>QLineEdit</extends>
+   <header location="global">exdrf_qt.field_ed.fed_date</header>
   </customwidget>
   <customwidget>
    <class>DrfDateTimeEditor</class>
-   <extends>QDateTimeEdit</extends>
-   <header location="global">exdrf_qt.widgets.field_ed.fed_dt</header>
+   <extends>QLineEdit</extends>
+   <header location="global">exdrf_qt.field_ed.fed_dt</header>
   </customwidget>
   <customwidget>
    <class>DrfTimeEditor</class>
-   <extends>QTimeEdit</extends>
-   <header location="global">exdrf_qt.widgets.field_ed.fed_time</header>
+   <extends>QLineEdit</extends>
+   <header location="global">exdrf_qt.field_ed.fed_time</header>
   </customwidget>
   <customwidget>
    <class>DrfIntEditor</class>
-   <extends>QSpinBox</extends>
-   <header location="global">exdrf_qt.widgets.field_ed.fed_int</header>
+   <extends>QLineEdit</extends>
+   <header location="global">exdrf_qt.field_ed.fed_int</header>
+  </customwidget>
+  <customwidget>
+   <class>DrfRealEditor</class>
+   <extends>QLineEdit</extends>
+   <header location="global">exdrf_qt.field_ed.fed_real</header>
   </customwidget>
   <customwidget>
    <class>DrfLineEditor</class>
    <extends>QLineEdit</extends>
-   <header location="global">exdrf_qt.widgets.field_ed.fed_s_text</header>
+   <header location="global">exdrf_qt.field_ed.fed_s_text</header>
   </customwidget>
   <customwidget>
    <class>DrfTextEditor</class>
    <extends>QPlainTextEdit</extends>
-   <header location="global">exdrf_qt.widgets.field_ed.fed_m_text</header>
+   <header location="global">exdrf_qt.field_ed.fed_m_text</header>
   </customwidget>
  </customwidgets>
  <resources/>

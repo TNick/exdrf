@@ -9,8 +9,10 @@ from exdrf_qt.field_ed.base_date import DateBase
 class DrfDateEditor(DateBase):
     """Editor for dates."""
 
-    def __init__(self, parent=None, **kwargs) -> None:
-        super().__init__(parent=parent, **kwargs)
+    def __init__(
+        self, parent=None, format: str = "DD-MM-YYYY", **kwargs
+    ) -> None:
+        super().__init__(parent=parent, format=format, **kwargs)
         self.addAction(
             self.create_calendar_action(),
             QLineEdit.ActionPosition.TrailingPosition,

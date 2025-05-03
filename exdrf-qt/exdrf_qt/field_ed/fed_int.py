@@ -3,7 +3,7 @@ from typing import Optional
 from exdrf_qt.field_ed.base_number import NumberBase
 
 
-class DrfIntegerEditor(NumberBase[int]):
+class DrfIntEditor(NumberBase[int]):
     """Editor for integer numbers."""
 
     def validate(self, text: str) -> Optional[int]:
@@ -30,17 +30,17 @@ if __name__ == "__main__":
 
     # Create a layout and add three DrfBlobEditor controls
     layout = QVBoxLayout()
-    editor1 = DrfIntegerEditor(
+    editor1 = DrfIntEditor(
         ctx=ctx, nullable=True, description="Nullable integer"
     )
     editor1.change_field_value(None)
 
-    editor2 = DrfIntegerEditor(
+    editor2 = DrfIntEditor(
         ctx=ctx, nullable=False, description="Non-nullable integer"
     )
     editor2.change_field_value(None)
 
-    editor3 = DrfIntegerEditor(
+    editor3 = DrfIntEditor(
         ctx=ctx,
         prefix="Prefix ",
         suffix=" Suffix",

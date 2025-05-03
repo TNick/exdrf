@@ -1,4 +1,4 @@
-from datetime import datetime, time
+from datetime import date, datetime, time
 from typing import Any
 
 from exdrf_qt.field_ed.base_date import DateBase
@@ -6,6 +6,9 @@ from exdrf_qt.field_ed.base_date import DateBase
 
 class DrfTimeEditor(DateBase):
     """Editor for time."""
+
+    def __init__(self, parent=None, format: str = "HH:mm:ss", **kwargs) -> None:
+        super().__init__(parent=parent, format=format, **kwargs)
 
     def change_field_value(self, new_value: Any) -> None:
         """Change the field value.
@@ -30,8 +33,6 @@ class DrfTimeEditor(DateBase):
 
 
 if __name__ == "__main__":
-    from datetime import date
-
     from PyQt5.QtWidgets import QApplication, QVBoxLayout, QWidget
 
     from exdrf_qt.context import QtContext as LocalContext

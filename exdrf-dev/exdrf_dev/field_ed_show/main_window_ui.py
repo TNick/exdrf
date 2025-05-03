@@ -3,14 +3,15 @@ from typing import TYPE_CHECKING
 from PyQt5 import QtCore, QtWidgets
 
 if TYPE_CHECKING:
-    from exdrf_qt.widgets.field_ed.fed_blob import DrfBlobEditor
-    from exdrf_qt.widgets.field_ed.fed_bool import DrfBoolEditor
-    from exdrf_qt.widgets.field_ed.fed_date import DrfDateEditor
-    from exdrf_qt.widgets.field_ed.fed_dt import DrfDateTimeEditor
-    from exdrf_qt.widgets.field_ed.fed_int import DrfIntEditor
-    from exdrf_qt.widgets.field_ed.fed_m_text import DrfTextEditor
-    from exdrf_qt.widgets.field_ed.fed_s_text import DrfLineEditor
-    from exdrf_qt.widgets.field_ed.fed_time import DrfTimeEditor
+    from exdrf_qt.field_ed.fed_blob import DrfBlobEditor
+    from exdrf_qt.field_ed.fed_bool import DrfBoolEditor
+    from exdrf_qt.field_ed.fed_date import DrfDateEditor
+    from exdrf_qt.field_ed.fed_dt import DrfDateTimeEditor
+    from exdrf_qt.field_ed.fed_int import DrfIntEditor
+    from exdrf_qt.field_ed.fed_m_text import DrfTextEditor
+    from exdrf_qt.field_ed.fed_real import DrfRealEditor
+    from exdrf_qt.field_ed.fed_s_text import DrfLineEditor
+    from exdrf_qt.field_ed.fed_time import DrfTimeEditor
 
 
 class Ui_MainWindow:
@@ -47,7 +48,7 @@ class Ui_MainWindow:
     lbl_int: "QtWidgets.QLabel"
     ed_int: "DrfIntEditor"
     lbl_real: "QtWidgets.QLabel"
-    ed_real: "QtWidgets.QDoubleSpinBox"
+    ed_real: "DrfRealEditor"
     lbl_string: "QtWidgets.QLabel"
     ed_string: "DrfLineEditor"
     lbl_text: "QtWidgets.QLabel"
@@ -61,14 +62,15 @@ class Ui_MainWindow:
     statusbar: "QtWidgets.QStatusBar"
 
     def setup_ui(self, MainWindow):
-        from exdrf_qt.widgets.field_ed.fed_blob import DrfBlobEditor
-        from exdrf_qt.widgets.field_ed.fed_bool import DrfBoolEditor
-        from exdrf_qt.widgets.field_ed.fed_date import DrfDateEditor
-        from exdrf_qt.widgets.field_ed.fed_dt import DrfDateTimeEditor
-        from exdrf_qt.widgets.field_ed.fed_int import DrfIntEditor
-        from exdrf_qt.widgets.field_ed.fed_m_text import DrfTextEditor
-        from exdrf_qt.widgets.field_ed.fed_s_text import DrfLineEditor
-        from exdrf_qt.widgets.field_ed.fed_time import DrfTimeEditor
+        from exdrf_qt.field_ed.fed_blob import DrfBlobEditor
+        from exdrf_qt.field_ed.fed_bool import DrfBoolEditor
+        from exdrf_qt.field_ed.fed_date import DrfDateEditor
+        from exdrf_qt.field_ed.fed_dt import DrfDateTimeEditor
+        from exdrf_qt.field_ed.fed_int import DrfIntEditor
+        from exdrf_qt.field_ed.fed_m_text import DrfTextEditor
+        from exdrf_qt.field_ed.fed_real import DrfRealEditor
+        from exdrf_qt.field_ed.fed_s_text import DrfLineEditor
+        from exdrf_qt.field_ed.fed_time import DrfTimeEditor
 
         MainWindow.setObjectName("MainWindow")
         MainWindow.resize(239, 468)
@@ -83,7 +85,7 @@ class Ui_MainWindow:
         )
         self.ed_bool = DrfBoolEditor(parent=self.central_widget, ctx=self.ctx)
         self.ed_bool.setText("")
-        self.ed_bool.setProperty("nullable", True)
+        self.ed_bool.setProperty("clearable", True)
         self.ed_bool.setObjectName("ed_bool")
         self.formLayout.setWidget(
             1, QtWidgets.QFormLayout.FieldRole, self.ed_bool
@@ -94,7 +96,7 @@ class Ui_MainWindow:
             2, QtWidgets.QFormLayout.LabelRole, self.lbl_date
         )
         self.ed_date = DrfDateEditor(parent=self.central_widget, ctx=self.ctx)
-        self.ed_date.setProperty("nullable", True)
+        self.ed_date.setProperty("clearable", True)
         self.ed_date.setObjectName("ed_date")
         self.formLayout.setWidget(
             2, QtWidgets.QFormLayout.FieldRole, self.ed_date
@@ -107,7 +109,7 @@ class Ui_MainWindow:
         self.ed_date_time = DrfDateTimeEditor(
             parent=self.central_widget, ctx=self.ctx
         )
-        self.ed_date_time.setProperty("nullable", True)
+        self.ed_date_time.setProperty("clearable", True)
         self.ed_date_time.setObjectName("ed_date_time")
         self.formLayout.setWidget(
             3, QtWidgets.QFormLayout.FieldRole, self.ed_date_time
@@ -118,7 +120,7 @@ class Ui_MainWindow:
             4, QtWidgets.QFormLayout.LabelRole, self.lbl_time
         )
         self.ed_time = DrfTimeEditor(parent=self.central_widget, ctx=self.ctx)
-        self.ed_time.setProperty("nullable", True)
+        self.ed_time.setProperty("clearable", True)
         self.ed_time.setObjectName("ed_time")
         self.formLayout.setWidget(
             4, QtWidgets.QFormLayout.FieldRole, self.ed_time
@@ -129,7 +131,7 @@ class Ui_MainWindow:
             5, QtWidgets.QFormLayout.LabelRole, self.lbl_int
         )
         self.ed_int = DrfIntEditor(parent=self.central_widget, ctx=self.ctx)
-        self.ed_int.setProperty("nullable", True)
+        self.ed_int.setProperty("clearable", True)
         self.ed_int.setObjectName("ed_int")
         self.formLayout.setWidget(
             5, QtWidgets.QFormLayout.FieldRole, self.ed_int
@@ -139,7 +141,8 @@ class Ui_MainWindow:
         self.formLayout.setWidget(
             6, QtWidgets.QFormLayout.LabelRole, self.lbl_real
         )
-        self.ed_real = QtWidgets.QDoubleSpinBox(self.central_widget)
+        self.ed_real = DrfRealEditor(parent=self.central_widget, ctx=self.ctx)
+        self.ed_real.setProperty("clearable", True)
         self.ed_real.setObjectName("ed_real")
         self.formLayout.setWidget(
             6, QtWidgets.QFormLayout.FieldRole, self.ed_real
@@ -150,7 +153,7 @@ class Ui_MainWindow:
             7, QtWidgets.QFormLayout.LabelRole, self.lbl_string
         )
         self.ed_string = DrfLineEditor(parent=self.central_widget, ctx=self.ctx)
-        self.ed_string.setProperty("nullable", True)
+        self.ed_string.setProperty("clearable", True)
         self.ed_string.setObjectName("ed_string")
         self.formLayout.setWidget(
             7, QtWidgets.QFormLayout.FieldRole, self.ed_string
@@ -190,7 +193,7 @@ class Ui_MainWindow:
             12, QtWidgets.QFormLayout.FieldRole, self.ed_multi
         )
         self.ed_text = DrfTextEditor(parent=self.central_widget, ctx=self.ctx)
-        self.ed_text.setProperty("nullable", True)
+        self.ed_text.setProperty("clearable", True)
         self.ed_text.setObjectName("ed_text")
         self.formLayout.setWidget(
             10, QtWidgets.QFormLayout.SpanningRole, self.ed_text
@@ -201,8 +204,8 @@ class Ui_MainWindow:
             0, QtWidgets.QFormLayout.LabelRole, self.lbl_blob
         )
         self.ed_blob = DrfBlobEditor(parent=self.central_widget, ctx=self.ctx)
-        self.ed_blob.setReadOnly(False)
-        self.ed_blob.setProperty("nullable", True)
+        self.ed_blob.setReadOnly(True)
+        self.ed_blob.setProperty("clearable", True)
         self.ed_blob.setObjectName("ed_blob")
         self.formLayout.setWidget(
             0, QtWidgets.QFormLayout.FieldRole, self.ed_blob

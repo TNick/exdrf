@@ -80,7 +80,7 @@ class InfoLabel(QLabel):
 class LineBase(QLineEdit, DrfFieldEd):
     """Base for classes that are based on line edit controls."""
 
-    ac_clear: QAction
+    ac_clear: Optional[QAction]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -88,6 +88,15 @@ class LineBase(QLineEdit, DrfFieldEd):
 
         # watch for global mouse‑moves
         cast(QApplication, QApplication.instance()).installEventFilter(self)
+
+        # Enable or disable the clear to null action depending on the
+        # presence of text in the line edit.
+        self.textChanged.connect(self.change_clear_action)
+
+    def change_clear_action(self, text: str):
+        """Enable or disable the clear to null action depending on the text."""
+        if hasattr(self, "ac_clear") and self.ac_clear is not None:
+            self.ac_clear.setEnabled(bool(text))
 
     def apply_description(self):
         """Apply the description to the widget."""
@@ -154,6 +163,10 @@ class LineBase(QLineEdit, DrfFieldEd):
 
     def add_clear_to_null_action(self):
         """Adds a clear to null action to the line edit."""
+        if hasattr(self, "ac_clear") and self.ac_clear is not None:
+            # We have an action to clear the field already, so we do nothing.
+            return
+
         self.ac_clear = QAction(
             self.get_icon("clear_to_null"),
             self.t("cmn.clear_to_null", "Clear to NULL"),
@@ -161,6 +174,7 @@ class LineBase(QLineEdit, DrfFieldEd):
         )
         self.ac_clear.triggered.connect(self.set_line_null)
         self.addAction(self.ac_clear, QLineEdit.ActionPosition.LeadingPosition)
+        self.ac_clear.setEnabled(self.field_value is not None)
 
     def set_line_null(self):
         """Sets the line edit to null."""

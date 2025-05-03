@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import QAction, QPlainTextEdit
 from exdrf_qt.field_ed.base import DrfFieldEd
 
 
-class DrfMultiTextEditor(QPlainTextEdit, DrfFieldEd):
+class DrfTextEditor(QPlainTextEdit, DrfFieldEd):
     """Editor for short strings."""
 
     ac_clear: QAction
@@ -129,7 +129,7 @@ class DrfMultiTextEditor(QPlainTextEdit, DrfFieldEd):
             self.controlChanged.emit()
         else:
             self.setStyleSheet(
-                "DrfMultiTextEditor { color: red; font-style: italic; } "
+                "DrfTextEditor { color: red; font-style: italic; } "
             )
             self.setPlaceholderText(self.t("cmn.Empty", "Empty"))
 
@@ -144,7 +144,7 @@ class DrfMultiTextEditor(QPlainTextEdit, DrfFieldEd):
         Note that this method does not emit any signal.
         """
         self.setStyleSheet(
-            "DrfMultiTextEditor { color: black; font-style: normal; } "
+            "DrfTextEditor { color: black; font-style: normal; } "
         )
         self.setPlaceholderText("")
         self.update_tooltip(self.description or "")
@@ -157,9 +157,7 @@ class DrfMultiTextEditor(QPlainTextEdit, DrfFieldEd):
 
         The control also issues the error signal.`
         """
-        self.setStyleSheet(
-            "DrfMultiTextEditor { color: red; font-style: normal; } "
-        )
+        self.setStyleSheet("DrfTextEditor { color: red; font-style: normal; } ")
         self.setPlaceholderText(self.t("cmn.ERROR", "ERROR"))
         self.update_tooltip(error, error=True)
         self.enteredErrorState.emit(error)
@@ -182,17 +180,17 @@ if __name__ == "__main__":
 
     # Create a layout and add three DrfBlobEditor controls
     layout = QVBoxLayout()
-    editor1 = DrfMultiTextEditor(
+    editor1 = DrfTextEditor(
         ctx=ctx, nullable=True, description="Nullable string"
     )
     editor1.change_field_value(None)
 
-    editor2 = DrfMultiTextEditor(
+    editor2 = DrfTextEditor(
         ctx=ctx, nullable=False, description="Non-nullable string"
     )
     editor2.change_field_value(None)
 
-    editor3 = DrfMultiTextEditor(
+    editor3 = DrfTextEditor(
         ctx=ctx,
         nullable=True,
         max_len=10,

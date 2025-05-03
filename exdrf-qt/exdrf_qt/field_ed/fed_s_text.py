@@ -3,7 +3,7 @@ from typing import Any, Optional
 from exdrf_qt.field_ed.base_line import LineBase
 
 
-class DrfSingleTextEditor(LineBase):
+class DrfLineEditor(LineBase):
     """Editor for short strings."""
 
     min_len: Optional[int] = None
@@ -111,17 +111,17 @@ if __name__ == "__main__":
 
     # Create a layout and add three DrfBlobEditor controls
     layout = QVBoxLayout()
-    editor1 = DrfSingleTextEditor(
+    editor1 = DrfLineEditor(
         ctx=ctx, nullable=True, description="Nullable string"
     )
     editor1.change_field_value(None)
 
-    editor2 = DrfSingleTextEditor(
+    editor2 = DrfLineEditor(
         ctx=ctx, nullable=False, description="Non-nullable string"
     )
     editor2.change_field_value(None)
 
-    editor3 = DrfSingleTextEditor(
+    editor3 = DrfLineEditor(
         ctx=ctx,
         nullable=True,
     )

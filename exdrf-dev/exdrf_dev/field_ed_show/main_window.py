@@ -4,7 +4,6 @@ from exdrf_qt.context import QtContext
 from PyQt5.QtWidgets import QApplication, QMainWindow
 
 from exdrf_dev.field_ed_show.main_window_ui import Ui_MainWindow
-from exdrf_dev.qt.menus import ExdrfMenus
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +11,6 @@ logger = logging.getLogger(__name__)
 class MainWindow(QMainWindow, Ui_MainWindow):
     """Main window for the application."""
 
-    menus: ExdrfMenus
     shutting_down: bool = False
     ctx: "QtContext"
 

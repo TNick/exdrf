@@ -56,6 +56,20 @@ class DrfBoolEditor(QCheckBox, DrfFieldEd):
             self.setTristate(False)
         self.stateChanged.connect(self._on_check_state_changed)
 
+    @property
+    def nullable(self) -> bool:
+        """Get the nullable property."""
+        return self._nullable
+
+    @nullable.setter
+    def nullable(self, value: bool) -> None:
+        """Set the nullable property."""
+        self._nullable = value
+        if value:
+            self.setTristate(True)
+        else:
+            self.setTristate(False)
+
     def set_null_value(self) -> None:
         """Sets the value of the control to NULL.
 
