@@ -7,10 +7,14 @@ from exdrf_qt.field_ed.base import DrfFieldEd
 
 
 class InfoLabel(QLabel):
+    last_label_rect: QRect
+    hover_hidden: bool
+    is_error: bool
+
     def __init__(self, parent=None, text: Optional[str] = ""):
         super().__init__(parent=parent)
-        self._last_label_rect = QRect()
-        self._hover_hidden = False
+        self.last_label_rect = QRect()
+        self.hover_hidden = False
 
         self.setText(text)
         self.update_style(False)
@@ -26,6 +30,11 @@ class InfoLabel(QLabel):
         )
         self.hide()
 
+    @property
+    def is_empty(self) -> bool:
+        """Returns True if the label is empty."""
+        return not self.text()
+
     def update_style(self, with_error: bool):
         self.setStyleSheet(
             "QLabel { "
@@ -37,25 +46,26 @@ class InfoLabel(QLabel):
             "}"
         )
 
-        # reset opacity in case it was hidden by hover
-        # self.setWindowOpacity(0.8)
-
         # remember where it was on screen
-        self._last_label_rect = self.frameGeometry()
+        self.last_label_rect = self.frameGeometry()
         self.update()
+
+        if len(self.text()) == 0:
+            self.hide()
 
     def show_text(self, text: str):
         self.setText(text)
         self.update_style(False)
+        self.is_error = False
 
     def show_error(self, text: str):
         self.setText(text)
         self.update_style(True)
+        self.is_error = True
 
     def is_inside(self, pos):
-        return (
-            self._last_label_rect.isValid()
-            and self._last_label_rect.contains(pos)
+        return self.last_label_rect.isValid() and self.last_label_rect.contains(
+            pos
         )
 
     def update_position(self, other):
@@ -64,7 +74,7 @@ class InfoLabel(QLabel):
         global_pos = other.mapToGlobal(QPoint(0, other.height()))
         self.move(global_pos)
         self.resize(other.width(), self.sizeHint().height())
-        self._last_label_rect = self.frameGeometry()
+        self.last_label_rect = self.frameGeometry()
 
 
 class LineBase(QLineEdit, DrfFieldEd):
@@ -74,7 +84,7 @@ class LineBase(QLineEdit, DrfFieldEd):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.floating_label = InfoLabel(parent=self, text=self.description)
+        self.btm_tip = InfoLabel(parent=self, text=self.description)
 
         # watch for global mouse‑moves
         cast(QApplication, QApplication.instance()).installEventFilter(self)
@@ -130,19 +140,17 @@ class LineBase(QLineEdit, DrfFieldEd):
 
     def update_tooltip(self, text: str, error: bool = False):
         if error:
-            self.floating_label.show_error(text)
+            self.btm_tip.show_error(text)
         else:
-            self.floating_label.show_text(text)
+            self.btm_tip.show_text(text)
         self._show_floating_label()
 
     def _show_floating_label(self):
-        self.floating_label.resize(
-            self.width(), self.floating_label.sizeHint().height()
-        )
-        if self.hasFocus():
-            self.floating_label.show()
+        self.btm_tip.resize(self.width(), self.btm_tip.sizeHint().height())
+        if self.hasFocus() and not self.btm_tip.is_empty:
+            self.btm_tip.show()
 
-        self.floating_label.update_position(self)
+        self.btm_tip.update_position(self)
 
     def add_clear_to_null_action(self):
         """Adds a clear to null action to the line edit."""
@@ -166,31 +174,31 @@ class LineBase(QLineEdit, DrfFieldEd):
 
     def focusOutEvent(self, event):  # type: ignore[override]
         super().focusOutEvent(event)
-        self.floating_label.hide()
+        self.btm_tip.hide()
 
     def resizeEvent(self, event):  # type: ignore[override]
         super().resizeEvent(event)
-        self.floating_label.update_position(self)
+        self.btm_tip.update_position(self)
 
     def moveEvent(self, event):  # type: ignore[override]
         super().moveEvent(event)
-        self.floating_label.update_position(self)
+        self.btm_tip.update_position(self)
 
     def keyPressEvent(self, event):  # type: ignore[override]
         super().keyPressEvent(event)
         if event.key() == Qt.Key.Key_Escape:
-            self.floating_label.hide()
+            self.btm_tip.hide()
             self.clearFocus()
 
     def eventFilter(self, obj, event):  # type: ignore[override]
         # 1) intercept hover on the label itself
-        if obj is self.floating_label:
+        if obj is self.btm_tip:
             if (
                 event.type() == QEvent.Type.Enter
-                and not self.floating_label._hover_hidden
+                and not self.btm_tip.hover_hidden
             ):
-                self.floating_label._hover_hidden = True
-                self.floating_label.hide()
+                self.btm_tip.hover_hidden = True
+                self.btm_tip.hide()
                 return True
 
             # swallow Leave on the label so it doesn’t flicker back immediately
@@ -200,16 +208,16 @@ class LineBase(QLineEdit, DrfFieldEd):
         # 2) watch all mouse‑moves globally
 
         if (
-            self.floating_label._hover_hidden
+            self.btm_tip.hover_hidden
             and event.type() == QEvent.Type.MouseMove
             and self.hasFocus()
         ):
             # if the cursor has left the old label rect, show it again
-            if not self.floating_label.is_inside(event.globalPos()):
-                self._hover_hidden = False
+            if not self.btm_tip.is_inside(event.globalPos()):
+                self.hover_hidden = False
                 self._show_floating_label()
-            elif self.floating_label.isVisible():
-                self.floating_label.hide()
+            elif self.btm_tip.isVisible():
+                self.btm_tip.hide()
 
             # don’t block the event
             return False

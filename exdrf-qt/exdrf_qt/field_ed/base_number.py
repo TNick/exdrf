@@ -31,10 +31,9 @@ class NumberBase(LineBase, Generic[T]):
         minimum: Optional[T] = None,
         maximum: Optional[T] = None,
         step: Optional[T] = None,
-        parent=None,
         **kwargs,
     ) -> None:
-        super().__init__(parent, **kwargs)
+        super().__init__(**kwargs)
         self.prefix = prefix
         self.suffix = suffix
         self.minimum = minimum
@@ -98,7 +97,7 @@ class NumberBase(LineBase, Generic[T]):
 
         return text
 
-    def _on_text_changed(self, text: str, final: bool) -> Optional[T]:
+    def _on_text_changed(self, text: str, final: bool) -> None:
         """Handles text changes in the line edit."""
         text = self.get_stripped_text(text)
         if len(text) == 0:
