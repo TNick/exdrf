@@ -32,6 +32,7 @@ class DrfBlobEditor(LineBase):
         self.setReadOnly(True)
         if self.nullable:
             self.add_clear_to_null_action()
+
         self.addAction(
             self.create_upload_action(),
             QLineEdit.ActionPosition.TrailingPosition,
@@ -44,7 +45,8 @@ class DrfBlobEditor(LineBase):
     def set_line_null(self):
         """Sets the value of the control to NULL.
 
-        If the control does not
+        If the control does not support null values, the control will enter
+        the error state.
         """
         self.field_value = None
         self.set_line_empty()
@@ -53,7 +55,11 @@ class DrfBlobEditor(LineBase):
             self.ac_clear.setEnabled(False)
 
     def change_field_value(self, new_value: Any) -> None:
-        """Change the field value."""
+        """Change the field value.
+
+        Args:
+            new_value: The new value to set. If None, the field is set to NULL.
+        """
         if new_value is None:
             self.set_line_null()
         else:

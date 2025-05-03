@@ -57,6 +57,11 @@ class DrfBoolEditor(QCheckBox, DrfFieldEd):
         self.stateChanged.connect(self._on_check_state_changed)
 
     def set_null_value(self) -> None:
+        """Sets the value of the control to NULL.
+
+        If the control does not support null values, the control will enter
+        the error state.
+        """
         self.field_value = None
         if self.nullable:
             self.setCheckState(Qt.CheckState.PartiallyChecked)
@@ -70,7 +75,11 @@ class DrfBoolEditor(QCheckBox, DrfFieldEd):
             self.setStyleSheet("QCheckBox { color: red; font-style: normal; }")
 
     def change_field_value(self, new_value: Any) -> None:
-        """Change the field value."""
+        """Change the field value.
+
+        Args:
+            new_value: The new value to set. If None, the field is set to NULL.
+        """
         if new_value is None:
             self.set_null_value()
             return

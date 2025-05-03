@@ -22,7 +22,7 @@ class ValidationResult(Generic[T]):
     @property
     def is_valid(self) -> bool:
         """Check if the validation result is valid."""
-        return self.error is None and self.value is not None
+        return self.error is None
 
     @property
     def is_invalid(self) -> bool:
