@@ -33,7 +33,7 @@ if TYPE_CHECKING:
     from exdrf_qt.worker import Work  # noqa: F401
 
 
-DEFAULT_CHUNK_SIZE = 50
+DEFAULT_CHUNK_SIZE = 8
 DBM = TypeVar("DBM")
 logger = logging.getLogger(__name__)
 
@@ -145,7 +145,7 @@ class QtModel(
         self.cache = []
 
         self._total_count = -1
-        self._loaded_count = -1
+        self._loaded_count = 0
 
         # Compute the total count.
         self._total_count = (
@@ -370,17 +370,19 @@ class QtModel(
                 work.error,
             )
         else:
+            loaded_update = 0
             for i in range(req.start, req.start + req.count):
-                self.db_item_to_record(
-                    work.result[i - req.start], self.cache[i]
-                )
+                record = self.cache[i]
+                if not record.loaded:
+                    loaded_update = loaded_update + 1
+                self.db_item_to_record(work.result[i - req.start], record)
             self.requestCompleted.emit(
                 req.uniq_id,
                 req.start,
                 req.count,
                 len(self.requests),
             )
-            self.loaded_count = self._loaded_count + req.count
+            self.loaded_count = self._loaded_count + loaded_update
         self.dataChanged.emit(
             self.createIndex(req.start, 0),
             self.createIndex(
