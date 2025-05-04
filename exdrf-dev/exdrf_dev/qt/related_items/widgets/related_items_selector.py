@@ -4,7 +4,7 @@
 
 from typing import TYPE_CHECKING
 
-from exdrf_qt.widgets import MultiSelDb, SingleSelDb
+from exdrf_qt.controls import MultiSelDb, SingleSelDb
 
 if TYPE_CHECKING:
     from exdrf_qt.context import QtContext

@@ -42,7 +42,7 @@ class QtRecord:
             self.values[i] = {}
 
         # Mark it as loaded if it has a db_id.
-        if self.db_id is None:
+        if self.db_id is None or self.db_id == -1:
             self.loaded = False
         else:
             self.loaded = True

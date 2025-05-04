@@ -15,7 +15,7 @@ from typing import (
 
 from exdrf.constants import RecIdType
 from exdrf.filter import FilterType
-from PyQt5.QtCore import QAbstractItemModel, QModelIndex, Qt, pyqtSignal
+from PyQt5.QtCore import QAbstractItemModel, QModelIndex, Qt, QTimer, pyqtSignal
 from sqlalchemy import func, select, tuple_
 
 from exdrf_qt.context_use import QtUseContext
@@ -65,10 +65,27 @@ class QtModel(
         sort_by: A list of tuples with the field name and order (asc or desc).
         filters: The filters to apply.
         cache: the list of items that have been loaded from the database.
+        batch_size: The number of items to load at once. The model issues
+            requests for items from the database when the total count is
+            computed (if the cache is empty) and each time a request
+            is made for an item that is not in the cache. Instead of loading
+            one item at a time, the model loads a batch of items. The batch size
+            is the number of items to load at once.
 
     Signals:
         totalCountChanged: Emitted when a change iin the total count is
             detected by the recalculate_total_count method.
+        loadedCountChanged: Emitted when the number of items loaded from the
+            database changes.
+        requestIssued: Emitted when a request for items is issued. It receives
+            the request ID, the starting index, the number of items to load,
+            and the number of requests in progress, including this one.
+        requestCompleted: Emitted when a request for items is completed. It
+            receives the request ID, the starting index, the number of items
+            loaded, and the number of requests in progress, excluding this one.
+        requestError: Emitted when a request for items generates an error. It
+            receives the request ID, the starting index, the number of items
+            loaded, the number of requests in progress, and the error message.
     """
 
     db_model: Type[DBM]
@@ -83,6 +100,9 @@ class QtModel(
 
     totalCountChanged = pyqtSignal(int)
     loadedCountChanged = pyqtSignal(int)
+    requestIssued = pyqtSignal(int, int, int, int)
+    requestCompleted = pyqtSignal(int, int, int, int)
+    requestError = pyqtSignal(int, int, int, int, str)
 
     def __init__(
         self,
@@ -182,7 +202,10 @@ class QtModel(
 
     @loaded_count.setter
     def loaded_count(self, value: int) -> None:
-        """Set the number of items loaded from the database."""
+        """Set the number of items loaded from the database.
+
+        Also emits the `loadedCountChanged` signal if the value changes.
+        """
         if value != self._loaded_count:
             self._loaded_count = value
             self.loadedCountChanged.emit(value)
@@ -256,7 +279,7 @@ class QtModel(
     @property
     def is_fully_loaded(self) -> bool:
         """Return True if all items are loaded."""
-        return self.loaded_count == self.total_count
+        return self._loaded_count == self._total_count
 
     def ensure_stubs(self, new_total: int) -> None:
         """We populate the cache with stubs so that the model can be used."""
@@ -272,7 +295,7 @@ class QtModel(
             self.cache.append(QtRecord(model=self, db_id=-1))  # type: ignore
 
         # If the cache is empty, we post a request for items.
-        if self.loaded_count == 0:
+        if self._loaded_count == 0:
             self.request_items(0, self.batch_size * 2)
 
     def request_items(self, start: int, count: int) -> None:
@@ -285,16 +308,42 @@ class QtModel(
             start: The starting index of the items to load.
             count: The number of items to load.
         """
+        if start + count > self.total_count:
+            count = self.total_count - start
+        if count <= 0:
+            return
         req = self.new_request(start, count)
         if not self.trim_request(req):
             # There are already requests in progress that overlap with this one.
             return
+
+        # Save to internal list.
         self.add_request(req)
 
+        # Allow some time to accumulate requests before executing them.
+        QTimer.singleShot(100, lambda: self.execute_request(req.uniq_id))
+
+    def execute_request(self, req_id: int) -> None:
+        """Delayed execution of the request.
+
+        The function is called by the QTimer after a short delay to allow
+        multiple requests to be accumulated. The function pushes the
+        request to the worker thread and emits the `requestIssued` signal.
+        """
+        req = self.requests[req_id]
+
+        # Prevent merges into this request.
+        req.pushed = True
+
         self.ctx.push_work(
-            statement=self.sorted_selection.offset(start).limit(count),
+            statement=self.sorted_selection.offset(req.start).limit(req.count),
             callback=self._load_items,
             req_id=(id(self), req),
+        )
+
+        # Inform interested parties that a request has been issued.
+        self.requestIssued.emit(
+            req.uniq_id, req.start, req.count, len(self.requests)
         )
 
     def _load_items(self, work: "Work") -> None:
@@ -313,15 +362,29 @@ class QtModel(
             logger.debug(
                 "Request %d generated an error: %s", work.req_id, work.error
             )
+            self.requestError.emit(
+                req.uniq_id,
+                req.start,
+                req.count,
+                len(self.requests),
+                work.error,
+            )
         else:
             for i in range(req.start, req.start + req.count):
                 self.db_item_to_record(
                     work.result[i - req.start], self.cache[i]
                 )
+            self.requestCompleted.emit(
+                req.uniq_id,
+                req.start,
+                req.count,
+                len(self.requests),
+            )
+            self.loaded_count = self._loaded_count + req.count
         self.dataChanged.emit(
             self.createIndex(req.start, 0),
             self.createIndex(
-                req.start + req.count - 1, len(self.column_fields)
+                req.start + req.count - 1, len(self.column_fields) - 1
             ),
         )
 
@@ -352,6 +415,7 @@ class QtModel(
 
         for f_index, fld in enumerate(self.column_fields):
             result.values[f_index] = fld.values(item)
+        result.loaded = True
         return result
 
     def get_db_item_id(self, item: DBM) -> Union[int, Tuple[int, ...]]:
@@ -460,7 +524,6 @@ class QtModel(
         if parent.isValid():
             return QModelIndex()
 
-        self.request_items(row, 1)
         return self.createIndex(row, column)
 
     def data(self, index: QModelIndex, role: int = Qt.ItemDataRole.DisplayRole):
@@ -468,11 +531,10 @@ class QtModel(
             return None
 
         row = index.row()
-
-        # Load all rows up to and including this one.
-        self.request_items(row, 1)
-
         item: "QtRecord" = self.cache[row]
+        if role == Qt.ItemDataRole.DisplayRole and not item.loaded:
+            self.request_items(row, self.batch_size)
+
         return item.data(index.column(), cast(Qt.ItemDataRole, role))
 
     def headerData(

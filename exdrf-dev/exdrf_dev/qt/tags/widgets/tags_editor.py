@@ -5,7 +5,7 @@
 from typing import TYPE_CHECKING, Union
 
 from exdrf.constants import RecIdType
-from exdrf_qt.widgets import EditorDb
+from exdrf_qt.controls.base_editor import EditorDb
 
 from exdrf_dev.qt.tags.widgets.tags_editor_ui import Ui_QtTagEditor
 

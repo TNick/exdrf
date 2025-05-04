@@ -95,10 +95,16 @@ class QtContext(DbConn):
             req_id: An optional request ID to identify the work. If one is not
                 provided, a new one will be generated.
         """
-        if not self.ensure_db_conn():
-            raise RuntimeError("No database connection string provided")
-
-        assert self.work_relay is not None, "Work relay is not initialized"
+        if self.work_relay is None:
+            if self.ensure_db_conn():
+                self.work_relay = Relay(
+                    cn=DbConn(self.c_string), parent=self.top_widget
+                )
+            else:
+                raise RuntimeError(
+                    "Attempted to push work but no database connection "
+                    "string was provided"
+                )
         return self.work_relay.push_work(
             statement=statement, callback=callback, req_id=req_id
         )

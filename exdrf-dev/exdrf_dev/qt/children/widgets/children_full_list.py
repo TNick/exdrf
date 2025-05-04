@@ -3,7 +3,7 @@
 # Don't change it manually.
 from typing import TYPE_CHECKING
 
-from exdrf_qt.widgets.lists import ListDb
+from exdrf_qt.controls.table_list import ListDb
 
 if TYPE_CHECKING:
     from exdrf_dev.db.models import Child  # noqa: F401

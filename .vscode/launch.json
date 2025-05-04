@@ -10,7 +10,7 @@
             "request": "launch",
             "module": "exdrf_dev.app.__main__",
             "args": [
-                "sqlite:///${workspaceFolder}/playground/qt-dev-db.sqlite",
+                "sqlite:///${workspaceFolder}/playground/select_model_show2.sqlite",
             ],
             "justMyCode": false
         },
@@ -42,5 +42,16 @@
             "args": ["print-env"],
             "justMyCode": false
         },
+        {
+            "name": "Debug Pytest Tests",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pytest",
+            "args": [
+              "/"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": false
+          }
     ]
 }

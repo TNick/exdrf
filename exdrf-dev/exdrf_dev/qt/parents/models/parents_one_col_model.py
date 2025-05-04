@@ -2,7 +2,7 @@
 # Source: db2qt.database_to_qt
 # Don't change it manually.
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Tuple, Union
 
 from exdrf_qt.models import QtModel
 
@@ -31,3 +31,6 @@ class QtParentNaMo(QtModel["Parent"]):
             ],
             **kwargs,
         )
+
+    def get_db_item_id(self, item: "Parent") -> Union[int, Tuple[int, ...]]:
+        return item.id

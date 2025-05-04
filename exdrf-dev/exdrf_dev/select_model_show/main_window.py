@@ -60,7 +60,9 @@ class MainWindow(QMainWindow):
         self.tree.setAlternatingRowColors(True)
         self.tree.setSelectionMode(QTreeView.SingleSelection)
         self.tree.setSelectionBehavior(QTreeView.SelectRows)
+        self.tree.setRootIsDecorated(False)
         self.tree.setModel(self.model)
+        self.tree.setHeaderHidden(True)
         self.ly.addWidget(self.tree)
 
         self.ly.setContentsMargins(1, 1, 1, 1)

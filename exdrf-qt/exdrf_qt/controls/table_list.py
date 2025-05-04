@@ -12,13 +12,21 @@ from typing import (
 
 from exdrf.constants import RecIdType
 from PyQt5.QtCore import QPoint, Qt
-from PyQt5.QtWidgets import QAbstractItemView, QAction, QMenu, QTreeView
+from PyQt5.QtWidgets import (
+    QAbstractItemView,
+    QAction,
+    QHBoxLayout,
+    QLabel,
+    QMenu,
+    QTreeView,
+    QVBoxLayout,
+    QWidget,
+)
 
 from exdrf_qt.context_use import QtUseContext
 
 if TYPE_CHECKING:
     from PyQt5.QtCore import QItemSelection, QItemSelectionModel  # noqa: F401
-    from PyQt5.QtWidgets import QWidget  # noqa: F401
 
     from exdrf_qt.context import QtContext  # noqa: F401
     from exdrf_qt.controls.base_editor import EditorDb  # noqa: F401
@@ -29,7 +37,130 @@ DBM = TypeVar("DBM")
 logger = logging.getLogger(__name__)
 
 
-class ListDb(QTreeView, QtUseContext, Generic[DBM]):
+class ListDb(QWidget, QtUseContext, Generic[DBM]):
+    """A list that presents the content of a database table."""
+
+    def __init__(
+        self,
+        ctx: "QtContext",
+        parent: Optional["QWidget"] = None,
+        menu_handler: Optional[Callable] = None,
+        editor: Optional[Type["EditorDb[DBM]"]] = None,
+    ):
+        super().__init__(parent=parent)
+        self.ctx = ctx
+
+        self.ly = QVBoxLayout(self)
+        self.ly.setContentsMargins(0, 0, 0, 0)
+        self.ly.setSpacing(0)
+
+        self.tree = TreeViewDb[DBM](
+            ctx=ctx,
+            parent=self,
+            menu_handler=menu_handler,
+            editor=editor,
+        )
+        self.ly.addWidget(self.tree)
+
+        self.h_ly = QHBoxLayout(self)
+
+        self.lbl_total = QLabel(
+            self.t("cmn.total_count", "Total: {count}", count=0), self
+        )
+        self.h_ly.addWidget(self.lbl_total)
+
+        self.lbl_loaded = QLabel(
+            self.t("cmn.loaded_count", "Loaded: {count}", count=0), self
+        )
+        self.h_ly.addWidget(self.lbl_loaded)
+
+        self.lbl_in_prog = QLabel(
+            self.t("cmn.in_progress_count", "In progress: {count}", count=0),
+            self,
+        )
+        self.h_ly.addWidget(self.lbl_in_prog)
+
+        self.ly.addLayout(self.h_ly)
+        self.setLayout(self.ly)
+
+    @property
+    def qt_model(self) -> "QtModel[DBM]":
+        """The model that is used to present the data in the list."""
+        return self.tree.qt_model
+
+    def setModel(self, model: "QtModel[DBM]") -> None:
+        """Set the model for the list."""
+        crt_m = self.qt_model
+        if crt_m is not None:
+            crt_m.totalCountChanged.disconnect(self.on_total_count_changed)
+            crt_m.loadedCountChanged.disconnect(self.on_loaded_count_changed)
+            crt_m.requestIssued.disconnect(self.on_request_issued)
+            crt_m.requestCompleted.disconnect(self.on_request_completed)
+            crt_m.requestError.disconnect(self.on_request_error)
+
+        self.tree.setModel(model)
+
+        if model is not None:
+            model.totalCountChanged.connect(self.on_total_count_changed)
+            model.loadedCountChanged.connect(self.on_loaded_count_changed)
+            model.requestIssued.connect(self.on_request_issued)
+            model.requestCompleted.connect(self.on_request_completed)
+            model.requestError.connect(self.on_request_error)
+            self.on_total_count_changed(model.total_count)
+            self.on_loaded_count_changed(model.loaded_count)
+            self.on_request_issued(0, 0, 0, len(model.requests))
+
+    def on_total_count_changed(self, count: int) -> None:
+        """Handle the total count changed event."""
+        self.lbl_total.setText(
+            self.t("sq.common.total", "Total: {count}", count=count)
+        )
+
+    def on_loaded_count_changed(self, count: int) -> None:
+        """Handle the loaded count changed event."""
+        self.lbl_loaded.setText(
+            self.t("sq.common.loaded", "Loaded: {count}", count=count)
+        )
+
+    def on_request_issued(
+        self,
+        start: int,
+        count: int,
+        uniq_id: int,
+        total_count: int,
+    ) -> None:
+        """Handle the request issued event."""
+        self.lbl_in_prog.setText(
+            self.t(
+                "cmn.in_progress_count",
+                "In progress: {count}",
+                count=total_count,
+            ),
+        )
+
+    def on_request_completed(
+        self,
+        start: int,
+        count: int,
+        uniq_id: int,
+        total_count: int,
+    ) -> None:
+        """Handle the request completed event."""
+        self.on_request_issued(start, count, uniq_id, total_count)
+
+    def on_request_error(
+        self,
+        start: int,
+        count: int,
+        uniq_id: int,
+        total_count: int,
+        error: str,
+    ) -> None:
+        """Handle the request error event."""
+        self.on_request_issued(start, count, uniq_id, total_count)
+
+
+class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
     """A list that presents the content of a database table.
 
     Attributes:
@@ -83,6 +214,7 @@ class ListDb(QTreeView, QtUseContext, Generic[DBM]):
         self.setDragEnabled(True)
         self.setDragDropMode(QAbstractItemView.InternalMove)
         self.setDragDropOverwriteMode(False)
+        self.setUniformRowHeights(True)
 
         # Prepare the actions.
         self.create_actions()
@@ -147,7 +279,7 @@ class ListDb(QTreeView, QtUseContext, Generic[DBM]):
         self.ac_export.triggered.connect(self.on_export_all)
 
         self.ac_set_null = QAction(
-            self.get_icon("broom"),
+            self.get_icon("clear_to_null"),
             self.t("sq.common.clear", "Set to NULL"),
             self,
         )
