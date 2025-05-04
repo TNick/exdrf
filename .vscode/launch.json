@@ -25,6 +25,16 @@
             "justMyCode": false
         },
         {
+            "name": "[Qt] Select From Model Showcase",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "exdrf_dev.select_model_show.__main__",
+            "args": [
+                "sqlite:///${workspaceFolder}/playground/select_model_show.sqlite",
+            ],
+            "justMyCode": false
+        },
+        {
             "name": "[Dev] Print Env",
             "type": "debugpy",
             "request": "launch",

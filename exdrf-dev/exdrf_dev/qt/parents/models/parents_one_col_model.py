@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING
 
 from exdrf_qt.models import QtModel
 
+from exdrf_dev.qt.parents.fields.name_field import NameField
+
 if TYPE_CHECKING:
     from exdrf_qt.context import QtContext  # noqa: F401
     from sqlalchemy import Select  # noqa: F401
@@ -21,4 +23,11 @@ class QtParentNaMo(QtModel["Parent"]):
     def __init__(self, ctx: "QtContext", **kwargs):
         from exdrf_dev.db.models import Parent as DbParent
 
-        super().__init__(ctx=ctx, db_model=DbParent, fields=[], **kwargs)
+        super().__init__(
+            ctx=ctx,
+            db_model=DbParent,
+            fields=[
+                NameField(resource=self),  # type: ignore
+            ],
+            **kwargs,
+        )
