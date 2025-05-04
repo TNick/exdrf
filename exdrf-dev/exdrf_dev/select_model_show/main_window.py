@@ -2,13 +2,10 @@ import logging
 
 from exdrf_al.base import Base
 from exdrf_qt.context import QtContext
+from exdrf_qt.controls.search_list import SearchList
 from PyQt5.QtWidgets import (
     QApplication,
-    QLineEdit,
     QMainWindow,
-    QTreeView,
-    QVBoxLayout,
-    QWidget,
 )
 
 import exdrf_dev.db.models  # noqa: F401
@@ -47,32 +44,16 @@ class MainWindow(QMainWindow):
                     max_related_items_per_comp_model=30,
                 )
 
-        self.cw = QWidget(self)
-        self.ly = QVBoxLayout()
-
-        self.src_line = QLineEdit(self)
-        self.src_line.setPlaceholderText("Enter search term")
-        self.ly.addWidget(self.src_line)
-
         self.model = QtParentNaMo(ctx=self.ctx)
-
-        self.tree = QTreeView(self)
-        self.tree.setAlternatingRowColors(True)
-        self.tree.setSelectionMode(QTreeView.SingleSelection)
-        self.tree.setSelectionBehavior(QTreeView.SelectRows)
-        self.tree.setRootIsDecorated(False)
-        self.tree.setModel(self.model)
-        self.tree.setHeaderHidden(True)
-        self.ly.addWidget(self.tree)
-
-        self.ly.setContentsMargins(1, 1, 1, 1)
-        self.ly.setSpacing(1)
-        self.cw.setLayout(self.ly)
-
+        self.cw = SearchList(
+            ctx=self.ctx,
+            model=self.model,
+            parent=self,
+        )
         self.setCentralWidget(self.cw)
 
         # Set the window title and icon
-        self.setWindowTitle("ExDRF Field Editor Showcase")
+        self.setWindowTitle("ExDRF Line Search Showcase")
 
         # Change the size of the window.
         self.resize(239, 468)

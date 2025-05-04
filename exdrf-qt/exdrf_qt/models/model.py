@@ -47,10 +47,9 @@ class QtModel(
 ):
     """A base class for models with database backend.
 
-    Filtering consists of two parts: applying logic operators and filtering by
-    the individual fields. The logic operators are by the code in this class
-    inside the `filtered_selection` property. The filtering by the individual
-    fields is done by the `Field` class.
+    To change filtering or sorting change the `filters` and `sort_by`
+    parameters then call the `reset_model` method. The cache will be cleared
+    and the total count will be recomputed.
 
     Attributes:
         ctx: The top level context.

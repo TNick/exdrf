@@ -10,7 +10,7 @@
             "request": "launch",
             "module": "exdrf_dev.app.__main__",
             "args": [
-                "sqlite:///${workspaceFolder}/playground/select_model_show2.sqlite",
+                "sqlite:///${workspaceFolder}/playground/select_model_show.sqlite",
             ],
             "justMyCode": false
         },
