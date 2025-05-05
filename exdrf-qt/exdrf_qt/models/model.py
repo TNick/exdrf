@@ -450,12 +450,16 @@ class QtModel(
         )
 
     def db_item_to_record(
-        self, item: DBM, record: Optional["QtRecord"]
+        self, item: DBM, record: Optional["QtRecord"] = None
     ) -> "QtRecord":
         """Convert a database item to a record.
 
         The function asks the fields to compute the values for each role of the
         corresponding column.
+
+        NOTE: As this method is also used from outside the model it is important
+        for it to remain pure. It should not change the state of the model or
+        the record.
 
         Args:
             item: The database item.
@@ -537,6 +541,51 @@ class QtModel(
                 the `self.fields` array).
         """
         return self.get_primary_columns().in_(id_list)
+
+    def get_one_db_item_by_id(self, rec_id: RecIdType) -> Optional[DBM]:
+        """Return the database item with the given ID.
+
+        This is a convenience function that uses the primary key columns to
+        load the item from the database. The model does not use this directly.
+
+        Args:
+            rec_id: The ID of the item to return.
+
+        Returns:
+            The database item with the given ID or None if not found.
+        """
+        primary_cols = []
+        for f in self.fields:
+            if f.primary:
+                primary_cols.append(getattr(self.db_model, f.name))
+        assert len(primary_cols) > 0, "No primary columns found"
+
+        conditions = []
+        if len(primary_cols) == 1:
+            assert isinstance(rec_id, int), (
+                "ID is not an int for a single primary key model. "
+                f"Model: {self.db_model.__name__} "
+                f"ID: {rec_id}/{rec_id.__class__.__name__}"
+            )
+            conditions.append(primary_cols[0] == rec_id)
+        else:
+            assert isinstance(rec_id, (list, tuple)), (
+                "ID is not a tuple for a composite primary key model. "
+                f"Model: {self.db_model.__name__} "
+                f"ID: {rec_id}/{rec_id.__class__.__name__}"
+            )
+
+            assert len(primary_cols) == len(rec_id), (
+                "ID tuple does not match the number of primary keys. "
+                f"Model: {self.db_model.__name__} "
+                f"ID: {rec_id}/{rec_id.__class__.__name__}"
+            )
+
+            for col, value in zip(primary_cols, rec_id):
+                conditions.append(col == value)
+
+        with self.ctx.same_session() as session:
+            return session.scalar(self.selection.where(*conditions))
 
     def clone_me(self):
         """Clone the model.

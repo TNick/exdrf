@@ -39,7 +39,7 @@ class Ui_QtChildEditor:
     tab_info: "QtWidgets.QWidget"
     formLayout2: "QtWidgets.QFormLayout"
     lbl_id: "QtWidgets.QLabel"
-    c_id: "QtWidgets.QSpinBox"
+    c_id: "QtWidgets.QLineEdit"
 
     def setup_ui(self, QtChildEditor):
         from exdrf_qt.field_ed.fed_m_text import DrfTextEditor
@@ -91,7 +91,8 @@ class Ui_QtChildEditor:
         self.formLayout2.setWidget(
             0, QtWidgets.QFormLayout.LabelRole, self.lbl_id
         )
-        self.c_id = QtWidgets.QSpinBox(self.tab_info)
+        self.c_id = QtWidgets.QLineEdit(self.tab_info)
+        self.c_id.setReadOnly(True)
         self.c_id.setObjectName("c_id")
         self.formLayout2.setWidget(
             0, QtWidgets.QFormLayout.FieldRole, self.c_id

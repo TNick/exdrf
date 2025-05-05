@@ -8,7 +8,7 @@ from exdrf_qt.field_ed.base_drop import DropBase
 if TYPE_CHECKING:
     from exdrf_qt.context import QtContext
     from exdrf_qt.models import QtModel
-
+    from exdrf_qt.models.record import QtRecord
 DBM = TypeVar("DBM")
 
 
@@ -54,9 +54,25 @@ class DrfSelOneEditor(DropBase, Generic[DBM]):
         else:
             self.field_value = new_value
             self.set_line_normal()
-            self.setText(
-                self.t("cmn.bytes_length", "({cnt} bytes)", cnt=len(new_value))
-            )
+
+            # Attempt to locate the record in the mode.
+            loaded = False
+            row = self.model._db_to_row.get(new_value, None)
+            if row is not None:
+                record = self.model.cache[row]
+                if record.loaded:
+                    self.setText(self.record_to_text(record))
+                    loaded = True
+
+            if not loaded:
+                # If the record is not loaded, we need to load it ourselves.
+                db_item = self.model.get_one_db_item_by_id(new_value)
+                if db_item is None:
+                    self.set_line_null()
+                    return
+                record = self.model.db_item_to_record(db_item)
+                self.setText(self.record_to_text(record))
+
             if self.nullable:
                 assert self.ac_clear is not None
                 self.ac_clear.setEnabled(True)
@@ -77,9 +93,7 @@ class DrfSelOneEditor(DropBase, Generic[DBM]):
         record = self._dropdown.model.cache[row]
         if not record.loaded:
             return
-        data = record.get_row_data(role=Qt.ItemDataRole.DisplayRole)
-        value = ", ".join([str(d) for d in data if d is not None])
-        self.setText(value)
+        self.setText(self.record_to_text(record))
         self._dropdown.hide()
         self.field_value = record.db_id
         self.set_line_normal()
@@ -87,3 +101,9 @@ class DrfSelOneEditor(DropBase, Generic[DBM]):
     def set_line_null(self):
         super().set_line_null()
         self._dropdown.tree.setCurrentIndex(QModelIndex())
+
+    def record_to_text(self, record: "QtRecord") -> str:
+        """Convert a record to text."""
+        data = record.get_row_data(role=Qt.ItemDataRole.DisplayRole)
+        value = ", ".join([str(d) for d in data if d is not None])
+        return value

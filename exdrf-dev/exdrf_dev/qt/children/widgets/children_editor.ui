@@ -66,7 +66,11 @@
         </widget>
        </item>
        <item row="0" column="1">
-        <widget class="QSpinBox" name="c_id"/>
+        <widget class="QLineEdit" name="c_id">
+         <property name="readOnly">
+          <bool>true</bool>
+         </property>
+        </widget>
        </item>
       </layout>
      </widget>
@@ -82,7 +86,7 @@
   </customwidget>
   <customwidget>
    <class>DrfTextEditor</class>
-   <extends>QLineEdit</extends>
+   <extends>QPlainTextEdit</extends>
    <header location="global">exdrf_qt.field_ed.fed_m_text</header>
   </customwidget>
  </customwidgets>
