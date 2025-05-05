@@ -52,6 +52,7 @@ class DrfBlobEditor(LineBase):
         self.set_line_empty()
         self.ac_download.setEnabled(False)
         if self.nullable:
+            assert self.ac_clear is not None
             self.ac_clear.setEnabled(False)
 
     def change_field_value(self, new_value: Any) -> None:
@@ -70,6 +71,7 @@ class DrfBlobEditor(LineBase):
             )
             self.ac_download.setEnabled(True)
             if self.nullable:
+                assert self.ac_clear is not None
                 self.ac_clear.setEnabled(True)
 
     def create_upload_action(self) -> QAction:

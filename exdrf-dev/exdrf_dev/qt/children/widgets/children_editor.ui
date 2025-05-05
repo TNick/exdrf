@@ -17,15 +17,13 @@
    <item>
     <widget class="QTabWidget" name="main_tab">
      <property name="currentIndex">
-      <number>0</number>
+      <number>1</number>
      </property>
-     
      <widget class="QWidget" name="tab_general">
       <attribute name="title">
        <string>General</string>
       </attribute>
       <layout class="QFormLayout" name="formLayout">
-     
        <item row="0" column="0">
         <widget class="QLabel" name="lbl_data">
          <property name="text">
@@ -34,9 +32,8 @@
         </widget>
        </item>
        <item row="0" column="1">
-                <widget class="QLineEdit" name="c_data"/>
+        <widget class="QLineEdit" name="c_data"/>
        </item>
-     
        <item row="1" column="0">
         <widget class="QLabel" name="lbl_parent_id">
          <property name="text">
@@ -45,18 +42,15 @@
         </widget>
        </item>
        <item row="1" column="1">
-                <widget class="QSpinBox" name="c_parent_id"/>
+        <widget class="QSpinBox" name="c_parent_id"/>
        </item>
-     
       </layout>
      </widget>
-     
      <widget class="QWidget" name="tab_relations">
       <attribute name="title">
        <string>Relations</string>
       </attribute>
       <layout class="QFormLayout" name="formLayout">
-     
        <item row="0" column="0">
         <widget class="QLabel" name="lbl_parent">
          <property name="text">
@@ -65,18 +59,15 @@
         </widget>
        </item>
        <item row="0" column="1">
-                <widget class="QCheckBox" name="c_parent"/>
+        <widget class="QtParentSiSe" name="c_parent"/>
        </item>
-     
       </layout>
      </widget>
-     
      <widget class="QWidget" name="tab_info">
       <attribute name="title">
        <string>Info</string>
       </attribute>
       <layout class="QFormLayout" name="formLayout">
-     
        <item row="0" column="0">
         <widget class="QLabel" name="lbl_id">
          <property name="text">
@@ -85,17 +76,20 @@
         </widget>
        </item>
        <item row="0" column="1">
-                <widget class="QSpinBox" name="c_id"/>
+        <widget class="QSpinBox" name="c_id"/>
        </item>
-     
       </layout>
      </widget>
-     
     </widget>
    </item>
   </layout>
  </widget>
  <customwidgets>
+  <customwidget>
+   <class>QtParentSiSe</class>
+   <extends>QLineEdit</extends>
+   <header location="global">exdrf_dev.qt.parents.widgets.parents_selector</header>
+  </customwidget>
  </customwidgets>
  <resources/>
  <connections/>

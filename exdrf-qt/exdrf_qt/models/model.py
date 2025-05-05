@@ -2,10 +2,12 @@ import logging
 from typing import (
     TYPE_CHECKING,
     Any,
+    Dict,
     Generic,
     List,
     Literal,
     Optional,
+    Set,
     Tuple,
     Type,
     TypeVar,
@@ -70,6 +72,10 @@ class QtModel(
             is made for an item that is not in the cache. Instead of loading
             one item at a time, the model loads a batch of items. The batch size
             is the number of items to load at once.
+        _total_count: The total number of items in the selection.
+        _loaded_count: The number of items loaded from the database.
+        _checked: A list of database IDs that are checked. If this list is None
+            (default) the model shows no checkboxes.
 
     Signals:
         totalCountChanged: Emitted when a change iin the total count is
@@ -96,8 +102,11 @@ class QtModel(
     batch_size: int
     _total_count: int
     _loaded_count: int
+    _checked: Optional[Set[RecIdType]] = None
+    _db_to_row: Dict[RecIdType, int]
 
     totalCountChanged = pyqtSignal(int)
+    checkedChanged = pyqtSignal()
     loadedCountChanged = pyqtSignal(int)
     requestIssued = pyqtSignal(int, int, int, int)
     requestCompleted = pyqtSignal(int, int, int, int)
@@ -132,6 +141,7 @@ class QtModel(
         QtUseContext.__init__(self)
 
         self.ctx = ctx
+        self._db_to_row = {}
         self.db_model = db_model
         self.fields = fields or []
         self.selection = (
@@ -158,6 +168,7 @@ class QtModel(
         """
         self.beginResetModel()
         self.cache = []
+        self._db_to_row = {}
         self.total_count = -1
         self.loaded_count = -1
         self.recalculate_total_count()
@@ -280,6 +291,54 @@ class QtModel(
         """Return True if all items are loaded."""
         return self._loaded_count == self._total_count
 
+    @property
+    def checked_ids(self) -> Optional[Set[RecIdType]]:
+        """Return the list of checked items."""
+        return self._checked
+
+    @property
+    def checked_rows(self) -> Optional[List[RecIdType]]:
+        """Return the list of checked items."""
+        if self._checked is None:
+            return None
+        return [self._db_to_row[db_id] for db_id in self._checked]
+
+    @checked_ids.setter
+    def checked_ids(self, value: Optional[Set[RecIdType]]) -> None:
+        """Set the list of checked items."""
+        reset_model = False
+
+        if value is None:
+            if self._checked is None:
+                # No change (None to None)
+                return
+
+            # Changing from checked mode to non-checked mode.
+            self._checked = None
+            reset_model = True
+        else:
+            if self._checked is None:
+                # Changing from non-checked mode to checked mode.
+                self._checked = set()
+                reset_model = True
+            elif self._checked == value:
+                return
+            else:
+                # Changing the checked items.
+                changed = self._checked.symmetric_difference(value)
+                self._checked = value
+                for db_id in changed:
+                    row = self._db_to_row.get(db_id, None)
+                    if row is not None:
+                        self.dataChanged.emit(
+                            self.createIndex(row, 0),
+                            self.createIndex(row, len(self.column_fields) - 1),
+                        )
+
+        if reset_model:
+            self.beginResetModel()
+            self.endResetModel()
+
     def ensure_stubs(self, new_total: int) -> None:
         """We populate the cache with stubs so that the model can be used."""
         crt_total = 0 if self._total_count <= 0 else self._total_count
@@ -375,6 +434,7 @@ class QtModel(
                 if not record.loaded:
                     loaded_update = loaded_update + 1
                 self.db_item_to_record(work.result[i - req.start], record)
+                self._db_to_row[record.db_id] = i
             self.requestCompleted.emit(
                 req.uniq_id,
                 req.start,
@@ -536,6 +596,18 @@ class QtModel(
         if role == Qt.ItemDataRole.DisplayRole and not item.loaded:
             self.request_items(row, self.batch_size)
 
+        if role == Qt.ItemDataRole.CheckStateRole:
+            # Checkboxes are only shown if the model is in checkable mode
+            # and if the item is loaded.
+            if not item.loaded or self._checked is None:
+                return None
+
+            return (
+                Qt.CheckState.Checked
+                if item.db_id in self._checked
+                else Qt.CheckState.Unchecked
+            )
+
         return item.data(index.column(), cast(Qt.ItemDataRole, role))
 
     def headerData(
@@ -558,3 +630,40 @@ class QtModel(
         if role == Qt.ItemDataRole.TextAlignmentRole:
             return Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter
         return None
+
+    def flags(self, index: QModelIndex):
+        if not index.isValid():
+            return Qt.ItemFlag.NoItemFlags
+
+        base = Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable
+        if self._checked is not None:
+            base |= Qt.ItemFlag.ItemIsUserCheckable
+        return cast(Qt.ItemFlags, base)
+
+    def setData(
+        self, index: QModelIndex, value: Any, role=Qt.ItemDataRole.EditRole
+    ) -> bool:
+        if not index.isValid():
+            return False
+
+        # Get the item. If it is not loaded, we cannot set the data.
+        row = index.row()
+        item: "QtRecord" = self.cache[row]
+        if not item.loaded:
+            return False
+
+        # Are we in checkable mode?
+        if self._checked is not None:
+            if role == Qt.ItemDataRole.CheckStateRole:
+                if value == Qt.CheckState.Checked:
+                    self._checked.add(item.db_id)
+                else:
+                    self._checked.discard(item.db_id)
+                self.dataChanged.emit(
+                    index, index, [Qt.ItemDataRole.CheckStateRole]
+                )
+                self.checkedChanged.emit()
+                return True
+
+        # TODO
+        return False

@@ -1,4 +1,9 @@
+from typing import TYPE_CHECKING
+
 from PyQt5 import QtCore, QtWidgets
+
+if TYPE_CHECKING:
+    from exdrf_dev.qt.parents.widgets.parents_selector import QtParentSiSe
 
 
 class Ui_QtChildEditor:
@@ -31,13 +36,14 @@ class Ui_QtChildEditor:
     tab_relations: "QtWidgets.QWidget"
     formLayout1: "QtWidgets.QFormLayout"
     lbl_parent: "QtWidgets.QLabel"
-    c_parent: "QtWidgets.QCheckBox"
+    c_parent: "QtParentSiSe"
     tab_info: "QtWidgets.QWidget"
     formLayout2: "QtWidgets.QFormLayout"
     lbl_id: "QtWidgets.QLabel"
     c_id: "QtWidgets.QSpinBox"
 
     def setup_ui(self, QtChildEditor):
+        from exdrf_dev.qt.parents.widgets.parents_selector import QtParentSiSe
 
         QtChildEditor.setObjectName("QtChildEditor")
         QtChildEditor.resize(480, 640)
@@ -79,7 +85,7 @@ class Ui_QtChildEditor:
         self.formLayout1.setWidget(
             0, QtWidgets.QFormLayout.LabelRole, self.lbl_parent
         )
-        self.c_parent = QtWidgets.QCheckBox(self.tab_relations)
+        self.c_parent = QtParentSiSe(parent=self.tab_relations, ctx=self.ctx)
         self.c_parent.setObjectName("c_parent")
         self.formLayout1.setWidget(
             0, QtWidgets.QFormLayout.FieldRole, self.c_parent
@@ -103,7 +109,7 @@ class Ui_QtChildEditor:
         self.verticalLayout.addWidget(self.main_tab)
 
         self.retranslate_ui(QtChildEditor)
-        self.main_tab.setCurrentIndex(0)
+        self.main_tab.setCurrentIndex(1)
         QtCore.QMetaObject.connectSlotsByName(QtChildEditor)
 
     def retranslate_ui(self, QtChildEditor):

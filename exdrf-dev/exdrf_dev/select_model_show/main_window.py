@@ -3,9 +3,13 @@ import logging
 from exdrf_al.base import Base
 from exdrf_qt.context import QtContext
 from exdrf_qt.controls.search_list import SearchList
+from exdrf_qt.field_ed.fed_sel_multi import DrfSelMultiEditor
+from exdrf_qt.field_ed.fed_sel_one import DrfSelOneEditor
 from PyQt5.QtWidgets import (
     QApplication,
     QMainWindow,
+    QVBoxLayout,
+    QWidget,
 )
 
 import exdrf_dev.db.models  # noqa: F401
@@ -44,12 +48,37 @@ class MainWindow(QMainWindow):
                     max_related_items_per_comp_model=30,
                 )
 
-        self.model = QtParentNaMo(ctx=self.ctx)
-        self.cw = SearchList(
+        self.model1 = QtParentNaMo(ctx=self.ctx)
+
+        self.cw = QWidget(self)
+        self.ly = QVBoxLayout()
+
+        self.plain_list = SearchList(
             ctx=self.ctx,
-            model=self.model,
+            model=self.model1,
             parent=self,
         )
+        self.ly.addWidget(self.plain_list)
+
+        self.model2 = QtParentNaMo(ctx=self.ctx)
+        self.single_select = DrfSelOneEditor(
+            ctx=self.ctx,
+            model=self.model2,
+            parent=self,
+            nullable=True,
+        )
+        self.ly.addWidget(self.single_select)
+
+        self.model3 = QtParentNaMo(ctx=self.ctx)
+        self.multi_select = DrfSelMultiEditor(
+            ctx=self.ctx,
+            model=self.model3,
+            parent=self,
+            nullable=True,
+        )
+        self.ly.addWidget(self.multi_select)
+
+        self.cw.setLayout(self.ly)
         self.setCentralWidget(self.cw)
 
         # Set the window title and icon

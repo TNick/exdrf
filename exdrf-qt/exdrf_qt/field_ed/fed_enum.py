@@ -2,9 +2,7 @@ from typing import TYPE_CHECKING, Any, List, Tuple, cast
 
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal
 from PyQt5.QtWidgets import (
-    QAction,
     QFrame,
-    QLineEdit,
     QListWidget,
     QListWidgetItem,
     QVBoxLayout,
@@ -12,7 +10,7 @@ from PyQt5.QtWidgets import (
 )
 
 from exdrf_qt.context_use import QtUseContext
-from exdrf_qt.field_ed.base_line import LineBase
+from exdrf_qt.field_ed.base_drop import DropBase
 
 if TYPE_CHECKING:
     from exdrf_qt.context import QtContext
@@ -138,7 +136,7 @@ class DropdownList(QFrame, QtUseContext):
             )  # Add some margin
 
 
-class DrfEnumEditor(LineBase):
+class DrfEnumEditor(DropBase):
     """Line edit with combo box-like behavior."""
 
     def __init__(self, *args, choices=None, **kwargs):
@@ -154,41 +152,8 @@ class DrfEnumEditor(LineBase):
         self._dropdown = DropdownList(parent=self, ctx=self.ctx)
         self._dropdown.itemSelected.connect(self._on_item_selected)
 
-        # Add dropdown button.
-        self.dropdown_action = QAction(self)
-        self.dropdown_action.setIcon(self.get_icon("bullet_arrow_down"))
-        self.dropdown_action.triggered.connect(self._toggle_dropdown)
-        self.addAction(self.dropdown_action, QLineEdit.TrailingPosition)
-
         # Connect text changed signal to filter the dropdown
         self.textChanged.connect(self._on_text_changed)
-
-        if self.nullable:
-            self.add_clear_to_null_action()
-
-    def _toggle_dropdown(self):
-        """Show or hide the dropdown list."""
-        if self._dropdown.isVisible():
-            self._dropdown.hide()
-        else:
-            self._show_dropdown()
-
-    def _show_floating_label(self):
-        if self._dropdown.isVisible():
-            self.btm_tip.hide()
-        else:
-            super()._show_floating_label()
-
-    def _position_dropdown(self):
-        # Position the dropdown below the line edit
-        pos = self.mapToGlobal(self.rect().bottomLeft())
-        self._dropdown.move(pos)
-        self._dropdown.show()
-        self.btm_tip.hide()
-        QTimer.singleShot(10, lambda: self.setFocus())  # type: ignore[arg-type]
-        # Set focus back to the line edit after showing the dropdown
-        # self.setFocus()
-        # self._dropdown.setFocus()
 
     def _show_dropdown(self):
         """Show the dropdown with filtered choices."""
@@ -243,12 +208,6 @@ class DrfEnumEditor(LineBase):
         self.set_line_normal()
         self.controlChanged.emit()
         self.setFocus()  # Return focus to line edit after selection
-
-    def set_line_null(self):
-        """Sets the line edit to null."""
-        self.field_value = None
-        self.setText("")
-        self.set_line_empty()
 
     def set_choices(self, choices: List[Tuple[str, str]]):
         """Set the available choices."""
@@ -324,27 +283,12 @@ class DrfEnumEditor(LineBase):
                 ),  # type: ignore[arg-type]
             )
 
-    def focusOutEvent(self, event):
-        """Handle focus lost."""
-        super().focusOutEvent(event)
-        # Use timer to allow click events on dropdown to complete
-        # QTimer.singleShot(100, self._check_focus_for_dropdown_hide)
-
     def focusInEvent(self, event):
         """Handle focus gained."""
         super().focusInEvent(event)
         # Show dropdown if it was visible before focus change
         if not self._dropdown.isVisible():
             self._on_text_changed(self.text())
-
-    def _check_focus_for_dropdown_hide(self):
-        """Check if dropdown should be hidden after focus change."""
-        if (
-            self._dropdown.isVisible()
-            and not self._dropdown.hasFocus()
-            and not self.hasFocus()
-        ):
-            self._dropdown.hide()
 
 
 if __name__ == "__main__":

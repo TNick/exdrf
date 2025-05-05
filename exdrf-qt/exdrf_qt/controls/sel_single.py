@@ -33,3 +33,5 @@ class SingleSelDb(QLineEdit, QtUseContext, Generic[DBM]):
         super().__init__(parent=parent)
         self.ctx = ctx
         self.qt_model = qt_model
+        self.setReadOnly(True)
+        self.setPlaceholderText(self.t("cmn.select", "Select an item"))

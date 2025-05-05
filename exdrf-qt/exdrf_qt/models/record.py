@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING, Any, Dict, List
 
 from attrs import define, field
 from exdrf.constants import RecIdType
@@ -116,3 +116,18 @@ class QtRecord:
         return self.model.index(
             self.model.cache.index(self), col  # type: ignore
         )
+
+    def get_row_data(self, role=Qt.ItemDataRole.DisplayRole) -> List[Any]:
+        """Return the data for the given role for all columns.
+
+        Args:
+            role: The role to get the data for.
+
+        Returns:
+            A list with None in the columns that have no data for the
+            given role.
+        """
+        return [
+            self.values.get(i, {}).get(role, None)
+            for i in range(max(self.values.keys()) + 1)
+        ]

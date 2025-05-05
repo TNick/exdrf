@@ -1,21 +1,35 @@
-from typing import TYPE_CHECKING, Generic, Optional, TypeVar
+from typing import TYPE_CHECKING, Generic, Optional, TypeVar, cast
 
-from PyQt5.QtWidgets import QLineEdit, QTreeView, QVBoxLayout, QWidget
+from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QFrame, QLineEdit, QTreeView, QVBoxLayout
 
 from exdrf_qt.context_use import QtUseContext
 
 if TYPE_CHECKING:
-    from sqlalchemy import Select  # noqa: F401
-
     from exdrf_qt.context import QtContext
     from exdrf_qt.models import QtModel
 
-from PyQt5.QtCore import QTimer
+from PyQt5.QtCore import QTimer, pyqtSignal
 
 DBM = TypeVar("DBM")
 
 
-class SearchList(QWidget, QtUseContext, Generic[DBM]):
+class TreeView(QTreeView):
+    """A tree view that emits a signal when the Enter key is pressed."""
+
+    returnPressed = pyqtSignal(int)
+
+    def keyPressEvent(self, event):
+        assert event is not None
+        if event.key() == Qt.Key.Key_Return or event.key() == Qt.Key.Key_Enter:
+            index = self.currentIndex()
+            if index.isValid():
+                self.returnPressed.emit(index.row())
+        else:
+            super().keyPressEvent(event)
+
+
+class SearchList(QFrame, QtUseContext, Generic[DBM]):
     """A widget that allows th user to search for items in a list.
 
     It consists of a search line and a tree view to display the results. The
@@ -33,13 +47,29 @@ class SearchList(QWidget, QtUseContext, Generic[DBM]):
 
     ly: QVBoxLayout
     src_line: QLineEdit
-    tree: QTreeView
+    tree: TreeView
     _search_timer: Optional[QTimer]
 
-    def __init__(self, ctx: "QtContext", model: "QtModel[DBM]", parent=None):
+    def __init__(
+        self,
+        ctx: "QtContext",
+        model: "QtModel[DBM]",
+        parent=None,
+        popup: bool = False,
+    ):
         super().__init__(parent)
         self.ctx = ctx
         self._search_timer = None
+
+        if popup:
+            # Set up the frame
+            self.setFrameStyle(QFrame.StyledPanel | QFrame.Raised)
+            self.setWindowFlags(
+                cast(
+                    Qt.WindowType,
+                    Qt.WindowType.Popup | Qt.WindowType.FramelessWindowHint,
+                )
+            )
 
         self.ly = QVBoxLayout()
 
@@ -54,7 +84,7 @@ class SearchList(QWidget, QtUseContext, Generic[DBM]):
         self.ly.addWidget(self.src_line)
 
         # Initialize the tree.
-        self.tree = QTreeView(self)
+        self.tree = TreeView(self)
         self.tree.setAlternatingRowColors(True)
         self.tree.setSelectionMode(QTreeView.SingleSelection)
         self.tree.setSelectionBehavior(QTreeView.SelectRows)
