@@ -1,6 +1,9 @@
 import io
+import os
 import re
-from typing import List, Tuple
+from typing import List, Set, Tuple
+
+import click
 
 var_def = re.compile(r"^self\.([a-zA-Z_][a-zA-Z0-9_]+)\s*=\s*([\.a-zA-Z0-9_]+)")
 
@@ -214,9 +217,7 @@ class Fixer:
         return ("\n".join(self._modified_text) + "\n").replace("\n\n\n", "\n\n")
 
 
-def main(ui_file: str, py_file: str) -> int:
-    import os
-
+def convert_pair(ui_file: str, py_file: str) -> int:
     from PyQt5 import uic
 
     if not os.path.exists(ui_file):
@@ -254,11 +255,64 @@ def main(ui_file: str, py_file: str) -> int:
     return 0
 
 
+def convert_dir(
+    src_dir: str, ex_file_names: Set[str], ex_dir_names: Set[str]
+) -> int:
+    """Convert all .ui files in the source directory to .py files."""
+    if not os.path.isdir(src_dir):
+        click.echo(f"Directory not found: {src_dir}", err=True)
+        return 1
+    for root, dirs, files in os.walk(src_dir):
+        dirs[:] = [d for d in dirs if d not in ex_dir_names]
+        for f in files:
+            if f.endswith(".ui"):
+                file_name = os.path.splitext(f)[0]
+                if file_name in ex_file_names:
+                    continue
+                src_file = os.path.join(root, f)
+                dst_file = os.path.join(root, file_name + "_ui.py")
+                convert_pair(src_file, dst_file)
+                # print(f"Converted {src_file} to {dst_file}")
+    return 0
+
+
+@click.group()
+def cli():
+    """Command line interface for the script."""
+
+
+@cli.command(name="gen")
+@click.argument("files", nargs=-1)
+@click.option(
+    "--ex-file-name",
+    multiple=True,
+    help="Specify file names to exclude (without path or extension).",
+)
+@click.option(
+    "--ex-dir-name",
+    multiple=True,
+    help="Specify directory names to exclude (without path).",
+)
+def cli_gen_ui_file(files, ex_file_name, ex_dir_name):
+    """Generate UI files from .ui files."""
+    if len(files) == 1:
+        if os.path.isdir(files[0]):
+            convert_dir(files[0], set(ex_file_name), set(ex_dir_name))
+            return
+        elif os.path.isfile(files[0]):
+            src_file = files[0]
+            dst_file = os.path.splitext(src_file[0])[0] + "_ui.py"
+    elif len(files) == 2:
+        src_file = files[0]
+        dst_file = files[1]
+    else:
+        click.echo("Invalid number of arguments.", err=True)
+        click.echo(
+            "Either provide one source directory or two files.", err=True
+        )
+        return
+    convert_pair(src_file, dst_file)  # type: ignore[arg-type]
+
+
 if __name__ == "__main__":
-    import sys
-
-    if len(sys.argv) < 3:
-        print("Usage: python gen_ui_file.py <ui_file> <py_file>")
-        sys.exit(1)
-
-    sys.exit(main(ui_file=sys.argv[1], py_file=sys.argv[2]))
+    cli()

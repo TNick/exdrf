@@ -439,9 +439,10 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
             editor = self.editor(  # type: ignore
                 ctx=self.ctx,
                 parent=None,
+                record_id=rec_id,
             )
             self.ctx.create_window(editor)
-            editor.set_record(rec_id)
+            # TODO remove editor.set_record(rec_id)
             editor.on_begin_edit()
         except Exception as e:
             logger.exception("Error in ListDb.on_edit_selected")

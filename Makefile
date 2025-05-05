@@ -76,7 +76,7 @@ lint:
 
 
 # Fixes the code style in all the packages in the mono-repo.
-delint: aflake
+delint: ui aflake
 	@for %%d in ($(DIRS)) do ( \
 		pushd "$(CURDIR)\%%d" && \
 		autoflake --in-place --remove-all-unused-imports --recursive . && \
@@ -147,7 +147,7 @@ lint:
 
 
 # Fixes the code style in all the packages in the mono-repo.
-delint: aflake
+delint: ui aflake
 	@for dir in $(DIRS); do \
 		cd $$dir && autoflake --in-place --remove-all-unused-imports --recursive .; \
 		cd $$dir && python -m isort .; \
@@ -174,7 +174,8 @@ PY_UI_FILES := $(UI_FILES:.ui=_ui.py)
 
 
 # Add a dependency rule to regenerate _ui.py files only if .ui files change
-build-ui: $(PY_UI_FILES) delint
+ui:
+	python -m exdrf_qt.scripts.gen_ui_file gen "$(CURDIR)" --ex-dir-name "venv" --ex-dir-name "playground"
 
 
 # Set the PYQTDESIGNERPATH environment variable to a path inside this directory

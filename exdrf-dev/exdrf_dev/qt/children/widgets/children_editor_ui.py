@@ -3,6 +3,8 @@ from typing import TYPE_CHECKING
 from PyQt5 import QtCore, QtWidgets
 
 if TYPE_CHECKING:
+    from exdrf_qt.field_ed.fed_m_text import DrfTextEditor
+
     from exdrf_dev.qt.parents.widgets.parents_selector import QtParentSiSe
 
 
@@ -15,7 +17,6 @@ class Ui_QtChildEditor:
         tab_general: Tab general.
         formLayout: The layout for the widget.
         c_data: C data.
-        c_parent_id: C parent id.
         tab_relations: Tab relations.
         formLayout1: The layout for the widget.
         c_parent: C parent.
@@ -30,9 +31,7 @@ class Ui_QtChildEditor:
     tab_general: "QtWidgets.QWidget"
     formLayout: "QtWidgets.QFormLayout"
     lbl_data: "QtWidgets.QLabel"
-    c_data: "QtWidgets.QLineEdit"
-    lbl_parent_id: "QtWidgets.QLabel"
-    c_parent_id: "QtWidgets.QSpinBox"
+    c_data: "DrfTextEditor"
     tab_relations: "QtWidgets.QWidget"
     formLayout1: "QtWidgets.QFormLayout"
     lbl_parent: "QtWidgets.QLabel"
@@ -43,6 +42,8 @@ class Ui_QtChildEditor:
     c_id: "QtWidgets.QSpinBox"
 
     def setup_ui(self, QtChildEditor):
+        from exdrf_qt.field_ed.fed_m_text import DrfTextEditor
+
         from exdrf_dev.qt.parents.widgets.parents_selector import QtParentSiSe
 
         QtChildEditor.setObjectName("QtChildEditor")
@@ -60,20 +61,10 @@ class Ui_QtChildEditor:
         self.formLayout.setWidget(
             0, QtWidgets.QFormLayout.LabelRole, self.lbl_data
         )
-        self.c_data = QtWidgets.QLineEdit(self.tab_general)
+        self.c_data = DrfTextEditor(parent=self.tab_general, ctx=self.ctx)
         self.c_data.setObjectName("c_data")
         self.formLayout.setWidget(
             0, QtWidgets.QFormLayout.FieldRole, self.c_data
-        )
-        self.lbl_parent_id = QtWidgets.QLabel(self.tab_general)
-        self.lbl_parent_id.setObjectName("lbl_parent_id")
-        self.formLayout.setWidget(
-            1, QtWidgets.QFormLayout.LabelRole, self.lbl_parent_id
-        )
-        self.c_parent_id = QtWidgets.QSpinBox(self.tab_general)
-        self.c_parent_id.setObjectName("c_parent_id")
-        self.formLayout.setWidget(
-            1, QtWidgets.QFormLayout.FieldRole, self.c_parent_id
         )
         self.main_tab.addTab(self.tab_general, "")
         self.tab_relations = QtWidgets.QWidget()
@@ -109,7 +100,7 @@ class Ui_QtChildEditor:
         self.verticalLayout.addWidget(self.main_tab)
 
         self.retranslate_ui(QtChildEditor)
-        self.main_tab.setCurrentIndex(1)
+        self.main_tab.setCurrentIndex(2)
         QtCore.QMetaObject.connectSlotsByName(QtChildEditor)
 
     def retranslate_ui(self, QtChildEditor):
@@ -118,7 +109,6 @@ class Ui_QtChildEditor:
             _translate("QtChildEditor", "Child Editor")
         )
         self.lbl_data.setText(_translate("QtChildEditor", "Data "))
-        self.lbl_parent_id.setText(_translate("QtChildEditor", "Parent Id "))
         self.main_tab.setTabText(
             self.main_tab.indexOf(self.tab_general),
             _translate("QtChildEditor", "General"),
@@ -140,7 +130,6 @@ class Ui_QtChildEditor:
             self.main_tab,
             self.tab_general,
             self.c_data,
-            self.c_parent_id,
             self.tab_relations,
             self.c_parent,
             self.tab_info,

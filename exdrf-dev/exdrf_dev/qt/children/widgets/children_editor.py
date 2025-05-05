@@ -37,7 +37,7 @@ class QtChildEditor(EditorDb["Child"], Ui_QtChildEditor):
         )
 
     def populate(self, record: Union["Child", None]):
-        pass
+        self.c_data.change_field_value(record.data if record else None)
 
     def save_to_record(self, record: "Child", is_new: bool, session: "Session"):
         pass
