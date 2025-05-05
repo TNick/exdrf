@@ -50,9 +50,9 @@ class ListDb(QWidget, QtUseContext, Generic[DBM]):
         super().__init__(parent=parent)
         self.ctx = ctx
 
-        self.ly = QVBoxLayout(self)
-        self.ly.setContentsMargins(0, 0, 0, 0)
-        self.ly.setSpacing(0)
+        self.ly = QVBoxLayout()
+        self.ly.setContentsMargins(1, 1, 1, 1)
+        self.ly.setSpacing(1)
 
         self.tree = TreeViewDb[DBM](
             ctx=ctx,
@@ -62,7 +62,7 @@ class ListDb(QWidget, QtUseContext, Generic[DBM]):
         )
         self.ly.addWidget(self.tree)
 
-        self.h_ly = QHBoxLayout(self)
+        self.h_ly = QHBoxLayout()
 
         self.lbl_total = QLabel(
             self.t("cmn.total_count", "Total: {count}", count=0), self
@@ -442,7 +442,6 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
                 record_id=rec_id,
             )
             self.ctx.create_window(editor)
-            # TODO remove editor.set_record(rec_id)
             editor.on_begin_edit()
         except Exception as e:
             logger.exception("Error in ListDb.on_edit_selected")

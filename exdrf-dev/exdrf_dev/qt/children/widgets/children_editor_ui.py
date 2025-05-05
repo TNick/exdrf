@@ -62,6 +62,7 @@ class Ui_QtChildEditor:
             0, QtWidgets.QFormLayout.LabelRole, self.lbl_data
         )
         self.c_data = DrfTextEditor(parent=self.tab_general, ctx=self.ctx)
+        self.c_data.setProperty("name", "data")
         self.c_data.setObjectName("c_data")
         self.formLayout.setWidget(
             0, QtWidgets.QFormLayout.FieldRole, self.c_data
@@ -77,6 +78,7 @@ class Ui_QtChildEditor:
             0, QtWidgets.QFormLayout.LabelRole, self.lbl_parent
         )
         self.c_parent = QtParentSiSe(parent=self.tab_relations, ctx=self.ctx)
+        self.c_parent.setProperty("name", "parent_id")
         self.c_parent.setObjectName("c_parent")
         self.formLayout1.setWidget(
             0, QtWidgets.QFormLayout.FieldRole, self.c_parent
@@ -101,7 +103,7 @@ class Ui_QtChildEditor:
         self.verticalLayout.addWidget(self.main_tab)
 
         self.retranslate_ui(QtChildEditor)
-        self.main_tab.setCurrentIndex(2)
+        self.main_tab.setCurrentIndex(1)
         QtCore.QMetaObject.connectSlotsByName(QtChildEditor)
 
     def retranslate_ui(self, QtChildEditor):

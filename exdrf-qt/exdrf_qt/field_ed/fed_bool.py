@@ -98,7 +98,6 @@ class DrfBoolEditor(QCheckBox, DrfFieldEd):
             self.set_null_value()
             return
 
-        self.field_value = new_value
         if new_value:
             self.setCheckState(Qt.CheckState.Checked)
             self.setText(self.true_str)
@@ -107,7 +106,9 @@ class DrfBoolEditor(QCheckBox, DrfFieldEd):
             self.setText(self.false_str)
 
         self.setStyleSheet("QCheckBox { color: black; font-style: normal; }")
-        self.controlChanged.emit()
+
+        # Change the value and signal the change.
+        self.field_value = new_value
 
     def _on_check_state_changed(self, state: int) -> None:
         """Handle the check state changed event."""

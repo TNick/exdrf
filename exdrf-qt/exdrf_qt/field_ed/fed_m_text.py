@@ -95,9 +95,8 @@ class DrfTextEditor(QPlainTextEdit, DrfFieldEd):
         if result:
             self.set_line_normal()
         if final:
+            # Change the value and signal the change.
             self.field_value = result
-            if result:
-                self.controlChanged.emit()
 
     def on_text_changed(self) -> None:
         self._on_text_changed(self.toPlainText(), True)

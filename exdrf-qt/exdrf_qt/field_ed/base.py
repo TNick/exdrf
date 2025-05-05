@@ -14,6 +14,11 @@ class DrfFieldEd(QtUseContext):
     """Base class for field editor widgets.
 
     Attributes:
+        name: the member of the database model that this field editor is for.
+            This is used by the `save_value_to_db()` method to save the current
+            value to the database. `EditorDb` uses that method to provide a
+            default way of transferring the data from the editor to the
+            database model.
         field_value: The value of the field.
         nullable: Indicates if the field can be null.
         description: A description of the field shown as tooltip and
@@ -27,11 +32,13 @@ class DrfFieldEd(QtUseContext):
 
     Qt Properties:
         clearable: Indicates if the field is nullable.
+        name: The name of the field in the database record.
     """
 
-    field_value: Any
+    _name: str
+    _field_value: Any
     _nullable: bool = False
-    description: Optional[str] = ""
+    description: Optional[str]
 
     controlChanged = pyqtSignal()
     enteredErrorState = pyqtSignal(str)
@@ -39,17 +46,52 @@ class DrfFieldEd(QtUseContext):
     def __init__(
         self: QWidget,  # type: ignore[override]
         ctx: "QtContext",
+        name: Optional[str] = None,
         description: Optional[str] = None,
         nullable: bool = False,
         **kwargs,
     ):
         super().__init__(**kwargs)
         self.ctx = ctx
-        self.field_value = None
+        self._field_value = None
         self.description = description or ""
+        self._name = name or ""
         self.nullable = nullable
 
         self.apply_description()
+
+    @property
+    def field_value(self) -> Any:
+        """Get the field value."""
+        return self._field_value
+
+    @field_value.setter
+    def field_value(self, value: Any) -> None:
+        """Set the field value."""
+        if self._field_value != value:
+            # Change the value and signal the change.
+            self._field_value = value
+            self.controlChanged.emit()  # type: ignore[no-untyped-call]
+
+    def save_value_to_db(self, db_item: Any):
+        """Save the field value into the database record.
+
+        Attributes:
+            db_item: The database item to save the field value to.
+        """
+        if not self._name:
+            raise ValueError("Field name is not set.")
+        setattr(db_item, self._name, self.field_value)
+
+    def load_value_from_db(self, db_item: Any):
+        """Load the field value from the database record.
+
+        Attributes:
+            db_item: The database item to load the field value from.
+        """
+        if not self._name:
+            raise ValueError("Field name is not set.")
+        self.change_field_value(getattr(db_item, self._name, None))
 
     def apply_description(self: QWidget):  # type: ignore[override]
         """Apply the description to the widget."""
@@ -68,9 +110,9 @@ class DrfFieldEd(QtUseContext):
 
         By default we check for NULL when the field is not nullable.
         """
-        if self.field_value is not None:
+        if self._field_value is not None:
             return ValidationResult(
-                value=self.field_value,
+                value=self._field_value,
             )
         return ValidationResult(
             reason="NULL",
@@ -94,7 +136,7 @@ class DrfFieldEd(QtUseContext):
             # We have an action to clear the field...
             if value:
                 # ... and so we should.
-                self.ac_clear.setEnabled(self.field_value is not None)
+                self.ac_clear.setEnabled(self._field_value is not None)
             else:
                 # ... but we should not.
                 self.ac_clear.deleteLater()
@@ -109,7 +151,7 @@ class DrfFieldEd(QtUseContext):
                 pass
 
     def add_clear_to_null_action(self) -> None:
-        pass
+        """Adds a clear to null action to the line edit."""
 
     def getClearable(self) -> bool:
         """Tell if the field is nullable.
@@ -128,3 +170,19 @@ class DrfFieldEd(QtUseContext):
         self.nullable = clearable
 
     clearable = pyqtProperty(bool, fget=getClearable, fset=setClearable)
+
+    def getName(self) -> str:
+        """Get the name of the field in the database record.
+
+        This is a support function for implementing the name property.
+        """
+        return self._name
+
+    def setName(self, value: str) -> None:
+        """Set the name of the field in the database record.
+
+        This is a support function for implementing the name property.
+        """
+        self._name = value
+
+    name = pyqtProperty(str, fget=getName, fset=setName)

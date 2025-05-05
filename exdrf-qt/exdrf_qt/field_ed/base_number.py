@@ -107,7 +107,6 @@ class NumberBase(LineBase, Generic[T]):
         result = self.check_value(text)
         if final:
             self.field_value = result
-            self.controlChanged.emit()
 
     def change_field_value(self, new_value: Any) -> None:
         """Change the field value.

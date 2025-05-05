@@ -37,12 +37,8 @@ class QtChildEditor(EditorDb["Child"], Ui_QtChildEditor):
         )
 
     def populate(self, record: Union["Child", None]):
-        self.c_data.change_field_value(record.data if record else None)
-        self.c_parent.change_field_value(record.parent_id if record else None)
         self.c_id.setText(str(record.id) if record else "")
-
-    def save_to_record(self, record: "Child", is_new: bool, session: "Session"):
-        pass
+        super().populate(record)
 
     def get_id_of_record(self, record: "Child") -> RecIdType:
         return record.id

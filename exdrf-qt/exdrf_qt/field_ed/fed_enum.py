@@ -190,9 +190,10 @@ class DrfEnumEditor(DropBase):
         # Check if the entered text exactly matches any of the choice labels
         for key, label in self.choices:
             if label.lower() == text.lower():  # Case-insensitive matching
-                self.field_value = key
                 self.set_line_normal()
-                self.controlChanged.emit()
+
+                # Change the value and signal the change.
+                self.field_value = key
                 return
 
         # If we get here, the text doesn't match any choice exactly
@@ -203,11 +204,12 @@ class DrfEnumEditor(DropBase):
 
     def _on_item_selected(self, key: str, label: str):
         """Handle selection from the dropdown."""
-        self.field_value = key
         self.setText(label)
         self.set_line_normal()
-        self.controlChanged.emit()
         self.setFocus()  # Return focus to line edit after selection
+
+        # Change the value and signal the change.
+        self.field_value = key
 
     def set_choices(self, choices: List[Tuple[str, str]]):
         """Set the available choices."""
