@@ -42,6 +42,11 @@ class DrfBlobEditor(LineBase):
             QLineEdit.ActionPosition.TrailingPosition,
         )
 
+    def change_edit_mode(self, in_editing: bool) -> None:
+        super().change_edit_mode(in_editing)
+        self.ac_upload.setEnabled(in_editing)
+        self.ac_download.setEnabled(in_editing and self.field_value is not None)
+
     def set_line_null(self):
         """Sets the value of the control to NULL.
 

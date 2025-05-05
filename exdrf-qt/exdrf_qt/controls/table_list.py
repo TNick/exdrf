@@ -170,6 +170,7 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
         ac_rem: Action to remove the selected item.
         ac_rem_all: Action to remove all items.
         ac_edit: Action to edit the selected item.
+        ac_view: Action to view the selected item.
         ac_clone: Action to clone the selected item.
         ac_export: Action to export all items.
         ac_set_null: Action to set the selected item to NULL.
@@ -183,6 +184,7 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
     ac_rem: QAction
     ac_rem_all: QAction
     ac_edit: QAction
+    ac_view: QAction
     ac_clone: QAction
     ac_export: QAction
     ac_set_null: QAction
@@ -266,6 +268,11 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
         )
         self.ac_edit.triggered.connect(self.on_edit_selected)
 
+        self.ac_view = QAction(
+            self.get_icon("eye"), self.t("sq.common.view", "View"), self
+        )
+        self.ac_view.triggered.connect(self.on_view_selected)
+
         self.ac_clone = QAction(
             self.get_icon("page_copy"), self.t("sq.common.clone", "Clone"), self
         )
@@ -303,6 +310,7 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
                 self.ac_rem,
                 self.ac_rem_all,
                 self.ac_edit,
+                self.ac_view,
                 self.ac_clone,
                 self.ac_export,
                 self.ac_set_null,
@@ -313,6 +321,7 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
         self.ac_new.setEnabled(self.editor is not None)
         self.ac_rem.setEnabled(False)
         self.ac_edit.setEnabled(False)
+        self.ac_view.setEnabled(False)
         self.ac_set_null.setEnabled(False)
         self.ac_clone.setEnabled(False)
 
@@ -348,6 +357,7 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
         menu.addAction(self.ac_rem)
         menu.addAction(self.ac_rem_all)
         menu.addSeparator()
+        menu.addAction(self.ac_view)
         menu.addAction(self.ac_edit)
         menu.addAction(self.ac_set_null)
         menu.addAction(self.ac_clone)
@@ -370,6 +380,7 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
             empty_sel = selected.isEmpty()
 
             self.ac_rem.setEnabled(not empty_sel)
+            self.ac_view.setEnabled(not empty_sel and have_editor)
             self.ac_edit.setEnabled(not empty_sel and have_editor)
             self.ac_set_null.setEnabled(not empty_sel)
             self.ac_clone.setEnabled(not empty_sel)
@@ -428,8 +439,7 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
                 message=str(e),
             )
 
-    def on_edit_selected(self) -> None:
-        """Edit the selected item."""
+    def _view_or_edit(self, editing: bool):
         try:
             rec_id = self.get_selected_db_id()
             if rec_id is None:
@@ -442,13 +452,24 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
                 record_id=rec_id,
             )
             self.ctx.create_window(editor)
-            editor.on_begin_edit()
+            if editing:
+                editor.on_begin_edit()
+            else:
+                editor.on_begin_view()
         except Exception as e:
             logger.exception("Error in ListDb.on_edit_selected")
             self.ctx.show_error(
                 title=self.t("sq.common.error", "Error"),
                 message=str(e),
             )
+
+    def on_view_selected(self) -> None:
+        """View the selected item."""
+        self._view_or_edit(editing=False)
+
+    def on_edit_selected(self) -> None:
+        """Edit the selected item."""
+        self._view_or_edit(editing=True)
 
     def on_clone_selected(self) -> None:
         """Clone the selected item."""

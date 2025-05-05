@@ -27,6 +27,9 @@ class DrfTextEditor(QPlainTextEdit, DrfFieldEd):
         if self.nullable:
             self.add_clear_to_null_action()
 
+    def change_edit_mode(self, in_editing: bool) -> None:
+        self.setReadOnly(not in_editing)
+
     def add_clear_to_null_action(self):
         """Adds a clear to null action to the line edit."""
         self.ac_clear = QAction(

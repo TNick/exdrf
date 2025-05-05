@@ -1,10 +1,10 @@
 from typing import TYPE_CHECKING, Any, Optional
 
+from exdrf.validator import ValidationResult
 from PyQt5.QtCore import pyqtProperty, pyqtSignal  # type: ignore
 from PyQt5.QtWidgets import QWidget
 
 from exdrf_qt.context_use import QtUseContext
-from exdrf_qt.validator import ValidationResult
 
 if TYPE_CHECKING:
     from exdrf_qt.context import QtContext
@@ -99,8 +99,27 @@ class DrfFieldEd(QtUseContext):
             self.setToolTip(self.description)
             self.setStatusTip(self.description)
 
+    def change_edit_mode(
+        self: QWidget, in_editing: bool  # type: ignore[override]
+    ) -> None:
+        """Switch between edit mode and display mode.
+
+        Default implementation sets the enabled state of the widget.
+
+        Args:
+            in_editing: True if the field is in edit mode, False if it
+                is in display mode.
+        """
+        self.setEnabled(in_editing)
+
     def change_field_value(self, new_value: Any) -> None:
-        """Change the field value."""
+        """Change the field value.
+
+        Reimplement this function in subclasses to change the field value.
+
+        Args:
+            new_value: The new value to set for the field.
+        """
         raise NotImplementedError(
             "change_field_value() must be implemented in subclasses."
         )

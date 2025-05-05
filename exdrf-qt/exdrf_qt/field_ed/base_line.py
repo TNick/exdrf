@@ -104,6 +104,12 @@ class LineBase(QLineEdit, DrfFieldEd):
             self.tooltip_text = self.description
             self.setStatusTip(self.description)
 
+    def change_edit_mode(self, in_editing: bool) -> None:
+        self.setReadOnly(not in_editing)
+        if self.nullable:
+            assert self.ac_clear is not None
+            self.ac_clear.setEnabled(in_editing)
+
     def set_line_empty(self):
         """Changes the aspect of the line edit to indicate that it is null.
 

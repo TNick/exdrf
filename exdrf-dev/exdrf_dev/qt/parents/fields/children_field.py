@@ -1,16 +1,16 @@
 # This file was automatically generated using a proprietary package.
 # Source: db2qt.database_to_qt
 # Don't change it manually.
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING
 
 from attrs import define, field
+from exdrf.constants import RecIdType
 from exdrf_qt.models.fields import QtRefOneToManyField
-from PyQt5.QtCore import Qt
 
 if TYPE_CHECKING:
     from exdrf.resource import ExResource  # noqa: F401
 
-    from exdrf_dev.db.models import Parent  # noqa: F401
+    from exdrf_dev.db.models import Child, Parent  # noqa: F401
 
 
 @define
@@ -31,5 +31,10 @@ class ChildrenField(QtRefOneToManyField["Parent"]):
     py_type: str = field(default="")
     ref: "ExResource" = field(default=None, repr=False)
 
-    def values(self, item: "Parent") -> Dict[Qt.ItemDataRole, Any]:
-        return self.expand_value(item.children)
+    def part_id(self, item: "Child") -> RecIdType:
+        """Compute the ID for one of the components of the field."""
+        return item.id
+
+    def part_label(self, item: "Child") -> str:
+        """Compute the label for one of the components of the field."""
+        return item.data if item.data else str(item.id)

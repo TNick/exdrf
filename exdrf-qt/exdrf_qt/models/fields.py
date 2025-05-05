@@ -1,4 +1,7 @@
-from attrs import define
+from typing import Any, Dict, Optional
+
+import humanize
+from attrs import define, field
 from exdrf.api import (
     BlobField,
     BoolField,
@@ -22,6 +25,9 @@ from exdrf.api import (
     StrListField,
     TimeField,
 )
+from exdrf.constants import RecIdType
+from exdrf.moment import MomentFormat
+from PyQt5.QtCore import Qt
 
 from exdrf_qt.models.field import DBM, QtField
 
@@ -38,7 +44,24 @@ class QtBoolField(BoolField, QtField[DBM]):
 
 @define
 class QtDateTimeField(DateTimeField, QtField[DBM]):
-    pass
+
+    formatter: Optional[MomentFormat] = field(default=None)
+
+    def values(self, item: DBM) -> Dict[Qt.ItemDataRole, Any]:
+        value = getattr(item, self.name)
+        if value is None:
+            return self.expand_value(None)
+
+        if self.formatter is None:
+            self.formatter = MomentFormat.from_string(self.format)
+
+        display = self.formatter.moment_to_string(value)
+        return self.expand_value(
+            value=value,
+            DisplayRole=display,
+            EditRole=value,
+            ToolTipRole=humanize.naturaltime(value),
+        )
 
 
 @define
@@ -108,7 +131,55 @@ class QtRefManyToOneField(RefManyToOneField, QtField[DBM]):
 
 @define
 class QtRefOneToManyField(RefOneToManyField, QtField[DBM]):
-    pass
+    show_n_labels: int = field(default=4)
+
+    def values(self, item: DBM) -> Dict[Qt.ItemDataRole, Any]:
+        """Compute the values for each role for this field.
+
+        As this is a field that has multiple values, we ask the implementation
+        to provide to helper methods to compute the ID and label for each
+        of the items.
+
+        The resulted edit role will have the list of IDs and the display role
+        will have a comma-separated list of the labels. If the list is
+        longer than `show_n_labels`, the last label will be "...",
+        with the full list shown in the tooltip.
+        """
+        items = getattr(item, self.name)
+        if items is None:
+            return self.expand_value(None)
+
+        labels = []
+        ids = []
+        for item in items:
+            labels.append(self.part_label(item))
+            ids.append(self.part_id(item))
+
+        display_labels = (
+            labels
+            if len(labels) <= self.show_n_labels
+            else (labels[: self.show_n_labels] + ["..."])
+        )
+        tooltip = "\\n".join(labels)
+        display = ", ".join(display_labels)
+
+        return self.expand_value(
+            value=display,
+            EditRole=ids,
+            ToolTipRole=tooltip,
+        )
+
+    def part_id(self, item: Any) -> RecIdType:
+        """Compute the ID for one of the components of the field."""
+        raise NotImplementedError(
+            "part_id is not implemented for QtRefOneToManyField"
+        )
+
+    def part_label(self, item: Any) -> str:
+        """Compute the label for one of the components of the field."""
+        raise NotImplementedError(
+            "part_label is not implemented for QtRefOneToManyField"
+        )
 
 
 @define

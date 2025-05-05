@@ -14,12 +14,14 @@ class TimeField(ExField):
     Attributes:
         min: The minimum time that can be stored in the field.
         max: The maximum time that can be stored in the field.
+        format: The format of the time string.
     """
 
     type_name: str = field(default=FIELD_TYPE_TIME)
 
     min: time = field(default=None)
     max: time = field(default=None)
+    format: str = field(default="HH:mm:ss")
 
     def __repr__(self) -> str:
         return f"TimeF(" f"{self.resource.name}.{self.name})"

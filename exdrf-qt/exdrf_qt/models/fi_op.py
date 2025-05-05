@@ -1,6 +1,8 @@
 from typing import Any, Union
 
 from attrs import define, field
+from sqlalchemy import String
+from sqlalchemy import cast as al_cast
 from sqlalchemy.sql.operators import (
     _operator_fn,
     comparison_op,
@@ -38,7 +40,21 @@ class ILikeFiOp(FiOp):
     """The provided text should be found inside the target."""
 
     uniq: str = field(default="ilike", init=False)
-    predicate: Any = field(default=ilike_op)
+
+    @staticmethod
+    def _predicate(column: Any, value: Any) -> Any:
+        """Return the ILIKE operator."""
+        # op = filter_op_registry[item.op]
+        if hasattr(column, "type"):
+            col_type = column.type.__class__.__name__
+            if col_type not in ("String",):
+                column = al_cast(column, String)
+        else:
+            return False
+
+        return ilike_op(column, value)
+
+    predicate: Any = field(default=_predicate)
 
 
 @define

@@ -26,9 +26,6 @@ class QtChildEditor(EditorDb["Child"], Ui_QtChildEditor):
         super().__init__(ctx=ctx, db_model=DbChild, **kwargs)
         self.verticalLayout.addWidget(self.create_button_box())
 
-    def editing_changed(self, value: bool):
-        pass
-
     def read_record(self, session: "Session", record_id: RecIdType) -> "Child":
         return session.scalar(
             self.selection.where(

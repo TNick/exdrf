@@ -18,6 +18,10 @@ class DrfDateEditor(DateBase):
             QLineEdit.ActionPosition.TrailingPosition,
         )
 
+    def change_edit_mode(self, in_editing: bool) -> None:
+        super().change_edit_mode(in_editing)
+        self.ac_calendar.setEnabled(in_editing)
+
     def change_field_value(self, new_value: Any) -> None:
         """Change the field value.
 
@@ -33,6 +37,7 @@ class DrfDateEditor(DateBase):
             self.set_line_normal()
             self.setText(self.formatter.moment_to_string(new_value))
             if self.nullable:
+                assert self.ac_clear is not None
                 self.ac_clear.setEnabled(True)
 
 

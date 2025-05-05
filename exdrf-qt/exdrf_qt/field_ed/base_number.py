@@ -171,6 +171,9 @@ class NumberBase(LineBase, Generic[T]):
             self.change_field_value(new_value)
 
     def keyPressEvent(self, event):
+        if self.isReadOnly():
+            return super().keyPressEvent(event)
+
         if event.key() == Qt.Key.Key_Up:
             self.change_by_delta(1)
             event.accept()

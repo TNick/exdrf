@@ -2,11 +2,10 @@
 # Source: db2qt.database_to_qt
 # Don't change it manually.
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING
 
 from attrs import define, field
 from exdrf_qt.models.fields import QtDateTimeField
-from PyQt5.QtCore import Qt
 
 if TYPE_CHECKING:
     from exdrf_dev.db.models import Parent  # noqa: F401
@@ -30,6 +29,3 @@ class CreatedAtField(QtDateTimeField["Parent"]):
 
     min: datetime = field(default=datetime(2020, 1, 1, 00, 00, 00))
     max: datetime = field(default=datetime(2030, 1, 1, 00, 00, 00))
-
-    def values(self, item: "Parent") -> Dict[Qt.ItemDataRole, Any]:
-        return self.expand_value(item.created_at)

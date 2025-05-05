@@ -32,4 +32,4 @@ class ParentField(QtRefManyToOneField["Child"]):
     ref: "ExResource" = field(default=None, repr=False)
 
     def values(self, item: "Child") -> Dict[Qt.ItemDataRole, Any]:
-        return self.expand_value(item.parent)
+        return self.expand_value(item.parent.name)

@@ -41,6 +41,18 @@ class EditorDb(QWidget, QtUseContext, Generic[DBM]):
         _is_dirty: A boolean indicating if the record has been modified.
         _is_editing: A boolean indicating if the widget is in editing mode
             or in view mode.
+
+    Signals:
+        recordSaved: Emitted when the record is saved.
+        dirtyChanged: Emitted when the dirty state changes.
+        editingChanged: Emitted when the widget switches between the editor role
+            and the viewer role.
+        editorCleared: Emitted when the editor is cleared.
+        recordChanged: Emitted after the editor/viewer has been populated
+            with a record.
+        controlChanged: Emitted when a component control changes.
+        enteredErrorState: Emitted when one of the component controls enters
+            the error state.
     """
 
     edit_fields: List["DrfFieldEd"]
@@ -57,6 +69,8 @@ class EditorDb(QWidget, QtUseContext, Generic[DBM]):
     editingChanged = pyqtSignal(bool)
     editorCleared = pyqtSignal()
     recordChanged = pyqtSignal(object)
+    controlChanged = pyqtSignal()
+    enteredErrorState = pyqtSignal(str)
 
     def __init__(
         self,
@@ -88,17 +102,38 @@ class EditorDb(QWidget, QtUseContext, Generic[DBM]):
         if record_id is not None:
             self.set_record(record_id)
 
-        # Connect the change signal from each field editor.
+        # Connect editors.
         for w in self.enum_controls():
             if isinstance(w, DrfFieldEd):
-                controlChanged = getattr(w, "controlChanged", None)
-                if controlChanged is not None:
-                    controlChanged.connect(self.set_dirty)
-                else:
-                    logger.warning(
-                        "Control %s does not have a controlChanged signal",
-                        w.__class__.__name__,
-                    )
+                self.install_editor(w)
+
+    def install_editor(self, editor: "DrfFieldEd"):
+        """Install a field editor into the widget.
+
+        Args:
+            editor: The field editor to install.
+        """
+        # Connect the change signal from each field editor.
+        controlChanged = getattr(editor, "controlChanged", None)
+        if controlChanged is not None:
+            controlChanged.connect(self.set_dirty)
+            controlChanged.connect(lambda: self.controlChanged.emit())
+        else:
+            logger.warning(
+                "Control %s does not have a controlChanged signal",
+                editor.__class__.__name__,
+            )
+
+        # The error state signal is connected to the editor's own error state
+        # signal.
+        enteredErrorState = getattr(editor, "enteredErrorState", None)
+        if enteredErrorState is not None:
+            enteredErrorState.connect(lambda: self.enteredErrorState.emit())
+        else:
+            logger.warning(
+                "Control %s does not have an enteredErrorState signal",
+                editor.__class__.__name__,
+            )
 
     @property
     def is_dirty(self) -> bool:
@@ -131,6 +166,17 @@ class EditorDb(QWidget, QtUseContext, Generic[DBM]):
             value: The new dirty state.
         """
 
+    def is_valid(self) -> bool:
+        """Check if the editor is valid.
+
+        The default implementation checks if all field editors are valid.
+        Reimplement this method to handle other cases.
+
+        Returns:
+            True if the editor is valid.
+        """
+        return all(ed.is_valid() for ed in self.edit_fields)
+
     @property
     def is_editing(self) -> bool:
         """True if the widget is in editing mode."""
@@ -144,6 +190,8 @@ class EditorDb(QWidget, QtUseContext, Generic[DBM]):
 
     def editing_changed(self, value: bool):
         """Reimplement this method to handle edit/view state changes."""
+        for ed_fld in self.edit_fields:
+            ed_fld.change_edit_mode(value)  # type: ignore[union-attr]
 
     def read_record(self, session: "Session", record_id: RecIdType) -> DBM:
         """Read a record from the database.
@@ -327,14 +375,15 @@ class EditorDb(QWidget, QtUseContext, Generic[DBM]):
         """
         return record.id  # type: ignore[union-attr]
 
-    def on_save(self) -> bool:
+    def on_save(self):
         """The user asks us to save the record.
 
         This can be a new record being created or an existing record being
         edited.
         """
         if not self.is_editing:
-            return False
+            self.is_editing = True
+            return
 
         try:
             with self.ctx.same_session() as session:
@@ -352,7 +401,10 @@ class EditorDb(QWidget, QtUseContext, Generic[DBM]):
 
                 # Post-process the record.
                 self.post_save(session, db_record)
-                return True
+
+                # Change to view mode.
+                self.is_editing = False
+                return
         except Exception as e:
             str_e = str(e) or e.__class__.__name__
             self.show_error(
@@ -364,7 +416,7 @@ class EditorDb(QWidget, QtUseContext, Generic[DBM]):
                 ),
             )
             logger.exception("Exception in EditorDb.on_save")
-            return False
+            return
 
     def post_save(self, session: "Session", db_record: DBM):
         """Called after the record has been saved."""
@@ -378,17 +430,29 @@ class EditorDb(QWidget, QtUseContext, Generic[DBM]):
         self.db_id = self.get_id_of_record(db_record)
         self.recordSaved.emit(db_record)
 
+    def on_begin_view(self):
+        """Begin examining the record.
+
+        The function sets the editor to view mode.
+        """
+        if self.db_id is None:
+            return
+        assert not self.is_dirty
+        self._is_editing = False
+        self.editing_changed(False)
+        self.editingChanged.emit(False)
+
     def on_begin_edit(self):
         """Begin editing the record.
 
         The function sets the editor to editing mode.
         """
-        if self.is_editing:
-            return
         if self.db_id is None:
             return
         assert not self.is_dirty
-        self.is_editing = True
+        self._is_editing = True
+        self.editing_changed(True)
+        self.editingChanged.emit(True)
 
     def on_create_new(self):
         """Create a new record.
@@ -417,7 +481,6 @@ class EditorDb(QWidget, QtUseContext, Generic[DBM]):
             self,
         )
 
-        result.accepted.connect(self.on_save)  # type: ignore[union-attr]
         result.rejected.connect(self.on_cancel_edit)  # type: ignore[union-attr]
         # type: ignore[union-attr]
         result.rejected.connect(lambda: self.close_window(self))
@@ -464,11 +527,12 @@ class EditorDb(QWidget, QtUseContext, Generic[DBM]):
         save_btn.setToolTip(
             self.t(
                 "cmn.editor.save.tip",
-                "Saves the data to the database. The editor is moved to "
-                "view mode.",
+                "When in edit mode, saves the data to the database and moves "
+                "the editor to view mode. When in view mode, moves the editor "
+                "to edit mode.",
             )
         )
-        save_btn.clicked.connect(self.on_reset_edit)  # type: ignore
+        save_btn.clicked.connect(self.on_save)  # type: ignore
 
         cancel_btn = result.button(QDialogButtonBox.StandardButton.Cancel)
         assert cancel_btn is not None
@@ -482,27 +546,56 @@ class EditorDb(QWidget, QtUseContext, Generic[DBM]):
             style.standardIcon(QStyle.StandardPixmap.SP_DialogCancelButton)
         )
 
-        self.recordSaved.connect(lambda: self.bbox_react_to_dirty(False))
-        self.dirtyChanged.connect(self.bbox_react_to_dirty)
+        # When the state of the controls changes we need to update the
+        # button box state.
+        self.recordSaved.connect(self.bbox_react_to_changes)
+        self.controlChanged.connect(self.bbox_react_to_changes)
+        self.enteredErrorState.connect(self.bbox_react_to_changes)
+        self.editingChanged.connect(self.bbox_react_to_changes)
 
         self.btn_box = result
         return result
 
-    def bbox_react_to_dirty(self, dirty: bool):
-        """React to the dirty state of the editor."""
+    def bbox_react_to_changes(self):
+        """Update the state of the button box."""
         if self.btn_box is None:
             return
+
+        is_valid = self.is_valid()
+
+        style = self.style()
+        assert style is not None
 
         reset_btn = self.btn_box.button(QDialogButtonBox.StandardButton.Reset)
         assert reset_btn is not None
 
         save_btn = self.btn_box.button(QDialogButtonBox.StandardButton.Save)
         assert save_btn is not None
+
         discard_btn = self.btn_box.button(
             QDialogButtonBox.StandardButton.Discard
         )
         assert discard_btn is not None
 
-        save_btn.setEnabled(dirty)
-        reset_btn.setEnabled(dirty)
-        discard_btn.setEnabled(dirty)
+        if self.is_editing:
+            # Plays the role of a save button.
+            save_btn.setText(
+                self.t("cmn.save", "Save")
+                if self.is_dirty
+                else self.t("cmn.saved", "Saved")
+            )
+            save_btn.setIcon(
+                style.standardIcon(QStyle.StandardPixmap.SP_DialogSaveButton)
+            )
+            save_btn.setEnabled(is_valid and self.is_dirty)
+
+            reset_btn.setEnabled(self.is_dirty)
+            discard_btn.setEnabled(self.is_dirty)
+        else:
+            # Plays the role of a start-edit button.
+            save_btn.setText(self.t("cmn.edit", "Edit"))
+            save_btn.setIcon(self.get_icon("edit_button"))
+            save_btn.setEnabled(True)
+
+            reset_btn.setEnabled(False)
+            discard_btn.setEnabled(False)

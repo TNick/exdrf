@@ -24,6 +24,10 @@ class DropBase(LineBase):
         if self.nullable:
             self.add_clear_to_null_action()
 
+    def change_edit_mode(self, in_editing: bool) -> None:
+        super().change_edit_mode(in_editing)
+        self.dropdown_action.setEnabled(in_editing)
+
     def create_drop_down_action(self) -> QAction:
         """Creates a drop down action for the line edit."""
         action = QAction(self)

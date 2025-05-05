@@ -14,12 +14,14 @@ class DateTimeField(ExField):
     Attributes:
         min: The minimum date-time that can be stored in the field.
         max: The maximum date-time that can be stored in the field.
+        format: The format of the date-time string.
     """
 
     type_name: str = field(default=FIELD_TYPE_DT)
 
     min: datetime = field(default=None)
     max: datetime = field(default=None)
+    format: str = field(default="DD-MM-YYYY HH:mm:ss")
 
     def __repr__(self) -> str:
         return f"DaTiF(" f"{self.resource.name}.{self.name})"
