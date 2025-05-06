@@ -52,6 +52,34 @@
             ],
             "console": "integratedTerminal",
             "justMyCode": false
-          }
+        },
+        {
+            "name": "[Gen] Pydantic from SqlAlchemy",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "exdrf_gen.__main__",
+            "args": [
+                "--debug",
+                "al2pd",
+                "exdrf_dev.db.models:Base",
+                "${workspaceFolder}/playground/al2pd-output"
+            ],
+            "justMyCode": false
+        },
+        {
+            "name": "[Gen] Qt from SqlAlchemy",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "exdrf_gen.__main__",
+            "args": [
+                "--debug",
+                "al2qt",
+                "exdrf_dev.db.models:Base",
+            ],
+            "env": {
+                "EXDRF_AL2PD_PATH": "${workspaceFolder}/playground/al2qt-output"
+            },
+            "justMyCode": false
+        },
     ]
 }

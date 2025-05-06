@@ -19,6 +19,7 @@
         "dmypy",
         "doctests",
         "dotenv",
+        "dset",
         "endlocal",
         "exdataset",
         "exdrf",
@@ -70,5 +71,15 @@
         "verstretch",
         "vsizetype",
         "webassets"
+    ],
+    "python.analysis.extraPaths": [
+        "${workspaceFolder}/exdrf",
+        "${workspaceFolder}/exdrf-al",
+        "${workspaceFolder}/exdrf-dev",
+        "${workspaceFolder}/exdrf-gen",
+        "${workspaceFolder}/exdrf-gen-al2pd",
+        "${workspaceFolder}/exdrf-gen-al2qt",
+        "${workspaceFolder}/exdrf-pd",
+        "${workspaceFolder}/exdrf-qt"
     ]
 }

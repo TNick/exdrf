@@ -1,0 +1,64 @@
+[project]
+authors = [
+  {name = "Nicu Tofan", email = "nicu.tofan@gmail.com"},
+]
+classifiers = [
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3 :: Only",
+  "Development Status :: 3 - Alpha",
+  "License :: Other/Proprietary License",
+  "Typing :: Typed",
+]
+dependencies = [
+  "pydantic>=2.10.6",
+]
+description = "Generate content using DRF."
+dynamic = ["version"]
+name = "exdrf-gen-al2pd"
+readme = "README.md"
+requires-python = ">=3.13"
+
+[project.optional-dependencies]
+dev = [
+  "autoflake",
+  "black",
+  "build",
+  "flake8",
+  "isort",
+  "mypy",
+  "pre-commit",
+  "pyproject-flake8",
+  "pytest-cov",
+  "pytest-mock",
+  "pytest",
+  "twine",
+  "wheel",
+]
+
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = ["setuptools>=67.0", "setuptools_scm[toml]>=8"]
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+exclude = ["venv*", "playground*"]
+
+[tool.setuptools_scm]
+fallback_version = "0.0.1-dev"
+write_to = "exdrf_gen_al2pd/__version__.py"
+
+[tool.isort]
+profile = "black"
+
+[tool.black]
+line-length = 80
+target-version = ['py312', 'py313']
+
+[tool.flake8]
+docstring-convention = "google"
+max-line-length = 80
+
+[project.entry-points.'exdrf.plugins']
+exdrf_gen = 'exdrf_gen_al2pd'
