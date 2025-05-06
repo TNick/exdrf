@@ -117,7 +117,7 @@ class QtModel(
         self,
         ctx: "QtContext",
         db_model: Type[DBM],
-        fields: Optional[List["QtField"]] = None,
+        fields: Optional[List[Union["QtField", Type["QtField"]]]] = None,
         parent: Optional["QObject"] = None,
         selection: Optional["Select"] = None,
         prevent_total_count: Optional[bool] = False,
@@ -436,7 +436,21 @@ class QtModel(
                 record = self.cache[i]
                 if not record.loaded:
                     loaded_update = loaded_update + 1
-                self.db_item_to_record(work.result[i - req.start], record)
+                try:
+                    self.db_item_to_record(work.result[i - req.start], record)
+                except Exception as e:
+                    logger.error(
+                        "Error converting item %d to record: %s",
+                        i - req.start,
+                        e,
+                    )
+
+                    import traceback
+
+                    logger.error(traceback.format_exc())
+
+                    record.error = True
+
                 self._db_to_row[record.db_id] = i
             self.requestCompleted.emit(
                 req.uniq_id,
@@ -482,7 +496,25 @@ class QtModel(
             result.db_id = cast(Any, self.get_db_item_id(item))
 
         for f_index, fld in enumerate(self.column_fields):
-            result.values[f_index] = fld.values(item)
+            try:
+                result.values[f_index] = fld.values(item)
+            except Exception as e:
+                logger.error(
+                    "Error converting item %d to record using field '%s': %s",
+                    f_index,
+                    fld.name,
+                    e,
+                )
+
+                import traceback
+
+                logger.error(traceback.format_exc())
+
+                result.values[f_index] = {
+                    Qt.ItemDataRole.DisplayRole: str(e),
+                    Qt.ItemDataRole.EditRole: str(e),
+                }
+                result.error = True
         result.loaded = True
         return result
 

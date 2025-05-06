@@ -49,9 +49,11 @@ class QtField(ExField, QtUseContext, Generic[DBM]):
 
     Attributes:
         ctx: The context object.
-        parent: The parent model.
+        resource: The model that this field belongs to.
+        preferred_width: The preferred width of the field in pixels.
     """
 
+    ctx: "QtContext" = field(default=None)
     resource: "QtModel" = field(default=None)  # type: ignore[assignment]
     preferred_width: int = field(default=100)
 

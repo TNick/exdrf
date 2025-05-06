@@ -61,13 +61,13 @@ class QtParentFuMo(QtModel["Parent"]):
                 )
             ),
             fields=[
-                IdField(resource=self),  # type: ignore
-                NameField(resource=self),  # type: ignore
-                CreatedAtField(resource=self),  # type: ignore
-                IsActiveField(resource=self),  # type: ignore
-                ChildrenField(resource=self),  # type: ignore
-                ProfileField(resource=self),  # type: ignore
-                TagsField(resource=self),  # type: ignore
+                IdField,
+                NameField,
+                CreatedAtField,
+                IsActiveField,
+                ChildrenField,
+                ProfileField,
+                TagsField,
             ],
             **kwargs,
         )

@@ -48,12 +48,12 @@ class QtRelatedItemFuMo(QtModel["RelatedItem"]):
                 )
             ),
             fields=[
-                IdField(resource=self),  # type: ignore
-                ItemDataField(resource=self),  # type: ignore
-                SomeIntField(resource=self),  # type: ignore
-                CompKeyPart1Field(resource=self),  # type: ignore
-                CompKeyPart2Field(resource=self),  # type: ignore
-                CompKeyOwnerField(resource=self),  # type: ignore
+                IdField,
+                ItemDataField,
+                SomeIntField,
+                CompKeyPart1Field,
+                CompKeyPart2Field,
+                CompKeyOwnerField,
             ],
             **kwargs,
         )

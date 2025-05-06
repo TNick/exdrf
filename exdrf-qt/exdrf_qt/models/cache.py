@@ -9,6 +9,11 @@ class SparseList(Generic[T]):
         self._default_factory = default_factory
         self._size = 0
 
+    @property
+    def true_size(self) -> int:
+        """Get the true size of the sparse list."""
+        return len(self._data)
+
     def __getitem__(self, index: int) -> T:
         if index >= self._size:
             raise IndexError(

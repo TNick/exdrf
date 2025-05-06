@@ -27,13 +27,13 @@ class QtChildNaMo(QtModel["Child"]):
         from exdrf_dev.db.models import Child as DbChild
 
         fields = [
-            IdField(resource=self),  # type: ignore
-            DataField(resource=self),  # type: ignore
-            ParentIdField(resource=self),  # type: ignore
-            ParentField(resource=self),  # type: ignore
+            IdField,
+            DataField,
+            ParentIdField,
+            ParentField,
         ]
         super().__init__(ctx=ctx, db_model=DbChild, fields=fields, **kwargs)
-        self.column_fields = [fields[1].name]
+        self.column_fields = ["data"]
 
     def get_db_item_id(self, item: "Child") -> Union[int, Tuple[int, ...]]:
         return item.id

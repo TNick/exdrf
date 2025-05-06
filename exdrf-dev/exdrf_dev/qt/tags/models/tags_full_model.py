@@ -38,9 +38,9 @@ class QtTagFuMo(QtModel["Tag"]):
                 )
             ),
             fields=[
-                IdField(resource=self),  # type: ignore
-                NameField(resource=self),  # type: ignore
-                ParentsField(resource=self),  # type: ignore
+                IdField,
+                NameField,
+                ParentsField,
             ],
             **kwargs,
         )

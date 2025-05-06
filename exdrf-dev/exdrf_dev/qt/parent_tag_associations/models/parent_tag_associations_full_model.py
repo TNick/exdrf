@@ -32,8 +32,8 @@ class QtParentTagAssociationFuMo(QtModel["ParentTagAssociation"]):
             db_model=DbParentTagAssociation,
             selection=select(DbParentTagAssociation),
             fields=[
-                ParentIdField(resource=self),  # type: ignore
-                TagIdField(resource=self),  # type: ignore
+                ParentIdField,
+                TagIdField,
             ],
             **kwargs,
         )

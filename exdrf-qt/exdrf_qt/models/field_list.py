@@ -45,6 +45,8 @@ class FieldsList:
         self._c_fields = []
         self._e_fields = []
         for f in value:
+            if isinstance(f, type) or callable(f):
+                f = f(ctx=self.ctx, resource=self)  # type: ignore
             self._fields[f.name] = f
 
             if f.qsearch:

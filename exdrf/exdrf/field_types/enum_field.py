@@ -16,7 +16,7 @@ class EnumField(ExField):
 
     type_name: str = field(default=FIELD_TYPE_ENUM)
 
-    values: List[str] = field(factory=list)
+    enum_values: List[str] = field(factory=list)
 
     def __repr__(self) -> str:
         return f"EnumF(" f"{self.resource.name}.{self.name})"
@@ -29,4 +29,4 @@ class EnumInfo(FieldInfo):
         values: The list of possible values for the field.
     """
 
-    values: List[str] = field(factory=list)
+    enum_values: List[str] = field(factory=list)

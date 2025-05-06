@@ -1,11 +1,10 @@
 # This file was automatically generated using a proprietary package.
 # Source: db2qt.database_to_qt
 # Don't change it manually.
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING
 
 from attrs import define, field
 from exdrf_qt.models.fields import QtFloatField
-from PyQt5.QtCore import Qt
 
 if TYPE_CHECKING:
     from exdrf_dev.db.models import CompositeKeyModel  # noqa: F401
@@ -33,6 +32,3 @@ class SomeFloatField(QtFloatField["CompositeKeyModel"]):
     scale: int = field(default=2)
     unit: str = field(default="units")
     unit_symbol: str = field(default="u")
-
-    def values(self, item: "CompositeKeyModel") -> Dict[Qt.ItemDataRole, Any]:
-        return self.expand_value(item.some_float)

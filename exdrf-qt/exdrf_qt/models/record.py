@@ -12,6 +12,7 @@ if TYPE_CHECKING:
 
 LOADING_BRUSH = QBrush(QColor("lightgray"), Qt.BrushStyle.Dense4Pattern)
 ERROR_BRUSH = QBrush(QColor("lightred"), Qt.BrushStyle.SolidPattern)
+ERROR_COLOR = QColor("red")
 
 
 @define
@@ -59,12 +60,18 @@ class QtRecord:
             return in its `data()` method.
         """
         if self.error or not self.loaded:
-            if role == Qt.ItemDataRole.BackgroundRole:
+            if role == Qt.ItemDataRole.BackgroundColorRole:
                 return ERROR_BRUSH if self.error else LOADING_BRUSH
+            elif role == Qt.ItemDataRole.ForegroundRole:
+                return ERROR_COLOR
             elif role == Qt.ItemDataRole.DisplayRole:
-                return "x" if self.error else " "
+                return "error" if self.error else " "
             elif role == Qt.ItemDataRole.EditRole:
                 return None
+            elif role == Qt.ItemDataRole.TextAlignmentRole:
+                return (
+                    Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter
+                )
         column_data = self.values.get(column, None)
         if column_data is None:
             return None

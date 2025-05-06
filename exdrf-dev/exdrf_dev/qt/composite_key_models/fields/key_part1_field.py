@@ -1,11 +1,10 @@
 # This file was automatically generated using a proprietary package.
 # Source: db2qt.database_to_qt
 # Don't change it manually.
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING
 
 from attrs import define, field
 from exdrf_qt.models.fields import QtStringField
-from PyQt5.QtCore import Qt
 
 if TYPE_CHECKING:
     from exdrf_dev.db.models import CompositeKeyModel  # noqa: F401
@@ -32,6 +31,3 @@ class KeyPart1Field(QtStringField["CompositeKeyModel"]):
 
     multiline: bool = field(default=False)
     max_length: int = field(default=50)
-
-    def values(self, item: "CompositeKeyModel") -> Dict[Qt.ItemDataRole, Any]:
-        return self.expand_value(item.key_part1)

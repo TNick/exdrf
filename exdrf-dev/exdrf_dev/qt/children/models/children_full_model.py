@@ -39,10 +39,10 @@ class QtChildFuMo(QtModel["Child"]):
                 )
             ),
             fields=[
-                IdField(resource=self),  # type: ignore
-                DataField(resource=self),  # type: ignore
-                ParentIdField(resource=self),  # type: ignore
-                ParentField(resource=self),  # type: ignore
+                IdField,
+                DataField,
+                ParentIdField,
+                ParentField,
             ],
             **kwargs,
         )

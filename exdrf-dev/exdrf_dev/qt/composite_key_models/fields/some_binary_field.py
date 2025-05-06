@@ -1,11 +1,10 @@
 # This file was automatically generated using a proprietary package.
 # Source: db2qt.database_to_qt
 # Don't change it manually.
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING
 
 from attrs import define, field
 from exdrf_qt.models.fields import QtBlobField
-from PyQt5.QtCore import Qt
 
 if TYPE_CHECKING:
     from exdrf_dev.db.models import CompositeKeyModel  # noqa: F401
@@ -26,6 +25,3 @@ class SomeBinaryField(QtBlobField["CompositeKeyModel"]):
     filterable: bool = field(default=False)
     exportable: bool = field(default=True)
     qsearch: bool = field(default=True)
-
-    def values(self, item: "CompositeKeyModel") -> Dict[Qt.ItemDataRole, Any]:
-        return self.blob_values(item.some_binary)

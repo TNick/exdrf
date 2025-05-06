@@ -1,11 +1,10 @@
 # This file was automatically generated using a proprietary package.
 # Source: db2qt.database_to_qt
 # Don't change it manually.
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING
 
 from attrs import define, field
 from exdrf_qt.models.fields import QtRefManyToOneField
-from PyQt5.QtCore import Qt
 
 if TYPE_CHECKING:
     from exdrf.resource import ExResource  # noqa: F401
@@ -30,6 +29,3 @@ class CompKeyOwnerField(QtRefManyToOneField["RelatedItem"]):
     ts_type: str = field(default="many-to-one")
     py_type: str = field(default="")
     ref: "ExResource" = field(default=None, repr=False)
-
-    def values(self, item: "RelatedItem") -> Dict[Qt.ItemDataRole, Any]:
-        return self.expand_value(item.comp_key_owner)

@@ -64,16 +64,16 @@ class QtCompositeKeyModelFuMo(QtModel["CompositeKeyModel"]):
                 )
             ),
             fields=[
-                KeyPart1Field(resource=self),  # type: ignore
-                KeyPart2Field(resource=self),  # type: ignore
-                DescriptionField(resource=self),  # type: ignore
-                SomeFloatField(resource=self),  # type: ignore
-                SomeDateField(resource=self),  # type: ignore
-                SomeTimeField(resource=self),  # type: ignore
-                SomeEnumField(resource=self),  # type: ignore
-                SomeJsonField(resource=self),  # type: ignore
-                SomeBinaryField(resource=self),  # type: ignore
-                RelatedItemsField(resource=self),  # type: ignore
+                KeyPart1Field,
+                KeyPart2Field,
+                DescriptionField,
+                SomeFloatField,
+                SomeDateField,
+                SomeTimeField,
+                SomeEnumField,
+                SomeJsonField,
+                SomeBinaryField,
+                RelatedItemsField,
             ],
             **kwargs,
         )

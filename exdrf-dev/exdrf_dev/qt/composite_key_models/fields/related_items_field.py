@@ -1,16 +1,16 @@
 # This file was automatically generated using a proprietary package.
 # Source: db2qt.database_to_qt
 # Don't change it manually.
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING
 
 from attrs import define, field
+from exdrf.constants import RecIdType
 from exdrf_qt.models.fields import QtRefOneToManyField
-from PyQt5.QtCore import Qt
 
 if TYPE_CHECKING:
     from exdrf.resource import ExResource  # noqa: F401
 
-    from exdrf_dev.db.models import CompositeKeyModel  # noqa: F401
+    from exdrf_dev.db.models import CompositeKeyModel, RelatedItem  # noqa: F401
 
 
 @define
@@ -31,5 +31,9 @@ class RelatedItemsField(QtRefOneToManyField["CompositeKeyModel"]):
     py_type: str = field(default="")
     ref: "ExResource" = field(default=None, repr=False)
 
-    def values(self, item: "CompositeKeyModel") -> Dict[Qt.ItemDataRole, Any]:
-        return self.expand_value(item.related_items)
+    def part_id(self, item: "RelatedItem") -> RecIdType:
+        return item.id
+
+    def part_label(self, item: "RelatedItem") -> str:
+        """Compute the label for one of the components of the field."""
+        return str(item.id)

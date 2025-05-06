@@ -79,7 +79,7 @@ class QtBoolField(BoolField, QtField[DBM]):
             DisplayRole=self.true_str if value else self.false_str,
             EditRole=value,
             ForegroundRole=QBrush(
-                Qt.GlobalColor.green if value else Qt.GlobalColor.red
+                Qt.GlobalColor.blue if value else Qt.GlobalColor.red
             ),
         )
 
@@ -126,7 +126,7 @@ class QtDateField(DateField, QtField[DBM]):
             value=value,
             DisplayRole=display,
             EditRole=value,
-            ToolTipRole=humanize.naturaltime(value),
+            ToolTipRole=humanize.naturaldate(value),
         )
 
 
@@ -149,18 +149,20 @@ class QtTimeField(TimeField, QtField[DBM]):
             value=value,
             DisplayRole=display,
             EditRole=value,
-            ToolTipRole=humanize.naturaltime(value),
+            ToolTipRole=str(value),
         )
 
 
 @define
 class QtDurationField(DurationField, QtField[DBM]):
-    pass
+    def values(self, item) -> Dict[Qt.ItemDataRole, Any]:
+        return self.not_implemented_values(item)
 
 
 @define
 class QtEnumField(EnumField, QtField[DBM]):
-    pass
+    def values(self, item) -> Dict[Qt.ItemDataRole, Any]:
+        return self.not_implemented_values(item)
 
 
 @define
@@ -272,16 +274,6 @@ class QtStringField(StrField, QtField[DBM]):
                 Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
             ),
             FontRole=italic_font if self.multiline else regular_font,
-            BackgroundRole=QBrush(
-                Qt.GlobalColor.white
-                if self.multiline
-                else Qt.GlobalColor.lightGray
-            ),
-            ForegroundRole=QBrush(
-                Qt.GlobalColor.black
-                if self.multiline
-                else Qt.GlobalColor.darkGray
-            ),
         )
 
 
@@ -337,22 +329,26 @@ class QtIntListField(IntListField, QtField[DBM]):
 
 @define
 class QtFloatListField(FloatListField, QtField[DBM]):
-    pass
+    def values(self, item) -> Dict[Qt.ItemDataRole, Any]:
+        return self.not_implemented_values(item)
 
 
 @define
 class QtFormattedField(FormattedField, QtField[DBM]):
-    pass
+    def values(self, item) -> Dict[Qt.ItemDataRole, Any]:
+        return self.not_implemented_values(item)
 
 
 @define
 class QtRefBaseField(RefBaseField, QtField[DBM]):
-    pass
+    def values(self, item) -> Dict[Qt.ItemDataRole, Any]:
+        return self.not_implemented_values(item)
 
 
 @define
 class QtRefManyToOneField(RefManyToOneField, QtField[DBM]):
-    pass
+    def values(self, item) -> Dict[Qt.ItemDataRole, Any]:
+        return self.not_implemented_values(item)
 
 
 @define
@@ -410,19 +406,23 @@ class QtRefOneToManyField(RefOneToManyField, QtField[DBM]):
 
 @define
 class QtRefOneToOneField(RefOneToOneField, QtField[DBM]):
-    pass
+    def values(self, item) -> Dict[Qt.ItemDataRole, Any]:
+        return self.not_implemented_values(item)
 
 
 @define
 class QtRefManyToManyField(RefManyToManyField, QtField[DBM]):
-    pass
+    def values(self, item) -> Dict[Qt.ItemDataRole, Any]:
+        return self.not_implemented_values(item)
 
 
 @define
 class QtFilterField(FilterField, QtField[DBM]):
-    pass
+    def values(self, item) -> Dict[Qt.ItemDataRole, Any]:
+        return self.not_implemented_values(item)
 
 
 @define
 class QtSortField(SortField, QtField[DBM]):
-    pass
+    def values(self, item) -> Dict[Qt.ItemDataRole, Any]:
+        return self.not_implemented_values(item)

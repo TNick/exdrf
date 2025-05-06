@@ -39,10 +39,10 @@ class QtProfileFuMo(QtModel["Profile"]):
                 )
             ),
             fields=[
-                IdField(resource=self),  # type: ignore
-                BioField(resource=self),  # type: ignore
-                ParentIdField(resource=self),  # type: ignore
-                ParentField(resource=self),  # type: ignore
+                IdField,
+                BioField,
+                ParentIdField,
+                ParentField,
             ],
             **kwargs,
         )

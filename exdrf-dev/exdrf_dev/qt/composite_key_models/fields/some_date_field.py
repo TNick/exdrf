@@ -2,11 +2,10 @@
 # Source: db2qt.database_to_qt
 # Don't change it manually.
 from datetime import date
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING
 
 from attrs import define, field
 from exdrf_qt.models.fields import QtDateField
-from PyQt5.QtCore import Qt
 
 if TYPE_CHECKING:
     from exdrf_dev.db.models import CompositeKeyModel  # noqa: F401
@@ -30,6 +29,3 @@ class SomeDateField(QtDateField["CompositeKeyModel"]):
 
     min: date = field(default=date(2020, 1, 1))
     max: date = field(default=date(2021, 12, 31))
-
-    def values(self, item: "CompositeKeyModel") -> Dict[Qt.ItemDataRole, Any]:
-        return self.expand_value(item.some_date)

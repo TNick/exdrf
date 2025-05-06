@@ -30,13 +30,13 @@ class QtParentNaMo(QtModel["Parent"]):
         from exdrf_dev.db.models import Parent as DbParent
 
         fields = [
-            IdField(resource=self),  # type: ignore
-            NameField(resource=self),  # type: ignore
-            CreatedAtField(resource=self),  # type: ignore
-            IsActiveField(resource=self),  # type: ignore
-            ChildrenField(resource=self),  # type: ignore
-            ProfileField(resource=self),  # type: ignore
-            TagsField(resource=self),  # type: ignore
+            IdField,
+            NameField,
+            CreatedAtField,
+            IsActiveField,
+            ChildrenField,
+            ProfileField,
+            TagsField,
         ]
         super().__init__(
             ctx=ctx,
@@ -44,7 +44,7 @@ class QtParentNaMo(QtModel["Parent"]):
             fields=fields,
             **kwargs,
         )
-        self.column_fields = [fields[1].name]
+        self.column_fields = ["name"]
 
     def get_db_item_id(self, item: "Parent") -> Union[int, Tuple[int, ...]]:
         return item.id
