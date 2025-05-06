@@ -21,6 +21,7 @@ from PyQt5.QtCore import QAbstractItemModel, QModelIndex, Qt, QTimer, pyqtSignal
 from sqlalchemy import func, select, tuple_
 
 from exdrf_qt.context_use import QtUseContext
+from exdrf_qt.models.cache import SparseList
 from exdrf_qt.models.field_list import FieldsList
 from exdrf_qt.models.record import QtRecord
 from exdrf_qt.models.requests import RecordRequestManager
@@ -98,7 +99,7 @@ class QtModel(
     base_selection: "Select"
     sort_by: List[Tuple[str, Literal["asc", "desc"]]]
     filters: FilterType
-    cache: List["QtRecord"]
+    cache: SparseList["QtRecord"]
     batch_size: int
     _total_count: int
     _loaded_count: int
@@ -151,7 +152,7 @@ class QtModel(
         self.sort_by = []
         self.filters = []
         self.batch_size = batch_size
-        self.cache = []
+        self.cache = SparseList(lambda: QtRecord(model=self, db_id=-1))
 
         self._total_count = -1
         self._loaded_count = 0
@@ -167,7 +168,7 @@ class QtModel(
         The function clears the cache and resets the total count.
         """
         self.beginResetModel()
-        self.cache = []
+        self.cache.clear()
         self._db_to_row = {}
         self.total_count = -1
         self.loaded_count = -1
@@ -341,16 +342,17 @@ class QtModel(
 
     def ensure_stubs(self, new_total: int) -> None:
         """We populate the cache with stubs so that the model can be used."""
-        crt_total = 0 if self._total_count <= 0 else self._total_count
-        if crt_total >= new_total:
-            self.cache = self.cache[:new_total]
-            return
-        if crt_total == new_total:
-            return
+        # crt_total = 0 if self._total_count <= 0 else self._total_count
+        # if crt_total >= new_total:
+        #     self.cache = self.cache[:new_total]
+        #     return
+        # if crt_total == new_total:
+        #     return
 
-        # We need to add stubs to the cache.
-        for i in range(crt_total, new_total):
-            self.cache.append(QtRecord(model=self, db_id=-1))  # type: ignore
+        # # We need to add stubs to the cache.
+        # for i in range(crt_total, new_total):
+        #     self.cache.append(QtRecord(model=self, db_id=-1))  # type: ignore
+        self.cache.set_size(new_total)
 
         # If the cache is empty, we post a request for items.
         if self._loaded_count == 0:
@@ -415,8 +417,9 @@ class QtModel(
         # If this request generated an error mark those requests as such.
         if work.error:
             for i in range(req.start, req.start + req.count):
-                self.cache[i].db_id = -1
-                self.cache[i].error = True
+                record = self.cache[i]
+                record.db_id = -1
+                record.error = True
             logger.debug(
                 "Request %d generated an error: %s", work.req_id, work.error
             )
@@ -601,7 +604,6 @@ class QtModel(
         )
         result.filters = self.filters
         result.sort_by = self.sort_by
-        result.cache = []
         result.total_count = self.recalculate_total_count()
         result.loaded_count = -1
         return result
@@ -697,17 +699,17 @@ class QtModel(
 
         # Get the item. If it is not loaded, we cannot set the data.
         row = index.row()
-        item: "QtRecord" = self.cache[row]
-        if not item.loaded:
+        record: "QtRecord" = self.cache[row]
+        if not record.loaded:
             return False
 
         # Are we in checkable mode?
         if self._checked is not None:
             if role == Qt.ItemDataRole.CheckStateRole:
                 if value == Qt.CheckState.Checked:
-                    self._checked.add(item.db_id)
+                    self._checked.add(record.db_id)
                 else:
-                    self._checked.discard(item.db_id)
+                    self._checked.discard(record.db_id)
                 self.dataChanged.emit(
                     index, index, [Qt.ItemDataRole.CheckStateRole]
                 )

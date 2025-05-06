@@ -10,12 +10,14 @@ class SparseList(Generic[T]):
         self._size = 0
 
     def __getitem__(self, index: int) -> T:
+        if index >= self._size:
+            raise IndexError(
+                f"Index {index} out of range. List has {self._size} items."
+            )
         result = self._data.get(index)
         if result is None:
             result = self._default_factory()
             self._data[index] = result
-        if index >= self._size:
-            self._size = index + 1
         return result
 
     def __setitem__(self, index: int, value: T) -> None:
@@ -32,3 +34,20 @@ class SparseList(Generic[T]):
 
     def keys(self):
         return self._data.keys()
+
+    def clear(self) -> None:
+        """Clear the sparse list."""
+        self._data.clear()
+        self._size = 0
+
+    def set_size(self, size: int) -> None:
+        """Set the size of the sparse list."""
+        assert size >= 0, "Size must be non-negative."
+        if size < self._size:
+            to_del = []
+            for i in self._data.keys():
+                if i >= size:
+                    to_del.append(i)
+            for i in to_del:
+                del self._data[i]
+        self._size = size
