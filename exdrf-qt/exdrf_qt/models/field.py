@@ -167,8 +167,8 @@ class QtField(ExField, QtUseContext, Generic[DBM]):
 
         # Handle the case where the value is None.
         if value is None:
-            label = "NULL"
-            description = "The value is not set"
+            label = self.t("cmn.null", "NULL")
+            description = self.t("cmn.null_tip", "The value is not set")
             result[Qt.ItemDataRole.FontRole] = italic_font
             result[Qt.ItemDataRole.ForegroundRole] = light_grey
             result[Qt.ItemDataRole.AccessibleTextRole] = label

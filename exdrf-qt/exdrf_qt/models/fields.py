@@ -27,36 +27,79 @@ from exdrf.api import (
 )
 from exdrf.constants import RecIdType
 from exdrf.moment import MomentFormat
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import QSize, Qt
+from PyQt5.QtGui import QBrush
 
-from exdrf_qt.models.field import DBM, QtField
+from exdrf_qt.models.field import (
+    DBM,
+    QtField,
+    italic_font,
+    light_grey,
+    regular_font,
+)
 
 
 @define(slots=False)
 class QtBlobField(BlobField, QtField[DBM]):
-    pass
-
-
-@define
-class QtBoolField(BoolField, QtField[DBM]):
-    pass
-
-
-@define
-class QtDateTimeField(DateTimeField, QtField[DBM]):
-
-    formatter: Optional[MomentFormat] = field(default=None)
-
     def values(self, item: DBM) -> Dict[Qt.ItemDataRole, Any]:
         value = getattr(item, self.name)
         if value is None:
             return self.expand_value(None)
 
+        label = self.t("cmn.blob", "BLOB")
+        description = self.t(
+            "cmn.blob_tip",
+            "Binary data ({sz} bytes, {mime})",
+            sz=len(value),
+            mime=self.mime_type or "application/octet-stream",
+        )
+        return self.expand_value(
+            value,
+            FontRole=italic_font,
+            ForegroundRole=light_grey,
+            AccessibleTextRole=label,
+            DisplayRole=label,
+            ToolTipRole=description,
+            StatusTipRole=description,
+            TextAlignmentRole=(
+                Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter
+            ),
+            SizeHintRole=QSize(24, 24),
+        )
+
+
+@define
+class QtBoolField(BoolField, QtField[DBM]):
+    def values(self, item: DBM) -> Dict[Qt.ItemDataRole, Any]:
+        value = getattr(item, self.name)
+        if value is None:
+            return self.expand_value(None)
+        return self.expand_value(
+            value=value,
+            DisplayRole=self.true_str if value else self.false_str,
+            EditRole=value,
+            ForegroundRole=QBrush(
+                Qt.GlobalColor.green if value else Qt.GlobalColor.red
+            ),
+        )
+
+
+@define
+class QtDateTimeField(QtField[DBM], DateTimeField):
+    formatter: Optional[MomentFormat] = field(default=None)
+
+    def values(self, item) -> Dict[Qt.ItemDataRole, Any]:
+        value = getattr(item, self.name)  # type: ignore[assignment]
+        if value is None:
+            return self.expand_value(None)  # type: ignore[no-untyped-call]
+
         if self.formatter is None:
-            self.formatter = MomentFormat.from_string(self.format)
+            self.formatter = MomentFormat.from_string(
+                self.format
+            )  # type: ignore[assignment]
 
         display = self.formatter.moment_to_string(value)
-        return self.expand_value(
+        return self.expand_value(  # type: ignore[no-untyped-call]
             value=value,
             DisplayRole=display,
             EditRole=value,
@@ -66,12 +109,48 @@ class QtDateTimeField(DateTimeField, QtField[DBM]):
 
 @define
 class QtDateField(DateField, QtField[DBM]):
-    pass
+    formatter: Optional[MomentFormat] = field(default=None)
+
+    def values(self, item) -> Dict[Qt.ItemDataRole, Any]:
+        value = getattr(item, self.name)  # type: ignore[assignment]
+        if value is None:
+            return self.expand_value(None)  # type: ignore[no-untyped-call]
+
+        if self.formatter is None:
+            self.formatter = MomentFormat.from_string(
+                self.format
+            )  # type: ignore[assignment]
+
+        display = self.formatter.moment_to_string(value)
+        return self.expand_value(  # type: ignore[no-untyped-call]
+            value=value,
+            DisplayRole=display,
+            EditRole=value,
+            ToolTipRole=humanize.naturaltime(value),
+        )
 
 
 @define
 class QtTimeField(TimeField, QtField[DBM]):
-    pass
+    formatter: Optional[MomentFormat] = field(default=None)
+
+    def values(self, item) -> Dict[Qt.ItemDataRole, Any]:
+        value = getattr(item, self.name)  # type: ignore[assignment]
+        if value is None:
+            return self.expand_value(None)  # type: ignore[no-untyped-call]
+
+        if self.formatter is None:
+            self.formatter = MomentFormat.from_string(
+                self.format
+            )  # type: ignore[assignment]
+
+        display = self.formatter.moment_to_string(value)
+        return self.expand_value(  # type: ignore[no-untyped-call]
+            value=value,
+            DisplayRole=display,
+            EditRole=value,
+            ToolTipRole=humanize.naturaltime(value),
+        )
 
 
 @define
@@ -86,27 +165,174 @@ class QtEnumField(EnumField, QtField[DBM]):
 
 @define
 class QtFloatField(FloatField, QtField[DBM]):
-    pass
+    def values(self, item) -> Dict[Qt.ItemDataRole, Any]:
+        value = getattr(item, self.name)  # type: ignore[assignment]
+        if value is None:
+            return self.expand_value(None)  # type: ignore[no-untyped-call]
+
+        display = f"{(value * self.scale):.{self.precision}f}"
+        if self.unit_symbol:
+            display = f"{display} {self.unit_symbol}"
+
+        tip = f"{(value * self.scale):.{self.precision}f}"
+        if self.unit:
+            tip = f"{tip} {self.unit}"
+
+        color = Qt.GlobalColor.black
+
+        if self.min:
+            tip = f"{(self.min * self.scale):.{self.precision}f} <= {tip}"
+            if value < self.min:
+                color = Qt.GlobalColor.red
+        if self.max:
+            tip = f"{tip} <= {(self.max * self.scale):.{self.precision}f}"
+            if value > self.max:
+                color = Qt.GlobalColor.red
+
+        return self.expand_value(
+            value=value,
+            DisplayRole=display,
+            ToolTipRole=tip,
+            StatusTipRole=tip,
+            EditRole=value,
+            ForegroundRole=QBrush(color),
+            TextAlignmentRole=(
+                Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
+            ),
+        )
 
 
 @define
 class QtIntegerField(IntField, QtField[DBM]):
-    pass
+    def values(self, item) -> Dict[Qt.ItemDataRole, Any]:
+        value = getattr(item, self.name)  # type: ignore[assignment]
+        if value is None:
+            return self.expand_value(None)  # type: ignore[no-untyped-call]
+
+        display = f"{value:,}"
+        if self.unit_symbol:
+            display = f"{display} {self.unit_symbol}"
+
+        tip = f"{value:,}"
+        if self.unit:
+            tip = f"{tip} {self.unit}"
+
+        color = Qt.GlobalColor.black
+
+        if self.min:
+            tip = f"{self.min} <= {tip}"
+            if value < self.min:
+                color = Qt.GlobalColor.red
+
+        if self.max:
+            tip = f"{tip} <= {self.max}"
+            if value > self.max:
+                color = Qt.GlobalColor.red
+
+        return self.expand_value(
+            value=value,
+            DisplayRole=display,
+            ToolTipRole=tip,
+            StatusTipRole=tip,
+            EditRole=value,
+            ForegroundRole=QBrush(color),
+            TextAlignmentRole=(
+                Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
+            ),
+        )
 
 
 @define
 class QtStringField(StrField, QtField[DBM]):
-    pass
+    def values(self, item) -> Dict[Qt.ItemDataRole, Any]:
+        value = getattr(item, self.name)  # type: ignore[assignment]
+        if value is None:
+            return self.expand_value(None)  # type: ignore[no-untyped-call]
+
+        display = value.replace("\n", "\\n")
+        if len(display) > 50:
+            display = f"{display[:50]}..."
+
+        tip = value
+        if self.max_length:
+            label = self.t("cmn.max_length", "Maximum length")
+            tip = f"{label} = {self.max_length}\n{tip}"
+
+        if self.min_length:
+            label = self.t("cmn.min_length", "Minimum length")
+            tip = f"{label} = {self.min_length}\n{tip}"
+
+        return self.expand_value(
+            value=value,
+            DisplayRole=display,
+            EditRole=value,
+            ToolTipRole=value,
+            StatusTipRole=value,
+            TextAlignmentRole=(
+                Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+            ),
+            FontRole=italic_font if self.multiline else regular_font,
+            BackgroundRole=QBrush(
+                Qt.GlobalColor.white
+                if self.multiline
+                else Qt.GlobalColor.lightGray
+            ),
+            ForegroundRole=QBrush(
+                Qt.GlobalColor.black
+                if self.multiline
+                else Qt.GlobalColor.darkGray
+            ),
+        )
 
 
 @define
 class QtStringListField(StrListField, QtField[DBM]):
-    pass
+    def values(self, item) -> Dict[Qt.ItemDataRole, Any]:
+        value = getattr(item, self.name)  # type: ignore[assignment]
+        if value is None:
+            return self.expand_value(None)  # type: ignore[no-untyped-call]
+
+        if len(value) == 0:
+            display = "[]"
+            tip = self.t("cmn.empty_list", "Empty list")
+        else:
+            display = f"[ {', '.join(value)} ]"
+            tip = "\n".join(value)
+
+        if len(display) > 50:
+            display = f"{display[:50]}..."
+        return self.expand_value(
+            value=value,
+            DisplayRole=display,
+            EditRole=value,
+            ToolTipRole=tip,
+            StatusTipRole=tip,
+        )
 
 
 @define
 class QtIntListField(IntListField, QtField[DBM]):
-    pass
+    def values(self, item) -> Dict[Qt.ItemDataRole, Any]:
+        value = getattr(item, self.name)
+        if value is None:
+            return self.expand_value(None)
+
+        if len(value) == 0:
+            display = "[]"
+            tip = self.t("cmn.empty_list", "Empty list")
+        else:
+
+            display = ", ".join([f"{v:,}" for v in value])
+            tip = "\n".join([f"{v:,}{self.unit_symbol or ''}" for v in value])
+        if len(display) > 50:
+            display = f"{display[:50]}..."
+        return self.expand_value(
+            value=value,
+            DisplayRole=display,
+            EditRole=value,
+            ToolTipRole=tip,
+            StatusTipRole=tip,
+        )
 
 
 @define

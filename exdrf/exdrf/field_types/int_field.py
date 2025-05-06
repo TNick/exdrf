@@ -11,8 +11,8 @@ class IntField(ExField):
     """A field that stores integers.
 
     Attributes:
-        min: The minimum integer that can be stored in the field.
-        max: The maximum integer that can be stored in the field.
+        min: The minimum integer that can be stored in the field (inclusive).
+        max: The maximum integer that can be stored in the field (inclusive).
         unit: The unit of measurement for the field.
         unit_symbol: The symbol for the unit of measurement.
     """

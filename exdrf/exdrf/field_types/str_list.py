@@ -1,11 +1,11 @@
 from attrs import define, field
 
 from exdrf.constants import FIELD_TYPE_STRING_LIST
-from exdrf.field import ExField, FieldInfo
+from exdrf.field_types.str_field import StrField, StrInfo
 
 
 @define
-class StrListField(ExField):
+class StrListField(StrField):
     """A field that stores list of strings."""
 
     type_name: str = field(default=FIELD_TYPE_STRING_LIST)
@@ -14,5 +14,5 @@ class StrListField(ExField):
         return f"SListF(" f"{self.resource.name}.{self.name})"
 
 
-class StrListInfo(FieldInfo):
+class StrListInfo(StrInfo):
     """Parser for information about a string-list field."""

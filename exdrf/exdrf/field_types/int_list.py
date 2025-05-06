@@ -1,12 +1,12 @@
 from attrs import define, field
 
 from exdrf.constants import FIELD_TYPE_INT_LIST
-from exdrf.field import ExField, FieldInfo
+from exdrf.field_types.int_field import IntField, IntInfo
 
 
 @define
-class IntListField(ExField):
-    """A field that stores list of integers."""
+class IntListField(IntField):
+    """A field that stores a list of integers."""
 
     type_name: str = field(default=FIELD_TYPE_INT_LIST)
 
@@ -14,5 +14,5 @@ class IntListField(ExField):
         return f"IntListF(" f"{self.resource.name}.{self.name})"
 
 
-class IntListInfo(FieldInfo):
+class IntListInfo(IntInfo):
     """Parser for information about an integer-list field."""

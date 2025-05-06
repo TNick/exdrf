@@ -11,8 +11,8 @@ class FloatField(ExField):
     """A field that stores real numbers.
 
     Attributes:
-        min: The minimum value that can be stored in the field.
-        max: The maximum value that can be stored in the field.
+        min: The minimum value that can be stored in the field (inclusive).
+        max: The maximum value that can be stored in the field (inclusive).
         precision: The number of digits that can be stored in the field.
         scale: The number of digits to the right of the decimal point.
         unit: The unit of measurement for the field.
@@ -23,8 +23,8 @@ class FloatField(ExField):
 
     min: float = field(default=None)
     max: float = field(default=None)
-    precision: int = field(default=None)
-    scale: int = field(default=None)
+    precision: int = field(default=2)
+    scale: int = field(default=1)
     unit: str = field(default=None)
     unit_symbol: str = field(default=None)
 
