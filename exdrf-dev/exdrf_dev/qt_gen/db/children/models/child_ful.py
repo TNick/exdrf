@@ -2,10 +2,11 @@
 # Source: exdrf_gen_al2qt -> c/m/m_ful.py.j2
 # Don't change it manually.
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Union
 
 from exdrf_qt.models import QtModel
 from sqlalchemy import select
+from sqlalchemy.orm import joinedload
 
 from exdrf_dev.qt_gen.db.children.fields.fld_data import DataField
 from exdrf_dev.qt_gen.db.children.fields.fld_id import IdField
@@ -22,18 +23,35 @@ if TYPE_CHECKING:
 class QtChildFuMo(QtModel["Child"]):
     """The model that contains all the fields of the Child table."""
 
-    def __init__(self, ctx: "QtContext", **kwargs):
+    def __init__(
+        self,
+        ctx: "QtContext",
+        selection: Union["Select", None] = None,
+        **kwargs,
+    ):
         from exdrf_dev.db.api import Child as DbChild
+        from exdrf_dev.db.api import Parent as DbParent
 
         super().__init__(
             ctx=ctx,
             db_model=DbChild,
-            selection=select(DbChild),
+            selection=(
+                selection
+                if selection is not None
+                else select(DbChild).options(
+                    joinedload(
+                        DbChild.parent,
+                    ).load_only(
+                        DbParent.id,
+                        DbParent.name,
+                    )
+                )
+            ),
             fields=[
-                DataField,  # type: ignore
-                IdField,  # type: ignore
-                ParentField,  # type: ignore
-                ParentIdField,  # type: ignore
+                DataField,
+                IdField,
+                ParentField,
+                ParentIdField,
             ],
             **kwargs,
         )

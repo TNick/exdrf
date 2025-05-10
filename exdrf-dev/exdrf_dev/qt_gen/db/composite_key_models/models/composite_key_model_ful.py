@@ -2,10 +2,11 @@
 # Source: exdrf_gen_al2qt -> c/m/m_ful.py.j2
 # Don't change it manually.
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Union
 
 from exdrf_qt.models import QtModel
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from exdrf_dev.qt_gen.db.composite_key_models.fields.fld_description import (
     DescriptionField,
@@ -48,24 +49,40 @@ if TYPE_CHECKING:
 class QtCompositeKeyModelFuMo(QtModel["CompositeKeyModel"]):
     """The model that contains all the fields of the CompositeKeyModel table."""
 
-    def __init__(self, ctx: "QtContext", **kwargs):
+    def __init__(
+        self,
+        ctx: "QtContext",
+        selection: Union["Select", None] = None,
+        **kwargs,
+    ):
         from exdrf_dev.db.api import CompositeKeyModel as DbCompositeKeyModel
+        from exdrf_dev.db.api import RelatedItem as DbRelatedItem
 
         super().__init__(
             ctx=ctx,
             db_model=DbCompositeKeyModel,
-            selection=select(DbCompositeKeyModel),
+            selection=(
+                selection
+                if selection is not None
+                else select(DbCompositeKeyModel).options(
+                    selectinload(
+                        DbCompositeKeyModel.related_items,
+                    ).load_only(
+                        DbRelatedItem.id,
+                    )
+                )
+            ),
             fields=[
-                DescriptionField,  # type: ignore
-                KeyPart1Field,  # type: ignore
-                KeyPart2Field,  # type: ignore
-                RelatedItemsField,  # type: ignore
-                SomeBinaryField,  # type: ignore
-                SomeDateField,  # type: ignore
-                SomeEnumField,  # type: ignore
-                SomeFloatField,  # type: ignore
-                SomeJsonField,  # type: ignore
-                SomeTimeField,  # type: ignore
+                DescriptionField,
+                KeyPart1Field,
+                KeyPart2Field,
+                RelatedItemsField,
+                SomeBinaryField,
+                SomeDateField,
+                SomeEnumField,
+                SomeFloatField,
+                SomeJsonField,
+                SomeTimeField,
             ],
             **kwargs,
         )

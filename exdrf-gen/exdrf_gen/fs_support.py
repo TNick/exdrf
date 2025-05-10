@@ -9,6 +9,7 @@ import os
 from typing import TYPE_CHECKING, Any, Dict, cast
 
 from attrs import define, field
+from exdrf_al.calc_q import all_related_models, all_related_paths
 from jinja2 import Environment
 
 if TYPE_CHECKING:
@@ -207,6 +208,8 @@ def resource_to_args(resource: "ExResource"):
         "res_mfs": resource.minimum_field_set(),
         "res_spl_id": resource.is_primary_simple,
         "res_primaries": resource.primary_fields(),
+        "all_related_models": all_related_models(resource),
+        "all_related_paths": all_related_paths(resource),
     }
 
 

@@ -73,6 +73,21 @@ class ExResource:
         raise KeyError(f"No field found for key `{key}` in model `{self.name}`")
 
     @property
+    def ref_fields(self) -> List["RefBaseField"]:
+        """Get the fields that are references to other resources.
+
+        Note that `get_dependencies` will return all related resources, even
+        if they are not referenced in the fields of the resource.
+
+        Returns:
+            The fields that are references to other resources.
+        """
+        return cast(
+            List["RefBaseField"],
+            [fld for fld in self.fields if fld.is_ref_type],
+        )
+
+    @property
     def pascal_case_name(self) -> str:
         """Return the name of the resource in PascalCase."""
         return self.name
@@ -196,7 +211,7 @@ class ExResource:
         return deps
 
     def get_dep_fields(self, dep: "ExResource") -> List["ExField"]:
-        """Get the fields that references a dependency.
+        """Get the fields that references a particular dependency.
 
         Args:
             dep: The dependency to look for.
@@ -204,13 +219,7 @@ class ExResource:
         Returns:
             The fields that references the dependency.
         """
-        result = []
-        for fld in self.fields:
-            if fld.is_ref_type:
-                fld = cast("RefBaseField", fld)
-                if fld.ref is dep:
-                    result.append(fld)
-        return result
+        return [fld for fld in self.ref_fields if fld.ref is dep]
 
     def minimum_field_set(self) -> List[str]:
         """Get the minimum set of fields that are used to represent the

@@ -16,9 +16,9 @@ class QtTagSiSe(SingleSelDb):
     """
 
     def __init__(self, ctx: "QtContext", **kwargs):
-        from exdrf_dev.qt_gen.db.tags.models.tag_ocm import (  # noqa: E501
+        from exdrf_dev.qt_gen.db.tags.models.tag_ocm import (
             QtTagNaMo,
-        )
+        )  # noqa: E501
 
         super().__init__(qt_model=QtTagNaMo(ctx=ctx), ctx=ctx, **kwargs)
         self.qt_model.setParent(self)
@@ -30,9 +30,9 @@ class QtTagMuSe(MultiSelDb):
     """
 
     def __init__(self, ctx: "QtContext", **kwargs):
-        from exdrf_dev.qt_gen.db.tags.models.tag_ocm import (  # noqa: E501
+        from exdrf_dev.qt_gen.db.tags.models.tag_ocm import (
             QtTagNaMo,
-        )
+        )  # noqa: E501
 
         super().__init__(qt_model=QtTagNaMo(ctx=ctx), ctx=ctx, **kwargs)
         self.qt_model.setParent(self)

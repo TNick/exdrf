@@ -2,10 +2,11 @@
 # Source: exdrf_gen_al2qt -> c/m/m_ful.py.j2
 # Don't change it manually.
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Union
 
 from exdrf_qt.models import QtModel
 from sqlalchemy import select
+from sqlalchemy.orm import joinedload, selectinload
 
 from exdrf_dev.qt_gen.db.parents.fields.fld_children import ChildrenField
 from exdrf_dev.qt_gen.db.parents.fields.fld_created_at import CreatedAtField
@@ -25,21 +26,57 @@ if TYPE_CHECKING:
 class QtParentFuMo(QtModel["Parent"]):
     """The model that contains all the fields of the Parent table."""
 
-    def __init__(self, ctx: "QtContext", **kwargs):
+    def __init__(
+        self,
+        ctx: "QtContext",
+        selection: Union["Select", None] = None,
+        **kwargs,
+    ):
+        from exdrf_dev.db.api import Child as DbChild
         from exdrf_dev.db.api import Parent as DbParent
+        from exdrf_dev.db.api import Profile as DbProfile
+        from exdrf_dev.db.api import Tag as DbTag
 
         super().__init__(
             ctx=ctx,
             db_model=DbParent,
-            selection=select(DbParent),
+            selection=(
+                selection
+                if selection is not None
+                else select(DbParent)
+                .options(
+                    selectinload(
+                        DbParent.children,
+                    ).load_only(
+                        DbChild.data,
+                        DbChild.id,
+                    )
+                )
+                .options(
+                    joinedload(
+                        DbParent.profile,
+                    ).load_only(
+                        DbProfile.bio,
+                        DbProfile.id,
+                    )
+                )
+                .options(
+                    selectinload(
+                        DbParent.tags,
+                    ).load_only(
+                        DbTag.id,
+                        DbTag.name,
+                    )
+                )
+            ),
             fields=[
-                ChildrenField,  # type: ignore
-                CreatedAtField,  # type: ignore
-                IdField,  # type: ignore
-                IsActiveField,  # type: ignore
-                NameField,  # type: ignore
-                ProfileField,  # type: ignore
-                TagsField,  # type: ignore
+                ChildrenField,
+                CreatedAtField,
+                IdField,
+                IsActiveField,
+                NameField,
+                ProfileField,
+                TagsField,
             ],
             **kwargs,
         )

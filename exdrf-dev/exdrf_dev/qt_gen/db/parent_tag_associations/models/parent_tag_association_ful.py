@@ -2,7 +2,7 @@
 # Source: exdrf_gen_al2qt -> c/m/m_ful.py.j2
 # Don't change it manually.
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Union
 
 from exdrf_qt.models import QtModel
 from sqlalchemy import select
@@ -24,7 +24,12 @@ if TYPE_CHECKING:
 class QtParentTagAssociationFuMo(QtModel["ParentTagAssociation"]):
     """The model that contains all the fields of the ParentTagAssociation table."""
 
-    def __init__(self, ctx: "QtContext", **kwargs):
+    def __init__(
+        self,
+        ctx: "QtContext",
+        selection: Union["Select", None] = None,
+        **kwargs,
+    ):
         from exdrf_dev.db.api import (
             ParentTagAssociation as DbParentTagAssociation,
         )
@@ -32,10 +37,14 @@ class QtParentTagAssociationFuMo(QtModel["ParentTagAssociation"]):
         super().__init__(
             ctx=ctx,
             db_model=DbParentTagAssociation,
-            selection=select(DbParentTagAssociation),
+            selection=(
+                selection
+                if selection is not None
+                else select(DbParentTagAssociation)
+            ),
             fields=[
-                ParentIdField,  # type: ignore
-                TagIdField,  # type: ignore
+                ParentIdField,
+                TagIdField,
             ],
             **kwargs,
         )

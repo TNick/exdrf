@@ -2,10 +2,11 @@
 # Source: exdrf_gen_al2qt -> c/m/m_ful.py.j2
 # Don't change it manually.
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Union
 
 from exdrf_qt.models import QtModel
 from sqlalchemy import select
+from sqlalchemy.orm import joinedload
 
 from exdrf_dev.qt_gen.db.related_items.fields.fld_comp_key_owner import (
     CompKeyOwnerField,
@@ -30,20 +31,38 @@ if TYPE_CHECKING:
 class QtRelatedItemFuMo(QtModel["RelatedItem"]):
     """The model that contains all the fields of the RelatedItem table."""
 
-    def __init__(self, ctx: "QtContext", **kwargs):
+    def __init__(
+        self,
+        ctx: "QtContext",
+        selection: Union["Select", None] = None,
+        **kwargs,
+    ):
+        from exdrf_dev.db.api import CompositeKeyModel as DbCompositeKeyModel
         from exdrf_dev.db.api import RelatedItem as DbRelatedItem
 
         super().__init__(
             ctx=ctx,
             db_model=DbRelatedItem,
-            selection=select(DbRelatedItem),
+            selection=(
+                selection
+                if selection is not None
+                else select(DbRelatedItem).options(
+                    joinedload(
+                        DbRelatedItem.comp_key_owner,
+                    ).load_only(
+                        DbCompositeKeyModel.description,
+                        DbCompositeKeyModel.key_part1,
+                        DbCompositeKeyModel.key_part2,
+                    )
+                )
+            ),
             fields=[
-                CompKeyOwnerField,  # type: ignore
-                CompKeyPart1Field,  # type: ignore
-                CompKeyPart2Field,  # type: ignore
-                IdField,  # type: ignore
-                ItemDataField,  # type: ignore
-                SomeIntField,  # type: ignore
+                CompKeyOwnerField,
+                CompKeyPart1Field,
+                CompKeyPart2Field,
+                IdField,
+                ItemDataField,
+                SomeIntField,
             ],
             **kwargs,
         )
