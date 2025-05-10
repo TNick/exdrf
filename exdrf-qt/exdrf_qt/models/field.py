@@ -57,11 +57,11 @@ class QtField(ExField, QtUseContext, Generic[DBM]):
     resource: "QtModel" = field(default=None)  # type: ignore[assignment]
     preferred_width: int = field(default=100)
 
-    def values(self, item: DBM) -> Dict[Qt.ItemDataRole, Any]:
+    def values(self, record: DBM) -> Dict[Qt.ItemDataRole, Any]:
         """Return the values for this field.
 
         Args:
-            item: The database record.
+            record: The database record.
 
         Returns:
             A dictionary that maps the role to the data.

@@ -1,0 +1,58 @@
+# This file was automatically generated using the exdrf_gen package.
+# Source: {{ source_module }} -> {{ source_templ }}
+# Don't change it manually.
+from typing import TYPE_CHECKING, Any, Dict
+from datetime import datetime, date
+from attrs import define, field
+
+from exdrf_qt.models.fields import Qt{{ fld_bc }}Field
+{%- if fld_is_ref %}
+from exdrf.constants import RecIdType
+{%- endif %}
+if TYPE_CHECKING:
+    from {{ db_module }}.{{ r.categories[0] }}.api import {{ ResPascal }}  # noqa: F401
+    {%- if fld_is_ref %}
+    from {{ db_module }}.{{ field.ref.categories[0] }}.api import {{ field.ref.pascal_case_name }}  # noqa: F401
+    from exdrf.resource import ExResource  # noqa: F401
+    {%- endif %}
+
+
+@define
+class {{ FldPascal }}Field(Qt{{ fld_bc }}Field["{{ ResPascal }}"]):
+    """{%- if field.description -%}{{ field.description }}.{% endif %}
+    """
+    name: str = field(default="{{ field.name }}", init=False)
+    title: str = field(default="{{ field.title }}")
+    {%- if field.description %}
+    description: str = field(default=(
+        {%- for line in field.doc_lines %}
+        "{{ line }}"
+        {%- endfor %}
+    ))
+    {%- endif %}
+
+    {%- for part_name, part_class, part_default in gfp(field, fld_attrs, fld_bc) %}
+    {{ part_name }}: {{ part_class }} = field(default={{ part_default }})
+    {%- endfor %}
+
+    {%- if fld_is_ref %}
+    ref: "ExResource" = field(default=None, repr=False)
+
+    def part_id(self, record: "{{ field.ref.pascal_case_name }}") -> RecIdType:
+        """Compute the ID for one of the components of the field."""
+        {%- if field.ref.is_primary_simple %}
+        return record.{{ field.ref.primary_fields()[0] }}
+        {%- else %}
+        return (
+            {%- for prm in field.ref.primary_fields() %}
+            record.{{ prm }},
+            {%- endfor %}
+        )
+        {%- endif %}
+
+    def part_label(self, record: "{{ field.ref.pascal_case_name }}") -> str:
+        """Compute the label for one of the components of the field."""
+        return {{ field.ref.label_to_python() }}
+    {%- endif %}
+
+{{- "\n" -}}

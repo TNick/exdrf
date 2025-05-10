@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>QtChildEditor</class>
+ <widget class="QWidget" name="QtChildEditor">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>480</width>
+    <height>640</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Child Editor</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="QTabWidget" name="main_tab">
+     <property name="currentIndex">
+      <number>0</number>
+     </property>
+     
+     <widget class="QWidget" name="tab_general">
+      <attribute name="title">
+       <string>General</string>
+      </attribute>
+      <layout class="QFormLayout" name="formLayout">
+     
+       <item row="0" column="0">
+        <widget class="QLabel" name="lbl_data">
+         <property name="text">
+          <string>Data </string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="DrfLineEditor" name="c_data"/>
+       </item>
+     
+       <item row="1" column="0">
+        <widget class="QLabel" name="lbl_id">
+         <property name="text">
+          <string>Id </string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="1">
+        <widget class="DrfIntEditor" name="c_id"/>
+       </item>
+     
+       <item row="2" column="0">
+        <widget class="QLabel" name="lbl_parent">
+         <property name="text">
+          <string>Parent </string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="1">
+        <widget class="QtParentSiSe" name="c_parent"/>
+       </item>
+     
+       <item row="3" column="0">
+        <widget class="QLabel" name="lbl_parent_id">
+         <property name="text">
+          <string>Parent Id </string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="1">
+        <widget class="DrfIntEditor" name="c_parent_id"/>
+       </item>
+     
+      </layout>
+     </widget>
+     
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+  <customwidget>
+    <class>DrfLineEditor</class>
+    <extends>QLineEdit</extends>
+    <header>exdrf_qt.field_ed.api</header>
+  </customwidget>
+  <customwidget>
+    <class>DrfIntEditor</class>
+    <extends>QLineEdit</extends>
+    <header>exdrf_qt.field_ed.api</header>
+  </customwidget>
+  <customwidget>
+    <class>QtParentSiSe</class>
+    <extends>QLineEdit</extends>
+    <header>exdrf_qt.field_ed.api</header>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>

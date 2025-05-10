@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>QtParentEditor</class>
+ <widget class="QWidget" name="QtParentEditor">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>480</width>
+    <height>640</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Parent Editor</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="QTabWidget" name="main_tab">
+     <property name="currentIndex">
+      <number>0</number>
+     </property>
+     
+     <widget class="QWidget" name="tab_general">
+      <attribute name="title">
+       <string>General</string>
+      </attribute>
+      <layout class="QFormLayout" name="formLayout">
+     
+       <item row="0" column="0">
+        <widget class="QLabel" name="lbl_children">
+         <property name="text">
+          <string>Children </string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="QtChildMuSe" name="c_children"/>
+       </item>
+     
+       <item row="1" column="0">
+        <widget class="QLabel" name="lbl_created_at">
+         <property name="text">
+          <string>Created At </string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="1">
+        <widget class="DrfDateTimeEditor" name="c_created_at"/>
+       </item>
+     
+       <item row="2" column="0">
+        <widget class="QLabel" name="lbl_id">
+         <property name="text">
+          <string>Id </string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="1">
+        <widget class="DrfIntEditor" name="c_id"/>
+       </item>
+     
+       <item row="3" column="0">
+        <widget class="QLabel" name="lbl_is_active">
+         <property name="text">
+          <string>Is Active </string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="1">
+        <widget class="DrfBoolEditor" name="c_is_active"/>
+       </item>
+     
+       <item row="4" column="0">
+        <widget class="QLabel" name="lbl_name">
+         <property name="text">
+          <string>Name </string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="1">
+        <widget class="DrfLineEditor" name="c_name"/>
+       </item>
+     
+       <item row="5" column="0">
+        <widget class="QLabel" name="lbl_profile">
+         <property name="text">
+          <string>Profile </string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="1">
+        <widget class="QtProfileSiSe" name="c_profile"/>
+       </item>
+     
+       <item row="6" column="0">
+        <widget class="QLabel" name="lbl_tags">
+         <property name="text">
+          <string>Tags </string>
+         </property>
+        </widget>
+       </item>
+       <item row="6" column="1">
+        <widget class="QtTagMuSe" name="c_tags"/>
+       </item>
+     
+      </layout>
+     </widget>
+     
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+  <customwidget>
+    <class>QtChildMuSe</class>
+    <extends>QLineEdit</extends>
+    <header>exdrf_qt.field_ed.api</header>
+  </customwidget>
+  <customwidget>
+    <class>DrfDateTimeEditor</class>
+    <extends>QLineEdit</extends>
+    <header>exdrf_qt.field_ed.api</header>
+  </customwidget>
+  <customwidget>
+    <class>DrfIntEditor</class>
+    <extends>QLineEdit</extends>
+    <header>exdrf_qt.field_ed.api</header>
+  </customwidget>
+  <customwidget>
+    <class>DrfBoolEditor</class>
+    <extends>QLineEdit</extends>
+    <header>exdrf_qt.field_ed.api</header>
+  </customwidget>
+  <customwidget>
+    <class>DrfLineEditor</class>
+    <extends>QLineEdit</extends>
+    <header>exdrf_qt.field_ed.api</header>
+  </customwidget>
+  <customwidget>
+    <class>QtProfileSiSe</class>
+    <extends>QLineEdit</extends>
+    <header>exdrf_qt.field_ed.api</header>
+  </customwidget>
+  <customwidget>
+    <class>QtTagMuSe</class>
+    <extends>QLineEdit</extends>
+    <header>exdrf_qt.field_ed.api</header>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>

@@ -16,7 +16,12 @@ from typing import (
 from attrs import define, field
 from pydantic import BaseModel
 
-from exdrf.label_dsl import get_used_fields, parse_expr
+from exdrf.label_dsl import (
+    generate_python_code,
+    generate_typescript_code,
+    get_used_fields,
+    parse_expr,
+)
 from exdrf.utils import doc_lines, inflect_e
 
 if TYPE_CHECKING:
@@ -221,6 +226,24 @@ class ExResource:
                 names.add(f.name)
         return sorted(names)
 
+    def primary_fields(self) -> List[str]:
+        """Get the fields that are primary keys of the resource."""
+        names: Set[str] = set()
+        for f in self.fields:
+            if f.primary:
+                names.add(f.name)
+        return sorted(names)
+
+    @property
+    def is_primary_simple(self) -> bool:
+        """Check if the resource has a simple primary key.
+
+        A simple primary key is a single field that is used to identify the
+        resource. If the resource has no primary key or more than one primary
+        key, it is not a simple primary key.
+        """
+        return len(self.primary_fields()) == 1
+
     def rel_import(
         self,
         other: Union["ExResource", List[str]],
@@ -370,6 +393,14 @@ class ExResource:
         for k in sorted(categories.keys(), key=self.category_sort_key):
             result[k] = categories[k]
         return result
+
+    def label_to_python(self) -> str:
+        """Convert a label to python code."""
+        return generate_python_code(self.label_ast)
+
+    def label_to_typescript(self) -> str:
+        """Convert a label to typescript code."""
+        return generate_typescript_code(self.label_ast)
 
 
 class ResExtraInfo(BaseModel):

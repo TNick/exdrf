@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>QtCompositeKeyModelEditor</class>
+ <widget class="QWidget" name="QtCompositeKeyModelEditor">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>480</width>
+    <height>640</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Composite key model Editor</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="QTabWidget" name="main_tab">
+     <property name="currentIndex">
+      <number>0</number>
+     </property>
+     
+     <widget class="QWidget" name="tab_general">
+      <attribute name="title">
+       <string>General</string>
+      </attribute>
+      <layout class="QFormLayout" name="formLayout">
+     
+       <item row="0" column="0">
+        <widget class="QLabel" name="lbl_description">
+         <property name="text">
+          <string>Description </string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="DrfLineEditor" name="c_description"/>
+       </item>
+     
+       <item row="1" column="0">
+        <widget class="QLabel" name="lbl_key_part1">
+         <property name="text">
+          <string>Key Part1 </string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="1">
+        <widget class="DrfLineEditor" name="c_key_part1"/>
+       </item>
+     
+       <item row="2" column="0">
+        <widget class="QLabel" name="lbl_key_part2">
+         <property name="text">
+          <string>Key Part2 </string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="1">
+        <widget class="DrfIntEditor" name="c_key_part2"/>
+       </item>
+     
+       <item row="3" column="0">
+        <widget class="QLabel" name="lbl_related_items">
+         <property name="text">
+          <string>Related Items </string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="1">
+        <widget class="QtRelatedItemMuSe" name="c_related_items"/>
+       </item>
+     
+       <item row="4" column="0">
+        <widget class="QLabel" name="lbl_some_binary">
+         <property name="text">
+          <string>Some Binary </string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="1">
+        <widget class="DrfBlobEditor" name="c_some_binary"/>
+       </item>
+     
+       <item row="5" column="0">
+        <widget class="QLabel" name="lbl_some_date">
+         <property name="text">
+          <string>Some Date </string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="1">
+        <widget class="DrfDateEditor" name="c_some_date"/>
+       </item>
+     
+       <item row="6" column="0">
+        <widget class="QLabel" name="lbl_some_enum">
+         <property name="text">
+          <string>Some Enum </string>
+         </property>
+        </widget>
+       </item>
+       <item row="6" column="1">
+        <widget class="DrfLineEditor" name="c_some_enum"/>
+       </item>
+     
+       <item row="7" column="0">
+        <widget class="QLabel" name="lbl_some_float">
+         <property name="text">
+          <string>Some Float </string>
+         </property>
+        </widget>
+       </item>
+       <item row="7" column="1">
+        <widget class="DrfRealEditor" name="c_some_float"/>
+       </item>
+     
+       <item row="8" column="0">
+        <widget class="QLabel" name="lbl_some_json">
+         <property name="text">
+          <string>Some Json </string>
+         </property>
+        </widget>
+       </item>
+       <item row="8" column="1">
+        <widget class="DrfTextEditor" name="c_some_json"/>
+       </item>
+     
+       <item row="9" column="0">
+        <widget class="QLabel" name="lbl_some_time">
+         <property name="text">
+          <string>Some Time </string>
+         </property>
+        </widget>
+       </item>
+       <item row="9" column="1">
+        <widget class="DrfTimeEditor" name="c_some_time"/>
+       </item>
+     
+      </layout>
+     </widget>
+     
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+  <customwidget>
+    <class>DrfLineEditor</class>
+    <extends>QLineEdit</extends>
+    <header>exdrf_qt.field_ed.api</header>
+  </customwidget>
+  <customwidget>
+    <class>DrfIntEditor</class>
+    <extends>QLineEdit</extends>
+    <header>exdrf_qt.field_ed.api</header>
+  </customwidget>
+  <customwidget>
+    <class>QtRelatedItemMuSe</class>
+    <extends>QLineEdit</extends>
+    <header>exdrf_qt.field_ed.api</header>
+  </customwidget>
+  <customwidget>
+    <class>DrfBlobEditor</class>
+    <extends>QLineEdit</extends>
+    <header>exdrf_qt.field_ed.api</header>
+  </customwidget>
+  <customwidget>
+    <class>DrfDateEditor</class>
+    <extends>QLineEdit</extends>
+    <header>exdrf_qt.field_ed.api</header>
+  </customwidget>
+  <customwidget>
+    <class>DrfRealEditor</class>
+    <extends>QLineEdit</extends>
+    <header>exdrf_qt.field_ed.api</header>
+  </customwidget>
+  <customwidget>
+    <class>DrfTextEditor</class>
+    <extends>QLineEdit</extends>
+    <header>exdrf_qt.field_ed.api</header>
+  </customwidget>
+  <customwidget>
+    <class>DrfTimeEditor</class>
+    <extends>QLineEdit</extends>
+    <header>exdrf_qt.field_ed.api</header>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>

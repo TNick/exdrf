@@ -244,7 +244,11 @@ def convert_pair(ui_file: str, py_file: str) -> int:
                     custom_widgets.append(name)
 
     output = io.StringIO()
-    uic.compileUi(ui_file, output)
+    try:
+        uic.compileUi(ui_file, output)
+    except Exception as e:
+        print(f"Error compiling {ui_file}: {e}")
+        return 1
     fx = Fixer(output.getvalue(), custom_widgets)
     if os.path.isfile(py_file):
         os.remove(py_file)

@@ -41,8 +41,8 @@ from exdrf_qt.models.field import (
 
 @define(slots=False)
 class QtBlobField(BlobField, QtField[DBM]):
-    def values(self, item: DBM) -> Dict[Qt.ItemDataRole, Any]:
-        value = getattr(item, self.name)
+    def values(self, record: DBM) -> Dict[Qt.ItemDataRole, Any]:
+        value = getattr(record, self.name)
         if value is None:
             return self.expand_value(None)
 
@@ -70,8 +70,8 @@ class QtBlobField(BlobField, QtField[DBM]):
 
 @define
 class QtBoolField(BoolField, QtField[DBM]):
-    def values(self, item: DBM) -> Dict[Qt.ItemDataRole, Any]:
-        value = getattr(item, self.name)
+    def values(self, record: DBM) -> Dict[Qt.ItemDataRole, Any]:
+        value = getattr(record, self.name)
         if value is None:
             return self.expand_value(None)
         return self.expand_value(
@@ -88,8 +88,8 @@ class QtBoolField(BoolField, QtField[DBM]):
 class QtDateTimeField(QtField[DBM], DateTimeField):
     formatter: Optional[MomentFormat] = field(default=None)
 
-    def values(self, item) -> Dict[Qt.ItemDataRole, Any]:
-        value = getattr(item, self.name)  # type: ignore[assignment]
+    def values(self, record) -> Dict[Qt.ItemDataRole, Any]:
+        value = getattr(record, self.name)  # type: ignore[assignment]
         if value is None:
             return self.expand_value(None)  # type: ignore[no-untyped-call]
 
@@ -111,8 +111,8 @@ class QtDateTimeField(QtField[DBM], DateTimeField):
 class QtDateField(DateField, QtField[DBM]):
     formatter: Optional[MomentFormat] = field(default=None)
 
-    def values(self, item) -> Dict[Qt.ItemDataRole, Any]:
-        value = getattr(item, self.name)  # type: ignore[assignment]
+    def values(self, record) -> Dict[Qt.ItemDataRole, Any]:
+        value = getattr(record, self.name)  # type: ignore[assignment]
         if value is None:
             return self.expand_value(None)  # type: ignore[no-untyped-call]
 
@@ -134,8 +134,8 @@ class QtDateField(DateField, QtField[DBM]):
 class QtTimeField(TimeField, QtField[DBM]):
     formatter: Optional[MomentFormat] = field(default=None)
 
-    def values(self, item) -> Dict[Qt.ItemDataRole, Any]:
-        value = getattr(item, self.name)  # type: ignore[assignment]
+    def values(self, record) -> Dict[Qt.ItemDataRole, Any]:
+        value = getattr(record, self.name)  # type: ignore[assignment]
         if value is None:
             return self.expand_value(None)  # type: ignore[no-untyped-call]
 
@@ -155,20 +155,20 @@ class QtTimeField(TimeField, QtField[DBM]):
 
 @define
 class QtDurationField(DurationField, QtField[DBM]):
-    def values(self, item) -> Dict[Qt.ItemDataRole, Any]:
-        return self.not_implemented_values(item)
+    def values(self, record) -> Dict[Qt.ItemDataRole, Any]:
+        return self.not_implemented_values(record)
 
 
 @define
 class QtEnumField(EnumField, QtField[DBM]):
-    def values(self, item) -> Dict[Qt.ItemDataRole, Any]:
-        return self.not_implemented_values(item)
+    def values(self, record) -> Dict[Qt.ItemDataRole, Any]:
+        return self.not_implemented_values(record)
 
 
 @define
 class QtFloatField(FloatField, QtField[DBM]):
-    def values(self, item) -> Dict[Qt.ItemDataRole, Any]:
-        value = getattr(item, self.name)  # type: ignore[assignment]
+    def values(self, record) -> Dict[Qt.ItemDataRole, Any]:
+        value = getattr(record, self.name)  # type: ignore[assignment]
         if value is None:
             return self.expand_value(None)  # type: ignore[no-untyped-call]
 
@@ -206,8 +206,8 @@ class QtFloatField(FloatField, QtField[DBM]):
 
 @define
 class QtIntegerField(IntField, QtField[DBM]):
-    def values(self, item) -> Dict[Qt.ItemDataRole, Any]:
-        value = getattr(item, self.name)  # type: ignore[assignment]
+    def values(self, record) -> Dict[Qt.ItemDataRole, Any]:
+        value = getattr(record, self.name)  # type: ignore[assignment]
         if value is None:
             return self.expand_value(None)  # type: ignore[no-untyped-call]
 
@@ -246,12 +246,12 @@ class QtIntegerField(IntField, QtField[DBM]):
 
 @define
 class QtStringField(StrField, QtField[DBM]):
-    def values(self, item) -> Dict[Qt.ItemDataRole, Any]:
-        value = getattr(item, self.name)  # type: ignore[assignment]
+    def values(self, record) -> Dict[Qt.ItemDataRole, Any]:
+        value = getattr(record, self.name)  # type: ignore[assignment]
         if value is None:
             return self.expand_value(None)  # type: ignore[no-untyped-call]
 
-        display = value.replace("\n", "\\n")
+        display = str(value).replace("\n", "\\n")
         if len(display) > 50:
             display = f"{display[:50]}..."
 
@@ -279,8 +279,8 @@ class QtStringField(StrField, QtField[DBM]):
 
 @define
 class QtStringListField(StrListField, QtField[DBM]):
-    def values(self, item) -> Dict[Qt.ItemDataRole, Any]:
-        value = getattr(item, self.name)  # type: ignore[assignment]
+    def values(self, record) -> Dict[Qt.ItemDataRole, Any]:
+        value = getattr(record, self.name)  # type: ignore[assignment]
         if value is None:
             return self.expand_value(None)  # type: ignore[no-untyped-call]
 
@@ -304,8 +304,8 @@ class QtStringListField(StrListField, QtField[DBM]):
 
 @define
 class QtIntListField(IntListField, QtField[DBM]):
-    def values(self, item) -> Dict[Qt.ItemDataRole, Any]:
-        value = getattr(item, self.name)
+    def values(self, record) -> Dict[Qt.ItemDataRole, Any]:
+        value = getattr(record, self.name)
         if value is None:
             return self.expand_value(None)
 
@@ -329,33 +329,33 @@ class QtIntListField(IntListField, QtField[DBM]):
 
 @define
 class QtFloatListField(FloatListField, QtField[DBM]):
-    def values(self, item) -> Dict[Qt.ItemDataRole, Any]:
-        return self.not_implemented_values(item)
+    def values(self, record) -> Dict[Qt.ItemDataRole, Any]:
+        return self.not_implemented_values(record)
 
 
 @define
 class QtFormattedField(FormattedField, QtField[DBM]):
-    def values(self, item) -> Dict[Qt.ItemDataRole, Any]:
-        return self.not_implemented_values(item)
+    def values(self, record) -> Dict[Qt.ItemDataRole, Any]:
+        return self.not_implemented_values(record)
 
 
 @define
 class QtRefBaseField(RefBaseField, QtField[DBM]):
-    def values(self, item) -> Dict[Qt.ItemDataRole, Any]:
-        return self.not_implemented_values(item)
+    def values(self, record) -> Dict[Qt.ItemDataRole, Any]:
+        return self.not_implemented_values(record)
 
 
 @define
 class QtRefManyToOneField(RefManyToOneField, QtField[DBM]):
-    def values(self, item) -> Dict[Qt.ItemDataRole, Any]:
-        return self.not_implemented_values(item)
+    def values(self, record) -> Dict[Qt.ItemDataRole, Any]:
+        return self.not_implemented_values(record)
 
 
 @define
 class QtRefOneToManyField(RefOneToManyField, QtField[DBM]):
     show_n_labels: int = field(default=4)
 
-    def values(self, item: DBM) -> Dict[Qt.ItemDataRole, Any]:
+    def values(self, record: DBM) -> Dict[Qt.ItemDataRole, Any]:
         """Compute the values for each role for this field.
 
         As this is a field that has multiple values, we ask the implementation
@@ -367,7 +367,7 @@ class QtRefOneToManyField(RefOneToManyField, QtField[DBM]):
         longer than `show_n_labels`, the last label will be "...",
         with the full list shown in the tooltip.
         """
-        items = getattr(item, self.name)
+        items = getattr(record, self.name)
         if items is None:
             return self.expand_value(None)
 
@@ -391,13 +391,13 @@ class QtRefOneToManyField(RefOneToManyField, QtField[DBM]):
             ToolTipRole=tooltip,
         )
 
-    def part_id(self, item: Any) -> RecIdType:
+    def part_id(self, record: Any) -> RecIdType:
         """Compute the ID for one of the components of the field."""
         raise NotImplementedError(
             "part_id is not implemented for QtRefOneToManyField"
         )
 
-    def part_label(self, item: Any) -> str:
+    def part_label(self, record: Any) -> str:
         """Compute the label for one of the components of the field."""
         raise NotImplementedError(
             "part_label is not implemented for QtRefOneToManyField"
@@ -406,23 +406,23 @@ class QtRefOneToManyField(RefOneToManyField, QtField[DBM]):
 
 @define
 class QtRefOneToOneField(RefOneToOneField, QtField[DBM]):
-    def values(self, item) -> Dict[Qt.ItemDataRole, Any]:
-        return self.not_implemented_values(item)
+    def values(self, record) -> Dict[Qt.ItemDataRole, Any]:
+        return self.not_implemented_values(record)
 
 
 @define
 class QtRefManyToManyField(RefManyToManyField, QtField[DBM]):
-    def values(self, item) -> Dict[Qt.ItemDataRole, Any]:
-        return self.not_implemented_values(item)
+    def values(self, record) -> Dict[Qt.ItemDataRole, Any]:
+        return self.not_implemented_values(record)
 
 
 @define
 class QtFilterField(FilterField, QtField[DBM]):
-    def values(self, item) -> Dict[Qt.ItemDataRole, Any]:
-        return self.not_implemented_values(item)
+    def values(self, record) -> Dict[Qt.ItemDataRole, Any]:
+        return self.not_implemented_values(record)
 
 
 @define
 class QtSortField(SortField, QtField[DBM]):
-    def values(self, item) -> Dict[Qt.ItemDataRole, Any]:
-        return self.not_implemented_values(item)
+    def values(self, record) -> Dict[Qt.ItemDataRole, Any]:
+        return self.not_implemented_values(record)

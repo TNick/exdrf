@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>Qt{{ ResPascal }}Editor</class>
+ <widget class="QWidget" name="Qt{{ ResPascal }}Editor">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>480</width>
+    <height>640</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>{{ ResText }} Editor</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="QTabWidget" name="main_tab">
+     <property name="currentIndex">
+      <number>0</number>
+     </property>
+     {% for c_name, c_fields in r.sorted_fields_and_categories().items() %}
+     <widget class="QWidget" name="tab_{{ c_name if c_name else "general" }}">
+      <attribute name="title">
+       <string>{{ (c_name if c_name else "general")| title }}</string>
+      </attribute>
+      <layout class="QFormLayout" name="formLayout">
+     {% for f_i, field in enumerate(c_fields) %}
+       <item row="{{ f_i }}" column="0">
+        <widget class="QLabel" name="lbl_{{ field.name }}">
+         <property name="text">
+          <string>{{ field.title }} </string>
+         </property>
+        </widget>
+       </item>
+       <item row="{{ f_i }}" column="1">
+        <widget class="{{ base_ui_class(field) }}" name="c_{{ field.name }}"/>
+       </item>
+     {% endfor %}
+      </layout>
+     </widget>
+     {% endfor %}
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+ {%- set seen_widgets = set() %}
+ {%- for field in r.sorted_fields() %}
+  {%- if base_ui_class(field) not in seen_widgets %}
+  <customwidget>
+    <class>{{ base_ui_class(field) }}</class>
+    <extends>QLineEdit</extends>
+    <header>exdrf_qt.field_ed.api</header>
+  </customwidget>
+  {%- set _ = seen_widgets.add(base_ui_class(field)) %}
+  {%- endif %}
+ {%- endfor %}
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>

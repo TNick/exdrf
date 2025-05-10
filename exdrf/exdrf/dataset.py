@@ -1,5 +1,15 @@
 from collections import OrderedDict
-from typing import TYPE_CHECKING, Dict, List, Optional, Type, Union, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+    cast,
+)
 
 from attrs import define, field
 
@@ -115,6 +125,23 @@ class ExDataset:
             return True
 
         return do_category_map(self.category_map)
+
+    def zero_categories(self) -> List[Tuple[str, List["ExResource"]]]:
+        """Get a list of top level categories and their resources."""
+        result = []
+        for ctg, ctg_data in self.category_map.items():
+            models = []
+
+            def do_data(crt_data: Any) -> None:
+                if isinstance(crt_data, dict):
+                    for subset in crt_data.values():
+                        do_data(subset)
+                else:
+                    models.append(crt_data)
+
+            do_data(ctg_data)
+            result.append((ctg, models))
+        return result
 
     def sorted_by_deps(self) -> List["ExResource"]:
         # Build a dependency map where key is the resource name and value is a

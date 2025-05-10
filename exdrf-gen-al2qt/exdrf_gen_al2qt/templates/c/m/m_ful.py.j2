@@ -1,0 +1,59 @@
+# This file was automatically generated using the exdrf_gen package.
+# Source: {{ source_module }} -> {{ source_templ }}
+# Don't change it manually.
+
+from typing import TYPE_CHECKING
+
+from exdrf_qt.models import QtModel
+from sqlalchemy import select
+from sqlalchemy.orm import joinedload, selectinload
+
+{% for field in fields %}
+from {{ out_module }}.{{ r.categories[0] }}.{{ r.snake_case_name_plural }}.fields.fld_{{field.name}} import (
+    {{ field.pascal_case_name }}Field
+)
+{%- endfor %}
+
+if TYPE_CHECKING:
+    from exdrf_qt.context import QtContext  # noqa: F401
+    from sqlalchemy import Select  # noqa: F401
+    from {{ db_module }}.{{ r.categories[0] }}.api import {{ ResPascal }}  # noqa: F401
+
+
+class Qt{{ ResPascal }}FuMo(QtModel["{{ ResPascal }}"]):
+    """The model that contains all the fields of the {{ ResPascal }} table.
+    """
+
+    def __init__(
+        self,
+        ctx: "QtContext",
+        **kwargs
+    ):
+        from {{ db_module }}.{{ r.categories[0] }}.api import {{ r.name }} as Db{{ r.name }}
+        {%- for m in all_related_models %}
+        {%- if m.name != r.name %}
+        from {{ db_module }}.{{ m.categories[0] }}.api import (
+            {{ m.name }} as Db{{ m.name }}
+        )
+        {%- endif %}
+        {%- endfor %}
+
+        super().__init__(
+            ctx=ctx,
+            db_model=Db{{ ResPascal }},
+            selection=select(Db{{ ResPascal }})
+
+            {%- for path in all_related_paths %}
+            .options(
+{{ path.stringify() }}
+            )
+            {%- endfor %}
+            ,
+            fields=[
+                {%- for field in fields %}
+                {{ field.pascal_case_name }}Field,  # type: ignore
+                {%- endfor %}
+            ],
+            **kwargs
+        )
+{{- "\n" -}}

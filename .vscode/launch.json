@@ -75,10 +75,10 @@
                 "--debug",
                 "al2qt",
                 "exdrf_dev.db.models:Base",
+                "${workspaceFolder}/exdrf-dev/exdrf_dev/qt_gen",
+                "exdrf_dev.qt_gen",
+                "exdrf_dev"
             ],
-            "env": {
-                "EXDRF_AL2PD_PATH": "${workspaceFolder}/playground/al2qt-output"
-            },
             "justMyCode": false
         },
     ]
