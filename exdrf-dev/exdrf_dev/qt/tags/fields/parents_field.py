@@ -26,6 +26,4 @@ class ParentsField(QtRefManyToManyField["Tag"]):
     filterable: bool = field(default=True)
     exportable: bool = field(default=True)
     qsearch: bool = field(default=True)
-    ts_type: str = field(default="many-to-many")
-    py_type: str = field(default="")
     ref: "ExResource" = field(default=None, repr=False)

@@ -22,30 +22,6 @@ FIELD_TYPE_REF_ONE_TO_ONE = "one-to-one"
 FIELD_TYPE_REF_MANY_TO_MANY = "many-to-many"
 FIELD_TYPE_REF_MANY_TO_ONE = "many-to-one"
 
-# Constants for TypeScript types
-TS_TYPE_BYTEBUFFER = "ByteBuffer"
-TS_TYPE_BOOLEAN = "boolean"
-TS_TYPE_DATE = "Date"
-TS_TYPE_NUMBER = "number"
-TS_TYPE_STRING = "string"
-TS_TYPE_STRING_ARRAY = "string[]"
-TS_TYPE_NUMBER_ARRAY = "number[]"
-TS_TYPE_SORT = "SortItem[]"
-TS_TYPE_ANY_ARRAY = "any[]"
-
-# Constants for Python types
-PY_TYPE_BYTES = "bytes"
-PY_TYPE_BOOL = "bool"
-PY_TYPE_DATE = "Date"
-PY_TYPE_DATETIME = "DateTime"
-PY_TYPE_TIMEDELTA = "timedelta"
-PY_TYPE_STR = "str"
-PY_TYPE_FLOAT = "float"
-PY_TYPE_INT = "int"
-PY_TYPE_STRING_LIST = "list[str]"
-PY_TYPE_INT_LIST = "list[int]"
-PY_TYPE_FLOAT_LIST = "list[float]"
-
 # This are the types of relations that we know of.
 RelType = Literal["OneToMany", "ManyToOne", "OneToOne", "ManyToMany"]
 
