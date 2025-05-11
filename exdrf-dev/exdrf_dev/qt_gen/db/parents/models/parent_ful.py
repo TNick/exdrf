@@ -30,6 +30,7 @@ class QtParentFuMo(QtModel["Parent"]):
         self,
         ctx: "QtContext",
         selection: Union["Select", None] = None,
+        fields=None,
         **kwargs,
     ):
         from exdrf_dev.db.api import Child as DbChild
@@ -47,9 +48,16 @@ class QtParentFuMo(QtModel["Parent"]):
                 .options(
                     selectinload(
                         DbParent.children,
-                    ).load_only(
+                    )
+                    .load_only(
                         DbChild.data,
                         DbChild.id,
+                    )
+                    .joinedload(
+                        DbChild.parent,
+                    )
+                    .load_only(
+                        DbParent.name,
                     )
                 )
                 .options(
@@ -69,14 +77,18 @@ class QtParentFuMo(QtModel["Parent"]):
                     )
                 )
             ),
-            fields=[
-                ChildrenField,
-                CreatedAtField,
-                IdField,
-                IsActiveField,
-                NameField,
-                ProfileField,
-                TagsField,
-            ],
+            fields=(
+                fields
+                if fields is not None
+                else [
+                    ChildrenField,
+                    CreatedAtField,
+                    IsActiveField,
+                    NameField,
+                    ProfileField,
+                    TagsField,
+                    IdField,
+                ]
+            ),
             **kwargs,
         )

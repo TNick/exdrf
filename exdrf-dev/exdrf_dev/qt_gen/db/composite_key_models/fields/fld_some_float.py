@@ -17,6 +17,7 @@ class SomeFloatField(QtFloatField["CompositeKeyModel"]):
     name: str = field(default="some_float", init=False)
     title: str = field(default="Some Float")
     description: str = field(default=("A floating-point number."))
+    category: str = field(default="general")
     preferred_width: int = field(default=100)
     min: float = field(default=0.0)
     max: float = field(default=100.0)

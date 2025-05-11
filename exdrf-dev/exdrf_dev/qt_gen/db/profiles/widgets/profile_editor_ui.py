@@ -3,7 +3,9 @@ from typing import TYPE_CHECKING
 from PyQt5 import QtCore, QtWidgets
 
 if TYPE_CHECKING:
-    from exdrf_qt.field_ed.api import DrfIntEditor, DrfLineEditor, QtParentSiSe
+    from exdrf_qt.field_ed.api import DrfIntEditor, DrfLineEditor
+
+    from exdrf_dev.qt_gen.db.parents.api import QtParentSiSe
 
 
 class Ui_QtProfileEditor:
@@ -15,9 +17,11 @@ class Ui_QtProfileEditor:
         tab_general: Tab general.
         formLayout: The layout for the widget.
         c_bio: C bio.
-        c_id: C id.
         c_parent: C parent.
         c_parent_id: C parent id.
+        tab_keys: Tab keys.
+        formLayout1: The layout for the widget.
+        c_id: C id.
 
     """
 
@@ -27,19 +31,19 @@ class Ui_QtProfileEditor:
     formLayout: "QtWidgets.QFormLayout"
     lbl_bio: "QtWidgets.QLabel"
     c_bio: "DrfLineEditor"
-    lbl_id: "QtWidgets.QLabel"
-    c_id: "DrfIntEditor"
     lbl_parent: "QtWidgets.QLabel"
     c_parent: "QtParentSiSe"
     lbl_parent_id: "QtWidgets.QLabel"
     c_parent_id: "DrfIntEditor"
+    tab_keys: "QtWidgets.QWidget"
+    formLayout1: "QtWidgets.QFormLayout"
+    lbl_id: "QtWidgets.QLabel"
+    c_id: "QtWidgets.QLineEdit"
 
     def setup_ui(self, QtProfileEditor):
-        from exdrf_qt.field_ed.api import (
-            DrfIntEditor,
-            DrfLineEditor,
-            QtParentSiSe,
-        )
+        from exdrf_qt.field_ed.api import DrfIntEditor, DrfLineEditor
+
+        from exdrf_dev.qt_gen.db.parents.api import QtParentSiSe
 
         QtProfileEditor.setObjectName("QtProfileEditor")
         QtProfileEditor.resize(480, 640)
@@ -57,39 +61,50 @@ class Ui_QtProfileEditor:
             0, QtWidgets.QFormLayout.LabelRole, self.lbl_bio
         )
         self.c_bio = DrfLineEditor(parent=self.tab_general, ctx=self.ctx)
+        self.c_bio.setProperty("name", "bio")
         self.c_bio.setObjectName("c_bio")
         self.formLayout.setWidget(
             0, QtWidgets.QFormLayout.FieldRole, self.c_bio
         )
-        self.lbl_id = QtWidgets.QLabel(self.tab_general)
-        self.lbl_id.setObjectName("lbl_id")
-        self.formLayout.setWidget(
-            1, QtWidgets.QFormLayout.LabelRole, self.lbl_id
-        )
-        self.c_id = DrfIntEditor(parent=self.tab_general, ctx=self.ctx)
-        self.c_id.setObjectName("c_id")
-        self.formLayout.setWidget(1, QtWidgets.QFormLayout.FieldRole, self.c_id)
         self.lbl_parent = QtWidgets.QLabel(self.tab_general)
         self.lbl_parent.setObjectName("lbl_parent")
         self.formLayout.setWidget(
-            2, QtWidgets.QFormLayout.LabelRole, self.lbl_parent
+            1, QtWidgets.QFormLayout.LabelRole, self.lbl_parent
         )
         self.c_parent = QtParentSiSe(parent=self.tab_general, ctx=self.ctx)
+        self.c_parent.setProperty("name", "parent")
         self.c_parent.setObjectName("c_parent")
         self.formLayout.setWidget(
-            2, QtWidgets.QFormLayout.FieldRole, self.c_parent
+            1, QtWidgets.QFormLayout.FieldRole, self.c_parent
         )
         self.lbl_parent_id = QtWidgets.QLabel(self.tab_general)
         self.lbl_parent_id.setObjectName("lbl_parent_id")
         self.formLayout.setWidget(
-            3, QtWidgets.QFormLayout.LabelRole, self.lbl_parent_id
+            2, QtWidgets.QFormLayout.LabelRole, self.lbl_parent_id
         )
         self.c_parent_id = DrfIntEditor(parent=self.tab_general, ctx=self.ctx)
+        self.c_parent_id.setProperty("name", "parent_id")
         self.c_parent_id.setObjectName("c_parent_id")
         self.formLayout.setWidget(
-            3, QtWidgets.QFormLayout.FieldRole, self.c_parent_id
+            2, QtWidgets.QFormLayout.FieldRole, self.c_parent_id
         )
         self.main_tab.addTab(self.tab_general, "")
+        self.tab_keys = QtWidgets.QWidget()
+        self.tab_keys.setObjectName("tab_keys")
+        self.formLayout1 = QtWidgets.QFormLayout(self.tab_keys)
+        self.formLayout1.setObjectName("formLayout1")
+        self.lbl_id = QtWidgets.QLabel(self.tab_keys)
+        self.lbl_id.setObjectName("lbl_id")
+        self.formLayout1.setWidget(
+            0, QtWidgets.QFormLayout.LabelRole, self.lbl_id
+        )
+        self.c_id = QtWidgets.QLineEdit(self.tab_keys)
+        self.c_id.setReadOnly(True)
+        self.c_id.setObjectName("c_id")
+        self.formLayout1.setWidget(
+            0, QtWidgets.QFormLayout.FieldRole, self.c_id
+        )
+        self.main_tab.addTab(self.tab_keys, "")
         self.verticalLayout.addWidget(self.main_tab)
 
         self.retranslate_ui(QtProfileEditor)
@@ -102,12 +117,16 @@ class Ui_QtProfileEditor:
             _translate("QtProfileEditor", "Profile Editor")
         )
         self.lbl_bio.setText(_translate("QtProfileEditor", "Bio "))
-        self.lbl_id.setText(_translate("QtProfileEditor", "Id "))
         self.lbl_parent.setText(_translate("QtProfileEditor", "Parent "))
         self.lbl_parent_id.setText(_translate("QtProfileEditor", "Parent Id "))
         self.main_tab.setTabText(
             self.main_tab.indexOf(self.tab_general),
             _translate("QtProfileEditor", "General"),
+        )
+        self.lbl_id.setText(_translate("QtProfileEditor", "Id "))
+        self.main_tab.setTabText(
+            self.main_tab.indexOf(self.tab_keys),
+            _translate("QtProfileEditor", "Keys"),
         )
 
     def enum_controls(self):
@@ -116,7 +135,8 @@ class Ui_QtProfileEditor:
             self.main_tab,
             self.tab_general,
             self.c_bio,
-            self.c_id,
             self.c_parent,
             self.c_parent_id,
+            self.tab_keys,
+            self.c_id,
         ]

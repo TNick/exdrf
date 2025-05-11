@@ -23,7 +23,7 @@ class QtProfileEditor(EditorDb["Profile"], Ui_QtProfileEditor):
 
     def __init__(self, ctx: "QtContext", **kwargs):
         """Initialize the editor widget."""
-        from exdrf_dev import Profile as DbProfile
+        from exdrf_dev.db.api import Profile as DbProfile
 
         super().__init__(ctx=ctx, db_model=DbProfile, **kwargs)
         self.verticalLayout.addWidget(self.create_button_box())
@@ -42,7 +42,12 @@ class QtProfileEditor(EditorDb["Profile"], Ui_QtProfileEditor):
 
     def populate(self, record: Union["Profile", None]):
         self.c_id.setText(str(record.id) if record else "")
-        super().populate(record)
+        self._populate(
+            record,
+            [
+                "id",
+            ],
+        )
 
     def get_id_of_record(self, record: "Profile") -> RecIdType:
         return record.id

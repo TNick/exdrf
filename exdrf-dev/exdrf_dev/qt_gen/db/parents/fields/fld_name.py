@@ -17,6 +17,7 @@ class NameField(QtStringField["Parent"]):
     name: str = field(default="name", init=False)
     title: str = field(default="Name")
     description: str = field(default=("Name of the parent."))
+    category: str = field(default="general")
     nullable: bool = field(default=False)
     preferred_width: int = field(default=100)
     min_length: int = field(default=1)

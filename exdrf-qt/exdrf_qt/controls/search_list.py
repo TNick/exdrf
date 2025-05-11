@@ -53,7 +53,7 @@ class SearchList(QFrame, QtUseContext, Generic[DBM]):
     def __init__(
         self,
         ctx: "QtContext",
-        model: "QtModel[DBM]",
+        qt_model: "QtModel[DBM]",
         parent=None,
         popup: bool = False,
     ):
@@ -89,7 +89,7 @@ class SearchList(QFrame, QtUseContext, Generic[DBM]):
         self.tree.setSelectionMode(QTreeView.SingleSelection)
         self.tree.setSelectionBehavior(QTreeView.SelectRows)
         self.tree.setRootIsDecorated(False)
-        self.tree.setModel(model)
+        self.tree.setModel(qt_model)
         self.tree.setHeaderHidden(True)
         self.ly.addWidget(self.tree)
 
@@ -99,7 +99,7 @@ class SearchList(QFrame, QtUseContext, Generic[DBM]):
         self.setLayout(self.ly)
 
     @property
-    def model(self) -> "QtModel[DBM]":
+    def qt_model(self) -> "QtModel[DBM]":
         """Get the model of the tree view."""
         return self.tree.model()  # type: ignore[return-value]
 
@@ -112,8 +112,8 @@ class SearchList(QFrame, QtUseContext, Generic[DBM]):
         """
         if term == "":
             # Be quick when the user clears the search term.
-            self.model.filters = []
-            self.model.reset_model()
+            self.qt_model.filters = []
+            self.qt_model.reset_model()
             return
 
         if self._search_timer is None:
@@ -128,9 +128,9 @@ class SearchList(QFrame, QtUseContext, Generic[DBM]):
 
     def _apply_search(self, term: str) -> None:
         """Set the search term in the line edit."""
-        model = self.model
+        model = self.qt_model
         if len(term) == 0:
-            self.model.filters = []
+            model.filters = []
         else:
             if "%" not in term:
                 term = f"%{term}%"

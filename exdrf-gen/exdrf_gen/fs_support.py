@@ -9,7 +9,12 @@ import os
 from typing import TYPE_CHECKING, Any, Dict, cast
 
 from attrs import define, field
-from exdrf_al.calc_q import all_related_models, all_related_paths
+from exdrf_al.calc_q import (
+    all_related_label_models,
+    all_related_label_paths,
+    all_related_models,
+    all_related_paths,
+)
 from jinja2 import Environment
 
 if TYPE_CHECKING:
@@ -197,7 +202,7 @@ def resource_to_args(resource: "ExResource"):
         "r": resource,
         "fields": resource.sorted_fields(),
         "categories": resource.categories,
-        "fields_cats": resource.fields_by_category(),
+        "fields_cats": resource.sorted_fields_and_categories(),
         "ResPascal": resource.pascal_case_name,
         "res_snake": resource.snake_case_name,
         "res_p_snake": resource.snake_case_name_plural,
@@ -210,6 +215,8 @@ def resource_to_args(resource: "ExResource"):
         "res_primaries": resource.primary_fields(),
         "all_related_models": all_related_models(resource),
         "all_related_paths": all_related_paths(resource),
+        "all_related_label_paths": all_related_label_paths(resource),
+        "all_related_label_models": all_related_label_models(resource),
     }
 
 

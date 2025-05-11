@@ -19,6 +19,7 @@ class SomeIntField(QtIntegerField["RelatedItem"]):
     description: str = field(
         default=("An integer value associated with the related item.")
     )
+    category: str = field(default="general")
     preferred_width: int = field(default=100)
     min: int = field(default=0)
     max: int = field(default=1000)

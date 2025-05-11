@@ -17,4 +17,5 @@ class SomeJsonField(QtFormattedField["CompositeKeyModel"]):
     name: str = field(default="some_json", init=False)
     title: str = field(default="Some Json")
     description: str = field(default=("A JSON object."))
+    category: str = field(default="general")
     preferred_width: int = field(default=100)

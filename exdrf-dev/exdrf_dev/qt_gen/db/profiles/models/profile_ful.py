@@ -27,6 +27,7 @@ class QtProfileFuMo(QtModel["Profile"]):
         self,
         ctx: "QtContext",
         selection: Union["Select", None] = None,
+        fields=None,
         **kwargs,
     ):
         from exdrf_dev.db.api import Parent as DbParent
@@ -47,11 +48,15 @@ class QtProfileFuMo(QtModel["Profile"]):
                     )
                 )
             ),
-            fields=[
-                BioField,
-                IdField,
-                ParentField,
-                ParentIdField,
-            ],
+            fields=(
+                fields
+                if fields is not None
+                else [
+                    BioField,
+                    ParentField,
+                    ParentIdField,
+                    IdField,
+                ]
+            ),
             **kwargs,
         )

@@ -2,7 +2,7 @@
 # Source: exdrf_gen_al2qt -> c/m/w/editor.py.j2
 # Don't change it manually.
 
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, Union, cast
 
 from exdrf.constants import RecIdType
 from exdrf_qt.controls import EditorDb
@@ -25,7 +25,9 @@ class QtParentTagAssociationEditor(
 
     def __init__(self, ctx: "QtContext", **kwargs):
         """Initialize the editor widget."""
-        from exdrf_dev import ParentTagAssociation as DbParentTagAssociation
+        from exdrf_dev.db.api import (
+            ParentTagAssociation as DbParentTagAssociation,
+        )
 
         super().__init__(ctx=ctx, db_model=DbParentTagAssociation, **kwargs)
         self.verticalLayout.addWidget(self.create_button_box())
@@ -46,10 +48,19 @@ class QtParentTagAssociationEditor(
     def populate(self, record: Union["ParentTagAssociation", None]):
         self.c_parent_id.setText(str(record.parent_id) if record else "")
         self.c_tag_id.setText(str(record.tag_id) if record else "")
-        super().populate(record)
+        self._populate(
+            record,
+            [
+                "parent_id",
+                "tag_id",
+            ],
+        )
 
     def get_id_of_record(self, record: "ParentTagAssociation") -> RecIdType:
-        return (
-            record.parent_id,
-            record.tag_id,
+        return cast(
+            Any,
+            (
+                record.parent_id,
+                record.tag_id,
+            ),
         )

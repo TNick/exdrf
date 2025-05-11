@@ -20,6 +20,7 @@ class ChildrenField(QtRefOneToManyField["Parent"]):
 
     name: str = field(default="children", init=False)
     title: str = field(default="Children")
+    category: str = field(default="general")
     preferred_width: int = field(default=100)
     show_n_labels: int = field(default=4)
     ref: "ExResource" = field(default=None, repr=False)
@@ -30,4 +31,11 @@ class ChildrenField(QtRefOneToManyField["Parent"]):
 
     def part_label(self, record: "Child") -> str:
         """Compute the label for one of the components of the field."""
-        return str("ID:") + str(record.id) + str(" Data:") + str(record.data)
+        return (
+            str("ID:")
+            + str(record.id)
+            + str(" Parent ")
+            + str(record.parent.name)
+            + str(" Data:")
+            + str(record.data)
+        )

@@ -20,6 +20,7 @@ class ParentField(QtRefOneToOneField["Profile"]):
 
     name: str = field(default="parent", init=False)
     title: str = field(default="Parent")
+    category: str = field(default="general")
     preferred_width: int = field(default=100)
     ref: "ExResource" = field(default=None, repr=False)
 

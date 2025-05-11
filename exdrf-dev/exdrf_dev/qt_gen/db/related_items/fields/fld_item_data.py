@@ -17,5 +17,6 @@ class ItemDataField(QtStringField["RelatedItem"]):
     name: str = field(default="item_data", init=False)
     title: str = field(default="Item Data")
     description: str = field(default=("Data specific to the related item."))
+    category: str = field(default="general")
     preferred_width: int = field(default=100)
     max_length: int = field(default=200)

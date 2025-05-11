@@ -34,7 +34,19 @@
         </widget>
        </item>
        <item row="{{ f_i }}" column="1">
-        <widget class="{{ base_ui_class(field) }}" name="c_{{ field.name }}"/>
+        {%- if field.primary %}
+        <widget class="QLineEdit" name="c_{{ field.name }}">
+         <property name="readOnly">
+          <bool>true</bool>
+         </property>
+        </widget>
+        {% else %}
+        <widget class="{{ base_ui_class(field) }}" name="c_{{ field.name }}">
+         <property name="name" stdset="0">
+          <string notr="true">{{ field.name }}</string>
+         </property>
+        </widget>
+        {% endif %}
        </item>
      {% endfor %}
       </layout>
@@ -51,7 +63,11 @@
   <customwidget>
     <class>{{ base_ui_class(field) }}</class>
     <extends>QLineEdit</extends>
+    {%- if field.is_ref_type %}
+    <header>{{ out_module }}.{{ field.ref.categories[0] }}.{{ field.ref.snake_case_name_plural }}.api</header>
+    {%- else %}
     <header>exdrf_qt.field_ed.api</header>
+    {%- endif %}
   </customwidget>
   {%- set _ = seen_widgets.add(base_ui_class(field)) %}
   {%- endif %}

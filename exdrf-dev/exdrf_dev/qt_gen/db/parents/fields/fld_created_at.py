@@ -18,6 +18,7 @@ class CreatedAtField(QtDateTimeField["Parent"]):
     name: str = field(default="created_at", init=False)
     title: str = field(default="Created At")
     description: str = field(default=("Timestamp when the parent was created."))
+    category: str = field(default="general")
     nullable: bool = field(default=False)
     min: datetime = field(default=date(2020, 1, 1))
     max: datetime = field(default=date(2030, 12, 31))

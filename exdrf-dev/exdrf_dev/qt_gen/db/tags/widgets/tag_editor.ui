@@ -27,6 +27,47 @@
       <layout class="QFormLayout" name="formLayout">
      
        <item row="0" column="0">
+        <widget class="QLabel" name="lbl_name">
+         <property name="text">
+          <string>Name </string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="DrfLineEditor" name="c_name">
+         <property name="name" stdset="0">
+          <string notr="true">name</string>
+         </property>
+        </widget>
+        
+       </item>
+     
+       <item row="1" column="0">
+        <widget class="QLabel" name="lbl_parents">
+         <property name="text">
+          <string>Parents </string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="1">
+        <widget class="QtParentMuSe" name="c_parents">
+         <property name="name" stdset="0">
+          <string notr="true">parents</string>
+         </property>
+        </widget>
+        
+       </item>
+     
+      </layout>
+     </widget>
+     
+     <widget class="QWidget" name="tab_keys">
+      <attribute name="title">
+       <string>Keys</string>
+      </attribute>
+      <layout class="QFormLayout" name="formLayout">
+     
+       <item row="0" column="0">
         <widget class="QLabel" name="lbl_id">
          <property name="text">
           <string>Id </string>
@@ -34,29 +75,12 @@
         </widget>
        </item>
        <item row="0" column="1">
-        <widget class="DrfIntEditor" name="c_id"/>
-       </item>
-     
-       <item row="1" column="0">
-        <widget class="QLabel" name="lbl_name">
-         <property name="text">
-          <string>Name </string>
+        <widget class="QLineEdit" name="c_id">
+         <property name="readOnly">
+          <bool>true</bool>
          </property>
         </widget>
-       </item>
-       <item row="1" column="1">
-        <widget class="DrfLineEditor" name="c_name"/>
-       </item>
-     
-       <item row="2" column="0">
-        <widget class="QLabel" name="lbl_parents">
-         <property name="text">
-          <string>Parents </string>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="1">
-        <widget class="QtParentMuSe" name="c_parents"/>
+        
        </item>
      
       </layout>
@@ -68,17 +92,17 @@
  </widget>
  <customwidgets>
   <customwidget>
-    <class>DrfIntEditor</class>
-    <extends>QLineEdit</extends>
-    <header>exdrf_qt.field_ed.api</header>
-  </customwidget>
-  <customwidget>
     <class>DrfLineEditor</class>
     <extends>QLineEdit</extends>
     <header>exdrf_qt.field_ed.api</header>
   </customwidget>
   <customwidget>
     <class>QtParentMuSe</class>
+    <extends>QLineEdit</extends>
+    <header>exdrf_dev.qt_gen.db.parents.api</header>
+  </customwidget>
+  <customwidget>
+    <class>DrfIntEditor</class>
     <extends>QLineEdit</extends>
     <header>exdrf_qt.field_ed.api</header>
   </customwidget>

@@ -144,7 +144,7 @@ class QtModel(
         self.ctx = ctx
         self._db_to_row = {}
         self.db_model = db_model
-        self.fields = fields or []
+        self.fields = fields if fields is not None else []  # type: ignore[assignment]
         self.selection = (
             selection if selection is not None else select(db_model)
         )
@@ -308,7 +308,6 @@ class QtModel(
     def checked_ids(self, value: Optional[Set[RecIdType]]) -> None:
         """Set the list of checked items."""
         reset_model = False
-
         if value is None:
             if self._checked is None:
                 # No change (None to None)
@@ -318,6 +317,7 @@ class QtModel(
             self._checked = None
             reset_model = True
         else:
+            value = set(value)
             if self._checked is None:
                 # Changing from non-checked mode to checked mode.
                 self._checked = set()
@@ -589,6 +589,8 @@ class QtModel(
         Returns:
             The database item with the given ID or None if not found.
         """
+        if hasattr(rec_id.__class__, "metadata"):
+            rec_id = cast(RecIdType, self.get_db_item_id(cast(Any, rec_id)))
         primary_cols = []
         for f in self.fields:
             if f.primary:
@@ -621,6 +623,38 @@ class QtModel(
 
         with self.ctx.same_session() as session:
             return session.scalar(self.selection.where(*conditions))
+
+    def get_db_items_by_id(
+        self, rec_ids: List[RecIdType]
+    ) -> List[Union[None, DBM]]:
+        """Return the database items with the given IDs.
+
+        This is a convenience function that uses the primary key columns to
+        load the item from the database. The model does not use this directly.
+
+        Args:
+            rec_ids: The list of IDs to return.
+
+        Returns:
+            The database items with the given ID or None if not found.
+        """
+
+        primary_cols = []
+        for f in self.fields:
+            if f.primary:
+                primary_cols.append(getattr(self.db_model, f.name))
+        assert len(primary_cols) > 0, "No primary columns found"
+
+        if len(primary_cols) == 1:
+            condition = primary_cols[0].in_(rec_ids)
+        else:
+            condition = tuple_(*primary_cols).in_(rec_ids)
+
+        with self.ctx.same_session() as session:
+            results = session.scalars(self.selection.where(condition))
+            r_map = {self.get_db_item_id(a): a for a in results}
+
+            return [r_map.get(cast(Any, i)) for i in rec_ids]
 
     def clone_me(self):
         """Clone the model.

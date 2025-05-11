@@ -17,4 +17,5 @@ class BioField(QtStringField["Profile"]):
     name: str = field(default="bio", init=False)
     title: str = field(default="Bio")
     description: str = field(default=("Biography text for the profile."))
+    category: str = field(default="general")
     preferred_width: int = field(default=100)

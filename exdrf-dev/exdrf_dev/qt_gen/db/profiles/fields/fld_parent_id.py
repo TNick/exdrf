@@ -19,5 +19,6 @@ class ParentIdField(QtIntegerField["Profile"]):
     description: str = field(
         default=("Foreign key linking to the parent (must be unique).")
     )
+    category: str = field(default="general")
     nullable: bool = field(default=False)
     preferred_width: int = field(default=100)

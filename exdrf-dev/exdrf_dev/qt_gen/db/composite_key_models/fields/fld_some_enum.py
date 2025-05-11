@@ -17,5 +17,6 @@ class SomeEnumField(QtStringField["CompositeKeyModel"]):
     name: str = field(default="some_enum", init=False)
     title: str = field(default="Some Enum")
     description: str = field(default=("An enum value representing status."))
+    category: str = field(default="general")
     preferred_width: int = field(default=100)
     max_length: int = field(default=10)

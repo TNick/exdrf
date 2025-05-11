@@ -21,7 +21,7 @@ class QtTagEditor(EditorDb["Tag"], Ui_QtTagEditor):
 
     def __init__(self, ctx: "QtContext", **kwargs):
         """Initialize the editor widget."""
-        from exdrf_dev import Tag as DbTag
+        from exdrf_dev.db.api import Tag as DbTag
 
         super().__init__(ctx=ctx, db_model=DbTag, **kwargs)
         self.verticalLayout.addWidget(self.create_button_box())
@@ -38,7 +38,12 @@ class QtTagEditor(EditorDb["Tag"], Ui_QtTagEditor):
 
     def populate(self, record: Union["Tag", None]):
         self.c_id.setText(str(record.id) if record else "")
-        super().populate(record)
+        self._populate(
+            record,
+            [
+                "id",
+            ],
+        )
 
     def get_id_of_record(self, record: "Tag") -> RecIdType:
         return record.id

@@ -21,25 +21,25 @@ class DrfSelOneEditor(DropBase, Generic[DBM]):
     _dropdown: SearchList
 
     def __init__(
-        self, ctx: "QtContext", model: "QtModel[DBM]", **kwargs
+        self, ctx: "QtContext", qt_model: "QtModel[DBM]", **kwargs
     ) -> None:
         super().__init__(ctx=ctx, **kwargs)
         self.setReadOnly(True)
         self._dropdown = SearchList(  # type: ignore[assignment]
             ctx=ctx,
-            model=model,
+            qt_model=qt_model,
             popup=True,
         )
         self._dropdown.tree.returnPressed.connect(self._on_select)
         self._dropdown.tree.doubleClicked.connect(self._on_select_index)
 
     @property
-    def model(self) -> "QtModel[DBM]":
+    def qt_model(self) -> "QtModel[DBM]":
         """Return the model."""
-        return self._dropdown.model
+        return self._dropdown.qt_model
 
-    @model.setter
-    def model(self, value: "QtModel[DBM]") -> None:
+    @qt_model.setter
+    def qt_model(self, value: "QtModel[DBM]") -> None:
         """Set the model."""
         self._dropdown.setModel(value)
 
@@ -55,22 +55,22 @@ class DrfSelOneEditor(DropBase, Generic[DBM]):
             self.field_value = new_value
             self.set_line_normal()
 
-            # Attempt to locate the record in the mode.
+            # Attempt to locate the record in the model.
             loaded = False
-            row = self.model._db_to_row.get(new_value, None)
+            row = self.qt_model._db_to_row.get(new_value, None)
             if row is not None:
-                record = self.model.cache[row]
+                record = self.qt_model.cache[row]
                 if record.loaded:
                     self.setText(self.record_to_text(record))
                     loaded = True
 
             if not loaded:
                 # If the record is not loaded, we need to load it ourselves.
-                db_item = self.model.get_one_db_item_by_id(new_value)
+                db_item = self.qt_model.get_one_db_item_by_id(new_value)
                 if db_item is None:
                     self.set_line_null()
                     return
-                record = self.model.db_item_to_record(db_item)
+                record = self.qt_model.db_item_to_record(db_item)
                 self.setText(self.record_to_text(record))
 
             if self.nullable:
@@ -90,13 +90,14 @@ class DrfSelOneEditor(DropBase, Generic[DBM]):
             self._on_select(index.row())
 
     def _on_select(self, row: int) -> None:
-        record = self._dropdown.model.cache[row]
+        record = self._dropdown.qt_model.cache[row]
         if not record.loaded:
             return
         self.setText(self.record_to_text(record))
         self._dropdown.hide()
         self.field_value = record.db_id
         self.set_line_normal()
+        self.controlChanged.emit()
 
     def set_line_null(self):
         super().set_line_null()

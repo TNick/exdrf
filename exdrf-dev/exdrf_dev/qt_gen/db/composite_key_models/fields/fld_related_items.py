@@ -20,6 +20,7 @@ class RelatedItemsField(QtRefOneToManyField["CompositeKeyModel"]):
 
     name: str = field(default="related_items", init=False)
     title: str = field(default="Related Items")
+    category: str = field(default="general")
     preferred_width: int = field(default=100)
     show_n_labels: int = field(default=4)
     ref: "ExResource" = field(default=None, repr=False)

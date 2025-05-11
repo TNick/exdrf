@@ -29,6 +29,7 @@ class Qt{{ ResPascal }}FuMo(QtModel["{{ ResPascal }}"]):
         self,
         ctx: "QtContext",
         selection: Union["Select", None] = None,
+        fields=None,
         **kwargs
     ):
         from {{ db_module }}.{{ r.categories[0] }}.api import {{ r.name }} as Db{{ r.name }}
@@ -52,7 +53,8 @@ class Qt{{ ResPascal }}FuMo(QtModel["{{ ResPascal }}"]):
             )
             {%- endfor %}
             ,
-            fields=[
+            fields=fields if fields is not None
+            else [
                 {%- for field in fields %}
                 {{ field.pascal_case_name }}Field,
                 {%- endfor %}

@@ -35,6 +35,7 @@ class QtRelatedItemFuMo(QtModel["RelatedItem"]):
         self,
         ctx: "QtContext",
         selection: Union["Select", None] = None,
+        fields=None,
         **kwargs,
     ):
         from exdrf_dev.db.api import CompositeKeyModel as DbCompositeKeyModel
@@ -56,13 +57,17 @@ class QtRelatedItemFuMo(QtModel["RelatedItem"]):
                     )
                 )
             ),
-            fields=[
-                CompKeyOwnerField,
-                CompKeyPart1Field,
-                CompKeyPart2Field,
-                IdField,
-                ItemDataField,
-                SomeIntField,
-            ],
+            fields=(
+                fields
+                if fields is not None
+                else [
+                    CompKeyOwnerField,
+                    CompKeyPart1Field,
+                    CompKeyPart2Field,
+                    ItemDataField,
+                    SomeIntField,
+                    IdField,
+                ]
+            ),
             **kwargs,
         )

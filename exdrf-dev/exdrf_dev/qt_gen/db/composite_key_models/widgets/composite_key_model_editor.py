@@ -2,7 +2,7 @@
 # Source: exdrf_gen_al2qt -> c/m/w/editor.py.j2
 # Don't change it manually.
 
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, Union, cast
 
 from exdrf.constants import RecIdType
 from exdrf_qt.controls import EditorDb
@@ -25,7 +25,7 @@ class QtCompositeKeyModelEditor(
 
     def __init__(self, ctx: "QtContext", **kwargs):
         """Initialize the editor widget."""
-        from exdrf_dev import CompositeKeyModel as DbCompositeKeyModel
+        from exdrf_dev.db.api import CompositeKeyModel as DbCompositeKeyModel
 
         super().__init__(ctx=ctx, db_model=DbCompositeKeyModel, **kwargs)
         self.verticalLayout.addWidget(self.create_button_box())
@@ -46,10 +46,19 @@ class QtCompositeKeyModelEditor(
     def populate(self, record: Union["CompositeKeyModel", None]):
         self.c_key_part1.setText(str(record.key_part1) if record else "")
         self.c_key_part2.setText(str(record.key_part2) if record else "")
-        super().populate(record)
+        self._populate(
+            record,
+            [
+                "key_part1",
+                "key_part2",
+            ],
+        )
 
     def get_id_of_record(self, record: "CompositeKeyModel") -> RecIdType:
-        return (
-            record.key_part1,
-            record.key_part2,
+        return cast(
+            Any,
+            (
+                record.key_part1,
+                record.key_part2,
+            ),
         )

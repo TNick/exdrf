@@ -17,5 +17,6 @@ class SomeBinaryField(QtBlobField["CompositeKeyModel"]):
     name: str = field(default="some_binary", init=False)
     title: str = field(default="Some Binary")
     description: str = field(default=("Binary data."))
+    category: str = field(default="general")
     preferred_width: int = field(default=100)
     mime_type: str = field(default="application/octet-stream")

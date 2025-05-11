@@ -17,4 +17,5 @@ class DescriptionField(QtStringField["CompositeKeyModel"]):
     name: str = field(default="description", init=False)
     title: str = field(default="Description")
     description: str = field(default=("A description for this record."))
+    category: str = field(default="general")
     preferred_width: int = field(default=100)

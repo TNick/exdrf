@@ -17,4 +17,5 @@ class SomeTimeField(QtTimeField["CompositeKeyModel"]):
     name: str = field(default="some_time", init=False)
     title: str = field(default="Some Time")
     description: str = field(default=("A time value."))
+    category: str = field(default="general")
     preferred_width: int = field(default=100)

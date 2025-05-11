@@ -19,6 +19,7 @@ class KeyPart2Field(QtIntegerField["CompositeKeyModel"]):
     description: str = field(
         default=("Second part of the composite primary key (integer).")
     )
+    category: str = field(default="keys")
     primary: bool = field(default=True)
     nullable: bool = field(default=False)
     preferred_width: int = field(default=100)

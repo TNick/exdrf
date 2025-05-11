@@ -156,7 +156,13 @@ class Child(Base):
     """Represents a child entity linked to a parent."""
 
     __tablename__ = "children"
-    __table_args__ = {"info": {"label": """(concat "ID:" id " Data:" data)"""}}
+    __table_args__ = {
+        "info": {
+            "label": """
+            (concat "ID:" id " Parent " parent.name " Data:" data)
+            """
+        }
+    }
 
     id: Mapped[int] = mapped_column(
         Integer, primary_key=True, doc="Primary key for the child."

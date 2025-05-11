@@ -128,7 +128,7 @@ class EditorDb(QWidget, QtUseContext, Generic[DBM]):
         # signal.
         enteredErrorState = getattr(editor, "enteredErrorState", None)
         if enteredErrorState is not None:
-            enteredErrorState.connect(lambda: self.enteredErrorState.emit())
+            enteredErrorState.connect(lambda x: self.enteredErrorState.emit(x))
         else:
             logger.warning(
                 "Control %s does not have an enteredErrorState signal",
@@ -338,6 +338,13 @@ class EditorDb(QWidget, QtUseContext, Generic[DBM]):
         self.set_record(self.db_id)
         return True
 
+    def _populate(self, record: Union[DBM, None], ignore: List[str]):
+        ignore_s = set(ignore)
+        for ed_fld in self.edit_fields:
+            if ed_fld.name in ignore_s:
+                continue
+            ed_fld.load_value_from_db(record)
+
     def populate(self, record: Union[DBM, None]):
         """Populate the widget with the record data.
 
@@ -347,8 +354,9 @@ class EditorDb(QWidget, QtUseContext, Generic[DBM]):
             record: The record to populate the widget with. If None, the
                 widgets should be cleared.
         """
-        for ed_fld in self.edit_fields:
-            ed_fld.load_value_from_db(record)
+        raise NotImplementedError(
+            "populate() method must be implemented in the subclass."
+        )
 
     def save_to_record(self, record: DBM, is_new: bool, session: "Session"):
         """Save the widget data to the record.

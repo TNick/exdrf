@@ -21,6 +21,7 @@ from jinja2.runtime import Undefined
 if TYPE_CHECKING:
     from exdrf.dataset import ExDataset
     from exdrf.field import ExField
+    from exdrf.field_types.str_field import StrField
 
 install_plugin(
     template_paths=[
@@ -84,7 +85,11 @@ def base_ui_class(field: "ExField") -> str:
     elif field.type_name == "integer":
         return "DrfIntEditor"
     elif field.type_name == "string":
-        return "DrfLineEditor"
+        return (
+            "DrfTextEditor"
+            if cast("StrField", field).multiline
+            else "DrfLineEditor"
+        )
     elif field.type_name == "formatted":
         return "DrfTextEditor"
     elif field.type_name == "one-to-many":

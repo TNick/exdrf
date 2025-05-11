@@ -17,6 +17,7 @@ class ParentIdField(QtIntegerField["ParentTagAssociation"]):
     name: str = field(default="parent_id", init=False)
     title: str = field(default="Parent Id")
     description: str = field(default=("Foreign key to the parents table."))
+    category: str = field(default="keys")
     primary: bool = field(default=True)
     nullable: bool = field(default=False)
     preferred_width: int = field(default=100)

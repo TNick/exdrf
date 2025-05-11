@@ -18,6 +18,7 @@ class SomeDateField(QtDateField["CompositeKeyModel"]):
     name: str = field(default="some_date", init=False)
     title: str = field(default="Some Date")
     description: str = field(default=("A date value."))
+    category: str = field(default="general")
     preferred_width: int = field(default=100)
     min: date = field(default=date(2020, 1, 1))
     max: date = field(default=date(2030, 12, 31))

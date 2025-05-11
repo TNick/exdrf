@@ -28,6 +28,7 @@ class QtParentTagAssociationFuMo(QtModel["ParentTagAssociation"]):
         self,
         ctx: "QtContext",
         selection: Union["Select", None] = None,
+        fields=None,
         **kwargs,
     ):
         from exdrf_dev.db.api import (
@@ -42,9 +43,13 @@ class QtParentTagAssociationFuMo(QtModel["ParentTagAssociation"]):
                 if selection is not None
                 else select(DbParentTagAssociation)
             ),
-            fields=[
-                ParentIdField,
-                TagIdField,
-            ],
+            fields=(
+                fields
+                if fields is not None
+                else [
+                    ParentIdField,
+                    TagIdField,
+                ]
+            ),
             **kwargs,
         )

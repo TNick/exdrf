@@ -27,6 +27,7 @@ class QtChildFuMo(QtModel["Child"]):
         self,
         ctx: "QtContext",
         selection: Union["Select", None] = None,
+        fields=None,
         **kwargs,
     ):
         from exdrf_dev.db.api import Child as DbChild
@@ -47,11 +48,15 @@ class QtChildFuMo(QtModel["Child"]):
                     )
                 )
             ),
-            fields=[
-                DataField,
-                IdField,
-                ParentField,
-                ParentIdField,
-            ],
+            fields=(
+                fields
+                if fields is not None
+                else [
+                    DataField,
+                    ParentField,
+                    ParentIdField,
+                    IdField,
+                ]
+            ),
             **kwargs,
         )

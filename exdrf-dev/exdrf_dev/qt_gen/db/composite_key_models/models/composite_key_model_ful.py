@@ -53,6 +53,7 @@ class QtCompositeKeyModelFuMo(QtModel["CompositeKeyModel"]):
         self,
         ctx: "QtContext",
         selection: Union["Select", None] = None,
+        fields=None,
         **kwargs,
     ):
         from exdrf_dev.db.api import CompositeKeyModel as DbCompositeKeyModel
@@ -72,17 +73,21 @@ class QtCompositeKeyModelFuMo(QtModel["CompositeKeyModel"]):
                     )
                 )
             ),
-            fields=[
-                DescriptionField,
-                KeyPart1Field,
-                KeyPart2Field,
-                RelatedItemsField,
-                SomeBinaryField,
-                SomeDateField,
-                SomeEnumField,
-                SomeFloatField,
-                SomeJsonField,
-                SomeTimeField,
-            ],
+            fields=(
+                fields
+                if fields is not None
+                else [
+                    DescriptionField,
+                    RelatedItemsField,
+                    SomeBinaryField,
+                    SomeDateField,
+                    SomeEnumField,
+                    SomeFloatField,
+                    SomeJsonField,
+                    SomeTimeField,
+                    KeyPart1Field,
+                    KeyPart2Field,
+                ]
+            ),
             **kwargs,
         )

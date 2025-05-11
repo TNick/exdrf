@@ -20,6 +20,7 @@ class CompKeyOwnerField(QtRefManyToOneField["RelatedItem"]):
 
     name: str = field(default="comp_key_owner", init=False)
     title: str = field(default="Comp Key Owner")
+    category: str = field(default="general")
     preferred_width: int = field(default=100)
     ref: "ExResource" = field(default=None, repr=False)
 

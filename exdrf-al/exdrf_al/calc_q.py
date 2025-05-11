@@ -1,10 +1,7 @@
-from typing import TYPE_CHECKING, List, Union, cast
+from typing import List, Union, cast
 
 from attrs import define, field
-
-if TYPE_CHECKING:
-    from exdrf.field_types.api import RefBaseField
-
+from exdrf.field_types.api import RefBaseField
 from exdrf.resource import ExResource
 
 
@@ -93,32 +90,70 @@ class JoinLoad:
 
     def stringify(self, indent: int = 12, level: int = 0) -> str:
         """Stringify the join."""
-        s_indent_11 = " " * (indent + 4)
-        s_indent_222 = " " * (indent + 8)
+        s_indent_1 = " " * (indent + 4)
+        s_indent_2 = " " * (indent + 8)
         result = (
-            s_indent_11
+            s_indent_1
             + (")." if level > 0 else "")
             + self.container.strategy
             + "(\n"
-            + s_indent_222
+            + s_indent_2
             + "Db"
             + repr(self.container)
             + ",\n"
         )
 
         if self.load_only:
-            result += s_indent_11 + ").load_only(\n"
+            result += s_indent_1 + ").load_only(\n"
             for lo in self.load_only:
-                result += s_indent_222 + "Db" + repr(lo) + ",\n"
+                result += s_indent_2 + "Db" + repr(lo) + ",\n"
 
         if len(self.children) > 0:
             for c in self.children:
                 result += c.stringify(indent=indent, level=level + 1)
 
         if level == 0:
-            return result + s_indent_11 + ")\n"
+            return result + s_indent_1 + ")\n"
         else:
             return result
+
+    def load(self, sub_fld_name: str, related_model: "ExResource"):
+        """Add a field to the tree.
+
+        Args:
+            sub_fld_name: The name of the field to load, in dot notation.
+            related_model: The model that contains the first part of the name
+                (the first model in the chain).
+        """
+        parts = sub_fld_name.split(".")
+
+        # The parts up to but excluding last one generate joins, the
+        # last one generates a load_only.
+        crt_join = self
+        crt_model = related_model
+        for part in parts[:-1]:
+            crt_join = crt_join.get_join(crt_model, part)
+            crt_model = cast("RefBaseField", crt_model[part]).ref
+
+        # Add the field to the load_only list of the last join.
+        crt_join.load_only.append(
+            FieldRef(
+                resource=crt_model,
+                name=parts[-1],
+                is_list=crt_model[parts[-1]].is_list,
+            )
+        )
+
+
+@define
+class RootJoinLoad(JoinLoad):
+    def stringify(self, indent: int = 12, level: int = 0) -> str:
+        s_indent_1 = " " * (indent + 4)
+        s_indent_2 = " " * (indent + 8)
+        result = s_indent_1 + "load_only(\n"
+        for lo in self.load_only:
+            result += s_indent_2 + "Db" + repr(lo) + ",\n"
+        return result + s_indent_1 + ")\n"
 
 
 def all_related_paths(model: "ExResource"):
@@ -142,33 +177,13 @@ def all_related_paths(model: "ExResource"):
         )
         result.append(top_join)
 
-        # The related resource.
-        related_model = fld.ref
-
         # Go through all the fields required by this related model to
         # 1) identify a record (primary keys) and 2) be able to construct
         # a label for that record.
         # This is a flat list and nested fields are represented using
         # the dot notation, so there's no need for recursion.
-        for sub_fld_name in related_model.minimum_field_set():
-            parts = sub_fld_name.split(".")
-
-            # The parts up to but excluding last one generate joins, the
-            # last one generates a load_only.
-            crt_join = top_join
-            crt_model = related_model
-            for part in parts[:-1]:
-                crt_join = crt_join.get_join(crt_model, part)
-                crt_model = cast("RefBaseField", crt_model[part]).ref
-
-            # Add the field to the load_only list of the last join.
-            crt_join.load_only.append(
-                FieldRef(
-                    resource=crt_model,
-                    name=parts[-1],
-                    is_list=crt_model[parts[-1]].is_list,
-                )
-            )
+        for sub_fld_name in fld.ref.minimum_field_set():
+            top_join.load(sub_fld_name, fld.ref)
 
     return result
 
@@ -176,6 +191,61 @@ def all_related_paths(model: "ExResource"):
 def all_related_models(model: "ExResource"):
     result = list()
     for jn in all_related_paths(model):
+        jn.collect_resources(result)
+
+    # Deduplicate the result based on the resource name
+    return sorted(
+        {res.name: res for res in result}.values(), key=lambda x: x.name
+    )
+
+
+def all_related_label_paths(model: "ExResource"):
+    result = []
+
+    root_join = RootJoinLoad(
+        container=FieldRef(resource=model, name=model.name, is_list=False),
+    )
+    result.append(root_join)
+
+    top_parts = {}
+
+    # Go through all the fields that point to other resources
+    for f_name in model.minimum_field_set():
+        parts = f_name.split(".")
+        if len(parts) > 1:
+
+            # This is the reference to the related model in the source model.
+            fld = model[parts[0]]
+            top_join = top_parts.get(parts[0])
+            if top_join is None:
+                top_join = JoinLoad(
+                    container=FieldRef(
+                        resource=model, name=parts[0], is_list=fld.is_list
+                    ),
+                )
+                result.append(top_join)
+
+            assert isinstance(
+                fld, RefBaseField
+            ), f"Field {fld} is not a reference field"
+            for sub_fld_name in fld.ref.minimum_field_set():
+                top_join.load(sub_fld_name, fld.ref)
+
+        else:
+            root_join.load_only.append(
+                FieldRef(
+                    resource=model,
+                    name=f_name,
+                    is_list=False,
+                )
+            )
+
+    return result
+
+
+def all_related_label_models(model: "ExResource"):
+    result = list()
+    for jn in all_related_label_paths(model):
         jn.collect_resources(result)
 
     # Deduplicate the result based on the resource name

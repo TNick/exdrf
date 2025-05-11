@@ -34,40 +34,69 @@
         </widget>
        </item>
        <item row="0" column="1">
-        <widget class="DrfLineEditor" name="c_data"/>
+        <widget class="DrfTextEditor" name="c_data">
+         <property name="name" stdset="0">
+          <string notr="true">data</string>
+         </property>
+        </widget>
+        
        </item>
      
        <item row="1" column="0">
-        <widget class="QLabel" name="lbl_id">
-         <property name="text">
-          <string>Id </string>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="1">
-        <widget class="DrfIntEditor" name="c_id"/>
-       </item>
-     
-       <item row="2" column="0">
         <widget class="QLabel" name="lbl_parent">
          <property name="text">
           <string>Parent </string>
          </property>
         </widget>
        </item>
-       <item row="2" column="1">
-        <widget class="QtParentSiSe" name="c_parent"/>
+       <item row="1" column="1">
+        <widget class="QtParentSiSe" name="c_parent">
+         <property name="name" stdset="0">
+          <string notr="true">parent</string>
+         </property>
+        </widget>
+        
        </item>
      
-       <item row="3" column="0">
+       <item row="2" column="0">
         <widget class="QLabel" name="lbl_parent_id">
          <property name="text">
           <string>Parent Id </string>
          </property>
         </widget>
        </item>
-       <item row="3" column="1">
-        <widget class="DrfIntEditor" name="c_parent_id"/>
+       <item row="2" column="1">
+        <widget class="DrfIntEditor" name="c_parent_id">
+         <property name="name" stdset="0">
+          <string notr="true">parent_id</string>
+         </property>
+        </widget>
+        
+       </item>
+     
+      </layout>
+     </widget>
+     
+     <widget class="QWidget" name="tab_keys">
+      <attribute name="title">
+       <string>Keys</string>
+      </attribute>
+      <layout class="QFormLayout" name="formLayout">
+     
+       <item row="0" column="0">
+        <widget class="QLabel" name="lbl_id">
+         <property name="text">
+          <string>Id </string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="QLineEdit" name="c_id">
+         <property name="readOnly">
+          <bool>true</bool>
+         </property>
+        </widget>
+        
        </item>
      
       </layout>
@@ -79,17 +108,17 @@
  </widget>
  <customwidgets>
   <customwidget>
-    <class>DrfLineEditor</class>
-    <extends>QLineEdit</extends>
-    <header>exdrf_qt.field_ed.api</header>
-  </customwidget>
-  <customwidget>
-    <class>DrfIntEditor</class>
+    <class>DrfTextEditor</class>
     <extends>QLineEdit</extends>
     <header>exdrf_qt.field_ed.api</header>
   </customwidget>
   <customwidget>
     <class>QtParentSiSe</class>
+    <extends>QLineEdit</extends>
+    <header>exdrf_dev.qt_gen.db.parents.api</header>
+  </customwidget>
+  <customwidget>
+    <class>DrfIntEditor</class>
     <extends>QLineEdit</extends>
     <header>exdrf_qt.field_ed.api</header>
   </customwidget>

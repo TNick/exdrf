@@ -19,5 +19,6 @@ class CompKeyPart2Field(QtIntegerField["RelatedItem"]):
     description: str = field(
         default=("Foreign key part 2 referencing CompositeKeyModel.")
     )
+    category: str = field(default="general")
     nullable: bool = field(default=False)
     preferred_width: int = field(default=100)

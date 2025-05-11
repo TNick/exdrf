@@ -20,9 +20,9 @@
       <number>0</number>
      </property>
      
-     <widget class="QWidget" name="tab_general">
+     <widget class="QWidget" name="tab_keys">
       <attribute name="title">
-       <string>General</string>
+       <string>Keys</string>
       </attribute>
       <layout class="QFormLayout" name="formLayout">
      
@@ -34,7 +34,12 @@
         </widget>
        </item>
        <item row="0" column="1">
-        <widget class="DrfIntEditor" name="c_parent_id"/>
+        <widget class="QLineEdit" name="c_parent_id">
+         <property name="readOnly">
+          <bool>true</bool>
+         </property>
+        </widget>
+        
        </item>
      
        <item row="1" column="0">
@@ -45,7 +50,12 @@
         </widget>
        </item>
        <item row="1" column="1">
-        <widget class="DrfIntEditor" name="c_tag_id"/>
+        <widget class="QLineEdit" name="c_tag_id">
+         <property name="readOnly">
+          <bool>true</bool>
+         </property>
+        </widget>
+        
        </item>
      
       </layout>

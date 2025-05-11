@@ -4,7 +4,7 @@
 
 from typing import TYPE_CHECKING, Any, Dict
 
-from attrs import field
+from attrs import field, define
 from PyQt5.QtCore import Qt
 
 from exdrf_qt.models.fields import QtStringField
@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from {{ db_module }}.{{ r.categories[0] }}.api import {{ ResPascal }}  # noqa: F401
 
 
+@define
 class LabelField(QtStringField["{{ ResPascal }}"]):
     """Provides a label for the record.
     """

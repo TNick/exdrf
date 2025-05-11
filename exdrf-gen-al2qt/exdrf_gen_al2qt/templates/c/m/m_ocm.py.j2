@@ -1,6 +1,9 @@
 # This file was automatically generated using the exdrf_gen package.
 # Source: {{ source_module }} -> {{ source_templ }}
 # Don't change it manually.
+from typing import TYPE_CHECKING, Union
+from sqlalchemy import select
+from sqlalchemy.orm import joinedload, selectinload, load_only
 
 from {{ out_module }}.{{ r.categories[0] }}.{{ r.snake_case_name_plural }}.models.{{ res_snake }}_ful import (
     Qt{{ ResPascal }}FuMo
@@ -8,6 +11,14 @@ from {{ out_module }}.{{ r.categories[0] }}.{{ r.snake_case_name_plural }}.model
 from {{ out_module }}.{{ r.categories[0] }}.{{ r.snake_case_name_plural }}.fields.single_f import (
     LabelField
 )
+{% for field in fields %}
+from {{ out_module }}.{{ r.categories[0] }}.{{ r.snake_case_name_plural }}.fields.fld_{{field.name}} import (
+    {{ field.pascal_case_name }}Field
+)
+{%- endfor %}
+
+if TYPE_CHECKING:
+    from sqlalchemy import Select  # noqa: F401
 
 
 class Qt{{ ResPascal }}NaMo(Qt{{ ResPascal }}FuMo):
@@ -17,10 +28,39 @@ class Qt{{ ResPascal }}NaMo(Qt{{ ResPascal }}FuMo):
     This model is suitable for a selector or a combobox.
     """
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.fields.append(
-            LabelField,
+    def __init__(
+        self,
+        selection: Union["Select", None] = None,
+        fields=None,
+        **kwargs
+    ):
+        from {{ db_module }}.{{ r.categories[0] }}.api import {{ r.name }} as Db{{ r.name }}
+        {%- for m in all_related_label_models %}
+        {%- if m.name != r.name %}
+        from {{ db_module }}.{{ m.categories[0] }}.api import (
+            {{ m.name }} as Db{{ m.name }}
+        )
+        {%- endif %}
+        {%- endfor %}
+
+        super().__init__(
+            selection=selection if selection is not None
+            else select(Db{{ ResPascal }})
+
+            {%- for path in all_related_label_paths %}
+            .options(
+{{ path.stringify() }}
+            )
+            {%- endfor %}
+            ,
+            fields=fields if fields is not None
+            else [
+                {%- for field in fields %}
+                {{ field.pascal_case_name }}Field,
+                {%- endfor %}
+                LabelField,
+            ],
+            **kwargs
         )
         self.column_fields = ['label']
 {{- "\n" -}}

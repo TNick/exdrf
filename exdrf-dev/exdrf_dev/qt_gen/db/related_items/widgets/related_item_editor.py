@@ -23,7 +23,7 @@ class QtRelatedItemEditor(EditorDb["RelatedItem"], Ui_QtRelatedItemEditor):
 
     def __init__(self, ctx: "QtContext", **kwargs):
         """Initialize the editor widget."""
-        from exdrf_dev import RelatedItem as DbRelatedItem
+        from exdrf_dev.db.api import RelatedItem as DbRelatedItem
 
         super().__init__(ctx=ctx, db_model=DbRelatedItem, **kwargs)
         self.verticalLayout.addWidget(self.create_button_box())
@@ -42,7 +42,12 @@ class QtRelatedItemEditor(EditorDb["RelatedItem"], Ui_QtRelatedItemEditor):
 
     def populate(self, record: Union["RelatedItem", None]):
         self.c_id.setText(str(record.id) if record else "")
-        super().populate(record)
+        self._populate(
+            record,
+            [
+                "id",
+            ],
+        )
 
     def get_id_of_record(self, record: "RelatedItem") -> RecIdType:
         return record.id

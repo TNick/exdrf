@@ -26,6 +26,7 @@ class QtTagFuMo(QtModel["Tag"]):
         self,
         ctx: "QtContext",
         selection: Union["Select", None] = None,
+        fields=None,
         **kwargs,
     ):
         from exdrf_dev.db.api import Parent as DbParent
@@ -46,10 +47,14 @@ class QtTagFuMo(QtModel["Tag"]):
                     )
                 )
             ),
-            fields=[
-                IdField,
-                NameField,
-                ParentsField,
-            ],
+            fields=(
+                fields
+                if fields is not None
+                else [
+                    NameField,
+                    ParentsField,
+                    IdField,
+                ]
+            ),
             **kwargs,
         )

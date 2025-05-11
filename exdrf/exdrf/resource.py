@@ -50,6 +50,12 @@ class ExResource:
     src: Any = field(default=None)
     label_ast: "ASTNode" = field(default=None)
 
+    def __attrs_post_init__(self):
+        out = self.fields
+        self.fields = []
+        for fld in out:
+            self.add_field(fld)
+
     def __str__(self) -> str:
         return self.__repr__()
 
@@ -146,7 +152,7 @@ class ExResource:
         method will call this method to get the default category. Reimplement
         it if you want to assign categories to fields automatically.
         """
-        return ""
+        return "keys" if fld.primary else "general"
 
     def visit(
         self,

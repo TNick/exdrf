@@ -17,6 +17,7 @@ class NameField(QtStringField["Tag"]):
     name: str = field(default="name", init=False)
     title: str = field(default="Name")
     description: str = field(default=("Unique name of the tag."))
+    category: str = field(default="general")
     nullable: bool = field(default=False)
     preferred_width: int = field(default=100)
     max_length: int = field(default=50)

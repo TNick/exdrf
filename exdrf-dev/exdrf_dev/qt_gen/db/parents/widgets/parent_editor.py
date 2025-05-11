@@ -23,7 +23,7 @@ class QtParentEditor(EditorDb["Parent"], Ui_QtParentEditor):
 
     def __init__(self, ctx: "QtContext", **kwargs):
         """Initialize the editor widget."""
-        from exdrf_dev import Parent as DbParent
+        from exdrf_dev.db.api import Parent as DbParent
 
         super().__init__(ctx=ctx, db_model=DbParent, **kwargs)
         self.verticalLayout.addWidget(self.create_button_box())
@@ -40,7 +40,12 @@ class QtParentEditor(EditorDb["Parent"], Ui_QtParentEditor):
 
     def populate(self, record: Union["Parent", None]):
         self.c_id.setText(str(record.id) if record else "")
-        super().populate(record)
+        self._populate(
+            record,
+            [
+                "id",
+            ],
+        )
 
     def get_id_of_record(self, record: "Parent") -> RecIdType:
         return record.id

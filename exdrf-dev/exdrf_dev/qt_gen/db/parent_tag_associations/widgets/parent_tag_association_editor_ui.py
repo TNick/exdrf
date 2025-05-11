@@ -1,9 +1,4 @@
-from typing import TYPE_CHECKING
-
 from PyQt5 import QtCore, QtWidgets
-
-if TYPE_CHECKING:
-    from exdrf_qt.field_ed.api import DrfIntEditor
 
 
 class Ui_QtParentTagAssociationEditor:
@@ -12,7 +7,7 @@ class Ui_QtParentTagAssociationEditor:
     Attributes:
         verticalLayout: The layout for the widget.
         main_tab: Main tab.
-        tab_general: Tab general.
+        tab_keys: Tab keys.
         formLayout: The layout for the widget.
         c_parent_id: C parent id.
         c_tag_id: C tag id.
@@ -21,15 +16,14 @@ class Ui_QtParentTagAssociationEditor:
 
     verticalLayout: "QtWidgets.QVBoxLayout"
     main_tab: "QtWidgets.QTabWidget"
-    tab_general: "QtWidgets.QWidget"
+    tab_keys: "QtWidgets.QWidget"
     formLayout: "QtWidgets.QFormLayout"
     lbl_parent_id: "QtWidgets.QLabel"
-    c_parent_id: "DrfIntEditor"
+    c_parent_id: "QtWidgets.QLineEdit"
     lbl_tag_id: "QtWidgets.QLabel"
-    c_tag_id: "DrfIntEditor"
+    c_tag_id: "QtWidgets.QLineEdit"
 
     def setup_ui(self, QtParentTagAssociationEditor):
-        from exdrf_qt.field_ed.api import DrfIntEditor
 
         QtParentTagAssociationEditor.setObjectName(
             "QtParentTagAssociationEditor"
@@ -41,31 +35,33 @@ class Ui_QtParentTagAssociationEditor:
         self.verticalLayout.setObjectName("verticalLayout")
         self.main_tab = QtWidgets.QTabWidget(QtParentTagAssociationEditor)
         self.main_tab.setObjectName("main_tab")
-        self.tab_general = QtWidgets.QWidget()
-        self.tab_general.setObjectName("tab_general")
-        self.formLayout = QtWidgets.QFormLayout(self.tab_general)
+        self.tab_keys = QtWidgets.QWidget()
+        self.tab_keys.setObjectName("tab_keys")
+        self.formLayout = QtWidgets.QFormLayout(self.tab_keys)
         self.formLayout.setObjectName("formLayout")
-        self.lbl_parent_id = QtWidgets.QLabel(self.tab_general)
+        self.lbl_parent_id = QtWidgets.QLabel(self.tab_keys)
         self.lbl_parent_id.setObjectName("lbl_parent_id")
         self.formLayout.setWidget(
             0, QtWidgets.QFormLayout.LabelRole, self.lbl_parent_id
         )
-        self.c_parent_id = DrfIntEditor(parent=self.tab_general, ctx=self.ctx)
+        self.c_parent_id = QtWidgets.QLineEdit(self.tab_keys)
+        self.c_parent_id.setReadOnly(True)
         self.c_parent_id.setObjectName("c_parent_id")
         self.formLayout.setWidget(
             0, QtWidgets.QFormLayout.FieldRole, self.c_parent_id
         )
-        self.lbl_tag_id = QtWidgets.QLabel(self.tab_general)
+        self.lbl_tag_id = QtWidgets.QLabel(self.tab_keys)
         self.lbl_tag_id.setObjectName("lbl_tag_id")
         self.formLayout.setWidget(
             1, QtWidgets.QFormLayout.LabelRole, self.lbl_tag_id
         )
-        self.c_tag_id = DrfIntEditor(parent=self.tab_general, ctx=self.ctx)
+        self.c_tag_id = QtWidgets.QLineEdit(self.tab_keys)
+        self.c_tag_id.setReadOnly(True)
         self.c_tag_id.setObjectName("c_tag_id")
         self.formLayout.setWidget(
             1, QtWidgets.QFormLayout.FieldRole, self.c_tag_id
         )
-        self.main_tab.addTab(self.tab_general, "")
+        self.main_tab.addTab(self.tab_keys, "")
         self.verticalLayout.addWidget(self.main_tab)
 
         self.retranslate_ui(QtParentTagAssociationEditor)
@@ -86,15 +82,15 @@ class Ui_QtParentTagAssociationEditor:
             _translate("QtParentTagAssociationEditor", "Tag Id ")
         )
         self.main_tab.setTabText(
-            self.main_tab.indexOf(self.tab_general),
-            _translate("QtParentTagAssociationEditor", "General"),
+            self.main_tab.indexOf(self.tab_keys),
+            _translate("QtParentTagAssociationEditor", "Keys"),
         )
 
     def enum_controls(self):
         """Enumerate the controls in the form."""
         return [
             self.main_tab,
-            self.tab_general,
+            self.tab_keys,
             self.c_parent_id,
             self.c_tag_id,
         ]

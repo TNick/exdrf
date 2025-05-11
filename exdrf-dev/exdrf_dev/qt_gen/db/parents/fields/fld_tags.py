@@ -20,6 +20,7 @@ class TagsField(QtRefManyToManyField["Parent"]):
 
     name: str = field(default="tags", init=False)
     title: str = field(default="Tags")
+    category: str = field(default="general")
     preferred_width: int = field(default=100)
     ref: "ExResource" = field(default=None, repr=False)
 

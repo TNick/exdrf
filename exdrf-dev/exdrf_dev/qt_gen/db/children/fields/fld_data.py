@@ -17,6 +17,7 @@ class DataField(QtStringField["Child"]):
     name: str = field(default="data", init=False)
     title: str = field(default="Data")
     description: str = field(default=("Some data associated with the child."))
+    category: str = field(default="general")
     preferred_width: int = field(default=100)
     multiline: bool = field(default=True)
     min_length: int = field(default=1)

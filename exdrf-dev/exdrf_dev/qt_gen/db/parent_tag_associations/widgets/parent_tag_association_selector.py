@@ -4,13 +4,14 @@
 
 from typing import TYPE_CHECKING
 
-from exdrf_qt.controls import MultiSelDb, SingleSelDb
+from exdrf_qt.field_ed.fed_sel_multi import DrfSelMultiEditor
+from exdrf_qt.field_ed.fed_sel_one import DrfSelOneEditor
 
 if TYPE_CHECKING:
     from exdrf_qt.context import QtContext
 
 
-class QtParentTagAssociationSiSe(SingleSelDb):
+class QtParentTagAssociationSiSe(DrfSelOneEditor):
     """Reads the list of records from the database and allows the user to
     select one.
     """
@@ -26,7 +27,7 @@ class QtParentTagAssociationSiSe(SingleSelDb):
         self.qt_model.setParent(self)
 
 
-class QtParentTagAssociationMuSe(MultiSelDb):
+class QtParentTagAssociationMuSe(DrfSelMultiEditor):
     """Reads the list of records from the database and allows the user to
     select multiple records.
     """

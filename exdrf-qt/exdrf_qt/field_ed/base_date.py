@@ -57,7 +57,7 @@ class DateBase(LineBase):
         super().__init__(parent, **kwargs)
 
         if isinstance(format, str):
-            self.formatter = MomentFormat.from_string(format, ctx=self.ctx)
+            self.formatter = MomentFormat.from_string(format)
         else:
             self.formatter = format
 

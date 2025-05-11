@@ -17,6 +17,7 @@ class IdField(QtIntegerField["Tag"]):
     name: str = field(default="id", init=False)
     title: str = field(default="Id")
     description: str = field(default=("Primary key for the tag."))
+    category: str = field(default="keys")
     primary: bool = field(default=True)
     nullable: bool = field(default=False)
     preferred_width: int = field(default=100)

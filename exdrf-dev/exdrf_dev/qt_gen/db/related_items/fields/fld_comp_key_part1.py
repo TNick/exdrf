@@ -19,6 +19,7 @@ class CompKeyPart1Field(QtStringField["RelatedItem"]):
     description: str = field(
         default=("Foreign key part 1 referencing CompositeKeyModel.")
     )
+    category: str = field(default="general")
     nullable: bool = field(default=False)
     preferred_width: int = field(default=100)
     max_length: int = field(default=50)
