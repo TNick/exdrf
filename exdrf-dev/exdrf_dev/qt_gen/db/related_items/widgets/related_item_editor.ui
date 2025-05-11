@@ -25,7 +25,6 @@
        <string>General</string>
       </attribute>
       <layout class="QFormLayout" name="formLayout">
-     
        <item row="0" column="0">
         <widget class="QLabel" name="lbl_comp_key_owner">
          <property name="text">
@@ -38,9 +37,10 @@
          <property name="name" stdset="0">
           <string notr="true">comp_key_owner</string>
          </property>
-        </widget>
         
+        </widget>
        </item>
+     
      
        <item row="1" column="0">
         <widget class="QLabel" name="lbl_comp_key_part1">
@@ -54,9 +54,10 @@
          <property name="name" stdset="0">
           <string notr="true">comp_key_part1</string>
          </property>
-        </widget>
         
+        </widget>
        </item>
+     
      
        <item row="2" column="0">
         <widget class="QLabel" name="lbl_comp_key_part2">
@@ -70,9 +71,10 @@
          <property name="name" stdset="0">
           <string notr="true">comp_key_part2</string>
          </property>
-        </widget>
         
+        </widget>
        </item>
+     
      
        <item row="3" column="0">
         <widget class="QLabel" name="lbl_item_data">
@@ -86,9 +88,10 @@
          <property name="name" stdset="0">
           <string notr="true">item_data</string>
          </property>
-        </widget>
         
+        </widget>
        </item>
+     
      
        <item row="4" column="0">
         <widget class="QLabel" name="lbl_some_int">
@@ -102,9 +105,10 @@
          <property name="name" stdset="0">
           <string notr="true">some_int</string>
          </property>
-        </widget>
         
+        </widget>
        </item>
+     
      
       </layout>
      </widget>
@@ -114,7 +118,6 @@
        <string>Keys</string>
       </attribute>
       <layout class="QFormLayout" name="formLayout">
-     
        <item row="0" column="0">
         <widget class="QLabel" name="lbl_id">
          <property name="text">
@@ -127,9 +130,10 @@
          <property name="readOnly">
           <bool>true</bool>
          </property>
-        </widget>
         
+        </widget>
        </item>
+     
      
       </layout>
      </widget>

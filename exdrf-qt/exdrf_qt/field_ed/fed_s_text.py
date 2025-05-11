@@ -34,6 +34,7 @@ class DrfLineEditor(LineBase):
         if new_value is None:
             self.set_line_null()
         else:
+            self.field_value = str(new_value)
             self.setText(str(new_value))
 
     def check_value(self, text: Any) -> Optional[str]:

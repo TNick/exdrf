@@ -25,7 +25,6 @@
        <string>General</string>
       </attribute>
       <layout class="QFormLayout" name="formLayout">
-     
        <item row="0" column="0">
         <widget class="QLabel" name="lbl_description">
          <property name="text">
@@ -34,13 +33,14 @@
         </widget>
        </item>
        <item row="0" column="1">
-        <widget class="DrfLineEditor" name="c_description">
+        <widget class="DrfTextEditor" name="c_description">
          <property name="name" stdset="0">
           <string notr="true">description</string>
          </property>
-        </widget>
         
+        </widget>
        </item>
+     
      
        <item row="1" column="0">
         <widget class="QLabel" name="lbl_related_items">
@@ -54,9 +54,10 @@
          <property name="name" stdset="0">
           <string notr="true">related_items</string>
          </property>
-        </widget>
         
+        </widget>
        </item>
+     
      
        <item row="2" column="0">
         <widget class="QLabel" name="lbl_some_binary">
@@ -70,9 +71,10 @@
          <property name="name" stdset="0">
           <string notr="true">some_binary</string>
          </property>
-        </widget>
         
+        </widget>
        </item>
+     
      
        <item row="3" column="0">
         <widget class="QLabel" name="lbl_some_date">
@@ -86,9 +88,10 @@
          <property name="name" stdset="0">
           <string notr="true">some_date</string>
          </property>
-        </widget>
         
+        </widget>
        </item>
+     
      
        <item row="4" column="0">
         <widget class="QLabel" name="lbl_some_enum">
@@ -98,13 +101,18 @@
         </widget>
        </item>
        <item row="4" column="1">
-        <widget class="DrfLineEditor" name="c_some_enum">
+        <widget class="DrfEnumEditor" name="c_some_enum">
          <property name="name" stdset="0">
           <string notr="true">some_enum</string>
          </property>
-        </widget>
+         <property name="choices" stdset="0">
+          <string notr="true">PENDING:Pending,PROCESSING:Processing,COMPLETED:Completed,FAILED:Failed</string>
+         </property>
+         
         
+        </widget>
        </item>
+     
      
        <item row="5" column="0">
         <widget class="QLabel" name="lbl_some_float">
@@ -118,9 +126,10 @@
          <property name="name" stdset="0">
           <string notr="true">some_float</string>
          </property>
-        </widget>
         
+        </widget>
        </item>
+     
      
        <item row="6" column="0">
         <widget class="QLabel" name="lbl_some_json">
@@ -134,9 +143,10 @@
          <property name="name" stdset="0">
           <string notr="true">some_json</string>
          </property>
-        </widget>
         
+        </widget>
        </item>
+     
      
        <item row="7" column="0">
         <widget class="QLabel" name="lbl_some_time">
@@ -150,9 +160,10 @@
          <property name="name" stdset="0">
           <string notr="true">some_time</string>
          </property>
-        </widget>
         
+        </widget>
        </item>
+     
      
       </layout>
      </widget>
@@ -162,7 +173,6 @@
        <string>Keys</string>
       </attribute>
       <layout class="QFormLayout" name="formLayout">
-     
        <item row="0" column="0">
         <widget class="QLabel" name="lbl_key_part1">
          <property name="text">
@@ -175,9 +185,10 @@
          <property name="readOnly">
           <bool>true</bool>
          </property>
-        </widget>
         
+        </widget>
        </item>
+     
      
        <item row="1" column="0">
         <widget class="QLabel" name="lbl_key_part2">
@@ -191,9 +202,10 @@
          <property name="readOnly">
           <bool>true</bool>
          </property>
-        </widget>
         
+        </widget>
        </item>
+     
      
       </layout>
      </widget>
@@ -204,7 +216,7 @@
  </widget>
  <customwidgets>
   <customwidget>
-    <class>DrfLineEditor</class>
+    <class>DrfTextEditor</class>
     <extends>QLineEdit</extends>
     <header>exdrf_qt.field_ed.api</header>
   </customwidget>
@@ -224,17 +236,22 @@
     <header>exdrf_qt.field_ed.api</header>
   </customwidget>
   <customwidget>
+    <class>DrfEnumEditor</class>
+    <extends>QLineEdit</extends>
+    <header>exdrf_qt.field_ed.api</header>
+  </customwidget>
+  <customwidget>
     <class>DrfRealEditor</class>
     <extends>QLineEdit</extends>
     <header>exdrf_qt.field_ed.api</header>
   </customwidget>
   <customwidget>
-    <class>DrfTextEditor</class>
+    <class>DrfTimeEditor</class>
     <extends>QLineEdit</extends>
     <header>exdrf_qt.field_ed.api</header>
   </customwidget>
   <customwidget>
-    <class>DrfTimeEditor</class>
+    <class>DrfLineEditor</class>
     <extends>QLineEdit</extends>
     <header>exdrf_qt.field_ed.api</header>
   </customwidget>

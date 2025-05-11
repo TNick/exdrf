@@ -12,6 +12,8 @@ from exdrf.api import (
     DateInfo,
     DateTimeField,
     DateTimeInfo,
+    EnumField,
+    EnumInfo,
     FloatField,
     FloatInfo,
     FormattedField,
@@ -71,6 +73,19 @@ def res_by_table_name(dataset: "ExDataset", table_name: str) -> "ExResource":
         raise KeyError(f"No resource found for table name: {table_name}")
 
 
+def construct_enum(src: "KeyedColumnElement[Any]", **kwargs):
+    """Construct an enum from the SQLAlchemy column.
+
+    We need to intercept this call so that we populate the enum.
+    """
+    kwargs.pop("enum_values", None)
+    return EnumField(
+        src=src,
+        enum_values=list(src.type.enums),  # type: ignore
+        **kwargs,
+    )
+
+
 def sql_col_to_type(
     column: "KeyedColumnElement[Any]", extra: Dict[str, Any]
 ) -> Tuple[type["ExField"], type["FieldInfo"]]:
@@ -83,7 +98,9 @@ def sql_col_to_type(
     """
     str_type = str(column.type)
 
-    if str_type == "BLOB":
+    if hasattr(column.type, "native_enum") and column.type.native_enum:  # type: ignore
+        result = construct_enum, EnumInfo
+    elif str_type == "BLOB":
         result = BlobField, BlobInfo
     elif str_type == "INTEGER":
         result = IntField, IntInfo
@@ -236,7 +253,19 @@ def field_from_sql_rel(
         **extra,
         **kwargs,
     )
+
+    # Tie fk_to and fk_from.
+    fk_candidates = [
+        resource[a.key]  # type: ignore
+        for a in relation.local_columns
+        if not resource[a.key].primary  # type: ignore
+    ]
+    if len(fk_candidates) == 1:
+        result.fk_from = fk_candidates[0]
+        fk_candidates[0].fk_to = result
+
     resource.add_field(result)
+
     return result
 
 

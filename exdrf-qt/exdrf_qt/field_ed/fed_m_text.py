@@ -58,6 +58,7 @@ class DrfTextEditor(QPlainTextEdit, DrfFieldEd):
         if new_value is None:
             self.set_line_null()
         else:
+            self.field_value = str(new_value)
             self.setPlainText(str(new_value))
 
     def check_value(self, text: Any) -> Optional[str]:

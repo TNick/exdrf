@@ -6,7 +6,7 @@ if TYPE_CHECKING:
     from exdrf_qt.field_ed.api import (
         DrfBlobEditor,
         DrfDateEditor,
-        DrfLineEditor,
+        DrfEnumEditor,
         DrfRealEditor,
         DrfTextEditor,
         DrfTimeEditor,
@@ -43,7 +43,7 @@ class Ui_QtCompositeKeyModelEditor:
     tab_general: "QtWidgets.QWidget"
     formLayout: "QtWidgets.QFormLayout"
     lbl_description: "QtWidgets.QLabel"
-    c_description: "DrfLineEditor"
+    c_description: "DrfTextEditor"
     lbl_related_items: "QtWidgets.QLabel"
     c_related_items: "QtRelatedItemMuSe"
     lbl_some_binary: "QtWidgets.QLabel"
@@ -51,7 +51,7 @@ class Ui_QtCompositeKeyModelEditor:
     lbl_some_date: "QtWidgets.QLabel"
     c_some_date: "DrfDateEditor"
     lbl_some_enum: "QtWidgets.QLabel"
-    c_some_enum: "DrfLineEditor"
+    c_some_enum: "DrfEnumEditor"
     lbl_some_float: "QtWidgets.QLabel"
     c_some_float: "DrfRealEditor"
     lbl_some_json: "QtWidgets.QLabel"
@@ -69,7 +69,7 @@ class Ui_QtCompositeKeyModelEditor:
         from exdrf_qt.field_ed.api import (
             DrfBlobEditor,
             DrfDateEditor,
-            DrfLineEditor,
+            DrfEnumEditor,
             DrfRealEditor,
             DrfTextEditor,
             DrfTimeEditor,
@@ -92,7 +92,7 @@ class Ui_QtCompositeKeyModelEditor:
         self.formLayout.setWidget(
             0, QtWidgets.QFormLayout.LabelRole, self.lbl_description
         )
-        self.c_description = DrfLineEditor(
+        self.c_description = DrfTextEditor(
             parent=self.tab_general, ctx=self.ctx
         )
         self.c_description.setProperty("name", "description")
@@ -142,8 +142,12 @@ class Ui_QtCompositeKeyModelEditor:
         self.formLayout.setWidget(
             4, QtWidgets.QFormLayout.LabelRole, self.lbl_some_enum
         )
-        self.c_some_enum = DrfLineEditor(parent=self.tab_general, ctx=self.ctx)
+        self.c_some_enum = DrfEnumEditor(parent=self.tab_general, ctx=self.ctx)
         self.c_some_enum.setProperty("name", "some_enum")
+        self.c_some_enum.setProperty(
+            "choices",
+            "PENDING:Pending,PROCESSING:Processing,COMPLETED:Completed,FAILED:Failed",
+        )
         self.c_some_enum.setObjectName("c_some_enum")
         self.formLayout.setWidget(
             4, QtWidgets.QFormLayout.FieldRole, self.c_some_enum

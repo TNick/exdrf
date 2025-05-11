@@ -25,7 +25,6 @@
        <string>General</string>
       </attribute>
       <layout class="QFormLayout" name="formLayout">
-     
        <item row="0" column="0">
         <widget class="QLabel" name="lbl_data">
          <property name="text">
@@ -38,9 +37,10 @@
          <property name="name" stdset="0">
           <string notr="true">data</string>
          </property>
-        </widget>
         
+        </widget>
        </item>
+     
      
        <item row="1" column="0">
         <widget class="QLabel" name="lbl_parent">
@@ -52,27 +52,13 @@
        <item row="1" column="1">
         <widget class="QtParentSiSe" name="c_parent">
          <property name="name" stdset="0">
-          <string notr="true">parent</string>
-         </property>
-        </widget>
-        
-       </item>
-     
-       <item row="2" column="0">
-        <widget class="QLabel" name="lbl_parent_id">
-         <property name="text">
-          <string>Parent Id </string>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="1">
-        <widget class="DrfIntEditor" name="c_parent_id">
-         <property name="name" stdset="0">
           <string notr="true">parent_id</string>
          </property>
-        </widget>
         
+        </widget>
        </item>
+     
+     
      
       </layout>
      </widget>
@@ -82,7 +68,6 @@
        <string>Keys</string>
       </attribute>
       <layout class="QFormLayout" name="formLayout">
-     
        <item row="0" column="0">
         <widget class="QLabel" name="lbl_id">
          <property name="text">
@@ -95,9 +80,10 @@
          <property name="readOnly">
           <bool>true</bool>
          </property>
-        </widget>
         
+        </widget>
        </item>
+     
      
       </layout>
      </widget>

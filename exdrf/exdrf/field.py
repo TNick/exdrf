@@ -46,6 +46,12 @@ class ExField:
         exportable: Whether the field is user exportable.
         qsearch: Whether the field is part of the quick search set.
         resizable: Whether the user can resize the column in the list view.
+        fk_to: if this field is a foreign key, this property is the field
+            representing the resolved resource (if this field is `parent_id`,
+            the fk_to is `parent`).
+        fk_from: if this field points to a resource, this property is the
+            field representing the foreign key (if this field is `parent`,
+            the fk_from field is `parent_id`).
     """
 
     name: str = field(default="")
@@ -67,6 +73,8 @@ class ExField:
     exportable: bool = field(default=True)
     qsearch: bool = field(default=True)
     resizable: bool = field(default=True)
+    fk_to: Optional["ExField"] = field(default=None)
+    fk_from: Optional["ExField"] = field(default=None)
 
     def __hash__(self):
         return hash(f"{self.resource.name}.{self.name}")

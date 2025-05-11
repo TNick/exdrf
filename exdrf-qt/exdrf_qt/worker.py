@@ -148,6 +148,7 @@ class Worker(QThread):
                     session.expunge_all()
                 logger.debug("Work with ID %d completed", work.req_id)
             except Exception as e:
-                logger.error("Error while executing work: %s", e)
+                logger.error("Error while executing work: %s", e, exc_info=True)
                 work.error = e
+
             self.haveResult.emit(work.req_id)

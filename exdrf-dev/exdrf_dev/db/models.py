@@ -283,7 +283,11 @@ class CompositeKeyModel(Base):
     )
 
     description: Mapped[Optional[str]] = mapped_column(
-        String, doc="A description for this record."
+        String,
+        doc="A description for this record.",
+        info={
+            "multiline": True,
+        },
     )
     some_float: Mapped[Optional[float]] = mapped_column(
         Float,

@@ -29,6 +29,7 @@ class DrfTimeEditor(DateBase):
             self.set_line_normal()
             self.setText(self.formatter.moment_to_string(new_value))
             if self.nullable:
+                assert self.ac_clear is not None
                 self.ac_clear.setEnabled(True)
 
 

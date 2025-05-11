@@ -1,6 +1,6 @@
 import os
 from datetime import date, datetime
-from typing import TYPE_CHECKING, Any, Dict, Generator, Tuple, cast
+from typing import TYPE_CHECKING, Any, Dict, Generator, List, Tuple, cast
 
 import click
 import exdrf_qt.models.fields as base_classes
@@ -168,19 +168,31 @@ def generate_qt_from_alchemy(
                 "ref",
                 "ref_intermediate",
                 "formatter",
+                "fk_to",
+                "fk_from",
             ):
+                type_name = part.type.__name__  # type: ignore
+                if type_name == "List":
+                    type_name = (
+                        "List["
+                        + part.type.__args__[0].__name__  # type: ignore
+                        + "]"
+                    )
                 new_value = fld_attrs.get(part.name, None)
                 default_value = part.default
                 if new_value != default_value:
                     yield (
                         part.name,
-                        part.type.__name__,  # type: ignore
+                        type_name,
                         get_field_value(
                             new_value
                             if new_value is not None
                             else default_value
                         ),
                     )
+
+    def enum_values_to_prop(values: List[str]) -> str:
+        return ",".join((str(a) + ":" + str(a.title())) for a in values)
 
     generator = TopDir(
         comp=[
@@ -234,6 +246,7 @@ def generate_qt_from_alchemy(
                                         "c/m/w/editor.ui.j2",
                                         extra={
                                             "base_ui_class": base_ui_class,
+                                            "enum_v2p": enum_values_to_prop,
                                         },
                                     ),
                                     File(

@@ -118,6 +118,7 @@ class DrfSelMultiEditor(DropBase, Generic[DBM]):
                 cnt=len(self._dropdown.qt_model.checked_ids),
             )
         )
+        self.field_value = self._dropdown.qt_model.checked_ids
         self.controlChanged.emit()
 
     def set_line_null(self):
@@ -129,3 +130,21 @@ class DrfSelMultiEditor(DropBase, Generic[DBM]):
         data = record.get_row_data(role=Qt.ItemDataRole.DisplayRole)
         value = ", ".join([str(d) for d in data if d is not None])
         return value
+
+    def save_value_to_db(self, db_item: Any):
+        """Save the field value into the database record.
+
+        Attributes:
+            db_item: The database item to save the field value to.
+        """
+        if not self._name:
+            raise ValueError("Field name is not set.")
+        if self.field_value is None:
+            setattr(db_item, self._name, None)
+            return
+        db_lst = [
+            d
+            for d in self.qt_model.get_db_items_by_id(self.field_value)
+            if d is not None
+        ]
+        setattr(db_item, self._name, db_lst)

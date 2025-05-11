@@ -1,5 +1,6 @@
 from typing import TYPE_CHECKING, Any, List, Tuple, cast
 
+from PyQt5.QtCore import pyqtProperty  # type: ignore[import]
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal
 from PyQt5.QtWidgets import (
     QFrame,
@@ -143,7 +144,7 @@ class DrfEnumEditor(DropBase):
         super().__init__(*args, **kwargs)
 
         # List of (key, label) tuples.
-        self.choices = choices or []
+        self._choices = choices or []
 
         # Stores the currently selected key.
         self.field_value = None
@@ -155,9 +156,33 @@ class DrfEnumEditor(DropBase):
         # Connect text changed signal to filter the dropdown
         self.textChanged.connect(self._on_text_changed)
 
+    def getChoices(self) -> str:
+        """Get the valid choices.
+
+        This is a support function for implementing the choices property.
+        """
+        return ",".join([f"{key}:{label}" for key, label in self._choices])
+
+    def setChoices(self, value: str) -> None:
+        """Set the name of the field in the database record.
+
+        This is a support function for implementing the name property.
+        """
+        if isinstance(value, str):
+            self.set_choices(
+                [
+                    a.split(":", maxsplit=1)  # type: ignore[arg-type]
+                    for a in value.split(",")
+                ]
+            )
+        else:
+            self.set_choices(value)
+
+    choices = pyqtProperty(str, fget=getChoices, fset=setChoices)
+
     def _show_dropdown(self):
         """Show the dropdown with filtered choices."""
-        if not self.choices:
+        if not self._choices:
             return
 
         # Populate with filtered choices
@@ -170,7 +195,7 @@ class DrfEnumEditor(DropBase):
         Returns:
             True if there are matches.
         """
-        return self._dropdown.populate(self.choices, text)
+        return self._dropdown.populate(self._choices, text)
 
     def _on_text_changed(self, text: str):
         """Handle text changes."""
@@ -188,7 +213,7 @@ class DrfEnumEditor(DropBase):
         self.field_value = None
 
         # Check if the entered text exactly matches any of the choice labels
-        for key, label in self.choices:
+        for key, label in self._choices:
             if label.lower() == text.lower():  # Case-insensitive matching
                 self.set_line_normal()
 
@@ -213,7 +238,7 @@ class DrfEnumEditor(DropBase):
 
     def set_choices(self, choices: List[Tuple[str, str]]):
         """Set the available choices."""
-        self.choices = choices
+        self._choices = choices
         # Clear the current selection if it's no longer in the choices
         if self.field_value:
             if not any(key == self.field_value for key, _ in choices):
@@ -228,7 +253,10 @@ class DrfEnumEditor(DropBase):
         if new_value is None:
             self.set_line_null()
         else:
-            for choice_key, label in self.choices:
+            if hasattr(new_value, "name"):
+                # If the new value has a name attribute, use it as the key
+                new_value = new_value.name
+            for choice_key, label in self._choices:
                 if choice_key == new_value:
                     self.field_value = new_value
                     self.setText(label)
@@ -277,7 +305,7 @@ class DrfEnumEditor(DropBase):
 
         # Refresh the dropdown filter after typing any other key
         # This ensures the dropdown shows the filtered choices
-        if event.text() and self.choices:
+        if event.text() and self._choices:
             QTimer.singleShot(
                 10,
                 lambda: self._filter_choices(

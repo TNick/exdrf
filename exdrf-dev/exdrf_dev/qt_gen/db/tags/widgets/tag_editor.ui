@@ -25,7 +25,6 @@
        <string>General</string>
       </attribute>
       <layout class="QFormLayout" name="formLayout">
-     
        <item row="0" column="0">
         <widget class="QLabel" name="lbl_name">
          <property name="text">
@@ -38,9 +37,10 @@
          <property name="name" stdset="0">
           <string notr="true">name</string>
          </property>
-        </widget>
         
+        </widget>
        </item>
+     
      
        <item row="1" column="0">
         <widget class="QLabel" name="lbl_parents">
@@ -54,9 +54,10 @@
          <property name="name" stdset="0">
           <string notr="true">parents</string>
          </property>
-        </widget>
         
+        </widget>
        </item>
+     
      
       </layout>
      </widget>
@@ -66,7 +67,6 @@
        <string>Keys</string>
       </attribute>
       <layout class="QFormLayout" name="formLayout">
-     
        <item row="0" column="0">
         <widget class="QLabel" name="lbl_id">
          <property name="text">
@@ -79,9 +79,10 @@
          <property name="readOnly">
           <bool>true</bool>
          </property>
-        </widget>
         
+        </widget>
        </item>
+     
      
       </layout>
      </widget>

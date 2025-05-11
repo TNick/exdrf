@@ -25,7 +25,6 @@
        <string>General</string>
       </attribute>
       <layout class="QFormLayout" name="formLayout">
-     
        <item row="0" column="0">
         <widget class="QLabel" name="lbl_children">
          <property name="text">
@@ -38,9 +37,10 @@
          <property name="name" stdset="0">
           <string notr="true">children</string>
          </property>
-        </widget>
         
+        </widget>
        </item>
+     
      
        <item row="1" column="0">
         <widget class="QLabel" name="lbl_created_at">
@@ -54,9 +54,10 @@
          <property name="name" stdset="0">
           <string notr="true">created_at</string>
          </property>
-        </widget>
         
+        </widget>
        </item>
+     
      
        <item row="2" column="0">
         <widget class="QLabel" name="lbl_is_active">
@@ -70,9 +71,10 @@
          <property name="name" stdset="0">
           <string notr="true">is_active</string>
          </property>
-        </widget>
         
+        </widget>
        </item>
+     
      
        <item row="3" column="0">
         <widget class="QLabel" name="lbl_name">
@@ -86,9 +88,10 @@
          <property name="name" stdset="0">
           <string notr="true">name</string>
          </property>
-        </widget>
         
+        </widget>
        </item>
+     
      
        <item row="4" column="0">
         <widget class="QLabel" name="lbl_profile">
@@ -102,9 +105,10 @@
          <property name="name" stdset="0">
           <string notr="true">profile</string>
          </property>
-        </widget>
         
+        </widget>
        </item>
+     
      
        <item row="5" column="0">
         <widget class="QLabel" name="lbl_tags">
@@ -118,9 +122,10 @@
          <property name="name" stdset="0">
           <string notr="true">tags</string>
          </property>
-        </widget>
         
+        </widget>
        </item>
+     
      
       </layout>
      </widget>
@@ -130,7 +135,6 @@
        <string>Keys</string>
       </attribute>
       <layout class="QFormLayout" name="formLayout">
-     
        <item row="0" column="0">
         <widget class="QLabel" name="lbl_id">
          <property name="text">
@@ -143,9 +147,10 @@
          <property name="readOnly">
           <bool>true</bool>
          </property>
-        </widget>
         
+        </widget>
        </item>
+     
      
       </layout>
      </widget>
