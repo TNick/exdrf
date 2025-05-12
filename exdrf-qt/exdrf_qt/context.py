@@ -5,8 +5,9 @@ from typing import TYPE_CHECKING, Any, Callable, List, Optional, cast
 from attrs import define, field
 from exdrf_al.connection import DbConn
 from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QInputDialog, QMessageBox
+from PyQt5.QtWidgets import QMessageBox
 
+from exdrf_qt.controls.seldb.sel_db import SelectDatabaseDlg
 from exdrf_qt.worker import Relay, Work
 
 if TYPE_CHECKING:
@@ -57,7 +58,7 @@ class QtContext(DbConn):
         w.close()
         w.deleteLater
 
-    def set_db_string(self, c_string: str) -> None:
+    def set_db_string(self, c_string: str, schema: str = "public") -> None:
         """Sets the database connection string.
 
         All current connections will be closed. The worker thread will be
@@ -73,9 +74,13 @@ class QtContext(DbConn):
             self.work_relay = None
 
         if c_string:
-            self.work_relay = Relay(cn=DbConn(c_string), parent=self.top_widget)
+            self.work_relay = Relay(
+                cn=DbConn(c_string=c_string, schema=schema),
+                parent=self.top_widget,
+            )
 
         self.c_string = c_string
+        self.schema = schema
 
     def push_work(
         self,
@@ -140,19 +145,14 @@ class QtContext(DbConn):
             # Attempt to use the environment variable first.
             env_string = os.environ.get("EXDRF_DB_CONN_STRING", None)
             if env_string:
-                self.set_db_string(env_string)
+                s_string = os.environ.get("EXDRF_DB_SCHEMA", "public")
+                self.set_db_string(env_string, s_string)
                 return True
 
             # Ask the user for the connection string.
-            c_string, ok = QInputDialog.getText(
-                self.top_widget,
-                self.t("ex.db.conn.t", "Database Connection"),
-                self.t("ex.db.conn.m", "Enter database connection string:"),
-            )
-            if not ok or not c_string:
-                return False
-            self.set_db_string(c_string)
-        return True
+            SelectDatabaseDlg.change_connection_str(self)
+
+        return bool(self.c_string)
 
     def get_icon(self, name: str) -> "QIcon":
         """Get an icon by name.
@@ -206,3 +206,9 @@ class QtContext(DbConn):
             The translated string.
         """
         return d.format(**kwargs)
+
+    def bootstrap(self):
+        """Prepare the database for use."""
+        from exdrf_al.base import Base
+
+        self.create_all_tables(Base)

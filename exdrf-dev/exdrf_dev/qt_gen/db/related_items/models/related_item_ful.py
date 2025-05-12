@@ -48,13 +48,11 @@ class QtRelatedItemFuMo(QtModel["RelatedItem"]):
                 selection
                 if selection is not None
                 else select(DbRelatedItem).options(
-                    joinedload(
-                        DbRelatedItem.comp_key_owner,
-                    ).load_only(
+                    joinedload(DbRelatedItem.comp_key_owner).load_only(
                         DbCompositeKeyModel.description,
                         DbCompositeKeyModel.key_part1,
                         DbCompositeKeyModel.key_part2,
-                    )
+                    ),
                 )
             ),
             fields=(

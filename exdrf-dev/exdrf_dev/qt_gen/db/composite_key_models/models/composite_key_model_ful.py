@@ -66,11 +66,9 @@ class QtCompositeKeyModelFuMo(QtModel["CompositeKeyModel"]):
                 selection
                 if selection is not None
                 else select(DbCompositeKeyModel).options(
-                    selectinload(
-                        DbCompositeKeyModel.related_items,
-                    ).load_only(
+                    selectinload(DbCompositeKeyModel.related_items).load_only(
                         DbRelatedItem.id,
-                    )
+                    ),
                 )
             ),
             fields=(

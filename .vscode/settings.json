@@ -63,6 +63,7 @@
         "ropeproject",
         "scrapy",
         "sdist",
+        "seldb",
         "selectinload",
         "setdefault",
         "setlocal",

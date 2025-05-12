@@ -39,12 +39,10 @@ class QtTagFuMo(QtModel["Tag"]):
                 selection
                 if selection is not None
                 else select(DbTag).options(
-                    selectinload(
-                        DbTag.parents,
-                    ).load_only(
+                    selectinload(DbTag.parents).load_only(
                         DbParent.id,
                         DbParent.name,
-                    )
+                    ),
                 )
             ),
             fields=(

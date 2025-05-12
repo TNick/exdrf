@@ -46,35 +46,27 @@ class QtParentFuMo(QtModel["Parent"]):
                 if selection is not None
                 else select(DbParent)
                 .options(
-                    selectinload(
-                        DbParent.children,
-                    )
-                    .load_only(
+                    selectinload(DbParent.children).load_only(
                         DbChild.data,
                         DbChild.id,
-                    )
-                    .joinedload(
-                        DbChild.parent,
-                    )
+                    ),
+                    selectinload(DbParent.children)
+                    .joinedload(DbChild.parent)
                     .load_only(
                         DbParent.name,
-                    )
+                    ),
                 )
                 .options(
-                    joinedload(
-                        DbParent.profile,
-                    ).load_only(
+                    joinedload(DbParent.profile).load_only(
                         DbProfile.bio,
                         DbProfile.id,
-                    )
+                    ),
                 )
                 .options(
-                    selectinload(
-                        DbParent.tags,
-                    ).load_only(
+                    selectinload(DbParent.tags).load_only(
                         DbTag.id,
                         DbTag.name,
-                    )
+                    ),
                 )
             ),
             fields=(

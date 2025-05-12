@@ -2,7 +2,7 @@ from contextlib import contextmanager
 from typing import List, Optional
 
 from attrs import define, field
-from sqlalchemy import Engine, create_engine
+from sqlalchemy import Engine, create_engine, event
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.session import Session
 
@@ -19,6 +19,7 @@ class DbConn:
     """
 
     c_string: str
+    schema: str = "public"
     engine: Optional[Engine] = None
     s_stack: List[Session] = field(factory=list)
     cache: dict = field(factory=dict)
@@ -28,7 +29,18 @@ class DbConn:
         if self.engine:
             return self.engine
         self.engine = create_engine(self.c_string)
+        dialect_name = self.engine.dialect.name
+        supports_schema = dialect_name in {"postgresql", "oracle", "mssql"}
+        if supports_schema:
+            self._set_search_path()
         return self.engine
+
+    def _set_search_path(self):
+        @event.listens_for(self.engine, "connect")
+        def set_search_path(dbapi_connection, connection_record):
+            cursor = dbapi_connection.cursor()
+            cursor.execute(f"SET search_path TO {self.schema}")
+            cursor.close()
 
     def close(self):
         """Close the connection to the database."""
@@ -117,3 +129,6 @@ class DbConn:
         """
         engine = self.connect()
         Base.metadata.create_all(bind=engine)
+
+    def bootstrap(self):
+        """Prepare the database for use."""

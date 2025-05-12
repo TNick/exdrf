@@ -22,6 +22,7 @@ class ParentsField(QtRefManyToManyField["Tag"]):
     title: str = field(default="Parents")
     category: str = field(default="general")
     preferred_width: int = field(default=100)
+    show_n_labels: int = field(default=4)
     ref: "ExResource" = field(default=None, repr=False)
 
     def part_id(self, record: "Parent") -> RecIdType:

@@ -40,12 +40,10 @@ class QtChildFuMo(QtModel["Child"]):
                 selection
                 if selection is not None
                 else select(DbChild).options(
-                    joinedload(
-                        DbChild.parent,
-                    ).load_only(
+                    joinedload(DbChild.parent).load_only(
                         DbParent.id,
                         DbParent.name,
-                    )
+                    ),
                 )
             ),
             fields=(

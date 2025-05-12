@@ -40,12 +40,10 @@ class QtProfileFuMo(QtModel["Profile"]):
                 selection
                 if selection is not None
                 else select(DbProfile).options(
-                    joinedload(
-                        DbProfile.parent,
-                    ).load_only(
+                    joinedload(DbProfile.parent).load_only(
                         DbParent.id,
                         DbParent.name,
-                    )
+                    ),
                 )
             ),
             fields=(

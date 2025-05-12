@@ -5,6 +5,7 @@ import logging
 from typing import TYPE_CHECKING, Type
 
 from PyQt5.QtWidgets import QMenu, QAction
+from exdrf_qt.controls.seldb.sel_db import SelectDatabaseDlg
 
 {%- for name, c_res in categ_map.items() %}
 {% for res_name in sorted(c_res) -%}
@@ -69,6 +70,7 @@ class ExdrfMenus:
     open_{{ mdl.snake_case_name }}_list_ac: OpenListAc
     {%- endfor %}
     {% endfor %}
+    show_conn_settings_ac: QAction
 
     def __init__(self, ctx: "QtContext", parent: QMenu):
         """Initialize the menus."""
@@ -86,4 +88,12 @@ class ExdrfMenus:
         )
         {%- endfor %}
         {% endfor %}
+        self.show_conn_settings_ac = QAction(
+            "Connection settings", parent
+        )
+        self.show_conn_settings_ac.triggered.connect(
+            lambda: SelectDatabaseDlg.change_connection_str(ctx)  # type: ignore
+        )
+        parent.addAction(self.show_conn_settings_ac)
+
 {{- "\n" -}}

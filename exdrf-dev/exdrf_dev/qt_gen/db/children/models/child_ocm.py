@@ -42,12 +42,10 @@ class QtChildNaMo(QtChildFuMo):
                     )
                 )
                 .options(
-                    joinedload(
-                        DbChild.parent,
-                    ).load_only(
+                    joinedload(DbChild.parent).load_only(
                         DbParent.id,
                         DbParent.name,
-                    )
+                    ),
                 )
             ),
             fields=(
