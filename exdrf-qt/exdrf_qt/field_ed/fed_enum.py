@@ -1,4 +1,5 @@
-from typing import TYPE_CHECKING, Any, List, Tuple, cast
+from contextlib import contextmanager
+from typing import TYPE_CHECKING, Any, List, Tuple, Union, cast
 
 from PyQt5.QtCore import pyqtProperty  # type: ignore[import]
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal
@@ -57,6 +58,11 @@ class DropdownList(QFrame, QtUseContext):
         layout.addWidget(self.list_widget)
 
         self.setLayout(layout)
+
+    @property
+    def editor(self) -> "DrfEnumEditor":
+        """Get the parent editor."""
+        return cast("DrfEnumEditor", self.parent())
 
     def on_item_clicked(self, item: QListWidgetItem):
         """Handle item selection in the list."""
@@ -136,12 +142,27 @@ class DropdownList(QFrame, QtUseContext):
                 visible_items * item_height + 10
             )  # Add some margin
 
+    def hideEvent(self, event):  # type: ignore[override]
+        """Handle hide event."""
+        super().hideEvent(event)
+        # We may be in a state when the user typed some text but there was no
+        # match.
+        ed = self.editor
+        if not ed.text_matches_field_value:
+            ed.change_field_value(ed.field_value)
+        else:
+            ed.set_line_normal()
+
 
 class DrfEnumEditor(DropBase):
     """Line edit with combo box-like behavior."""
 
+    _choices: List[Tuple[str, str]]
+    _internal_change: List[bool]
+
     def __init__(self, *args, choices=None, **kwargs):
         super().__init__(*args, **kwargs)
+        self._internal_change = []
 
         # List of (key, label) tuples.
         self._choices = choices or []
@@ -155,6 +176,15 @@ class DrfEnumEditor(DropBase):
 
         # Connect text changed signal to filter the dropdown
         self.textChanged.connect(self._on_text_changed)
+
+    @contextmanager
+    def make_internal_change(self):
+        """Context manager to temporarily disable internal change tracking."""
+        self._internal_change.append(True)
+        try:
+            yield
+        finally:
+            self._internal_change.pop()
 
     def getChoices(self) -> str:
         """Get the valid choices.
@@ -197,44 +227,101 @@ class DrfEnumEditor(DropBase):
         """
         return self._dropdown.populate(self._choices, text)
 
+    def locate_choice_by_text(self, text: str) -> Union[None, str]:
+        """Locate a choice by its label (case-insensitive).
+
+        This method searches for a choice label that matches the provided text
+        (case-insensitive). If a match is found, it returns the corresponding
+        key. Otherwise, it returns None.
+
+        Args:
+            text: The label to search for.
+
+        Returns:
+            The key of the choice if found, otherwise None.
+        """
+        text = text.lower().strip()  # Case-insensitive matching
+        for key, label in self._choices:
+            if label.lower() == text:
+                return key
+        return None
+
+    def label_by_key(self, key: str) -> Union[None, str]:
+        """Get the label by key.
+
+        This method retrieves the label corresponding to the provided key.
+        If the key is not found, it returns None.
+
+        Args:
+            key: The key to search for.
+
+        Returns:
+            The label if found, otherwise None.
+        """
+        for k, label in self._choices:
+            if k == key:
+                return label
+        return None
+
+    @property
+    def text_matches_field_value(self) -> bool:
+        """Check if the text matches the field value.
+
+        This method checks if the current text in the line edit matches the
+        field value. It returns True if they match, otherwise False.
+        """
+        crt_text = self.text().lower().strip()
+        if self.field_value is None:
+            return crt_text == ""
+
+        label = self.label_by_key(self.field_value)
+        if label is None:
+            return False
+
+        return label.lower() == crt_text
+
     def _on_text_changed(self, text: str):
         """Handle text changes."""
+        if self._internal_change:
+            return
+
         have_choices = self._filter_choices(text)
 
         # Always show dropdown when typing if there are choices
         if have_choices:
             if not self._dropdown.isVisible():
                 self._position_dropdown()
+                self._dropdown.setFocus()  # Set focus to dropdown
         else:
             # Only hide if no matches
             self._dropdown.hide()
 
-        # Clear the selected key when text changes manually
-        self.field_value = None
-
         # Check if the entered text exactly matches any of the choice labels
-        for key, label in self._choices:
-            if label.lower() == text.lower():  # Case-insensitive matching
-                self.set_line_normal()
+        found_key = self.locate_choice_by_text(text)
+        if found_key is not None:
+            self.set_line_normal()
 
-                # Change the value and signal the change.
-                self.field_value = key
-                return
+            # Change the value and signal the change.
+            self.field_value = found_key
+            return
 
         # If we get here, the text doesn't match any choice exactly
         if text:
-            self.set_line_normal()  # Allow typing to continue
+            self.set_line_error(
+                self.t("cmn.err.no_matches_found", "No matches found")
+            )
         else:
             self.set_line_empty()
 
     def _on_item_selected(self, key: str, label: str):
         """Handle selection from the dropdown."""
-        self.setText(label)
-        self.set_line_normal()
-        self.setFocus()  # Return focus to line edit after selection
+        with self.make_internal_change():
+            self.setText(label)
+            self.set_line_normal()
+            self.setFocus()  # Return focus to line edit after selection
 
-        # Change the value and signal the change.
-        self.field_value = key
+            # Change the value and signal the change.
+            self.field_value = key
 
     def set_choices(self, choices: List[Tuple[str, str]]):
         """Set the available choices."""
@@ -250,21 +337,22 @@ class DrfEnumEditor(DropBase):
         Args:
             new_value: The new value to set. If None, the field is set to NULL.
         """
-        if new_value is None:
-            self.set_line_null()
-        else:
-            if hasattr(new_value, "name"):
-                # If the new value has a name attribute, use it as the key
-                new_value = new_value.name
-            for choice_key, label in self._choices:
-                if choice_key == new_value:
-                    self.field_value = new_value
-                    self.setText(label)
-                    self.set_line_normal()
-                    return
+        with self.make_internal_change():
+            if new_value is None:
+                self.set_line_null()
+            else:
+                if hasattr(new_value, "name"):
+                    # If the new value has a name attribute, use it as the key
+                    new_value = new_value.name
+                for choice_key, label in self._choices:
+                    if choice_key == new_value:
+                        self.field_value = new_value
+                        self.setText(label)
+                        self.set_line_normal()
+                        return
 
-            # Key not found
-            self.set_line_null()
+                # Key not found
+                self.set_line_null()
 
     def keyPressEvent(self, event):
         """Handle key events for dropdown interaction."""
@@ -312,13 +400,6 @@ class DrfEnumEditor(DropBase):
                     self.text()
                 ),  # type: ignore[arg-type]
             )
-
-    def focusInEvent(self, event):
-        """Handle focus gained."""
-        super().focusInEvent(event)
-        # Show dropdown if it was visible before focus change
-        if not self._dropdown.isVisible():
-            self._on_text_changed(self.text())
 
 
 if __name__ == "__main__":

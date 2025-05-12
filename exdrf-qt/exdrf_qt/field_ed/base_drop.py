@@ -65,5 +65,5 @@ class DropBase(LineBase):
         self._dropdown.move(pos)
         self._dropdown.resize(self.width(), self._dropdown.sizeHint().height())
         self._dropdown.show()
-        self.btm_tip.hide()
+        # self.btm_tip.hide()
         QTimer.singleShot(10, lambda: self.setFocus())  # type: ignore[arg-type]

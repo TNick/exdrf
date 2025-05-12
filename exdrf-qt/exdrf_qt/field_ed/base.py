@@ -68,6 +68,10 @@ class DrfFieldEd(QtUseContext):
     @field_value.setter
     def field_value(self, value: Any) -> None:
         """Set the field value."""
+        self._change_field_value(value)
+
+    def _change_field_value(self, value: Any) -> None:
+        """Set the field value."""
         if self._field_value != value:
             # Change the value and signal the change.
             self._field_value = value
@@ -129,7 +133,7 @@ class DrfFieldEd(QtUseContext):
 
         By default we check for NULL when the field is not nullable.
         """
-        if self._field_value is not None:
+        if self._field_value is not None or self.nullable:
             return ValidationResult(
                 value=self._field_value,
             )

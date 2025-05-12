@@ -175,7 +175,7 @@ class EditorDb(QWidget, QtUseContext, Generic[DBM]):
         Returns:
             True if the editor is valid.
         """
-        return all(ed.is_valid() for ed in self.edit_fields)
+        return all(ed.is_valid().is_valid for ed in self.edit_fields)
 
     @property
     def is_editing(self) -> bool:

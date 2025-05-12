@@ -32,6 +32,18 @@ class DrfTimeEditor(DateBase):
                 assert self.ac_clear is not None
                 self.ac_clear.setEnabled(True)
 
+    @property
+    def field_value(self) -> Any:
+        """Get the field value."""
+        if isinstance(self._field_value, datetime):
+            return self._field_value.time()
+        return self._field_value
+
+    @field_value.setter
+    def field_value(self, value: Any) -> None:
+        """Set the field value."""
+        self._change_field_value(value)
+
 
 if __name__ == "__main__":
     from PyQt5.QtWidgets import QApplication, QVBoxLayout, QWidget

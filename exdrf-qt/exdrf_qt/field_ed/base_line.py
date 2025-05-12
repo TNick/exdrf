@@ -158,7 +158,10 @@ class LineBase(QLineEdit, DrfFieldEd):
             self.btm_tip.show_error(text)
         else:
             self.btm_tip.show_text(text)
-        self._show_floating_label()
+        if len(text) == 0:
+            self.btm_tip.hide()
+        else:
+            self._show_floating_label()
 
     def _show_floating_label(self):
         self.btm_tip.resize(self.width(), self.btm_tip.sizeHint().height())
@@ -225,7 +228,7 @@ class LineBase(QLineEdit, DrfFieldEd):
             if event.type() == QEvent.Type.Leave:
                 return True
 
-        # 2) watch all mouse‑moves globally
+        # # 2) watch all mouse‑moves globally
 
         if (
             self.btm_tip.hover_hidden

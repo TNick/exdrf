@@ -2,6 +2,7 @@ from datetime import date, datetime
 from typing import TypeVar, Union
 
 from exdrf.moment import MomentFormat
+from exdrf.validator import ValidationResult
 from PyQt5.QtWidgets import (
     QAction,
     QCalendarWidget,
@@ -130,6 +131,7 @@ class DateBase(LineBase):
             self.set_line_error(result.error)
         else:
             self.set_line_normal()
+            self.field_value = result.value
 
     def on_editing_finished(self) -> None:
         """Handles the editing finished signal."""
@@ -156,3 +158,12 @@ class DateBase(LineBase):
         if self.nullable:
             assert self.ac_clear is not None
             self.ac_clear.setEnabled(False)
+
+    def is_valid(self) -> ValidationResult:
+        """Check if the field value is valid."""
+        if self._field_value is None and not self.nullable:
+            return ValidationResult(
+                reason="NULL",
+                error=self.null_error(),
+            )
+        return self.formatter.validate(self.text(), self.t)

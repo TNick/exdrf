@@ -1,5 +1,6 @@
-from typing import Any, Generic, Optional, TypeVar
+from typing import Any, Generic, Optional, TypeVar, cast
 
+from exdrf.validator import ValidationResult
 from PyQt5.QtCore import Qt
 
 from exdrf_qt.field_ed.base_line import LineBase
@@ -54,23 +55,36 @@ class NumberBase(LineBase, Generic[T]):
         """Converts the number to a string."""
         return str(value)
 
-    def check_value(self, text: Any) -> Optional[T]:
+    def _check_value(self, text: str) -> ValidationResult:
         result = self.validate(text)
         if result is None:
-            self.set_line_error(
-                self.t("cmn.err.invalid_number", "Invalid number"),
+            return ValidationResult(
+                reason="NUMBER",
+                error=self.t("cmn.err.invalid_number", "Invalid number"),
             )
         elif self.minimum is not None and result < self.minimum:
-            self.set_line_error(
-                self.t("cmn.err.too_small", "Value is too small"),
+            return ValidationResult(
+                reason="SMALL",
+                error=self.t("cmn.err.too_small", "Value is too small"),
             )
         elif self.maximum is not None and result > self.maximum:
-            self.set_line_error(
-                self.t("cmn.err.too_large", "Value is too large"),
+            return ValidationResult(
+                reason="LARGE",
+                error=self.t("cmn.err.too_large", "Value is too large"),
             )
         else:
+            return ValidationResult(
+                value=result,
+            )
+
+    def check_value(self, text: Any) -> Optional[T]:
+        result = self._check_value(text)
+        if result.is_valid:
             self.set_line_normal()
-            return result
+            return cast(T, result.value)
+
+        assert result.error is not None
+        self.set_line_error(result.error)
         return None
 
     def on_text_changed(self, text: str) -> None:
@@ -190,3 +204,12 @@ class NumberBase(LineBase, Generic[T]):
             else:
                 self.change_by_delta(-1)
         event.accept()
+
+    def is_valid(self) -> ValidationResult:
+        """Check if the field value is valid."""
+        if self._field_value is None and not self.nullable:
+            return ValidationResult(
+                reason="NULL",
+                error=self.null_error(),
+            )
+        return self._check_value(self.text())
