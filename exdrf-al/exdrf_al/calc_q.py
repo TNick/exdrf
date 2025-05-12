@@ -138,6 +138,14 @@ class JoinLoad:
         """
         parts = sub_fld_name.split(".")
 
+        # Make sure that this is a leaf field, not a relation.
+        crt_model = related_model
+        for part in parts[:-1]:
+            crt_model = cast("RefBaseField", crt_model[part]).ref
+        src_field = crt_model[parts[-1]]
+        if src_field.is_ref_type:
+            return
+
         # The parts up to but excluding last one generate joins, the
         # last one generates a load_only.
         crt_join = self

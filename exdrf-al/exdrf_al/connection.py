@@ -2,9 +2,11 @@ from contextlib import contextmanager
 from typing import List, Optional
 
 from attrs import define, field
-from sqlalchemy import Engine, create_engine, event
+from sqlalchemy import Engine, create_engine, event, text
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.session import Session
+
+dialects_with_schema = {"postgresql", "oracle", "mssql"}
 
 
 @define
@@ -30,17 +32,35 @@ class DbConn:
             return self.engine
         self.engine = create_engine(self.c_string)
         dialect_name = self.engine.dialect.name
-        supports_schema = dialect_name in {"postgresql", "oracle", "mssql"}
+        supports_schema = dialect_name in dialects_with_schema
         if supports_schema:
             self._set_search_path()
         return self.engine
 
     def _set_search_path(self):
-        @event.listens_for(self.engine, "connect")
+        @event.listens_for(self.engine, "connect", insert=True)
         def set_search_path(dbapi_connection, connection_record):
-            cursor = dbapi_connection.cursor()
-            cursor.execute(f"SET search_path TO {self.schema}")
-            cursor.close()
+            # Only execute if either the session stack is empty
+            # or the last session in the stack is not being prepared (because
+            # if it is being prepared then the session executes this
+            # exact command).
+            if self.schema:
+                existing_autocommit = dbapi_connection.autocommit
+                dbapi_connection.autocommit = True
+                cursor = dbapi_connection.cursor()
+                assert self.engine is not None, "Engine not set"
+                if self.engine.dialect.name == "mssql":
+                    # For MSSQL, we need to set the schema in a different way
+                    stm = f"USE {self.schema}"
+                elif self.engine.dialect.name == "oracle":
+                    # For Oracle, we need to set the schema in a different way
+                    stm = f"ALTER SESSION SET CURRENT_SCHEMA = {self.schema}"
+                else:
+                    # For PostgreSQL
+                    stm = f"SET SESSION search_path='{self.schema}'"
+                cursor.execute(stm)
+                cursor.close()
+                dbapi_connection.autocommit = existing_autocommit
 
     def close(self):
         """Close the connection to the database."""
@@ -66,7 +86,16 @@ class DbConn:
             autoflush=True,
         )
         s = Session()
-        self.s_stack.append(s)
+
+        # Indicate that a session is being prepared.
+        self.s_stack.append(None)  # type: ignore
+
+        assert self.engine is not None, "Engine not set"
+        if self.schema and self.engine.dialect.name in dialects_with_schema:
+            # s.execute(text("SHOW search_path;"))
+            s.execute(text("SELECT 1"))
+
+        self.s_stack[-1] = s
         return s
 
     @contextmanager

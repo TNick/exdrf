@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 from typing import TYPE_CHECKING, Tuple
 
 from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QFileDialog, QMessageBox
@@ -12,6 +13,27 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
+
+CONN_PATTERN = re.compile(
+    r"^(?P<scheme>[\w\+]+)://"
+    r"(?:(?P<username>[^:/]+)(?::(?P<password>[^@]+))?@)?"
+    r"(?P<host>[^:/]+)?"
+    r"(?:\:(?P<port>\d+))?"
+    r"(?:/(?P<database>[^\?]+))?"
+    r"(?:\?(?P<params>.*))?$"
+)
+
+
+def parse_sqlalchemy_conn_str(conn_str: str):
+    """
+    Parse a SQLAlchemy-style connection string into its components.
+    Returns a dictionary with keys: scheme, username, password,
+    host, port, database, and params.
+    """
+    match = CONN_PATTERN.match(conn_str)
+    if match:
+        return match.groupdict()
+    return {}
 
 
 class SelectDatabaseDlg(QDialog, Ui_SelectDatabase, QtUseContext):
@@ -80,8 +102,8 @@ class SelectDatabaseDlg(QDialog, Ui_SelectDatabase, QtUseContext):
             backend = self.c_backend.currentData()
             host = self.c_host.text().strip()
             port = self.c_port.text().strip()
-            user = self.c_user.text().strip()
-            password = self.c_password.text().strip()
+            user = self.c_username.text().strip()
+            password = self.c_pass.text().strip()
             db_name = self.c_db_name.text().strip()
             return f"{backend}://{user}:{password}@{host}:{port}/{db_name}"
 
@@ -114,17 +136,14 @@ class SelectDatabaseDlg(QDialog, Ui_SelectDatabase, QtUseContext):
             self.c_file_path.setText(con_str[10:])
         else:
             self.main_tab.setCurrentWidget(self.tab_remote)
-            backend, rest = con_str.split("://", maxsplit=1)
-            user, rest = rest.split("@", maxsplit=1)
-            password, rest = user.split(":", maxsplit=1)
-            host, rest = rest.split(":", maxsplit=1)
-            port, db_name = rest.split("/", maxsplit=1)
-            self.c_backend.setCurrentText(backend)
-            self.c_user.setText(user)
-            self.c_password.setText(password)
-            self.c_host.setText(host)
-            self.c_port.setText(port)
-            self.c_db_name.setText(db_name)
+
+            result = parse_sqlalchemy_conn_str(con_str)
+            self.c_backend.setCurrentText(result["host"])
+            self.c_username.setText(result["username"])
+            self.c_pass.setText(result["password"])
+            self.c_host.setText(result["host"])
+            self.c_port.setText(result["port"])
+            self.c_db_name.setText(result["database"])
 
     def on_browse_file(self):
         """Browse for a file."""

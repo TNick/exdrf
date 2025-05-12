@@ -428,7 +428,7 @@ class QtModel(
                 req.start,
                 req.count,
                 len(self.requests),
-                work.error,
+                str(work.error),
             )
         else:
             loaded_update = 0
