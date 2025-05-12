@@ -415,7 +415,7 @@ class QtRefOneToManyField(RefOneToManyField, QtField[DBM]):
             if len(labels) <= self.show_n_labels
             else (labels[: self.show_n_labels] + ["..."])
         )
-        tooltip = "\\n".join(labels)
+        tooltip = "\n".join(labels)
         display = ", ".join(display_labels)
 
         return self.expand_value(
@@ -476,7 +476,7 @@ class QtRefManyToManyField(RefManyToManyField, QtField[DBM]):
             if len(labels) <= self.show_n_labels
             else (labels[: self.show_n_labels] + ["..."])
         )
-        tooltip = "\\n".join(labels)
+        tooltip = "\n".join(labels)
         display = ", ".join(display_labels)
 
         return self.expand_value(
