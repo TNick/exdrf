@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 @define
 class NameField(QtStringField["Parent"]):
-    """Name of the parent.."""
+    """Name of the parent."""
 
     name: str = field(default="name", init=False)
     title: str = field(default="Name")

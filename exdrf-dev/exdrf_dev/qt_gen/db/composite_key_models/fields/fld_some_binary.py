@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 @define
 class SomeBinaryField(QtBlobField["CompositeKeyModel"]):
-    """Binary data.."""
+    """Binary data."""
 
     name: str = field(default="some_binary", init=False)
     title: str = field(default="Some Binary")

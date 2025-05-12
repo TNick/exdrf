@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 @define
 class ItemDataField(QtStringField["RelatedItem"]):
-    """Data specific to the related item.."""
+    """Data specific to the related item."""
 
     name: str = field(default="item_data", init=False)
     title: str = field(default="Item Data")

@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 @define
 class IsActiveField(QtBoolField["Parent"]):
-    """Flag indicating if the parent is active.."""
+    """Flag indicating if the parent is active."""
 
     name: str = field(default="is_active", init=False)
     title: str = field(default="Is Active")

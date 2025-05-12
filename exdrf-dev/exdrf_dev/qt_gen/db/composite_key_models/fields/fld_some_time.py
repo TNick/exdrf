@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 @define
 class SomeTimeField(QtTimeField["CompositeKeyModel"]):
-    """A time value.."""
+    """A time value."""
 
     name: str = field(default="some_time", init=False)
     title: str = field(default="Some Time")

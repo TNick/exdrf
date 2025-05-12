@@ -192,7 +192,7 @@ def generate_qt_from_alchemy(
                     )
 
     def enum_values_to_prop(values: List[str]) -> str:
-        return ",".join((str(a) + ":" + str(a.title())) for a in values)
+        return ",".join((str(a) + ":" + str(b)) for a, b in values)
 
     generator = TopDir(
         comp=[

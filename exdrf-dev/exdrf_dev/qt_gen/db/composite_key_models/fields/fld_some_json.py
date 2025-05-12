@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 @define
 class SomeJsonField(QtFormattedField["CompositeKeyModel"]):
-    """A JSON object.."""
+    """A JSON object."""
 
     name: str = field(default="some_json", init=False)
     title: str = field(default="Some Json")

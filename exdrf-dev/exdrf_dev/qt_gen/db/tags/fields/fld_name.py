@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 @define
 class NameField(QtStringField["Tag"]):
-    """Unique name of the tag.."""
+    """Unique name of the tag."""
 
     name: str = field(default="name", init=False)
     title: str = field(default="Name")

@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 @define
 class SomeDateField(QtDateField["CompositeKeyModel"]):
-    """A date value.."""
+    """A date value."""
 
     name: str = field(default="some_date", init=False)
     title: str = field(default="Some Date")

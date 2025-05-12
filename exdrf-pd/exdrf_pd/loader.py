@@ -91,7 +91,7 @@ def field_from_pydantic(
     elif str(annotation).startswith("typing.Literal["):
         values = annotation.__args__  # type: ignore
         result = EnumField(
-            values=list(values),
+            enum_values=[(a, a.title()) for a in values],
             **extra,
         )
     elif isinstance(annotation, (list, List)) or str(annotation).startswith(

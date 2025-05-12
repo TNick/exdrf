@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 @define
 class KeyPart2Field(QtIntegerField["CompositeKeyModel"]):
-    """Second part of the composite primary key (integer).."""
+    """Second part of the composite primary key (integer)."""
 
     name: str = field(default="key_part2", init=False)
     title: str = field(default="Key Part2")

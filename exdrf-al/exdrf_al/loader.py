@@ -1,6 +1,6 @@
 import logging
 import re
-from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple, Type
+from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple, Type, cast
 
 from attrs import define, field
 from exdrf.api import (
@@ -81,7 +81,7 @@ def construct_enum(src: "KeyedColumnElement[Any]", **kwargs):
     kwargs.pop("enum_values", None)
     return EnumField(
         src=src,
-        enum_values=list(src.type.enums),  # type: ignore
+        enum_values=[(a, a.title()) for a in src.type.enums],  # type: ignore
         **kwargs,
     )
 
@@ -129,7 +129,7 @@ def sql_col_to_type(
             result = StrField, StrInfo
         else:
             assert False, f"Unknown field type: {column} / {column.type}"
-    return result
+    return cast(Tuple[type["ExField"], type["FieldInfo"]], result)
 
 
 def field_from_sql_col(

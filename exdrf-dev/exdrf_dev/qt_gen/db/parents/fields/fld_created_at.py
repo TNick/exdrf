@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 @define
 class CreatedAtField(QtDateTimeField["Parent"]):
-    """Timestamp when the parent was created.."""
+    """Timestamp when the parent was created."""
 
     name: str = field(default="created_at", init=False)
     title: str = field(default="Created At")

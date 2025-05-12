@@ -1,3 +1,4 @@
+import logging
 from typing import Any, Dict, Optional
 
 import humanize
@@ -37,6 +38,8 @@ from exdrf_qt.models.field import (
     light_grey,
     regular_font,
 )
+
+logger = logging.getLogger(__name__)
 
 
 @define(slots=False)
@@ -85,7 +88,7 @@ class QtBoolField(BoolField, QtField[DBM]):
 
 
 @define
-class QtDateTimeField(QtField[DBM], DateTimeField):
+class QtDateTimeField(QtField[DBM], DateTimeField):  # type: ignore
     formatter: Optional[MomentFormat] = field(default=None)
 
     def values(self, record) -> Dict[Qt.ItemDataRole, Any]:
@@ -162,7 +165,27 @@ class QtDurationField(DurationField, QtField[DBM]):
 @define
 class QtEnumField(EnumField, QtField[DBM]):
     def values(self, record) -> Dict[Qt.ItemDataRole, Any]:
-        return self.not_implemented_values(record)
+        value = getattr(record, self.name)
+        if value is None:
+            return self.expand_value(None)
+
+        if hasattr(value, "name"):
+            # If the value is an Enum, we need to get its name
+            value = value.name
+        for k, v in self.enum_values:
+            if k == value:
+                return self.expand_value(
+                    value=value,
+                    DisplayRole=v,
+                )
+
+        logger.error(
+            "EnumField %s got value %s that was not found in enum_values: %s",
+            self.name,
+            value,
+            self.enum_values,
+        )
+        return self.expand_value(None)  # type: ignore[no-untyped-call]
 
 
 @define

@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 @define
 class CompKeyPart1Field(QtStringField["RelatedItem"]):
-    """Foreign key part 1 referencing CompositeKeyModel.."""
+    """Foreign key part 1 referencing CompositeKeyModel."""
 
     name: str = field(default="comp_key_part1", init=False)
     title: str = field(default="Comp Key Part1")

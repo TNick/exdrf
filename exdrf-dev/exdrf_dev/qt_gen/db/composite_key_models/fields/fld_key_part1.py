@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 @define
 class KeyPart1Field(QtStringField["CompositeKeyModel"]):
-    """First part of the composite primary key (string).."""
+    """First part of the composite primary key (string)."""
 
     name: str = field(default="key_part1", init=False)
     title: str = field(default="Key Part1")

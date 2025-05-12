@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 @define
 class ParentIdField(QtIntegerField["Child"]):
-    """Foreign key linking to the parent.."""
+    """Foreign key linking to the parent."""
 
     name: str = field(default="parent_id", init=False)
     title: str = field(default="Parent Id")

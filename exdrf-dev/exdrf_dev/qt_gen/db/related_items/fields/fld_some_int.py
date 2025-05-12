@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 @define
 class SomeIntField(QtIntegerField["RelatedItem"]):
-    """An integer value associated with the related item.."""
+    """An integer value associated with the related item."""
 
     name: str = field(default="some_int", init=False)
     title: str = field(default="Some Int")

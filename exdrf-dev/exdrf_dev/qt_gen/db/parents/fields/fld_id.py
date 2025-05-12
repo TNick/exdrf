@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 @define
 class IdField(QtIntegerField["Parent"]):
-    """Primary key for the parent.."""
+    """Primary key for the parent."""
 
     name: str = field(default="id", init=False)
     title: str = field(default="Id")

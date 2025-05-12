@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 @define
 class SomeFloatField(QtFloatField["CompositeKeyModel"]):
-    """A floating-point number.."""
+    """A floating-point number."""
 
     name: str = field(default="some_float", init=False)
     title: str = field(default="Some Float")

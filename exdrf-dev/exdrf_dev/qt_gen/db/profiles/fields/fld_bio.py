@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 @define
 class BioField(QtStringField["Profile"]):
-    """Biography text for the profile.."""
+    """Biography text for the profile."""
 
     name: str = field(default="bio", init=False)
     title: str = field(default="Bio")

@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 @define
 class DescriptionField(QtStringField["CompositeKeyModel"]):
-    """A description for this record.."""
+    """A description for this record."""
 
     name: str = field(default="description", init=False)
     title: str = field(default="Description")
