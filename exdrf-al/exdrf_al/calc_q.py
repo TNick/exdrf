@@ -1,4 +1,4 @@
-from typing import List, Union, cast
+from typing import List, Optional, Union, cast
 
 from attrs import define, field
 from exdrf.field_types.api import RefBaseField
@@ -88,34 +88,45 @@ class JoinLoad:
             result.append(lo.resource)
         return result
 
-    def stringify(self, indent: int = 12, level: int = 0) -> str:
-        """Stringify the join."""
+    def stringify(
+        self,
+        indent: int = 12,
+        level: int = 0,
+        lines: Optional[List[str]] = None,
+        parents: Optional[List["JoinLoad"]] = None,
+    ) -> str:
+        if parents is None:
+            parents = []
+        if lines is None:
+            lines = []
+
         s_indent_1 = " " * (indent + 4)
         s_indent_2 = " " * (indent + 8)
-        result = (
-            s_indent_1
-            + (")." if level > 0 else "")
-            + self.container.strategy
-            + "(\n"
-            + s_indent_2
-            + "Db"
-            + repr(self.container)
-            + ",\n"
-        )
 
         if self.load_only:
-            result += s_indent_1 + ").load_only(\n"
+            for i_p, parent in enumerate(parents):
+                dot = "" if i_p == 0 else "."
+                st = parent.container.strategy
+                lines.append(
+                    f"{s_indent_1}{dot}{st}(Db{repr(parent.container)})"
+                )
+            dot = "." if parents else ""
+            st = self.container.strategy
+            lines.append(f"{s_indent_1}{dot}{st}(Db{repr(self.container)})")
+            lines.append(f"{s_indent_1}.load_only(")
             for lo in self.load_only:
-                result += s_indent_2 + "Db" + repr(lo) + ",\n"
+                lines.append(f"{s_indent_2}Db{repr(lo)},")
+            lines.append(f"{s_indent_1}),")
 
-        if len(self.children) > 0:
-            for c in self.children:
-                result += c.stringify(indent=indent, level=level + 1)
+        for c in self.children:
+            c.stringify(
+                indent=indent,
+                level=level + 1,
+                lines=lines,
+                parents=parents + [self],
+            )
 
-        if level == 0:
-            return result + s_indent_1 + ")\n"
-        else:
-            return result
+        return "\n".join(lines) if level == 0 else ""
 
     def load(self, sub_fld_name: str, related_model: "ExResource"):
         """Add a field to the tree.
@@ -147,7 +158,13 @@ class JoinLoad:
 
 @define
 class RootJoinLoad(JoinLoad):
-    def stringify(self, indent: int = 12, level: int = 0) -> str:
+    def stringify(
+        self,
+        indent: int = 12,
+        level: int = 0,
+        lines: Optional[List[str]] = None,
+        parents: Optional[List["JoinLoad"]] = None,
+    ) -> str:
         s_indent_1 = " " * (indent + 4)
         s_indent_2 = " " * (indent + 8)
         result = s_indent_1 + "load_only(\n"

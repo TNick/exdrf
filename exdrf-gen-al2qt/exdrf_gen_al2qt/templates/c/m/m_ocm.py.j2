@@ -3,7 +3,7 @@
 # Don't change it manually.
 from typing import TYPE_CHECKING, Union
 from sqlalchemy import select
-from sqlalchemy.orm import joinedload, selectinload, load_only
+from sqlalchemy.orm import joinedload, selectinload, load_only, load_only
 
 from {{ out_module }}.{{ r.categories[0] }}.{{ r.snake_case_name_plural }}.models.{{ res_snake }}_ful import (
     Qt{{ ResPascal }}FuMo

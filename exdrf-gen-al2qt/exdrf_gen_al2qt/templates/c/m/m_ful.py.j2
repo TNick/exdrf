@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Union
 
 from exdrf_qt.models import QtModel
 from sqlalchemy import select
-from sqlalchemy.orm import joinedload, selectinload
+from sqlalchemy.orm import joinedload, selectinload, load_only
 
 {% for field in fields %}
 from {{ out_module }}.{{ r.categories[0] }}.{{ r.snake_case_name_plural }}.fields.fld_{{field.name}} import (

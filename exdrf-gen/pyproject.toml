@@ -42,7 +42,7 @@ dev = [
 
 [build-system]
 build-backend = "setuptools.build_meta"
-requires = ["setuptools>=67.0", "setuptools_scm[toml]>=8.2.0"]
+requires = ["setuptools>=67.0", "setuptools_scm[toml]>=8.3.0"]
 
 [tool.setuptools]
 include-package-data = true
@@ -52,7 +52,7 @@ exclude = ["venv*", "playground*"]
 
 [tool.setuptools_scm]
 fallback_version = "0.0.1-dev"
-write_to = "exdrf_gen/__version__.py"
+version_file = "exdrf_gen/__version__.py"
 
 [tool.isort]
 profile = "black"
