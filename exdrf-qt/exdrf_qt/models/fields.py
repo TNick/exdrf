@@ -16,7 +16,6 @@ from exdrf.api import (
     FormattedField,
     IntField,
     IntListField,
-    RefBaseField,
     RefManyToManyField,
     RefManyToOneField,
     RefOneToManyField,
@@ -267,37 +266,41 @@ class QtIntegerField(IntField, QtField[DBM]):
         )
 
 
+def value_for_text(self, record):
+    value = getattr(record, self.name)  # type: ignore[assignment]
+    if value is None:
+        return self.expand_value(None)  # type: ignore[no-untyped-call]
+
+    display = str(value).replace("\n", "\\n")
+    if len(display) > 50:
+        display = f"{display[:50]}..."
+
+    tip = value
+    if self.max_length:
+        label = self.t("cmn.max_length", "Maximum length")
+        tip = f"{label} = {self.max_length}\n{tip}"
+
+    if self.min_length:
+        label = self.t("cmn.min_length", "Minimum length")
+        tip = f"{label} = {self.min_length}\n{tip}"
+
+    return self.expand_value(
+        value=value,
+        DisplayRole=display,
+        EditRole=value,
+        ToolTipRole=value,
+        StatusTipRole=value,
+        TextAlignmentRole=(
+            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+        ),
+        FontRole=italic_font if self.multiline else regular_font,
+    )
+
+
 @define
 class QtStringField(StrField, QtField[DBM]):
     def values(self, record) -> Dict[Qt.ItemDataRole, Any]:
-        value = getattr(record, self.name)  # type: ignore[assignment]
-        if value is None:
-            return self.expand_value(None)  # type: ignore[no-untyped-call]
-
-        display = str(value).replace("\n", "\\n")
-        if len(display) > 50:
-            display = f"{display[:50]}..."
-
-        tip = value
-        if self.max_length:
-            label = self.t("cmn.max_length", "Maximum length")
-            tip = f"{label} = {self.max_length}\n{tip}"
-
-        if self.min_length:
-            label = self.t("cmn.min_length", "Minimum length")
-            tip = f"{label} = {self.min_length}\n{tip}"
-
-        return self.expand_value(
-            value=value,
-            DisplayRole=display,
-            EditRole=value,
-            ToolTipRole=value,
-            StatusTipRole=value,
-            TextAlignmentRole=(
-                Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
-            ),
-            FontRole=italic_font if self.multiline else regular_font,
-        )
+        return value_for_text(self, record)
 
 
 @define
@@ -359,19 +362,26 @@ class QtFloatListField(FloatListField, QtField[DBM]):
 @define
 class QtFormattedField(FormattedField, QtField[DBM]):
     def values(self, record) -> Dict[Qt.ItemDataRole, Any]:
-        return self.not_implemented_values(record)
-
-
-@define
-class QtRefBaseField(RefBaseField, QtField[DBM]):
-    def values(self, record) -> Dict[Qt.ItemDataRole, Any]:
-        return self.not_implemented_values(record)
+        return value_for_text(self, record)
 
 
 @define
 class QtRefManyToOneField(RefManyToOneField, QtField[DBM]):
     def values(self, record) -> Dict[Qt.ItemDataRole, Any]:
-        return self.not_implemented_values(record)
+        item = getattr(record, self.name)
+        if item is None:
+            return self.expand_value(None)
+        label = self.part_label(item)
+        return self.expand_value(
+            value=label,
+            EditRole=item,
+        )
+
+    def part_label(self, record: Any) -> str:
+        """Compute the label for one of the components of the field."""
+        raise NotImplementedError(
+            "part_label is not implemented for QtRefOneToManyField"
+        )
 
 
 @define
@@ -430,13 +440,62 @@ class QtRefOneToManyField(RefOneToManyField, QtField[DBM]):
 @define
 class QtRefOneToOneField(RefOneToOneField, QtField[DBM]):
     def values(self, record) -> Dict[Qt.ItemDataRole, Any]:
-        return self.not_implemented_values(record)
+        item = getattr(record, self.name)
+        if item is None:
+            return self.expand_value(None)
+        label = self.part_label(item)
+        return self.expand_value(
+            value=label,
+            EditRole=item,
+        )
+
+    def part_label(self, record: Any) -> str:
+        """Compute the label for one of the components of the field."""
+        raise NotImplementedError(
+            "part_label is not implemented for QtRefOneToManyField"
+        )
 
 
 @define
 class QtRefManyToManyField(RefManyToManyField, QtField[DBM]):
+    show_n_labels: int = field(default=4)
+
     def values(self, record) -> Dict[Qt.ItemDataRole, Any]:
-        return self.not_implemented_values(record)
+        items = getattr(record, self.name)
+        if items is None:
+            return self.expand_value(None)
+
+        labels = []
+        ids = []
+        for item in items:
+            labels.append(self.part_label(item))
+            ids.append(self.part_id(item))
+
+        display_labels = (
+            labels
+            if len(labels) <= self.show_n_labels
+            else (labels[: self.show_n_labels] + ["..."])
+        )
+        tooltip = "\\n".join(labels)
+        display = ", ".join(display_labels)
+
+        return self.expand_value(
+            value=display,
+            EditRole=ids,
+            ToolTipRole=tooltip,
+        )
+
+    def part_id(self, record: Any) -> RecIdType:
+        """Compute the ID for one of the components of the field."""
+        raise NotImplementedError(
+            "part_id is not implemented for QtRefOneToManyField"
+        )
+
+    def part_label(self, record: Any) -> str:
+        """Compute the label for one of the components of the field."""
+        raise NotImplementedError(
+            "part_label is not implemented for QtRefOneToManyField"
+        )
 
 
 @define
