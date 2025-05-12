@@ -170,8 +170,8 @@ class QtModel(
         self.beginResetModel()
         self.cache.clear()
         self._db_to_row = {}
-        self.total_count = -1
-        self.loaded_count = -1
+        self._total_count = -1
+        self._loaded_count = 0
         self.recalculate_total_count()
         self.endResetModel()
 
@@ -784,3 +784,20 @@ class QtModel(
 
         # TODO
         return False
+
+    def sort(
+        self, column: int, order: Qt.SortOrder = Qt.SortOrder.AscendingOrder
+    ) -> None:
+        """Sort the model by the given column and order.
+
+        The function clears the cache and resets the total count.
+        """
+        self.beginResetModel()
+        self.sort_by = [
+            (
+                self.column_fields[column].name,
+                "asc" if order == Qt.SortOrder.AscendingOrder else "desc",
+            )
+        ]
+        self.reset_model()
+        self.endResetModel()
