@@ -48,6 +48,7 @@ exclude = ["venv*", "playground*"]
 [tool.setuptools_scm]
 fallback_version = "0.0.1-dev"
 write_to = "exdrf_gen_al2pd/__version__.py"
+tag_format = "v{version}"
 
 [tool.isort]
 profile = "black"
