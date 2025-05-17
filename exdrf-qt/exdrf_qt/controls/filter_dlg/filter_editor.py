@@ -9,6 +9,7 @@ from typing import (
     Optional,
     Tuple,
     Union,
+    cast,
 )
 
 from exdrf.filter import FilterType
@@ -19,6 +20,7 @@ from exdrf.filter_dsl import (
     FltErrCode,
     FltSyntaxError,
     Token,
+    raw_filter_to_text,
     serialize_filter,
 )
 from PyQt5.QtCore import QStringListModel, Qt, pyqtSignal
@@ -119,6 +121,16 @@ class FilterEditor(QPlainTextEdit, QtUseContext, Generic[DBM]):
 
         suggestions = self._generate_suggestions("FIELD", "", {})
         self.completer_model.setStringList(suggestions)
+
+        self.load_filter(self.qt_model.filters)
+
+    def load_filter(self, filter: FilterType) -> None:
+        """Load a filter into the editor.
+
+        Args:
+            filter: The filter to load.
+        """
+        self.setPlainText(raw_filter_to_text(filter))
 
     def set_validator(self, validator: FieldValidator) -> None:
         """Set the field validator and update field cache for completer."""
@@ -713,7 +725,7 @@ class FilterEditor(QPlainTextEdit, QtUseContext, Generic[DBM]):
             self.errorChanged.emit(False)
             self.l_error.setText("")
             self.err_start = -1
-            return serialize_filter(result)
+            return cast(FilterType, ["AND", serialize_filter(result)])
         except FltSyntaxError as exc:
             self.handle_syntax_error(exc)
             return None

@@ -769,6 +769,72 @@ def serialize_filter(obj: Any) -> FilterType:
         raise ValueError(f"Unknown object type: {type(obj)}")
 
 
+def raw_filter_to_text(filter: Union[FilterType, FieldFilter]) -> str:
+    """Convert a raw filter to a text string.
+
+    Args:
+        filter: The filter to convert.
+
+    Returns:
+        The filter as a string.
+    """
+    result = ""
+
+    def do_part(part: Any, indent=0) -> None:
+        nonlocal result
+        prefix = "\t" * indent
+        if isinstance(part, list):
+            if len(part) == 0:
+                return
+
+            if isinstance(part[0], str):
+                op_name = part[0].lower()
+                if len(part) != 2:
+                    raise ValueError(
+                        f"The logic operator list expects two elements. "
+                        f"Got {part}"
+                    )
+                if not isinstance(part[1], list):
+                    raise ValueError(
+                        f"The logic operator list expects a list as the second "
+                        f"element. Got {part}"
+                    )
+                op_name = part[0].lower()
+                if op_name == "and":
+                    result += prefix + "AND (\n"
+                elif op_name == "or":
+                    result += prefix + "OR (\n"
+                elif op_name == "not":
+                    result += prefix + "NOT (\n"
+                else:
+                    raise ValueError(f"Invalid logic operator: {op_name}")
+
+                do_part(part[1:], indent + 1)
+
+                result += prefix + ")\n"
+                return
+
+            for item in part:
+                do_part(item, indent)
+        elif isinstance(part, dict):
+            result += prefix + f"{part['fld']} {part['op']} {part['vl']}\n"
+        else:
+            raise ValueError(f"Invalid filter part: {part}")
+
+    # Get rid of the outer AND layer if present.
+    if (
+        isinstance(filter, list)
+        and len(filter) == 2
+        and isinstance(filter[0], str)
+        and filter[0].upper() == "AND"
+        and isinstance(filter[1], list)
+    ):
+        do_part(cast(FilterType, filter)[1])
+    else:
+        do_part(filter)
+    return result
+
+
 # Define a namedtuple for our index entries.
 IndexEntry = namedtuple("IndexEntry", ["start", "end", "element"])
 

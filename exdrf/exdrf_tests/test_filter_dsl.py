@@ -1,12 +1,17 @@
+from typing import Any, cast
+
 import pytest
+
+from exdrf.filter import FieldFilter, FilterType
 from exdrf.filter_dsl import (
     DSLParser,
     DSLTokenizer,
+    FltSyntaxError,
     ParsedFieldFilter,
     ParsedLogicAnd,
-    ParsedLogicOr,
     ParsedLogicNot,
-    FltSyntaxError,
+    ParsedLogicOr,
+    raw_filter_to_text,
     serialize_filter,
 )
 
@@ -314,3 +319,223 @@ class TestDSLParser:
             with pytest.raises(ValueError) as exc_info:
                 serialize_filter(42)
             assert "Unknown object type" in str(exc_info.value)
+
+
+class TestRawFilterToText:
+    """Tests for the raw_filter_to_text function."""
+
+    def test_simple_field_filter(self) -> None:
+        """Test a simple field filter."""
+        filter_data: FieldFilter = cast(
+            FieldFilter, {"fld": "name", "op": "eq", "vl": "John"}
+        )
+        expected_text = "name eq John\n"
+        assert raw_filter_to_text(filter_data) == expected_text
+
+    def test_and_logic_direct_processing(self) -> None:
+        """Test AND logic as directly processed by do_part."""
+        direct_and_filter_data: Any = [
+            "and",
+            [
+                cast(FieldFilter, {"fld": "name", "op": "eq", "vl": "John"}),
+                cast(FieldFilter, {"fld": "age", "op": "gt", "vl": 30}),
+            ],
+        ]
+        expected_text_direct_and = "name eq John\nage gt 30\n"
+        assert (
+            raw_filter_to_text(direct_and_filter_data)
+            == expected_text_direct_and
+        )
+
+    def test_and_logic_stripping_with_field_filter(self) -> None:
+        """Test stripping of outer AND when its content is a FieldFilter."""
+        stripped_and_with_field: Any = [
+            "AND",  # Uppercase for raw_filter_to_text stripping logic
+            cast(FieldFilter, {"fld": "id", "op": "eq", "vl": 1}),
+        ]
+        expected_stripped_field = "id eq 1\n"
+        assert (
+            raw_filter_to_text(stripped_and_with_field)
+            == expected_stripped_field
+        )
+
+    def test_and_logic_stripping_with_another_operation(self) -> None:
+        """Test stripping of outer AND when its content is another operation."""
+        stripped_and_with_or: Any = [
+            "AND",  # Uppercase for stripping
+            [  # Inner content is an OR operation
+                "or",  # lowercase for do_part processing
+                [
+                    cast(FieldFilter, {"fld": "c1", "op": "lt", "vl": 0}),
+                    cast(FieldFilter, {"fld": "c2", "op": "gt", "vl": 0}),
+                ],
+            ],
+        ]
+        expected_stripped_or = "OR (\tc1 lt 0\n\tc2 gt 0\n)\n"
+        assert raw_filter_to_text(stripped_and_with_or) == expected_stripped_or
+
+    def test_or_logic(self) -> None:
+        """Test OR logic."""
+        filter_data: Any = [
+            "or",
+            [
+                cast(FieldFilter, {"fld": "name", "op": "eq", "vl": "John"}),
+                cast(FieldFilter, {"fld": "age", "op": "gt", "vl": 30}),
+            ],
+        ]
+        expected_text = "OR (\tname eq John\n\tage gt 30\n)\n"
+        assert raw_filter_to_text(filter_data) == expected_text
+
+    def test_not_logic(self) -> None:
+        """Test NOT logic."""
+        filter_data: Any = [
+            "not",
+            cast(FieldFilter, {"fld": "status", "op": "eq", "vl": "inactive"}),
+        ]
+        expected_text = "NOT (\tstatus eq inactive\n)\n"
+        assert raw_filter_to_text(filter_data) == expected_text
+
+    def test_nested_logic_with_outer_and_stripping(self) -> None:
+        """Test nested logic with outer AND stripping."""
+        filter_data_stripped_and: Any = [
+            "AND",  # Uppercase for stripping
+            [  # Inner content for stripped AND is an "or" operation
+                "or",
+                [
+                    cast(
+                        FieldFilter, {"fld": "name", "op": "eq", "vl": "John"}
+                    ),
+                    [  # This is an inner "not" operation
+                        "not",
+                        cast(
+                            FieldFilter,
+                            {"fld": "status", "op": "eq", "vl": "active"},
+                        ),
+                    ],
+                ],
+            ],
+        ]
+        expected_text = (
+            "OR (\n"
+            "\tname eq John\n"
+            "\tNOT (\n"
+            "\t\tstatus eq active\n"
+            "\t)\n"
+            ")\n"
+        )
+        assert raw_filter_to_text(filter_data_stripped_and) == expected_text
+
+    def test_empty_filter_list(self) -> None:
+        """Test an empty list filter (valid FilterType)."""
+        filter_data: FilterType = []
+        assert raw_filter_to_text(filter_data) == ""
+
+    def test_empty_logic_operator_content(self) -> None:
+        """Test an empty logic operator's content list."""
+        filter_data_direct_empty_and: Any = ["and", []]
+        expected_direct_empty_and = ""
+        assert (
+            raw_filter_to_text(filter_data_direct_empty_and)
+            == expected_direct_empty_and
+        )
+
+        # Test stripped "AND" with inner operation that is an empty "and"
+        filter_data_strip_empty_inner_and: Any = ["AND", ["and", []]]
+        expected_strip_empty_inner_and = "AND (\n)\n"
+        assert (
+            raw_filter_to_text(filter_data_strip_empty_inner_and)
+            == expected_strip_empty_inner_and
+        )
+
+    def test_single_item_in_outer_and_is_unwrapped(self) -> None:
+        """Test outer AND stripping with a single FieldFilter as content."""
+        filter_data_single_dict_in_and: Any = [
+            "AND",
+            cast(FieldFilter, {"fld": "name", "op": "eq", "vl": "John"}),
+        ]
+        expected_text_single_dict = "name eq John\n"
+        assert (
+            raw_filter_to_text(filter_data_single_dict_in_and)
+            == expected_text_single_dict
+        )
+
+    def test_outer_and_stripping_with_single_inner_operation(self) -> None:
+        """Test outer AND stripping with a single inner operation as content."""
+        filter_data_inner_op_in_and_corrected: Any = [
+            "AND",
+            [
+                "or",
+                # Items for "or" is a list containing one FieldFilter
+                [cast(FieldFilter, {"fld": "age", "op": "lt", "vl": 20})],
+            ],
+        ]
+        expected_text_inner_op = "OR (\n" "\tage lt 20\n" ")\n"
+        assert (
+            raw_filter_to_text(filter_data_inner_op_in_and_corrected)
+            == expected_text_inner_op
+        )
+
+    def test_outer_and_stripping_error_with_list_of_field_filters(self) -> None:
+        """Test error when outer AND content is a direct list of FieldFilters."""
+        filter_data_list_with_single_dict: Any = [
+            "AND",
+            cast(FieldFilter, {"fld": "name", "op": "eq", "vl": "John"}),
+        ]
+        with pytest.raises(ValueError) as exc_info:
+            raw_filter_to_text(filter_data_list_with_single_dict)
+        expected = "logic operator list expects a list as the second element. "
+        assert expected in str(exc_info.value).lower()
+
+    def test_invalid_filter_part_type(self) -> None:
+        """Test with an invalid type in filter parts."""
+        filter_data: Any = [
+            "and",
+            [
+                cast(FieldFilter, {"fld": "name", "op": "eq", "vl": "John"}),
+                123,  # Invalid part
+            ],
+        ]
+        with pytest.raises(ValueError) as exc_info:
+            raw_filter_to_text(filter_data)
+        assert "Invalid filter part: 123" in str(exc_info.value)
+
+    def test_invalid_logic_operator_name(self) -> None:
+        """Test with an invalid logic operator name."""
+        filter_data: Any = [
+            "XOR",
+            [cast(FieldFilter, {"fld": "name", "op": "eq", "vl": "John"})],
+        ]
+        with pytest.raises(ValueError) as exc_info:
+            raw_filter_to_text(filter_data)
+        assert "Invalid logic operator: xor" in str(exc_info.value)
+
+    def test_list_with_single_field_filter_item_causes_error(self) -> None:
+        """Test a list of a single FieldFilter item causes error."""
+        filter_data: Any = [
+            cast(FieldFilter, {"xxx": "city", "op": "eq", "vl": "London"})
+        ]
+        with pytest.raises(KeyError) as exc_info:
+            raw_filter_to_text(filter_data)
+        error_message = str(exc_info.value).lower()
+        assert exc_info.type == KeyError
+        assert "fld" in error_message
+
+    def test_logic_op_invalid_arity(self) -> None:
+        """Test a logic operator with invalid arity (e.g., list of length 1)."""
+        filter_data_and: Any = ["and"]
+        with pytest.raises(ValueError) as exc_info_and:
+            raw_filter_to_text(filter_data_and)
+        expected = "logic operator list expects two elements. Got ['and']"
+        assert expected in str(exc_info_and.value)
+
+        filter_data_not: Any = ["not"]
+        with pytest.raises(ValueError) as exc_info_not:
+            raw_filter_to_text(filter_data_not)
+        expected = "logic operator list expects two elements. Got ['not']"
+        assert expected in str(exc_info_not.value)
+
+        filter_data_or: Any = ["or"]
+        with pytest.raises(ValueError) as exc_info_or:
+            raw_filter_to_text(filter_data_or)
+        expected = "logic operator list expects two elements. Got ['or']"
+        assert expected in str(exc_info_or.value)
