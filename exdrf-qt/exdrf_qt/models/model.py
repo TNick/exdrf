@@ -144,7 +144,7 @@ class QtModel(
         self.ctx = ctx
         self._db_to_row = {}
         self.db_model = db_model
-        self.fields = fields if fields is not None else []  # type: ignore[assignment]
+        self.fields = cast(Any, fields if fields is not None else [])
         self.selection = (
             selection if selection is not None else select(db_model)
         )
@@ -296,13 +296,6 @@ class QtModel(
     def checked_ids(self) -> Optional[Set[RecIdType]]:
         """Return the list of checked items."""
         return self._checked
-
-    @property
-    def checked_rows(self) -> Optional[List[RecIdType]]:
-        """Return the list of checked items."""
-        if self._checked is None:
-            return None
-        return [self._db_to_row[db_id] for db_id in self._checked]
 
     @checked_ids.setter
     def checked_ids(self, value: Optional[Set[RecIdType]]) -> None:
@@ -801,3 +794,19 @@ class QtModel(
         ]
         self.reset_model()
         self.endResetModel()
+
+    def apply_filter(self, filter: Union[FilterType, None]) -> None:
+        """Sort the model by the given column and order.
+
+        The function clears the cache and resets the total count.
+        """
+        self.beginResetModel()
+        self.filters = filter if filter else []
+        self.reset_model()
+        self.endResetModel()
+
+    def checked_rows(self) -> Optional[List[RecIdType]]:
+        """Return the list of checked items."""
+        if self._checked is None:
+            return None
+        return [self._db_to_row[db_id] for db_id in self._checked]

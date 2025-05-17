@@ -11,6 +11,7 @@ from sqlalchemy.sql.operators import (
     ilike_op,
     in_op,
     lt,
+    ne,
     regexp_match_op,
 )
 
@@ -33,6 +34,14 @@ class EqFiOp(FiOp):
 
     uniq: str = field(default="eq", init=False)
     predicate: Any = field(default=eq)
+
+
+@define
+class NotEqFiOp(FiOp):
+    """General equality operator."""
+
+    uniq: str = field(default="not_eq", init=False)
+    predicate: Any = field(default=ne)
 
 
 @define
@@ -122,6 +131,7 @@ class FiOpRegistry:
         """Initialize the registry."""
         self._registry = {
             "eq": EqFiOp(),
+            "not_eq": NotEqFiOp(),
             "ilike": ILikeFiOp(),
             "regex": RegexFiOp(),
             "none": IsNoneFiOp(),
@@ -129,6 +139,11 @@ class FiOpRegistry:
             "lt": SmallerFiOp(),
             "in": InFiOp(),
         }
+        self._registry["=="] = self._registry["eq"]
+        self._registry["~="] = self._registry["ilike"]
+        self._registry[">"] = self._registry["gt"]
+        self._registry["<"] = self._registry["lt"]
+        self._registry["!="] = self._registry["not_eq"]
 
     def __getitem__(self, key: str) -> FiOp:
         """Return the operator by name.

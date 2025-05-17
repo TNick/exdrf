@@ -24,6 +24,7 @@ from PyQt5.QtWidgets import (
 )
 
 from exdrf_qt.context_use import QtUseContext
+from exdrf_qt.controls.filter_dlg.filter_dlg import FilterDlg
 
 if TYPE_CHECKING:
     from PyQt5.QtCore import QItemSelection, QItemSelectionModel  # noqa: F401
@@ -519,7 +520,13 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
     def on_filter(self) -> None:
         """Filter the items."""
         try:
-            raise NotImplementedError("on_filter() not implemented.")
+            dlg = FilterDlg(
+                ctx=self.ctx,
+                qt_model=self.qt_model,
+                parent=self,
+            )
+            if dlg.exec_() == dlg.Accepted:
+                self.qt_model.apply_filter(dlg.filter)  # type: ignore
         except Exception as e:
             logger.exception("Error in ListDb.on_filter")
             self.ctx.show_error(

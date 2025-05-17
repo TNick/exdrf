@@ -63,6 +63,7 @@ class SelectDatabaseDlg(QDialog, Ui_SelectDatabase, QtUseContext):
             self.ctx.t("cmn.bootstrap", "Bootstrap"),
             QDialogButtonBox.ButtonRole.ActionRole,
         )
+        assert self.btn_bootstrap is not None
         self.btn_bootstrap.clicked.connect(self.bootstrap)
 
         # Notice changes by the user.

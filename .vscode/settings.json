@@ -2,6 +2,7 @@
     "cSpell.words": [
         "aflake",
         "autoflake",
+        "Backtab",
         "borderless",
         "BYTEBUFFER",
         "capfd",
@@ -58,6 +59,7 @@
         "qsearch",
         "recwarn",
         "redef",
+        "rehighlight",
         "relativedelta",
         "repr",
         "ropeproject",
