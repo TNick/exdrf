@@ -1,5 +1,7 @@
 from typing import TYPE_CHECKING, Callable, Generic, Optional, TypeVar
 
+from PyQt5.QtCore import Qt, QTimer, pyqtSignal
+from PyQt5.QtGui import QFocusEvent, QKeyEvent
 from PyQt5.QtWidgets import QAction, QLineEdit, QWidget
 
 from exdrf_qt.context_use import QtUseContext
@@ -11,13 +13,16 @@ from exdrf_qt.context_use import QtUseContext
 if TYPE_CHECKING:
     from exdrf_qt.context import QtContext
 
-from PyQt5.QtCore import QTimer
 
 DBM = TypeVar("DBM")
 
 
 class SearchLine(QLineEdit, QtUseContext, Generic[DBM]):
     """A text line that is used to search a model."""
+
+    # Signal to indicate search should be applied and the line hidden
+    # Arguments: search_text (str), is_exact_match (bool)
+    hide_and_apply_search = pyqtSignal(str, bool)
 
     _search_timer: Optional[QTimer]
     _callback: Callable[[str, bool], None]
@@ -53,50 +58,79 @@ class SearchLine(QLineEdit, QtUseContext, Generic[DBM]):
     def _update_exact_search_action_visuals(self) -> None:
         """Updates the icon and tooltip of the exact search action."""
         if self._exact_search_enabled:
-            self.ac_exact.setIcon(self.get_icon("asterisk_orange"))
+            self.ac_exact.setIcon(
+                self.get_icon("token_match_character_literally")
+            )
             self.ac_exact.setToolTip(
                 self.t("cmn.search.exact_on", "Exact match is ON")
             )
         else:
-            self.ac_exact.setIcon(
-                self.get_icon("token_match_character_literally")
+            self.ac_exact.setIcon(self.get_icon("asterisk_orange"))
+            self.ac_exact.setToolTip(
+                self.t(
+                    "cmn.search.exact_off",
+                    "Exact match is OFF (wildcards enabled)",
+                )
             )
-            tooltip_text = self.t(
-                "cmn.search.exact_off", "Exact match is OFF (wildcards enabled)"
-            )
-            self.ac_exact.setToolTip(tooltip_text)
 
     def _on_toggle_exact_search(self, checked: bool) -> None:
         """Handles the toggling of the exact search action."""
         self._exact_search_enabled = checked
         self._update_exact_search_action_visuals()
-        # Re-trigger search with the new exact state
+        # Re-trigger search with the new exact state (for live updates if text
+        # exists).
         self.on_search_term_changed(self.text())
 
     def on_search_term_changed(self, term: str) -> None:
-        """Set the search term in the line edit.
+        """Set the search term in the line edit for live timed updates.
 
         The function will wait for 500 ms after the user stops typing before
-        applying the search term. This is to avoid applying the search term too
-        frequently and to improve performance.
+        applying the search term via the callback.
         """
-        if term == "":
-            # Be quick when the user clears the search term.
-            self._callback("", self._exact_search_enabled)
-            return
-
         if self._search_timer is None:
             self._search_timer = QTimer(self)
             self._search_timer.setSingleShot(True)
-            self._search_timer.setInterval(500)
-        else:
-            self._search_timer.stop()
-            # ensure previous connection is removed
-            self._search_timer.disconnect()
+            self._search_timer.setInterval(500)  # 500ms delay
 
-        # Connect with current exact state
-        def do_callback():
-            self._callback(term, self._exact_search_enabled)
+        self._search_timer.stop()  # Stop any existing timer
 
-        self._search_timer.timeout.connect(do_callback)
+        # If term is empty, apply immediately via callback, don't wait for timer
+        if not term:
+            self._callback("", self._exact_search_enabled)
+            return
+
+        # Disconnect previous timeout connection to avoid multiple calls with
+        # stale state
+        try:
+            self._search_timer.timeout.disconnect()
+        except TypeError:  # Thrown if no connections exist
+            pass
+
+        # Connect with current exact state for the timed callback
+        # Using a lambda here to capture current state of term and
+        # exact_search_enabled for when the timer fires.
+        self._search_timer.timeout.connect(
+            lambda: self._callback(self.text(), self._exact_search_enabled)
+        )
         self._search_timer.start()
+
+    def keyPressEvent(self, e: Optional[QKeyEvent]) -> None:  # type: ignore
+        """Handle key press events."""
+        if e and e.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
+            # On Enter, finalize search and request to be hidden
+            self.hide_and_apply_search.emit(
+                self.text(), self._exact_search_enabled
+            )
+            e.accept()
+        elif e:  # Ensure e is not None before calling super
+            super().keyPressEvent(e)
+
+    def focusOutEvent(  # type: ignore
+        self,
+        event: Optional[QFocusEvent],
+    ) -> None:
+        """Handle focus out event."""
+        # When focus is lost, finalize search and request to be hidden
+        self.hide_and_apply_search.emit(self.text(), self._exact_search_enabled)
+        # Call super with the event, whether it's None or a QFocusEvent object
+        super().focusOutEvent(event)

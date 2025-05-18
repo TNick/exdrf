@@ -806,7 +806,10 @@ class QtModel(
         self.endResetModel()
 
     def apply_simple_search(
-        self, text: str, exact: Optional[bool] = False
+        self,
+        text: str,
+        exact: Optional[bool] = False,
+        limit: Optional[str] = None,
     ) -> None:
         """Apply a simple search to the model.
 
@@ -824,6 +827,7 @@ class QtModel(
         Args:
             text: The text to search for.
             exact: If True, the search will be exact.
+            limit: If present, the search will be limited to the given field.
         """
         self.beginResetModel()
         if len(text) == 0:
@@ -836,8 +840,8 @@ class QtModel(
                         text = f"%{text}%"
                 else:
                     text = text.replace("*", "%")
-            self.filters = [
-                "OR",
+            self.filters = [  # type: ignore
+                "OR",  # type: ignore
                 [  # type: ignore
                     {  # type: ignore
                         "fld": f.name,  # type: ignore
@@ -845,10 +849,12 @@ class QtModel(
                         "vl": text,  # type: ignore
                     }  # type: ignore
                     for f in self.simple_search_fields  # type: ignore
+                    if limit is None or f.name == limit
                 ],
             ]  # type: ignore
         self.reset_model()
         self.endResetModel()
+        logger.debug("Simple search filters: %s", self.filters)
 
     def checked_rows(self) -> Optional[List[RecIdType]]:
         """Return the list of checked items."""

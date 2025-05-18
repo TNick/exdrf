@@ -26,6 +26,7 @@ from PyQt5.QtWidgets import (
 from exdrf_qt.context_use import QtUseContext
 from exdrf_qt.controls.filter_dlg.filter_dlg import FilterDlg
 from exdrf_qt.controls.search_line import SearchLine
+from exdrf_qt.controls.tree_header import HeaderViewWithMenu
 
 if TYPE_CHECKING:
     from PyQt5.QtCore import QItemSelection, QItemSelectionModel  # noqa: F401
@@ -88,6 +89,7 @@ class ListDb(QWidget, QtUseContext, Generic[DBM]):
             callback=self.apply_simple_search,
             ctx=self.ctx,
         )
+        self.c_search_box.setMaximumWidth(200)
         self.h_ly.addWidget(self.c_search_box)
 
         self.lbl_total = QLabel(
@@ -256,6 +258,10 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
         # Prepare the actions.
         self.create_actions()
 
+        # Use custom header
+        header: HeaderViewWithMenu = HeaderViewWithMenu(parent=self, ctx=ctx)
+        self.setHeader(header)
+
     @property
     def qt_model(self) -> "QtModel[DBM]":
         """The model that is used to present the data in the list."""
@@ -276,6 +282,8 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
         self.ac_rem_all.setEnabled(not empty_model)
         self.ac_export.setEnabled(not empty_model)
         self.ac_filter.setEnabled(not empty_model)
+
+        self.ac_new.setEnabled(self.editor is not None)
 
     def create_actions(self):
         """Create the actions."""
@@ -554,6 +562,8 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
     def on_filter(self) -> None:
         """Filter the items."""
         try:
+            # This is the general filter dialog, distinct from header column
+            # filter
             dlg = FilterDlg(
                 ctx=self.ctx,
                 qt_model=self.qt_model,
