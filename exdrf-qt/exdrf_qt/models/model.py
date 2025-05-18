@@ -805,6 +805,51 @@ class QtModel(
         self.reset_model()
         self.endResetModel()
 
+    def apply_simple_search(
+        self, text: str, exact: Optional[bool] = False
+    ) -> None:
+        """Apply a simple search to the model.
+
+        The search is applied to the fields in the `simple_search_fields`
+        property.
+
+        If exact is false you can use the `*` or `%` character to match any
+        number of characters. If neither is present, the text will be
+        surrounded by `%` characters. Spaces are always replaced by `%`
+        characters.
+
+        If exact is true, the text is searched for as is, without any
+        changes. In this case only `%` is allowed.
+
+        Args:
+            text: The text to search for.
+            exact: If True, the search will be exact.
+        """
+        self.beginResetModel()
+        if len(text) == 0:
+            self.filters = []
+        else:
+            if not exact:
+                text = text.replace(" ", "%")
+                if "*" not in text:
+                    if "%" not in text:
+                        text = f"%{text}%"
+                else:
+                    text = text.replace("*", "%")
+            self.filters = [
+                "OR",
+                [  # type: ignore
+                    {  # type: ignore
+                        "fld": f.name,  # type: ignore
+                        "op": "ilike",  # type: ignore
+                        "vl": text,  # type: ignore
+                    }  # type: ignore
+                    for f in self.simple_search_fields  # type: ignore
+                ],
+            ]  # type: ignore
+        self.reset_model()
+        self.endResetModel()
+
     def checked_rows(self) -> Optional[List[RecIdType]]:
         """Return the list of checked items."""
         if self._checked is None:

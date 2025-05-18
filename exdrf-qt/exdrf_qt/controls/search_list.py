@@ -1,7 +1,7 @@
-from typing import TYPE_CHECKING, Generic, Optional, TypeVar, cast
+from typing import TYPE_CHECKING, Generic, TypeVar, cast
 
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QFrame, QLineEdit, QTreeView, QVBoxLayout
+from PyQt5.QtWidgets import QFrame, QTreeView, QVBoxLayout
 
 from exdrf_qt.context_use import QtUseContext
 
@@ -9,7 +9,9 @@ if TYPE_CHECKING:
     from exdrf_qt.context import QtContext
     from exdrf_qt.models import QtModel
 
-from PyQt5.QtCore import QTimer, pyqtSignal
+from PyQt5.QtCore import pyqtSignal
+
+from exdrf_qt.controls.search_line import SearchLine
 
 DBM = TypeVar("DBM")
 
@@ -46,9 +48,8 @@ class SearchList(QFrame, QtUseContext, Generic[DBM]):
     """
 
     ly: QVBoxLayout
-    src_line: QLineEdit
+    src_line: SearchLine
     tree: TreeView
-    _search_timer: Optional[QTimer]
 
     def __init__(
         self,
@@ -59,7 +60,6 @@ class SearchList(QFrame, QtUseContext, Generic[DBM]):
     ):
         super().__init__(parent)
         self.ctx = ctx
-        self._search_timer = None
 
         if popup:
             # Set up the frame
@@ -74,13 +74,11 @@ class SearchList(QFrame, QtUseContext, Generic[DBM]):
         self.ly = QVBoxLayout()
 
         # Initialize the search line.
-        self.src_line = QLineEdit(self)
-        label = self.t("cmn.search.term", "Enter search term")
-        self.src_line.setPlaceholderText(label)
-        self.src_line.setToolTip(label)
-        self.src_line.setWhatsThis(label)
-        self.src_line.setClearButtonEnabled(True)
-        self.src_line.textChanged.connect(self.on_search_term_changed)
+        self.src_line = SearchLine(
+            parent=self,
+            callback=qt_model.apply_simple_search,
+            ctx=self.ctx,
+        )
         self.ly.addWidget(self.src_line)
 
         # Initialize the tree.
@@ -102,47 +100,3 @@ class SearchList(QFrame, QtUseContext, Generic[DBM]):
     def qt_model(self) -> "QtModel[DBM]":
         """Get the model of the tree view."""
         return self.tree.model()  # type: ignore[return-value]
-
-    def on_search_term_changed(self, term: str) -> None:
-        """Set the search term in the line edit.
-
-        The function will wait for 500 ms after the user stops typing before
-        applying the search term. This is to avoid applying the search term too
-        frequently and to improve performance.
-        """
-        if term == "":
-            # Be quick when the user clears the search term.
-            self.qt_model.filters = []
-            self.qt_model.reset_model()
-            return
-
-        if self._search_timer is None:
-            self._search_timer = QTimer(self)
-            self._search_timer.setSingleShot(True)
-            self._search_timer.setInterval(500)
-        else:
-            self._search_timer.stop()
-            self._search_timer.disconnect()
-        self._search_timer.timeout.connect(lambda: self._apply_search(term))
-        self._search_timer.start()
-
-    def _apply_search(self, term: str) -> None:
-        """Set the search term in the line edit."""
-        model = self.qt_model
-        if len(term) == 0:
-            model.filters = []
-        else:
-            if "%" not in term:
-                term = f"%{term}%"
-            term = term.replace(" ", "%")
-            or_list = []
-            for f in model.simple_search_fields:
-                or_list.append(
-                    {
-                        "fld": f.name,
-                        "op": "ilike",
-                        "vl": term,
-                    }
-                )
-            model.filters = ["or", or_list]  # type: ignore[assignment]
-        model.reset_model()

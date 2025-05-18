@@ -25,6 +25,7 @@ from PyQt5.QtWidgets import (
 
 from exdrf_qt.context_use import QtUseContext
 from exdrf_qt.controls.filter_dlg.filter_dlg import FilterDlg
+from exdrf_qt.controls.search_line import SearchLine
 
 if TYPE_CHECKING:
     from PyQt5.QtCore import QItemSelection, QItemSelectionModel  # noqa: F401
@@ -39,7 +40,23 @@ logger = logging.getLogger(__name__)
 
 
 class ListDb(QWidget, QtUseContext, Generic[DBM]):
-    """A list that presents the content of a database table."""
+    """A list that presents the content of a database table.
+
+    Attributes:
+        ly: The layout of the list.
+        tree: The tree view that presents the content of the list.
+        h_ly: The horizontal layout of the list.
+        lbl_total: The label that displays the total number of items.
+        lbl_loaded: The label that displays the number of loaded items.
+    """
+
+    ly: QVBoxLayout
+    h_ly: QHBoxLayout
+    tree: "TreeViewDb[DBM]"
+    c_search_box: SearchLine
+    lbl_total: QLabel
+    lbl_loaded: QLabel
+    lbl_in_prog: QLabel
 
     def __init__(
         self,
@@ -65,20 +82,31 @@ class ListDb(QWidget, QtUseContext, Generic[DBM]):
 
         self.h_ly = QHBoxLayout()
 
+        # Initialize the search line.
+        self.c_search_box = SearchLine(
+            parent=self,
+            callback=self.apply_simple_search,
+            ctx=self.ctx,
+        )
+        self.h_ly.addWidget(self.c_search_box)
+
         self.lbl_total = QLabel(
             self.t("cmn.total_count", "Total: {count}", count=0), self
         )
+        self.lbl_total.setContentsMargins(10, 0, 0, 0)
         self.h_ly.addWidget(self.lbl_total)
 
         self.lbl_loaded = QLabel(
             self.t("cmn.loaded_count", "Loaded: {count}", count=0), self
         )
+        self.lbl_loaded.setContentsMargins(10, 0, 0, 0)
         self.h_ly.addWidget(self.lbl_loaded)
 
         self.lbl_in_prog = QLabel(
             self.t("cmn.in_progress_count", "In progress: {count}", count=0),
             self,
         )
+        self.lbl_in_prog.setContentsMargins(10, 0, 0, 0)
         self.h_ly.addWidget(self.lbl_in_prog)
 
         self.ly.addLayout(self.h_ly)
@@ -159,6 +187,12 @@ class ListDb(QWidget, QtUseContext, Generic[DBM]):
     ) -> None:
         """Handle the request error event."""
         self.on_request_issued(start, count, uniq_id, total_count)
+
+    def apply_simple_search(
+        self, text: str, exact: Optional[bool] = False
+    ) -> None:
+        """Apply a simple search to the model."""
+        self.qt_model.apply_simple_search(text, exact)
 
 
 class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
