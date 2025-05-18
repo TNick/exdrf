@@ -11,24 +11,26 @@ from exdrf.filter_dsl import (
     ParsedLogicAnd,
     ParsedLogicNot,
     ParsedLogicOr,
+    Token,
     raw_filter_to_text,
     serialize_filter,
 )
 
 
+@pytest.fixture
+def parser():
+    """Create a parser instance for testing."""
+
+    def create_parser(text):
+        tokenizer = DSLTokenizer(text)
+        tokens = tokenizer.tokenize()
+        return DSLParser(tokens=tokens, index=0, src_text=text)
+
+    return create_parser
+
+
 class TestDSLParser:
     """Main test class for DSLParser."""
-
-    @pytest.fixture
-    def parser(self):
-        """Create a parser instance for testing."""
-
-        def create_parser(text):
-            tokenizer = DSLTokenizer(text)
-            tokens = tokenizer.tokenize()
-            return DSLParser(tokens=tokens, index=0, src_text=text)
-
-        return create_parser
 
     class TestCurrent:
         """Tests for the current() method."""
@@ -80,16 +82,18 @@ class TestDSLParser:
         def test_match_any_success(self, parser):
             """Test successful any token matching."""
             p = parser("abc")
-            token = p.match_any()
+            token = p.match_any("expected")
             assert token.value == "abc"
             assert p.index == 1
 
         def test_match_any_end_of_input(self, parser):
             """Test matching any token at end of input."""
             p = parser("")
-            with pytest.raises(AssertionError) as exc_info:
-                p.match_any()
-            assert "Unexpected end of input" in str(exc_info.value)
+            with pytest.raises(FltSyntaxError) as exc_info:
+                p.match_any("expected")
+            assert "Expected <expected>, but got end of input" in str(
+                exc_info.value
+            )
 
     class TestParseValue:
         """Tests for the parse_value() method."""
@@ -97,22 +101,26 @@ class TestDSLParser:
         def test_parse_string(self, parser):
             """Test parsing string values."""
             p = parser("'hello'")
-            assert p.parse_value("'hello'") == "hello"
+            tk = Token(value="'hello'", line=1, column=1, index=1)
+            assert p.parse_value(tk) == "hello"
 
         def test_parse_list(self, parser):
             """Test parsing list values."""
             p = parser("[1,2,3]")
-            assert p.parse_value("[1,2,3]") == ["1", "2", "3"]
+            tk = Token(value="[1,2,3]", line=1, column=1, index=1)
+            assert p.parse_value(tk) == ["1", "2", "3"]
 
         def test_parse_float(self, parser):
             """Test parsing float values."""
             p = parser("123.45")
-            assert p.parse_value("123.45") == 123.45
+            tk = Token(value="123.45", line=1, column=1, index=1)
+            assert p.parse_value(tk) == 123.45
 
         def test_parse_int(self, parser):
             """Test parsing integer values."""
             p = parser("123")
-            assert p.parse_value("123") == 123
+            tk = Token(value="123", line=1, column=1, index=1)
+            assert p.parse_value(tk) == 123
 
     class TestParseFieldExpr:
         """Tests for the parse_field_expr() method."""
@@ -224,14 +232,15 @@ class TestDSLParser:
             p = parser("name eq 'John' extra")
             with pytest.raises(FltSyntaxError) as exc_info:
                 p.parse()
-            assert "Unexpected token" in str(exc_info.value)
+            assert "Expected <operator>, but got end of input" in str(
+                exc_info.value
+            )
 
         def test_parse_empty_input(self, parser):
             """Test parsing empty input."""
             p = parser("")
-            with pytest.raises(FltSyntaxError) as exc_info:
-                p.parse()
-            assert "Unexpected end of input" in str(exc_info.value)
+            result = p.parse()
+            assert result == []
 
     class TestSerializeFilter:
         """Tests for the serialize_filter function."""
@@ -319,6 +328,31 @@ class TestDSLParser:
             with pytest.raises(ValueError) as exc_info:
                 serialize_filter(42)
             assert "Unknown object type" in str(exc_info.value)
+
+        def test_or_with_one_nested(self, parser):
+            p = parser(
+                "OR (\n" "    id == 1\n" ")\n" "OR (\n" "    id == 2\n" ")\n"
+            )
+            parsed = p.parse()
+            assert isinstance(parsed, list)
+            assert len(parsed) == 2
+            assert isinstance(parsed[0], ParsedLogicOr)
+            assert len(parsed[0].items) == 1
+            assert isinstance(parsed[0].items[0], ParsedFieldFilter)
+            assert parsed[0].items[0].fld == "id"
+            assert parsed[0].items[0].op == "=="
+            assert parsed[0].items[0].vl == 1
+            assert len(parsed[1].items) == 1
+            assert isinstance(parsed[1].items[0], ParsedFieldFilter)
+            assert parsed[1].items[0].fld == "id"
+            assert parsed[1].items[0].op == "=="
+            assert parsed[1].items[0].vl == 2
+            result = serialize_filter(parsed)
+            expected = [
+                ["OR", [{"fld": "id", "op": "==", "vl": 1}]],
+                ["OR", [{"fld": "id", "op": "==", "vl": 2}]],
+            ]
+            assert result == expected
 
 
 class TestRawFilterToText:
@@ -476,7 +510,11 @@ class TestRawFilterToText:
         )
 
     def test_outer_and_stripping_error_with_list_of_field_filters(self) -> None:
-        """Test error when outer AND content is a direct list of FieldFilters."""
+        """Test error when outer AND content is a direct list of FieldFilters.
+
+        We expect a ValueError to be raised when the outer AND content is a
+        direct list of FieldFilters.
+        """
         filter_data_list_with_single_dict: Any = [
             "AND",
             cast(FieldFilter, {"fld": "name", "op": "eq", "vl": "John"}),
