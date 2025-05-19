@@ -11,6 +11,10 @@ from {{ out_module }}.{{ categories[0] }}.{{ res_p_snake }}.widgets.{{ res_snake
     Ui_Qt{{ ResPascal }}Editor
 )
 
+# exdrf-keep-start other_imports ----------------------------------------------
+{{other_imports}}
+# exdrf-keep-end other_imports ------------------------------------------------
+
 if TYPE_CHECKING:
     from exdrf_qt.context import QtContext  # noqa: F401
     from sqlalchemy.orm import Session  # noqa: F401
@@ -24,6 +28,10 @@ class Qt{{ ResPascal }}Editor(
 ):
     """A widget that allows the user to edit a {{ ResPascal }} record.
     """
+    # exdrf-keep-start other_attributes ---------------------------------------
+{{other_attributes}}
+    # exdrf-keep-end other_attributes -----------------------------------------
+
     def __init__(self, ctx: "QtContext", **kwargs):
         """Initialize the editor widget."""
         from {{ db_module }}.{{ r.categories[0] }}.api import (
@@ -36,6 +44,9 @@ class Qt{{ ResPascal }}Editor(
             **kwargs
         )
         self.verticalLayout.addWidget(self.create_button_box())
+        # exdrf-keep-start extra_init -----------------------------------------
+{{extra_init}}
+        # exdrf-keep-end extra_init -------------------------------------------
 
     def editing_changed(self, value: bool):
         pass
@@ -77,4 +88,13 @@ class Qt{{ ResPascal }}Editor(
             {%- endfor %}
         ))
         {%- endif %}
+
+    # exdrf-keep-start extra_editor_content ------------------------------------
+{{extra_editor_content}}
+    # exdrf-keep-end extra_editor_content --------------------------------------
+
+
+# exdrf-keep-start more_content ------------------------------------------------
+{{more_content}}
+# exdrf-keep-end more_content --------------------------------------------------
 {{- "\n" -}}

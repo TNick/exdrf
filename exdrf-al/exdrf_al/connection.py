@@ -131,9 +131,15 @@ class DbConn:
 
         If the inner code raises an exception, the session is rolled back.
         """
-        if self.s_stack:
-            is_new = False
+        session = None
+        while self.s_stack:
             session = self.s_stack[-1]
+            if session is None:
+                self.s_stack.pop()
+            else:
+                break
+        if session:
+            is_new = False
         else:
             is_new = True
             session = self.new_session()

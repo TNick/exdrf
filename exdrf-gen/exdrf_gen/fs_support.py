@@ -6,7 +6,8 @@ fields.
 """
 
 import os
-from typing import TYPE_CHECKING, Any, Dict, cast
+import re
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, cast
 
 from attrs import define, field
 from exdrf_al.calc_q import (
@@ -25,6 +26,11 @@ if TYPE_CHECKING:
 
 # CompList = List[Union["File", "Dir"]]
 CompList = Any
+
+
+GUARD_START = "exdrf-keep-start"
+GUARD_END = "exdrf-keep-end"
+PER_REGEX = re.compile(rf"^.*{GUARD_START}\s+([_a-zA-Z0-9]+).*")
 
 
 @define
@@ -52,9 +58,68 @@ class Base:
         os.makedirs(path, exist_ok=True)
         result_file = os.path.join(path, name.format(**mapping))
 
+        # Read the content of the file and look for parts that should be
+        # preserved.
+        def to_str(value: List[str]) -> str:
+            result = "".join(value)
+            if result.isspace():
+                return ""
+            elif result.endswith("\n"):
+                return result[:-1]
+            return result
+
+        preserved_str = {
+            a: to_str(b) for a, b in self.read_preserved(result_file).items()
+        }
+
         with open(result_file, "w", encoding="utf-8") as f:
-            f.write(template.render(source_templ=src, **mapping))
+            f.write(
+                template.render(
+                    source_templ=src,
+                    **mapping,
+                    **preserved_str,
+                )
+            )
         return result_file
+
+    def read_preserved(self, result_file: str) -> Dict[str, List[str]]:
+        """Reads the preserved content from the result file.
+
+        Args:
+            result_file: The path to the result file.
+
+        Returns:
+            A dictionary with the preserved content. The values are lists of
+            strings, each representing a line in the preserved content. The
+            keys are the names of the variables that will be used in the
+            template.
+        """
+        preserved: Dict[str, List[str]] = {}
+        if os.path.exists(result_file):
+            with open(result_file, "r", encoding="utf-8") as f:
+                in_preserved: Optional[str] = None
+                preserved_lines: List[str] = []
+                for line in f:
+                    if GUARD_END in line and in_preserved is not None:
+                        if in_preserved in preserved:
+                            preserved[in_preserved] += preserved_lines
+                        else:
+                            preserved[in_preserved] = preserved_lines
+                        in_preserved = None
+                    else:
+                        start_match = PER_REGEX.match(line)
+                        if start_match:
+                            in_preserved = start_match.group(1)
+                            preserved_lines: List[str] = []
+                        elif in_preserved:
+                            preserved_lines.append(line)
+            if in_preserved:
+                if in_preserved in preserved:
+                    preserved[in_preserved] += preserved_lines
+                else:
+                    preserved[in_preserved] = preserved_lines
+                in_preserved = None
+        return preserved
 
     def create_directory(self, path: str, name: str, **kwargs) -> str:
         """Creates a directory.

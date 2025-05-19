@@ -8,6 +8,10 @@ from attrs import define, field
 from exdrf_qt.models.fields import QtStringField
 from PyQt5.QtCore import Qt
 
+# exdrf-keep-start other_imports ----------------------------------------------
+
+# exdrf-keep-end other_imports ------------------------------------------------
+
 if TYPE_CHECKING:
     from exdrf_dev.db.api import RelatedItem  # noqa: F401
 
@@ -31,7 +35,20 @@ class LabelField(QtStringField["RelatedItem"]):
     qsearch: bool = field(default=True)
     multiline: bool = field(default=False)
 
+    # exdrf-keep-start other_label_attributes ---------------------------------
+
+    # exdrf-keep-end other_label_attributes -----------------------------------
+
     def values(self, record: "RelatedItem") -> Dict[Qt.ItemDataRole, Any]:
         return self.expand_value(
             (str("ID:") + str(record.id)), EditRole=record.id
         )
+
+    # exdrf-keep-start extra_label_content ------------------------------------
+
+    # exdrf-keep-end extra_label_content --------------------------------------
+
+
+# exdrf-keep-start more_content ------------------------------------------------
+
+# exdrf-keep-end more_content --------------------------------------------------

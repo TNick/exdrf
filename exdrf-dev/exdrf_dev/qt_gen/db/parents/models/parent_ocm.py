@@ -1,6 +1,7 @@
 # This file was automatically generated using the exdrf_gen package.
 # Source: exdrf_gen_al2qt -> c/m/m_ocm.py.j2
 # Don't change it manually.
+
 from typing import TYPE_CHECKING, Union
 
 from sqlalchemy import select
@@ -16,6 +17,10 @@ from exdrf_dev.qt_gen.db.parents.fields.fld_tags import TagsField
 from exdrf_dev.qt_gen.db.parents.fields.single_f import LabelField
 from exdrf_dev.qt_gen.db.parents.models.parent_ful import QtParentFuMo
 
+# exdrf-keep-start other_imports ----------------------------------------------
+
+# exdrf-keep-end other_imports ------------------------------------------------
+
 if TYPE_CHECKING:
     from sqlalchemy import Select  # noqa: F401
 
@@ -26,6 +31,10 @@ class QtParentNaMo(QtParentFuMo):
 
     This model is suitable for a selector or a combobox.
     """
+
+    # exdrf-keep-start other_attributes ---------------------------------------
+
+    # exdrf-keep-end other_attributes -----------------------------------------
 
     def __init__(
         self, selection: Union["Select", None] = None, fields=None, **kwargs
@@ -60,3 +69,16 @@ class QtParentNaMo(QtParentFuMo):
             **kwargs,
         )
         self.column_fields = ["label"]
+
+        # exdrf-keep-start extra_init -----------------------------------------
+
+        # exdrf-keep-end extra_init -------------------------------------------
+
+    # exdrf-keep-start extra_namo_content -------------------------------------
+
+    # exdrf-keep-end extra_namo_content ---------------------------------------
+
+
+# exdrf-keep-start more_content -----------------------------------------------
+
+# exdrf-keep-end more_content -------------------------------------------------

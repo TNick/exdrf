@@ -11,6 +11,10 @@ from exdrf_dev.qt_gen.db.children.widgets.child_editor_ui import (
     Ui_QtChildEditor,
 )
 
+# exdrf-keep-start other_imports ----------------------------------------------
+
+# exdrf-keep-end other_imports ------------------------------------------------
+
 if TYPE_CHECKING:
     from exdrf_qt.context import QtContext  # noqa: F401
     from sqlalchemy.orm import Session  # noqa: F401
@@ -21,12 +25,19 @@ if TYPE_CHECKING:
 class QtChildEditor(EditorDb["Child"], Ui_QtChildEditor):
     """A widget that allows the user to edit a Child record."""
 
+    # exdrf-keep-start other_attributes ---------------------------------------
+
+    # exdrf-keep-end other_attributes -----------------------------------------
+
     def __init__(self, ctx: "QtContext", **kwargs):
         """Initialize the editor widget."""
         from exdrf_dev.db.api import Child as DbChild
 
         super().__init__(ctx=ctx, db_model=DbChild, **kwargs)
         self.verticalLayout.addWidget(self.create_button_box())
+        # exdrf-keep-start extra_init -----------------------------------------
+
+        # exdrf-keep-end extra_init -------------------------------------------
 
     def editing_changed(self, value: bool):
         pass
@@ -49,3 +60,12 @@ class QtChildEditor(EditorDb["Child"], Ui_QtChildEditor):
 
     def get_id_of_record(self, record: "Child") -> RecIdType:
         return record.id
+
+    # exdrf-keep-start extra_editor_content ------------------------------------
+
+    # exdrf-keep-end extra_editor_content --------------------------------------
+
+
+# exdrf-keep-start more_content ------------------------------------------------
+
+# exdrf-keep-end more_content --------------------------------------------------

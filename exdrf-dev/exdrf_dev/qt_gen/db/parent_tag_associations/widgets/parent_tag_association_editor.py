@@ -11,6 +11,10 @@ from exdrf_dev.qt_gen.db.parent_tag_associations.widgets.parent_tag_association_
     Ui_QtParentTagAssociationEditor,
 )
 
+# exdrf-keep-start other_imports ----------------------------------------------
+
+# exdrf-keep-end other_imports ------------------------------------------------
+
 if TYPE_CHECKING:
     from exdrf_qt.context import QtContext  # noqa: F401
     from sqlalchemy.orm import Session  # noqa: F401
@@ -23,6 +27,10 @@ class QtParentTagAssociationEditor(
 ):
     """A widget that allows the user to edit a ParentTagAssociation record."""
 
+    # exdrf-keep-start other_attributes ---------------------------------------
+
+    # exdrf-keep-end other_attributes -----------------------------------------
+
     def __init__(self, ctx: "QtContext", **kwargs):
         """Initialize the editor widget."""
         from exdrf_dev.db.api import (
@@ -31,6 +39,9 @@ class QtParentTagAssociationEditor(
 
         super().__init__(ctx=ctx, db_model=DbParentTagAssociation, **kwargs)
         self.verticalLayout.addWidget(self.create_button_box())
+        # exdrf-keep-start extra_init -----------------------------------------
+
+        # exdrf-keep-end extra_init -------------------------------------------
 
     def editing_changed(self, value: bool):
         pass
@@ -64,3 +75,12 @@ class QtParentTagAssociationEditor(
                 record.tag_id,
             ),
         )
+
+    # exdrf-keep-start extra_editor_content ------------------------------------
+
+    # exdrf-keep-end extra_editor_content --------------------------------------
+
+
+# exdrf-keep-start more_content ------------------------------------------------
+
+# exdrf-keep-end more_content --------------------------------------------------

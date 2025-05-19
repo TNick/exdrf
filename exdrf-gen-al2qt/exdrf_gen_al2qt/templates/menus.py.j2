@@ -7,6 +7,10 @@ from typing import TYPE_CHECKING, Type
 from PyQt5.QtWidgets import QMenu, QAction
 from exdrf_qt.controls.seldb.sel_db import SelectDatabaseDlg
 
+# exdrf-keep-start other_imports ----------------------------------------------
+{{other_imports}}
+# exdrf-keep-end other_imports ------------------------------------------------
+
 {%- for name, c_res in categ_map.items() %}
 {% for res_name in sorted(c_res) -%}
 {%- set mdl = dset[res_name] %}
@@ -22,6 +26,9 @@ if TYPE_CHECKING:
     from exdrf_qt.context import QtContext  # noqa: F401
 
 logger = logging.getLogger(__name__)
+# exdrf-keep-start other_globals ----------------------------------------------
+{{other_globals}}
+# exdrf-keep-end other_globals ------------------------------------------------
 
 
 class OpenListAc(QAction, QtUseContext):
@@ -47,9 +54,10 @@ class OpenListAc(QAction, QtUseContext):
         try:
             if not self.ctx.ensure_db_conn():
                 return
-            self.ctx.create_window(
-                self.list_class(ctx=self.ctx)
-            )
+            w = self.list_class(ctx=self.ctx)
+            if len(w.windowTitle()) == 0:
+                w.setWindowTitle(self.text())
+            self.ctx.create_window(w, self.text())
         except Exception as e:
             logger.error(
                 "Error opening list", exc_info=True
@@ -76,6 +84,10 @@ class ExdrfMenus:
     {% endfor %}
     show_conn_settings_ac: QAction
 
+    # exdrf-keep-start other_menus_attributes ---------------------------------
+{{other_menus_attributes}}
+    # exdrf-keep-end other_menus_attributes -----------------------------------
+
     def __init__(self, ctx: "QtContext", parent: QMenu):
         """Initialize the menus."""
         self.ctx = ctx
@@ -99,5 +111,15 @@ class ExdrfMenus:
             lambda: SelectDatabaseDlg.change_connection_str(ctx)  # type: ignore
         )
         parent.addAction(self.show_conn_settings_ac)
+        # exdrf-keep-start extra_menus_init -----------------------------------
+{{extra_menus_init}}
+        # exdrf-keep-end extra_menus_init -------------------------------------
 
+    # exdrf-keep-start extra_menus_content ------------------------------------
+{{extra_menus_content}}
+    # exdrf-keep-end extra_menus_content --------------------------------------
+
+# exdrf-keep-start more_content ------------------------------------------------
+{{more_content}}
+# exdrf-keep-end more_content --------------------------------------------------
 {{- "\n" -}}

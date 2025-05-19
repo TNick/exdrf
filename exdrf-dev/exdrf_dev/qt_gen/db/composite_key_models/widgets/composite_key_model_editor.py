@@ -11,6 +11,10 @@ from exdrf_dev.qt_gen.db.composite_key_models.widgets.composite_key_model_editor
     Ui_QtCompositeKeyModelEditor,
 )
 
+# exdrf-keep-start other_imports ----------------------------------------------
+
+# exdrf-keep-end other_imports ------------------------------------------------
+
 if TYPE_CHECKING:
     from exdrf_qt.context import QtContext  # noqa: F401
     from sqlalchemy.orm import Session  # noqa: F401
@@ -23,12 +27,19 @@ class QtCompositeKeyModelEditor(
 ):
     """A widget that allows the user to edit a CompositeKeyModel record."""
 
+    # exdrf-keep-start other_attributes ---------------------------------------
+
+    # exdrf-keep-end other_attributes -----------------------------------------
+
     def __init__(self, ctx: "QtContext", **kwargs):
         """Initialize the editor widget."""
         from exdrf_dev.db.api import CompositeKeyModel as DbCompositeKeyModel
 
         super().__init__(ctx=ctx, db_model=DbCompositeKeyModel, **kwargs)
         self.verticalLayout.addWidget(self.create_button_box())
+        # exdrf-keep-start extra_init -----------------------------------------
+
+        # exdrf-keep-end extra_init -------------------------------------------
 
     def editing_changed(self, value: bool):
         pass
@@ -62,3 +73,12 @@ class QtCompositeKeyModelEditor(
                 record.key_part2,
             ),
         )
+
+    # exdrf-keep-start extra_editor_content ------------------------------------
+
+    # exdrf-keep-end extra_editor_content --------------------------------------
+
+
+# exdrf-keep-start more_content ------------------------------------------------
+
+# exdrf-keep-end more_content --------------------------------------------------

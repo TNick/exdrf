@@ -1,11 +1,16 @@
 # This file was automatically generated using the exdrf_gen package.
 # Source: exdrf_gen_al2qt -> c/m/field.py.j2
 # Don't change it manually.
+
 from typing import TYPE_CHECKING
 
 from attrs import define, field
 from exdrf.constants import RecIdType
 from exdrf_qt.models.fields import QtRefOneToManyField
+
+# exdrf-keep-start other_imports ----------------------------------------------
+
+# exdrf-keep-end other_imports ------------------------------------------------
 
 if TYPE_CHECKING:
     from exdrf.resource import ExResource  # noqa: F401
@@ -23,6 +28,10 @@ class ChildrenField(QtRefOneToManyField["Parent"]):
     category: str = field(default="general")
     preferred_width: int = field(default=100)
     show_n_labels: int = field(default=4)
+
+    # exdrf-keep-start other_attributes ---------------------------------------
+
+    # exdrf-keep-end other_attributes -----------------------------------------
     ref: "ExResource" = field(default=None, repr=False)
 
     def part_id(self, record: "Child") -> RecIdType:
@@ -39,3 +48,12 @@ class ChildrenField(QtRefOneToManyField["Parent"]):
             + str(" Data:")
             + str(record.data)
         )
+
+    # exdrf-keep-start extra_field_content ------------------------------------
+
+    # exdrf-keep-end extra_field_content --------------------------------------
+
+
+# exdrf-keep-start more_content -----------------------------------------------
+
+# exdrf-keep-end more_content -------------------------------------------------

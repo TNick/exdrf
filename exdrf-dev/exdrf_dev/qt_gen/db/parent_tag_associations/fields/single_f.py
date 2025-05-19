@@ -8,6 +8,10 @@ from attrs import define, field
 from exdrf_qt.models.fields import QtStringField
 from PyQt5.QtCore import Qt
 
+# exdrf-keep-start other_imports ----------------------------------------------
+
+# exdrf-keep-end other_imports ------------------------------------------------
+
 if TYPE_CHECKING:
     from exdrf_dev.db.api import ParentTagAssociation  # noqa: F401
 
@@ -31,6 +35,10 @@ class LabelField(QtStringField["ParentTagAssociation"]):
     qsearch: bool = field(default=True)
     multiline: bool = field(default=False)
 
+    # exdrf-keep-start other_label_attributes ---------------------------------
+
+    # exdrf-keep-end other_label_attributes -----------------------------------
+
     def values(
         self, record: "ParentTagAssociation"
     ) -> Dict[Qt.ItemDataRole, Any]:
@@ -46,3 +54,12 @@ class LabelField(QtStringField["ParentTagAssociation"]):
                 record.tag_id,
             ),
         )
+
+    # exdrf-keep-start extra_label_content ------------------------------------
+
+    # exdrf-keep-end extra_label_content --------------------------------------
+
+
+# exdrf-keep-start more_content ------------------------------------------------
+
+# exdrf-keep-end more_content --------------------------------------------------

@@ -12,6 +12,10 @@ from exdrf_dev.qt_gen.db.tags.fields.fld_id import IdField
 from exdrf_dev.qt_gen.db.tags.fields.fld_name import NameField
 from exdrf_dev.qt_gen.db.tags.fields.fld_parents import ParentsField
 
+# exdrf-keep-start other_imports ----------------------------------------------
+
+# exdrf-keep-end other_imports ------------------------------------------------
+
 if TYPE_CHECKING:
     from exdrf_qt.context import QtContext  # noqa: F401
     from sqlalchemy import Select  # noqa: F401
@@ -21,6 +25,10 @@ if TYPE_CHECKING:
 
 class QtTagFuMo(QtModel["Tag"]):
     """The model that contains all the fields of the Tag table."""
+
+    # exdrf-keep-start other_attributes ---------------------------------------
+
+    # exdrf-keep-end other_attributes -----------------------------------------
 
     def __init__(
         self,
@@ -56,3 +64,16 @@ class QtTagFuMo(QtModel["Tag"]):
             ),
             **kwargs,
         )
+
+        # exdrf-keep-start extra_init -----------------------------------------
+
+        # exdrf-keep-end extra_init -------------------------------------------
+
+    # exdrf-keep-start extra_fumo_content -------------------------------------
+
+    # exdrf-keep-end extra_fumo_content ---------------------------------------
+
+
+# exdrf-keep-start more_content -----------------------------------------------
+
+# exdrf-keep-end more_content -------------------------------------------------

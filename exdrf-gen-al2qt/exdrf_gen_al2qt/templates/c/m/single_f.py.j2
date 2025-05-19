@@ -9,6 +9,10 @@ from PyQt5.QtCore import Qt
 
 from exdrf_qt.models.fields import QtStringField
 
+# exdrf-keep-start other_imports ----------------------------------------------
+{{other_imports}}
+# exdrf-keep-end other_imports ------------------------------------------------
+
 if TYPE_CHECKING:
     from {{ db_module }}.{{ r.categories[0] }}.api import {{ ResPascal }}  # noqa: F401
 
@@ -31,6 +35,10 @@ class LabelField(QtStringField["{{ ResPascal }}"]):
     exportable: bool = field(default=True)
     qsearch: bool = field(default=True)
     multiline: bool = field(default=False)
+    
+    # exdrf-keep-start other_label_attributes ---------------------------------
+{{other_label_attributes}}
+    # exdrf-keep-end other_label_attributes -----------------------------------
 
     def values(self, record: "{{ ResPascal }}") -> Dict[Qt.ItemDataRole, Any]:
         return self.expand_value(
@@ -45,4 +53,13 @@ class LabelField(QtStringField["{{ ResPascal }}"]):
             )
             {%- endif %}
         )
-{{ '\n' -}}
+    
+    # exdrf-keep-start extra_label_content ------------------------------------
+{{extra_label_content}}
+    # exdrf-keep-end extra_label_content --------------------------------------
+
+
+# exdrf-keep-start more_content ------------------------------------------------
+{{more_content}}
+# exdrf-keep-end more_content --------------------------------------------------
+{{- "\n" -}}

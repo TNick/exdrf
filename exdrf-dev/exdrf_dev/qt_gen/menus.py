@@ -19,10 +19,20 @@ from exdrf_dev.qt_gen.db.profiles.api import QtProfileList
 from exdrf_dev.qt_gen.db.related_items.api import QtRelatedItemList
 from exdrf_dev.qt_gen.db.tags.api import QtTagList
 
+# exdrf-keep-start other_imports ----------------------------------------------
+
+# exdrf-keep-end other_imports ------------------------------------------------
+
+
 if TYPE_CHECKING:
     from exdrf_qt.context import QtContext  # noqa: F401
 
 logger = logging.getLogger(__name__)
+# exdrf-keep-start other_globals ----------------------------------------------
+# Print something
+print("Hello, world!")
+
+# exdrf-keep-end other_globals ------------------------------------------------
 
 
 class OpenListAc(QAction, QtUseContext):
@@ -52,7 +62,7 @@ class OpenListAc(QAction, QtUseContext):
             w = self.list_class(ctx=self.ctx)
             if len(w.windowTitle()) == 0:
                 w.setWindowTitle(self.text())
-            self.ctx.create_window(w, w.windowTitle())
+            self.ctx.create_window(w, self.text())
         except Exception as e:
             logger.error("Error opening list", exc_info=True)
             self.ctx.show_error(
@@ -80,6 +90,10 @@ class ExdrfMenus:
     open_tag_list_ac: OpenListAc
 
     show_conn_settings_ac: QAction
+
+    # exdrf-keep-start other_menus_attributes ---------------------------------
+
+    # exdrf-keep-end other_menus_attributes -----------------------------------
 
     def __init__(self, ctx: "QtContext", parent: QMenu):
         """Initialize the menus."""
@@ -136,3 +150,15 @@ class ExdrfMenus:
             lambda: SelectDatabaseDlg.change_connection_str(ctx)  # type: ignore
         )
         parent.addAction(self.show_conn_settings_ac)
+        # exdrf-keep-start extra_menus_init -----------------------------------
+
+        # exdrf-keep-end extra_menus_init -------------------------------------
+
+    # exdrf-keep-start extra_menus_content ------------------------------------
+
+    # exdrf-keep-end extra_menus_content --------------------------------------
+
+
+# exdrf-keep-start more_content ------------------------------------------------
+
+# exdrf-keep-end more_content --------------------------------------------------
