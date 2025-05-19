@@ -11,7 +11,7 @@ class QtUseContext:
 
     ctx: "QtContext"
 
-    def create_window(self, w: "QWidget"):
+    def create_window(self, w: "QWidget", title: str):
         """Creates a stand-alone window.
 
         The default implementation assumes that the `top_widget` has a
@@ -20,8 +20,9 @@ class QtUseContext:
 
         Args:
             w: The widget to create a window for.
+            title: The title of the window.
         """
-        return self.ctx.create_window(w)
+        return self.ctx.create_window(w, title)
 
     def close_window(self, w: "QWidget"):
         """Closes a stand-alone window.

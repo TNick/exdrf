@@ -51,16 +51,6 @@ class FilterDlg(QDialog, Ui_FilterDlg, QtUseContext, Generic[DBM]):
         assert self.btn_or is not None
         self.btn_or.clicked.connect(self._on_or_clicked)
 
-        # Create the data tree.
-        self.data_tree = {
-            "user": {
-                "name": {},
-                "email": {},
-                "address": {"city": {}, "zip": {}},
-            },
-            "order": {"id": {}, "total": {}},
-        }
-
     @property
     def filter(self) -> Union[FilterType, None]:
         """Return the filter as a dictionary."""

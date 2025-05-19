@@ -26,7 +26,7 @@ class QtContext(DbConn):
     work_relay: Optional[Relay] = None
     asset_sources: List[str] = field(factory=lambda: ["exdrf_qt.assets"])
 
-    def create_window(self, w: "QWidget"):
+    def create_window(self, w: "QWidget", title: str):
         """Creates a stand-alone window.
 
         The default implementation assumes that the `top_widget` has a
@@ -35,11 +35,13 @@ class QtContext(DbConn):
 
         Args:
             w: The widget to create a window for.
+            title: The title of the window.
         """
         if not w:
             return
         result = self.top_widget.mdi_area.addSubWindow(w)
         w.show()
+        w.setWindowTitle(title)
         return result
 
     def close_window(self, w: "QWidget"):

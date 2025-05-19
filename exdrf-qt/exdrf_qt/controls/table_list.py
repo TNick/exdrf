@@ -450,7 +450,7 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
                 ctx=self.ctx,
                 parent=None,
             )
-            self.ctx.create_window(editor)
+            self.ctx.create_window(editor, editor.windowTitle())
             editor.set_record(None)
             editor.on_create_new()
         except Exception as e:
@@ -494,7 +494,7 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
                 parent=None,
                 record_id=rec_id,
             )
-            self.ctx.create_window(editor)
+            self.ctx.create_window(editor, editor.windowTitle())
             if editing:
                 editor.on_begin_edit()
             else:

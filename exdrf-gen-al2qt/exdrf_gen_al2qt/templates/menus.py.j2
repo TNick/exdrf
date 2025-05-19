@@ -55,8 +55,12 @@ class OpenListAc(QAction, QtUseContext):
                 "Error opening list", exc_info=True
             )
             self.ctx.show_error(
-                title="Error opening list",
-                message=f"An error occurred while opening the list: {e}",
+                title=self.t("cmn.open-list.title", "Error opening list"),
+                message=self.t(
+                    "cmn.open-list.message",
+                    "An error occurred while opening the list: {e}",
+                    e=e
+                ),
             )
             return
 

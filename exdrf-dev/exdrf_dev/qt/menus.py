@@ -46,7 +46,7 @@ class OpenListAc(QAction, QtUseContext):
             w = self.list_class(ctx=self.ctx)
             if len(w.windowTitle()) == 0:
                 w.setWindowTitle(self.text())
-            self.ctx.create_window(w)
+            self.ctx.create_window(w, self.text())
         except Exception as e:
             logger.error("Error opening list", exc_info=True)
             self.ctx.show_error(

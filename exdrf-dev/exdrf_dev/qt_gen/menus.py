@@ -49,12 +49,19 @@ class OpenListAc(QAction, QtUseContext):
         try:
             if not self.ctx.ensure_db_conn():
                 return
-            self.ctx.create_window(self.list_class(ctx=self.ctx))
+            w = self.list_class(ctx=self.ctx)
+            if len(w.windowTitle()) == 0:
+                w.setWindowTitle(self.text())
+            self.ctx.create_window(w, w.windowTitle())
         except Exception as e:
             logger.error("Error opening list", exc_info=True)
             self.ctx.show_error(
-                title="Error opening list",
-                message=f"An error occurred while opening the list: {e}",
+                title=self.t("cmn.open-list.title", "Error opening list"),
+                message=self.t(
+                    "cmn.open-list.message",
+                    "An error occurred while opening the list: {e}",
+                    e=e,
+                ),
             )
             return
 

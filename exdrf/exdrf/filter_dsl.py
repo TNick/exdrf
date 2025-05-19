@@ -817,7 +817,11 @@ def raw_filter_to_text(filter: Union[FilterType, FieldFilter]) -> str:
             for item in part:
                 do_part(item, indent)
         elif isinstance(part, dict):
-            result += prefix + f"{part['fld']} {part['op']} {part['vl']}\n"
+            # Make sure that the string value is quoted.
+            value = part["vl"]
+            if isinstance(value, str):
+                value = f"'{value}'"
+            result += prefix + f"{part['fld']} {part['op']} {value}\n"
         else:
             raise ValueError(f"Invalid filter part: {part}")
 
