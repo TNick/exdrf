@@ -72,3 +72,24 @@ class QtUseContext:
             message: The error message.
         """
         self.ctx.show_error(message, title)
+
+    def get_stg(self, key: str, default: Any = None) -> Any:
+        """Get a local read-write setting.
+
+        Args:
+            key: The key of the setting to get as a dot-separated path.
+            default: The default value if the setting is not found.
+        """
+        result = self.ctx.stg[key]
+        if result is None:
+            result = default
+        return result
+
+    def set_stg(self, key: str, value: Any):
+        """Set a local read-write setting.
+
+        Args:
+            key: The key of the setting to set as a dot-separated path.
+            value: The value to set the setting to.
+        """
+        self.ctx.stg[key] = value

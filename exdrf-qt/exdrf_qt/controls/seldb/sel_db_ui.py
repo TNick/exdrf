@@ -21,6 +21,9 @@ class Ui_SelectDatabase:
         c_port: C port.
         c_db_name: C db name.
         c_schema: C schema.
+        tab_manage: Tab manage.
+        verticalLayout_3: The layout for the widget.
+        c_list: C list.
         bbox: Bbox.
 
     """
@@ -49,6 +52,10 @@ class Ui_SelectDatabase:
     c_port: "QtWidgets.QLineEdit"
     c_db_name: "QtWidgets.QLineEdit"
     c_schema: "QtWidgets.QLineEdit"
+    tab_manage: "QtWidgets.QWidget"
+    verticalLayout_3: "QtWidgets.QVBoxLayout"
+    c_list: "QtWidgets.QTreeWidget"
+    label_8: "QtWidgets.QLabel"
     bbox: "QtWidgets.QDialogButtonBox"
 
     def setup_ui(self, SelectDatabase):
@@ -158,7 +165,29 @@ class Ui_SelectDatabase:
             6, QtWidgets.QFormLayout.FieldRole, self.c_schema
         )
         self.main_tab.addTab(self.tab_remote, "")
+        self.tab_manage = QtWidgets.QWidget()
+        self.tab_manage.setObjectName("tab_manage")
+        self.verticalLayout_3 = QtWidgets.QVBoxLayout(self.tab_manage)
+        self.verticalLayout_3.setObjectName("verticalLayout_3")
+        self.c_list = QtWidgets.QTreeWidget(self.tab_manage)
+        self.c_list.setEditTriggers(
+            QtWidgets.QAbstractItemView.DoubleClicked
+            | QtWidgets.QAbstractItemView.EditKeyPressed
+        )
+        self.c_list.setRootIsDecorated(False)
+        self.c_list.setUniformRowHeights(True)
+        self.c_list.setColumnCount(3)
+        self.c_list.setObjectName("c_list")
+        self.c_list.headerItem().setText(0, "1")
+        self.c_list.headerItem().setText(1, "2")
+        self.c_list.headerItem().setText(2, "3")
+        self.verticalLayout_3.addWidget(self.c_list)
+        self.main_tab.addTab(self.tab_manage, "")
         self.verticalLayout.addWidget(self.main_tab)
+        self.label_8 = QtWidgets.QLabel(SelectDatabase)
+        self.label_8.setWordWrap(True)
+        self.label_8.setObjectName("label_8")
+        self.verticalLayout.addWidget(self.label_8)
         self.bbox = QtWidgets.QDialogButtonBox(SelectDatabase)
         self.bbox.setStandardButtons(
             QtWidgets.QDialogButtonBox.Cancel | QtWidgets.QDialogButtonBox.Ok
@@ -167,7 +196,7 @@ class Ui_SelectDatabase:
         self.verticalLayout.addWidget(self.bbox)
 
         self.retranslate_ui(SelectDatabase)
-        self.main_tab.setCurrentIndex(1)
+        self.main_tab.setCurrentIndex(2)
         self.bbox.accepted.connect(SelectDatabase.accept)  # type: ignore
         self.bbox.rejected.connect(SelectDatabase.reject)  # type: ignore
         QtCore.QMetaObject.connectSlotsByName(SelectDatabase)
@@ -192,6 +221,17 @@ class Ui_SelectDatabase:
             self.main_tab.indexOf(self.tab_remote),
             _translate("SelectDatabase", "Remote"),
         )
+        self.c_list.setSortingEnabled(True)
+        self.main_tab.setTabText(
+            self.main_tab.indexOf(self.tab_manage),
+            _translate("SelectDatabase", "Manage"),
+        )
+        self.label_8.setText(
+            _translate(
+                "SelectDatabase",
+                "To avoid seeing this dialog set the EXDRF_DB_CONN_STRING and EXDRF_DB_SCHEMA environment variables.",
+            )
+        )
 
     def enum_controls(self):
         """Enumerate the controls in the form."""
@@ -208,5 +248,7 @@ class Ui_SelectDatabase:
             self.c_port,
             self.c_db_name,
             self.c_schema,
+            self.tab_manage,
+            self.c_list,
             self.bbox,
         ]

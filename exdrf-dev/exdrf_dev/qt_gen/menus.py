@@ -29,8 +29,6 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 # exdrf-keep-start other_globals ----------------------------------------------
-# Print something
-print("Hello, world!")
 
 # exdrf-keep-end other_globals ------------------------------------------------
 

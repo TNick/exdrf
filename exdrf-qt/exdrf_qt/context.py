@@ -8,6 +8,7 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QMessageBox
 
 from exdrf_qt.controls.seldb.sel_db import SelectDatabaseDlg
+from exdrf_qt.local_settings import LocalSettings
 from exdrf_qt.worker import Relay, Work
 
 if TYPE_CHECKING:
@@ -25,6 +26,7 @@ class QtContext(DbConn):
     top_widget: "QWidget" = cast("QWidget", None)
     work_relay: Optional[Relay] = None
     asset_sources: List[str] = field(factory=lambda: ["exdrf_qt.assets"])
+    stg: LocalSettings = field(factory=LocalSettings)
 
     def create_window(self, w: "QWidget", title: str):
         """Creates a stand-alone window.
