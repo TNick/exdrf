@@ -212,7 +212,7 @@ class DrfEnumEditor(DropBase):
 
     def _show_dropdown(self):
         """Show the dropdown with filtered choices."""
-        if not self._choices:
+        if not self._choices or self._read_only:
             return
 
         # Populate with filtered choices
@@ -282,7 +282,7 @@ class DrfEnumEditor(DropBase):
 
     def _on_text_changed(self, text: str):
         """Handle text changes."""
-        if self._internal_change:
+        if self._internal_change or self._read_only:
             return
 
         have_choices = self._filter_choices(text)
@@ -356,6 +356,8 @@ class DrfEnumEditor(DropBase):
 
     def keyPressEvent(self, event):
         """Handle key events for dropdown interaction."""
+        if self._read_only:
+            super().keyPressEvent(event)
         if event.key() == Qt.Key.Key_Down:
             if not self._dropdown.isVisible():
                 # Show dropdown when down arrow is pressed

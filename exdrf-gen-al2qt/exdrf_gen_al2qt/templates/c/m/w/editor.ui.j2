@@ -32,6 +32,14 @@
          <property name="text">
           <string>{{ field.title }} </string>
          </property>
+         <property name="buddy">
+          <cstring>c_{{ field.name }}</cstring>
+         </property>
+         {%- if field.read_only %}
+         <property name="enabled" stdset="0">
+          <bool>false</bool>
+         </property>
+         {%- endif %}
         </widget>
        </item>
        <item row="{{ f_i }}" column="1">
@@ -54,6 +62,16 @@
           <string notr="true">{{ enum_v2p(field.enum_values) }}</string>
          </property>
          {% endif %}
+         {%- if field.nullable %}
+         <property name="clearable" stdset="0">
+          <bool>true</bool>
+         </property>
+         {%- endif %}
+         {%- if field.read_only %}
+         <property name="modifiable" stdset="0">
+          <bool>false</bool>
+         </property>
+         {%- endif %}
         {% endif %}
         </widget>
        </item>

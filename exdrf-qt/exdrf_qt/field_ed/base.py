@@ -38,20 +38,21 @@ class DrfFieldEd(QtUseContext):
     _name: str
     _field_value: Any
     _nullable: bool = False
+    _read_only: bool = False
     description: Optional[str]
 
     controlChanged = pyqtSignal()
     enteredErrorState = pyqtSignal(str)
 
-    def __init__(
-        self: QWidget,  # type: ignore[override]
+    def __init__(  # type: ignore
+        self: QWidget,  # type: ignore
         ctx: "QtContext",
         name: Optional[str] = None,
         description: Optional[str] = None,
         nullable: bool = False,
         **kwargs,
     ):
-        super().__init__(**kwargs)
+        super().__init__(**kwargs)  # type: ignore
         self.ctx = ctx
         self._field_value = None
         self.description = description or ""
@@ -75,7 +76,7 @@ class DrfFieldEd(QtUseContext):
         if self._field_value != value:
             # Change the value and signal the change.
             self._field_value = value
-            self.controlChanged.emit()  # type: ignore[no-untyped-call]
+            self.controlChanged.emit()  # type: ignore
 
     def save_value_to_db(self, db_item: Any):
         """Save the field value into the database record.
@@ -97,14 +98,14 @@ class DrfFieldEd(QtUseContext):
             raise ValueError("Field name is not set.")
         self.change_field_value(getattr(db_item, self._name, None))
 
-    def apply_description(self: QWidget):  # type: ignore[override]
+    def apply_description(self: QWidget):  # type: ignore
         """Apply the description to the widget."""
         if self.description:
             self.setToolTip(self.description)
             self.setStatusTip(self.description)
 
-    def change_edit_mode(
-        self: QWidget, in_editing: bool  # type: ignore[override]
+    def change_edit_mode(  # type: ignore
+        self: QWidget, in_editing: bool  # type: ignore
     ) -> None:
         """Switch between edit mode and display mode.
 
@@ -174,7 +175,12 @@ class DrfFieldEd(QtUseContext):
                 pass
 
     def add_clear_to_null_action(self) -> None:
-        """Adds a clear to null action to the line edit."""
+        """Adds a clear to null action to the control.
+
+        The method is called by the `nullable` property setter to create
+        a clear to null action.
+        The default implementation does nothing.
+        """
 
     def getClearable(self) -> bool:
         """Tell if the field is nullable.
@@ -209,3 +215,35 @@ class DrfFieldEd(QtUseContext):
         self._name = value
 
     name = pyqtProperty(str, fget=getName, fset=setName)
+
+    def getModifiable(self) -> bool:
+        """Get the modifiable property.
+
+        This is a support function for implementing the modifiable property.
+        """
+        return not self._read_only
+
+    def setModifiable(self, value: bool) -> None:
+        """Set the modifiable property.
+
+        This is a support function for implementing the modifiable property.
+        """
+        self._read_only = not value
+
+    modifiable = pyqtProperty(bool, fget=getModifiable, fset=setModifiable)
+
+    @property
+    def read_only(self) -> bool:
+        """Get the read_only property."""
+        return self._read_only
+
+    @read_only.setter
+    def read_only(self, value: bool) -> None:
+        """Set the read_only property."""
+        if self._read_only != value:
+            self._read_only = value
+            self.change_read_only(value)
+
+    def change_read_only(self, value: bool) -> None:
+        """React to the read_only property being changed."""
+        self.setEnabled(not value)  # type: ignore

@@ -44,8 +44,10 @@ class DrfBlobEditor(LineBase):
 
     def change_edit_mode(self, in_editing: bool) -> None:
         super().change_edit_mode(in_editing)
-        self.ac_upload.setEnabled(in_editing)
-        self.ac_download.setEnabled(in_editing and self.field_value is not None)
+        self.ac_upload.setEnabled(in_editing and not self._read_only)
+        self.ac_download.setEnabled(
+            in_editing and self.field_value is not None and not self._read_only
+        )
 
     def set_line_null(self):
         """Sets the value of the control to NULL.
@@ -88,6 +90,8 @@ class DrfBlobEditor(LineBase):
         )
         action.triggered.connect(self.upload_file)
         self.ac_upload = action
+        if self._read_only:
+            action.setEnabled(False)
         return action
 
     def create_download_action(self) -> QAction:
@@ -104,6 +108,8 @@ class DrfBlobEditor(LineBase):
 
     def upload_file(self) -> None:
         """Select a file and set it's content as the value."""
+        if self._read_only:
+            return
         file_name, _ = QFileDialog.getOpenFileName(self, "Select File")
         if file_name:
             with open(file_name, "rb") as f:
@@ -118,6 +124,11 @@ class DrfBlobEditor(LineBase):
             with open(file_name, "wb") as f:
                 if self._data is not None:
                     f.write(self._data)
+
+    def change_read_only(self, value: bool) -> None:
+        super().change_read_only(value)
+        if self.ac_upload is not None:
+            self.ac_upload.setEnabled(not value)
 
 
 if __name__ == "__main__":

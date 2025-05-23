@@ -98,35 +98,38 @@ def sql_col_to_type(
     """
     str_type = str(column.type)
 
-    if hasattr(column.type, "native_enum") and column.type.native_enum:  # type: ignore
+    if (
+        hasattr(column.type, "native_enum")
+        and column.type.native_enum  # type: ignore
+    ):
         result = construct_enum, EnumInfo
     elif str_type == "BLOB":
-        result = BlobField, BlobInfo
+        result = BlobField, BlobInfo  # type: ignore
     elif str_type == "INTEGER":
-        result = IntField, IntInfo
+        result = IntField, IntInfo  # type: ignore
     elif str_type == "TEXT":
-        result = StrField, StrInfo
+        result = StrField, StrInfo  # type: ignore
     elif str_type == "FLOAT":
-        result = FloatField, FloatInfo
+        result = FloatField, FloatInfo  # type: ignore
     elif str_type == "BOOLEAN":
-        result = BoolField, BoolInfo
+        result = BoolField, BoolInfo  # type: ignore
     elif str_type == "DATE":
-        result = DateField, DateInfo
+        result = DateField, DateInfo  # type: ignore
     elif str_type == "TIME":
-        result = TimeField, TimeInfo
+        result = TimeField, TimeInfo  # type: ignore
     elif str_type == "DATETIME":
-        result = DateTimeField, DateTimeInfo
+        result = DateTimeField, DateTimeInfo  # type: ignore
     elif str_type == "VARCHAR":
-        result = StrField, StrInfo
+        result = StrField, StrInfo  # type: ignore
     elif str_type == "JSON":
         extra["format"] = "json"
-        result = FormattedField, FormattedInfo
+        result = FormattedField, FormattedInfo  # type: ignore
     else:
         varchar_m = re.match(r"VARCHAR\((\d+)\)", str_type)
         if varchar_m:
             max_len = int(varchar_m.group(1))
             extra["max_length"] = max_len
-            result = StrField, StrInfo
+            result = StrField, StrInfo  # type: ignore
         else:
             assert False, f"Unknown field type: {column} / {column.type}"
     return cast(Tuple[type["ExField"], type["FieldInfo"]], result)
@@ -210,11 +213,11 @@ def field_from_sql_rel(
         "Direction must be specified for all relationships; "
         f"missing in {resource.name}.{relation.key}"
     )
-    in_dir: RelType = extra["direction"]
+    in_dir: RelType = cast(RelType, extra["direction"])
     del extra["direction"]
 
     # Select the correct field class based on the direction.
-    Ctor = None
+    Ctor: Optional[type["ExField"]] = None
     if in_dir == "OneToMany":
         Ctor = RefOneToManyField
     elif in_dir == "OneToOne":

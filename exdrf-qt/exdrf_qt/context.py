@@ -1,3 +1,5 @@
+import logging
+import logging.config
 import os
 from importlib import resources
 from typing import TYPE_CHECKING, Any, Callable, List, Optional, cast
@@ -15,6 +17,46 @@ if TYPE_CHECKING:
     from PyQt5.QtWidgets import QWidget  # noqa: F401
     from sqlalchemy import Select  # noqa: F401
 
+# Default logging configuration
+DEFAULT_LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "standard": {
+            "format": "%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+            "datefmt": "%Y-%m-%d %H:%M:%S",
+        },
+        "detailed": {
+            "format": "%(asctime)s [%(levelname)s] %(name)s:%(lineno)d: %(message)s",
+            "datefmt": "%Y-%m-%d %H:%M:%S",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "level": "INFO",
+            "formatter": "standard",
+            "stream": "ext://sys.stdout",
+        },
+        "file": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "level": "DEBUG",
+            "formatter": "detailed",
+            "filename": "exdrf.log",
+            "maxBytes": 10485760,  # 10MB
+            "backupCount": 5,
+            "encoding": "utf8",
+        },
+    },
+    "loggers": {
+        "": {  # Root logger
+            "handlers": ["console", "file"],
+            "level": "INFO",
+            "propagate": True,
+        }
+    },
+}
+
 
 @define
 class QtContext(DbConn):
@@ -27,6 +69,9 @@ class QtContext(DbConn):
     work_relay: Optional[Relay] = None
     asset_sources: List[str] = field(factory=lambda: ["exdrf_qt.assets"])
     stg: LocalSettings = field(factory=LocalSettings)
+
+    def __attrs_post_init__(self):
+        self.setup_logging()
 
     def create_window(self, w: "QWidget", title: str):
         """Creates a stand-alone window.
@@ -216,3 +261,16 @@ class QtContext(DbConn):
         from exdrf_al.base import Base
 
         self.create_all_tables(Base)
+
+    def setup_logging(self):
+        """Setup logging."""
+        log_stg = self.stg.get_setting("logging")
+        if log_stg is None:
+            log_stg = DEFAULT_LOGGING.copy()
+            log_stg["handlers"]["file"]["filename"] = os.path.join(
+                os.path.dirname(self.stg.settings_file()), "exdrf.log"
+            )
+            self.stg.set_setting("logging", log_stg)
+
+        # Apply the configuration
+        logging.config.dictConfig(log_stg)

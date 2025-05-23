@@ -28,7 +28,7 @@ class DrfTextEditor(QPlainTextEdit, DrfFieldEd):
             self.add_clear_to_null_action()
 
     def change_edit_mode(self, in_editing: bool) -> None:
-        self.setReadOnly(not in_editing)
+        self.setReadOnly(not in_editing and not self._read_only)
 
     def add_clear_to_null_action(self):
         """Adds a clear to null action to the line edit."""
@@ -94,7 +94,8 @@ class DrfTextEditor(QPlainTextEdit, DrfFieldEd):
 
     def _on_text_changed(self, text: str, final: bool):
         """Handles text changes in the line edit."""
-
+        if self._read_only:
+            return
         result = self.check_value(text)
         if result:
             self.set_line_normal()
@@ -167,6 +168,11 @@ class DrfTextEditor(QPlainTextEdit, DrfFieldEd):
 
     def update_tooltip(self, text: str, error: bool = False):
         self.setToolTip(text)
+
+    def change_read_only(self, value: bool) -> None:
+        self.setReadOnly(value)
+        if self.ac_clear is not None:
+            self.ac_clear.setEnabled(not value and self.field_value is not None)
 
 
 if __name__ == "__main__":

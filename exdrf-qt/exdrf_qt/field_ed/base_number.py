@@ -198,6 +198,8 @@ class NumberBase(LineBase, Generic[T]):
             return super().keyPressEvent(event)  # type: ignore[override]
 
     def wheelEvent(self, event):  # type: ignore[override]
+        if self.isReadOnly():
+            return super().wheelEvent(event)
         if self.hasFocus():
             if event.angleDelta().y() > 0:
                 self.change_by_delta(1)

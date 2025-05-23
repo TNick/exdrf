@@ -79,7 +79,8 @@ class DrfSelOneEditor(DropBase, Generic[DBM]):
 
     def _show_dropdown(self):
         """Show the dropdown with filtered choices."""
-
+        if self._read_only:
+            return
         # Populate with filtered choices
         self._position_dropdown()
         self._dropdown.src_line.setFocus()

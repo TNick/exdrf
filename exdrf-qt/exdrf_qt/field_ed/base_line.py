@@ -80,7 +80,7 @@ class InfoLabel(QLabel):
 class LineBase(QLineEdit, DrfFieldEd):
     """Base for classes that are based on line edit controls."""
 
-    ac_clear: Optional[QAction]
+    ac_clear: Optional[QAction] = None  # type: ignore
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -96,7 +96,7 @@ class LineBase(QLineEdit, DrfFieldEd):
     def change_clear_action(self, text: str):
         """Enable or disable the clear to null action depending on the text."""
         if hasattr(self, "ac_clear") and self.ac_clear is not None:
-            self.ac_clear.setEnabled(bool(text))
+            self.ac_clear.setEnabled(bool(text) and not self._read_only)
 
     def apply_description(self):
         """Apply the description to the widget."""
@@ -105,10 +105,10 @@ class LineBase(QLineEdit, DrfFieldEd):
             self.setStatusTip(self.description)
 
     def change_edit_mode(self, in_editing: bool) -> None:
-        self.setReadOnly(not in_editing)
+        self.setReadOnly(not in_editing and not self._read_only)
         if self.nullable:
             assert self.ac_clear is not None
-            self.ac_clear.setEnabled(in_editing)
+            self.ac_clear.setEnabled(in_editing and not self._read_only)
 
     def set_line_empty(self):
         """Changes the aspect of the line edit to indicate that it is null.
@@ -183,7 +183,9 @@ class LineBase(QLineEdit, DrfFieldEd):
         )
         self.ac_clear.triggered.connect(self.set_line_null)
         self.addAction(self.ac_clear, QLineEdit.ActionPosition.LeadingPosition)
-        self.ac_clear.setEnabled(self.field_value is not None)
+        self.ac_clear.setEnabled(
+            self.field_value is not None and not self._read_only
+        )
 
     def set_line_null(self):
         """Sets the line edit to null."""
@@ -246,3 +248,12 @@ class LineBase(QLineEdit, DrfFieldEd):
             return False
 
         return super().eventFilter(obj, event)
+
+    def change_read_only(self, value: bool) -> None:
+        if value:
+            if self.ac_clear is not None:
+                self.ac_clear.setEnabled(False)
+        else:
+            if self.ac_clear is not None:
+                self.ac_clear.setEnabled(True)
+        self.setReadOnly(value)

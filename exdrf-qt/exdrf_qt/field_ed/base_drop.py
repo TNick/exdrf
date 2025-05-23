@@ -26,7 +26,7 @@ class DropBase(LineBase):
 
     def change_edit_mode(self, in_editing: bool) -> None:
         super().change_edit_mode(in_editing)
-        self.dropdown_action.setEnabled(in_editing)
+        self.dropdown_action.setEnabled(in_editing and not self._read_only)
 
     def create_drop_down_action(self) -> QAction:
         """Creates a drop down action for the line edit."""
@@ -45,6 +45,8 @@ class DropBase(LineBase):
 
     def _toggle_dropdown(self):
         """Show or hide the dropdown list."""
+        if self._read_only:
+            return
         if self._dropdown.isVisible():
             self._dropdown.hide()
         else:
@@ -52,6 +54,8 @@ class DropBase(LineBase):
 
     def set_line_null(self):
         """Sets the line edit to null."""
+        if self._read_only:
+            return
         self.field_value = None
         self.setText("")
         self.set_line_empty()

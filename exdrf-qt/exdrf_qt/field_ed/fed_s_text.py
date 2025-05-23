@@ -70,7 +70,8 @@ class DrfLineEditor(LineBase):
 
     def _on_text_changed(self, text: str, final: bool):
         """Handles text changes in the line edit."""
-
+        if self._read_only:
+            return
         result = self.check_value(text)
         if result:
             self.set_line_normal()

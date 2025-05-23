@@ -33,6 +33,7 @@ if TYPE_CHECKING:
 
     from exdrf_qt.context import QtContext  # noqa: F401
     from exdrf_qt.models.field import QtField  # noqa: F401
+    from exdrf_qt.models.requests import RecordRequest  # noqa: F401
     from exdrf_qt.worker import Work  # noqa: F401
 
 
@@ -105,6 +106,7 @@ class QtModel(
     _loaded_count: int
     _checked: Optional[Set[RecIdType]] = None
     _db_to_row: Dict[RecIdType, int]
+    _wait_before_request: int
 
     totalCountChanged = pyqtSignal(int)
     checkedChanged = pyqtSignal()
@@ -122,6 +124,7 @@ class QtModel(
         selection: Optional["Select"] = None,
         prevent_total_count: Optional[bool] = False,
         batch_size: int = DEFAULT_CHUNK_SIZE,
+        wait_before_request: int = 100,
     ):
         """Initialize the model.
 
@@ -142,6 +145,7 @@ class QtModel(
         QtUseContext.__init__(self)
 
         self.ctx = ctx
+        self._wait_before_request = wait_before_request
         self._db_to_row = {}
         self.db_model = db_model
         self.fields = cast(Any, fields if fields is not None else [])
@@ -374,17 +378,20 @@ class QtModel(
         self.add_request(req)
 
         # Allow some time to accumulate requests before executing them.
-        QTimer.singleShot(100, lambda: self.execute_request(req.uniq_id))
+        if self._wait_before_request > 0:
+            QTimer.singleShot(
+                self._wait_before_request, lambda: self.execute_request(req)
+            )
+        else:
+            self.execute_request(req)
 
-    def execute_request(self, req_id: int) -> None:
+    def execute_request(self, req: "RecordRequest") -> None:
         """Delayed execution of the request.
 
         The function is called by the QTimer after a short delay to allow
         multiple requests to be accumulated. The function pushes the
         request to the worker thread and emits the `requestIssued` signal.
         """
-        req = self.requests[req_id]
-
         # Prevent merges into this request.
         req.pushed = True
 

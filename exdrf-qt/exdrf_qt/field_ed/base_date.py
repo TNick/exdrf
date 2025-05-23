@@ -1,5 +1,5 @@
 from datetime import date, datetime
-from typing import TypeVar, Union
+from typing import Optional, TypeVar, Union
 
 from exdrf.moment import MomentFormat
 from exdrf.validator import ValidationResult
@@ -51,6 +51,7 @@ class DateBase(LineBase):
     """Base for classes that deal with date and time."""
 
     formatter: MomentFormat
+    ac_calendar: Optional[QAction] = None
 
     def __init__(
         self, format: Union[str, MomentFormat], parent=None, **kwargs
@@ -67,6 +68,8 @@ class DateBase(LineBase):
         self.textChanged.connect(self._on_text_changed)
 
     def wheelEvent(self, event):  # type: ignore[override]
+        if self._read_only:
+            return
         if self.field_value is None:
             self.change_field_value(datetime.now())
         else:
@@ -90,11 +93,13 @@ class DateBase(LineBase):
             self,
         )
         action.triggered.connect(self.open_calendar)
-        self.ac_upload = action
+        self.ac_calendar = action
         return action
 
     def open_calendar(self):
         """Opens a calendar dialog."""
+        if self._read_only:
+            return
         text = self.text()
         result = self.formatter.validate(text, self.t)
         if result.is_invalid:
@@ -121,6 +126,8 @@ class DateBase(LineBase):
 
     def _on_text_changed(self, text: str) -> None:
         """Handles text changes in the line edit."""
+        if self._read_only:
+            return
         if len(text) == 0:
             self.set_line_empty()
             return
@@ -135,6 +142,8 @@ class DateBase(LineBase):
 
     def on_editing_finished(self) -> None:
         """Handles the editing finished signal."""
+        if self._read_only:
+            return
         text = self.text()
         if len(text) == 0:
             self.set_line_empty()
@@ -167,3 +176,12 @@ class DateBase(LineBase):
                 error=self.null_error(),
             )
         return self.formatter.validate(self.text(), self.t)
+
+    def change_read_only(self, value: bool) -> None:
+        if value:
+            if self.ac_calendar is not None:
+                self.ac_calendar.setEnabled(False)
+        else:
+            if self.ac_calendar is not None:
+                self.ac_calendar.setEnabled(True)
+        super().change_read_only(value)

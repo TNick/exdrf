@@ -20,7 +20,8 @@ class DrfDateEditor(DateBase):
 
     def change_edit_mode(self, in_editing: bool) -> None:
         super().change_edit_mode(in_editing)
-        self.ac_calendar.setEnabled(in_editing)
+        if self.ac_calendar is not None:
+            self.ac_calendar.setEnabled(in_editing and not self._read_only)
 
     def change_field_value(self, new_value: Any) -> None:
         """Change the field value.
