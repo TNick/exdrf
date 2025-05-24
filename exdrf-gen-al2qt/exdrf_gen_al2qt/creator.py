@@ -1,5 +1,14 @@
 from datetime import date, datetime
-from typing import TYPE_CHECKING, Any, Dict, Generator, Tuple, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    Generator,
+    List,
+    Tuple,
+    cast,
+)
 
 import click
 import exdrf_qt.models.fields as base_classes
@@ -48,7 +57,7 @@ def get_field_value(value) -> str:
     return f"{value}"
 
 
-def base_ui_class(field: "ExField") -> str:
+def d_base_ui_class(field: "ExField") -> str:
     """Get the field base class given the field type.
 
     Args:
@@ -100,12 +109,20 @@ def base_ui_class(field: "ExField") -> str:
     # elif field.type_name == "float-list":
 
 
+def d_sr_for_ui(dset: "ExDataset", c_res: Any) -> List[str]:
+    """Default implementation of sorted_resources_for_ui."""
+    return sorted(c_res)
+
+
 def generate_qt_from_alchemy(
     d_set: "ExDataset",
     out_path: str,
     out_module: str,
     db_module: str,
     env: "Environment",
+    sr_for_ui: Callable[["ExDataset", Any], List[str]] = d_sr_for_ui,
+    base_ui_class: Callable[["ExField"], str] = d_base_ui_class,
+    **kwargs: Any,
 ):
     """Generate Qt widgets and models from SqlAlchemy models.
 
@@ -240,4 +257,6 @@ def generate_qt_from_alchemy(
         source_module=__name__,
         out_module=out_module,
         db_module=db_module,
+        sorted_resources_for_ui=sr_for_ui,
+        **kwargs,
     )

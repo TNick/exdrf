@@ -259,6 +259,16 @@ class ExResource:
         """
         return len(self.primary_fields()) == 1
 
+    @property
+    def is_connection_resource(self) -> bool:
+        """Check if the resource is a connection resource.
+
+        A connection resource is a resource that is used to connect two other
+        resources. It is not a real resource and should not be included in the
+        UI.
+        """
+        return all(f.primary for f in self.fields)
+
     def rel_import(
         self,
         other: Union["ExResource", List[str]],

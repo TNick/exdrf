@@ -97,7 +97,7 @@ class ExdrfMenus:
             parent
         )
         parent.addMenu(self.{{name}}_menu)
-        {% for res_name in sorted(c_res) %}
+        {% for res_name in sorted_resources_for_ui(dset, c_res) %}
         {%- set mdl = dset[res_name] %}
         self.open_{{ mdl.snake_case_name }}_list_ac = OpenListAc(
             self.ctx.t(
