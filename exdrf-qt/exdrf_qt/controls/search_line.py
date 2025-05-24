@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING, Callable, Generic, Optional, TypeVar
 
-from PyQt5.QtCore import Qt, QTimer, pyqtSignal, QEvent
+from PyQt5.QtCore import QEvent, Qt, QTimer, pyqtSignal
 from PyQt5.QtGui import QFocusEvent, QKeyEvent, QMouseEvent
 from PyQt5.QtWidgets import QAction, QLineEdit, QWidget
 

@@ -92,12 +92,18 @@ class ExdrfMenus:
         """Initialize the menus."""
         self.ctx = ctx
         {% for name, c_res in categ_map.items() %}
-        self.{{ name }}_menu = QMenu("{{ name.title() }}", parent)
+        self.{{ name }}_menu = QMenu(
+            self.ctx.t("menus.{{ name }}.t", "{{ name.title() }}"),
+            parent
+        )
         parent.addMenu(self.{{name}}_menu)
         {% for res_name in sorted(c_res) %}
         {%- set mdl = dset[res_name] %}
         self.open_{{ mdl.snake_case_name }}_list_ac = OpenListAc(
-            "{{ mdl.text_name }} list",
+            self.ctx.t(
+                "menus.{{ name }}.{{ mdl.snake_case_name }}.list",
+                "{{ mdl.text_name }} list"
+            ),
             self.{{name}}_menu,
             ctx,
             Qt{{ res_name }}List,

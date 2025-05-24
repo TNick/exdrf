@@ -1,10 +1,18 @@
-from typing import TYPE_CHECKING, Generic, Optional, TypeVar, cast, Set
+from typing import TYPE_CHECKING, Generic, Optional, Set, TypeVar, cast
 
 from exdrf.filter import FilterVisitor
-from PyQt5.QtCore import QRect, Qt, QEvent
-from PyQt5.QtGui import QCursor, QPen, QMouseEvent, QPainter
-from PyQt5.QtWidgets import QAction, QHeaderView, QMenu, QTreeView, QWidget
-from PyQt5.QtWidgets import QStyle, QStyleOptionHeader
+from PyQt5.QtCore import QEvent, QRect, Qt
+from PyQt5.QtGui import QCursor, QMouseEvent, QPainter, QPen
+from PyQt5.QtWidgets import (
+    QAction,
+    QHeaderView,
+    QMenu,
+    QStyle,
+    QStyleOptionHeader,
+    QTreeView,
+    QWidget,
+)
+
 from exdrf_qt.context_use import QtUseContext
 from exdrf_qt.controls.search_line import SearchLine
 from exdrf_qt.models import QtModel
