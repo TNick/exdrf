@@ -25,7 +25,7 @@
        <string>{{ (c_name if c_name else "general")| title }}</string>
       </attribute>
       <layout class="QFormLayout" name="formLayout">
-     {%- for f_i, field in enumerate(c_fields) %}
+     {%- for f_i, field in enumerate(sorted_fields_for_ui(dset, r, c_fields)) %}
      {%- if not field.fk_to %}
        <item row="{{ f_i }}" column="0">
         <widget class="QLabel" name="lbl_{{ field.name }}">

@@ -7,6 +7,7 @@ from typing import (
     Generator,
     List,
     Tuple,
+    Union,
     cast,
 )
 
@@ -124,8 +125,8 @@ def d_sr_for_ui(dset: "ExDataset", c_res: List[str]) -> List[str]:
 
 
 def d_sf_for_ui(
-    dset: "ExDataset", res: "ExResource", fields: List["ExField"]
-) -> List["ExField"]:
+    dset: "ExDataset", res: "ExResource", fields: List[Union["ExField", str]]
+) -> List[Union["ExField", str]]:
     """Default implementation of sorted_fields_for_ui.
 
     The default implementation returns the fields unmodified, as the fields
@@ -143,6 +144,18 @@ def d_sf_for_ui(
     return fields
 
 
+def d_fld_category(field: "ExField") -> str:
+    """Default implementation of set_default_fld_category.
+
+    Args:
+        field: The field to get the category for.
+
+    Returns:
+        The category for the field.
+    """
+    return field.category
+
+
 def generate_qt_from_alchemy(
     d_set: "ExDataset",
     out_path: str,
@@ -151,9 +164,11 @@ def generate_qt_from_alchemy(
     env: "Environment",
     sr_for_ui: Callable[["ExDataset", Any], List[str]] = d_sr_for_ui,
     sf_for_ui: Callable[
-        ["ExDataset", "ExResource", List["ExField"]], List["ExField"]
+        ["ExDataset", "ExResource", List[Union["ExField", str]]],
+        List[Union["ExField", str]],
     ] = d_sf_for_ui,
     base_ui_class: Callable[["ExField"], str] = d_base_ui_class,
+    set_fld_category: Callable[["ExField"], str] = d_fld_category,
     **kwargs: Any,
 ):
     """Generate Qt widgets and models from SqlAlchemy models.
@@ -165,6 +180,11 @@ def generate_qt_from_alchemy(
         DB-MODULE: The module name for the SQLAlchemy models.
     """
     click.echo("Generating Qt from exdrf...")
+
+    # Allow the caller to update field categories.
+    for res in d_set.resources:
+        for fld in res.fields:
+            fld.category = set_fld_category(fld)
 
     def get_changed_parts(
         field: "ExField", fld_attrs: Dict[str, Any], fld_base_class: str

@@ -68,7 +68,7 @@ class Qt{{ ResPascal }}FuMo(QtModel["{{ ResPascal }}"]):
             else default_{{ r.snake_case_name }}_list_selection(),
             fields=fields if fields is not None
             else [
-                {%- for field in sorted_fields_for_ui(dset, r,fields) %}
+                {%- for field in sorted_fields_for_ui(dset, r, fields) %}
                 {{ field.pascal_case_name }}Field,
                 {%- endfor %}
             ],

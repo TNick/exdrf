@@ -230,8 +230,6 @@ def all_related_models(model: "ExResource"):
 
 def all_related_label_paths(model: "ExResource"):
     result = []
-    if model.name == "Address":
-        print(result)
 
     root_join = RootJoinLoad(
         container=FieldRef(resource=model, name=model.name, is_list=False),

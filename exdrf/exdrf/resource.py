@@ -404,7 +404,9 @@ class ExResource:
         Returns:
             The sort key for the category.
         """
-        return cat
+        if cat == "general":
+            return "a-" + cat
+        return "z-" + cat
 
     def sorted_fields_and_categories(self) -> OrderedDict[str, List["ExField"]]:
         """Get a dictionary that maps categories to fields.
