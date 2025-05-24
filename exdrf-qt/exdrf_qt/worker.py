@@ -4,6 +4,7 @@ from queue import Empty, Queue
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
 from uuid import uuid4
 
+import sqlparse
 from attrs import define, field
 from PyQt5.QtCore import QObject, QThread, pyqtSignal
 from sqlalchemy import Select
@@ -148,7 +149,16 @@ class Worker(QThread):
                     session.expunge_all()
                 logger.debug("Work with ID %d completed", work.req_id)
             except Exception as e:
-                logger.error("Error while executing work: %s", e, exc_info=True)
+                logger.error(
+                    "Error while executing work: %s\n%s",
+                    e,
+                    sqlparse.format(
+                        str(work.statement),
+                        reindent=True,
+                        keyword_case="upper",
+                    ),
+                    exc_info=True,
+                )
                 work.error = e
 
             self.haveResult.emit(work.req_id)

@@ -26,6 +26,26 @@ if TYPE_CHECKING:
     from sqlalchemy import Select  # noqa: F401
 
 
+def default_{{ r.snake_case_name }}_ocm_selection():
+    from {{ db_module }}.{{ r.categories[0] }}.api import {{ r.name }} as Db{{ r.name }}
+    {%- for m in all_related_label_models %}
+    {%- if m.name != r.name %}
+    from {{ db_module }}.{{ m.categories[0] }}.api import (
+        {{ m.name }} as Db{{ m.name }}
+    )
+    {%- endif %}
+    {%- endfor %}
+
+    return (
+        select(Db{{ ResPascal }})
+
+        {%- for path in all_related_label_paths %}
+        .options(
+{{ path.stringify() }}
+        )
+        {%- endfor %}
+    )
+
 class Qt{{ ResPascal }}NaMo(Qt{{ ResPascal }}FuMo):
     """The model that contains only the label field of the
     {{ ResPascal }} table.
@@ -43,24 +63,10 @@ class Qt{{ ResPascal }}NaMo(Qt{{ ResPascal }}FuMo):
         **kwargs
     ):
         from {{ db_module }}.{{ r.categories[0] }}.api import {{ r.name }} as Db{{ r.name }}
-        {%- for m in all_related_label_models %}
-        {%- if m.name != r.name %}
-        from {{ db_module }}.{{ m.categories[0] }}.api import (
-            {{ m.name }} as Db{{ m.name }}
-        )
-        {%- endif %}
-        {%- endfor %}
 
         super().__init__(
             selection=selection if selection is not None
-            else select(Db{{ ResPascal }})
-
-            {%- for path in all_related_label_paths %}
-            .options(
-{{ path.stringify() }}
-            )
-            {%- endfor %}
-            ,
+            else default_{{ r.snake_case_name }}_ocm_selection(),
             fields=fields if fields is not None
             else [
                 {%- for field in fields %}

@@ -155,6 +155,10 @@ class JoinLoad:
             crt_model = cast("RefBaseField", crt_model[part]).ref
 
         # Add the field to the load_only list of the last join.
+        for lo in crt_join.load_only:
+            if lo.name == parts[-1]:
+                return
+
         crt_join.load_only.append(
             FieldRef(
                 resource=crt_model,
@@ -226,6 +230,8 @@ def all_related_models(model: "ExResource"):
 
 def all_related_label_paths(model: "ExResource"):
     result = []
+    if model.name == "Address":
+        print(result)
 
     root_join = RootJoinLoad(
         container=FieldRef(resource=model, name=model.name, is_list=False),
@@ -237,10 +243,10 @@ def all_related_label_paths(model: "ExResource"):
     # Go through all the fields that point to other resources
     for f_name in model.minimum_field_set():
         parts = f_name.split(".")
+        fld = model[parts[0]]
         if len(parts) > 1:
 
             # This is the reference to the related model in the source model.
-            fld = model[parts[0]]
             top_join = top_parts.get(parts[0])
             if top_join is None:
                 top_join = JoinLoad(
@@ -249,6 +255,7 @@ def all_related_label_paths(model: "ExResource"):
                     ),
                 )
                 result.append(top_join)
+                top_parts[parts[0]] = top_join
 
             assert isinstance(
                 fld, RefBaseField
@@ -256,7 +263,7 @@ def all_related_label_paths(model: "ExResource"):
             for sub_fld_name in fld.ref.minimum_field_set():
                 top_join.load(sub_fld_name, fld.ref)
 
-        else:
+        elif not fld.is_ref_type:
             root_join.load_only.append(
                 FieldRef(
                     resource=model,
@@ -274,6 +281,8 @@ def all_related_label_models(model: "ExResource"):
         jn.collect_resources(result)
 
     # Deduplicate the result based on the resource name
-    return sorted(
+    result = sorted(
         {res.name: res for res in result}.values(), key=lambda x: x.name
     )
+
+    return result

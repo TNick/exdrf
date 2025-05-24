@@ -25,6 +25,26 @@ if TYPE_CHECKING:
     from {{ db_module }}.{{ r.categories[0] }}.api import {{ ResPascal }}  # noqa: F401
 
 
+def default_{{ r.snake_case_name }}_list_selection():
+    from {{ db_module }}.{{ r.categories[0] }}.api import {{ r.name }} as Db{{ r.name }}
+    {%- for m in all_related_models %}
+    {%- if m.name != r.name %}
+    from {{ db_module }}.{{ m.categories[0] }}.api import (
+        {{ m.name }} as Db{{ m.name }}
+    )
+    {%- endif %}
+    {%- endfor %}
+
+    return (
+        select(Db{{ ResPascal }})
+        {%- for path in all_related_paths %}
+        .options(
+{{ path.stringify() }}
+        )
+        {%- endfor %}
+    )
+
+
 class Qt{{ ResPascal }}FuMo(QtModel["{{ ResPascal }}"]):
     """The model that contains all the fields of the {{ ResPascal }} table.
     """
@@ -40,29 +60,15 @@ class Qt{{ ResPascal }}FuMo(QtModel["{{ ResPascal }}"]):
         **kwargs
     ):
         from {{ db_module }}.{{ r.categories[0] }}.api import {{ r.name }} as Db{{ r.name }}
-        {%- for m in all_related_models %}
-        {%- if m.name != r.name %}
-        from {{ db_module }}.{{ m.categories[0] }}.api import (
-            {{ m.name }} as Db{{ m.name }}
-        )
-        {%- endif %}
-        {%- endfor %}
 
         super().__init__(
             ctx=ctx,
             db_model=Db{{ ResPascal }},
             selection=selection if selection is not None
-            else select(Db{{ ResPascal }})
-
-            {%- for path in all_related_paths %}
-            .options(
-{{ path.stringify() }}
-            )
-            {%- endfor %}
-            ,
+            else default_{{ r.snake_case_name }}_list_selection(),
             fields=fields if fields is not None
             else [
-                {%- for field in fields %}
+                {%- for field in sorted_fields_for_ui(dset, r,fields) %}
                 {{ field.pascal_case_name }}Field,
                 {%- endfor %}
             ],

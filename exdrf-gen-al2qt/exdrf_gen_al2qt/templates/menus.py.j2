@@ -97,6 +97,7 @@ class ExdrfMenus:
             parent
         )
         parent.addMenu(self.{{name}}_menu)
+        {% set ns = namespace(separator_added=False) %}
         {% for res_name in sorted_resources_for_ui(dset, c_res) %}
         {%- set mdl = dset[res_name] %}
         self.open_{{ mdl.snake_case_name }}_list_ac = OpenListAc(
@@ -108,7 +109,11 @@ class ExdrfMenus:
             ctx,
             Qt{{ res_name }}List,
         )
-        {%- endfor %}
+        {%- if not ns.separator_added and mdl.is_connection_resource %}
+        self.{{name}}_menu.addSeparator()
+        {%- set ns.separator_added = True %}
+        {%- endif %}
+        {% endfor %}
         {% endfor %}
         self.show_conn_settings_ac = QAction(
             "Connection settings", parent
@@ -117,6 +122,7 @@ class ExdrfMenus:
             lambda: SelectDatabaseDlg.change_connection_str(ctx)  # type: ignore
         )
         parent.addAction(self.show_conn_settings_ac)
+        
         # exdrf-keep-start extra_menus_init -----------------------------------
 {{extra_menus_init}}
         # exdrf-keep-end extra_menus_init -------------------------------------

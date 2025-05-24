@@ -110,7 +110,7 @@ class Base:
                         start_match = PER_REGEX.match(line)
                         if start_match:
                             in_preserved = start_match.group(1)
-                            preserved_lines: List[str] = []
+                            preserved_lines = []
                         elif in_preserved:
                             preserved_lines.append(line)
             if in_preserved:

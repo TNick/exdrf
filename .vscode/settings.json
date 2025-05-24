@@ -80,6 +80,7 @@
         "Spyder",
         "spyderproject",
         "spyproject",
+        "sqlparse",
         "startswith",
         "stdset",
         "tablename",

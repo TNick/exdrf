@@ -380,7 +380,7 @@ class ExResource:
         of sorted fields in that category. The fields are sorted using the
         `field_sort_key()` key.
         """
-        categories = {}
+        categories: Dict[str, List["ExField"]] = {}
         for f in self.sorted_fields():
             category = f.category
             lst = categories.get(category, None)

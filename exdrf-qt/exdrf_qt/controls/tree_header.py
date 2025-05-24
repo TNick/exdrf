@@ -86,8 +86,8 @@ class HeaderViewWithMenu(QHeaderView, QtUseContext, Generic[DBM]):
             # Check if the mouse is inside the activation area.
             if full_size.contains(e.pos()):
                 self.show_search_line(section)
-                assert self.search_line is not None
-                self.search_line.permanent = False
+                if self.search_line is not None:
+                    self.search_line.permanent = False
         elif (
             self.search_line is not None
             and not self.search_line.permanent

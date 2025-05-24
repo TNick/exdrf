@@ -15,10 +15,12 @@ from typing import (
     cast,
 )
 
+import sqlparse
 from exdrf.constants import RecIdType
 from exdrf.filter import FilterType
 from PyQt5.QtCore import QAbstractItemModel, QModelIndex, Qt, QTimer, pyqtSignal
 from sqlalchemy import func, select, tuple_
+from sqlalchemy.exc import SQLAlchemyError
 
 from exdrf_qt.context_use import QtUseContext
 from exdrf_qt.models.cache import SparseList
@@ -622,7 +624,21 @@ class QtModel(
                 conditions.append(col == value)
 
         with self.ctx.same_session() as session:
-            return session.scalar(self.selection.where(*conditions))
+            selector = select(self.db_model).where(*conditions)
+            try:
+                return session.scalar(selector)
+            except SQLAlchemyError as e:
+                logger.error(
+                    "SqlAlchemy error '%s' getting item by ID '%s' in QtModel "
+                    "'%s' with statement:\n%s",
+                    e,
+                    rec_id,
+                    self.name,
+                    sqlparse.format(
+                        str(selector), reindent=True, keyword_case="upper"
+                    ),
+                )
+                raise e
 
     def get_db_items_by_id(
         self, rec_ids: List[RecIdType]

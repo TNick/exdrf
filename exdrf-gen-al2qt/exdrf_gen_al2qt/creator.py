@@ -27,6 +27,7 @@ if TYPE_CHECKING:
     from exdrf.dataset import ExDataset
     from exdrf.field import ExField
     from exdrf.field_types.str_field import StrField
+    from exdrf.resource import ExResource
     from jinja2 import Environment
 
 
@@ -109,9 +110,37 @@ def d_base_ui_class(field: "ExField") -> str:
     # elif field.type_name == "float-list":
 
 
-def d_sr_for_ui(dset: "ExDataset", c_res: Any) -> List[str]:
-    """Default implementation of sorted_resources_for_ui."""
+def d_sr_for_ui(dset: "ExDataset", c_res: List[str]) -> List[str]:
+    """Default implementation of sorted_resources_for_ui.
+
+    Args:
+        dset: The dataset to generate the code for.
+        c_res: The list of resource names to sort.
+
+    Returns:
+        A list of resource names sorted for UI presentation.
+    """
     return sorted(c_res)
+
+
+def d_sf_for_ui(
+    dset: "ExDataset", res: "ExResource", fields: List["ExField"]
+) -> List["ExField"]:
+    """Default implementation of sorted_fields_for_ui.
+
+    The default implementation returns the fields unmodified, as the fields
+    will have been already sorted by the `ExResource.sorted_fields()` using
+    the `ExResource.field_sort_key()` method.
+
+    Args:
+        dset: The dataset to generate the code for.
+        res: The resource to generate the code for.
+        fields: The list of fields to sort.
+
+    Returns:
+        A list of fields sorted for UI presentation.
+    """
+    return fields
 
 
 def generate_qt_from_alchemy(
@@ -121,6 +150,9 @@ def generate_qt_from_alchemy(
     db_module: str,
     env: "Environment",
     sr_for_ui: Callable[["ExDataset", Any], List[str]] = d_sr_for_ui,
+    sf_for_ui: Callable[
+        ["ExDataset", "ExResource", List["ExField"]], List["ExField"]
+    ] = d_sf_for_ui,
     base_ui_class: Callable[["ExField"], str] = d_base_ui_class,
     **kwargs: Any,
 ):
@@ -258,5 +290,6 @@ def generate_qt_from_alchemy(
         out_module=out_module,
         db_module=db_module,
         sorted_resources_for_ui=sr_for_ui,
+        sorted_fields_for_ui=sf_for_ui,
         **kwargs,
     )
