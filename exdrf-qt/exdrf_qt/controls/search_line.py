@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING, Callable, Generic, Optional, TypeVar
 
-from PyQt5.QtCore import Qt, QTimer, pyqtSignal
-from PyQt5.QtGui import QFocusEvent, QKeyEvent
+from PyQt5.QtCore import Qt, QTimer, pyqtSignal, QEvent
+from PyQt5.QtGui import QFocusEvent, QKeyEvent, QMouseEvent
 from PyQt5.QtWidgets import QAction, QLineEdit, QWidget
 
 from exdrf_qt.context_use import QtUseContext
@@ -18,16 +18,40 @@ DBM = TypeVar("DBM")
 
 
 class SearchLine(QLineEdit, QtUseContext, Generic[DBM]):
-    """A text line that is used to search a model."""
+    """A text line that is used to search a model.
+
+    Attributes:
+        initial_text: The initial text of the search line.
+        _search_timer: The timer that is used to delay the search.
+        _callback: The callback that is called when the search term changes.
+        _exact_search_enabled: Whether exact search is enabled.
+        ac_exact: The action that is used to toggle exact search.
+        permanent: Whether the search line is permanent. This class simply
+            provides storage for this property. The parent can use it to
+            only show the search line when the mouse hovers over the header,
+            for example. The property changes to True when the user starts
+            typing or when the user clicks on the search line.
+
+    Signals:
+        hide_and_apply_search: Signal to indicate search should be applied and
+            the line hidden.
+        hide_and_cancel_search: Signal to indicate search should be cancelled
+            and the line hidden.
+    """
 
     # Signal to indicate search should be applied and the line hidden
     # Arguments: search_text (str), is_exact_match (bool)
     hide_and_apply_search = pyqtSignal(str, bool)
 
+    # Signal to indicate search should be cancelled and the line hidden
+    hide_and_cancel_search = pyqtSignal()
+
     _search_timer: Optional[QTimer]
     _callback: Callable[[str, bool], None]
     _exact_search_enabled: bool
     ac_exact: QAction
+    initial_text: str
+    permanent: bool
 
     def __init__(
         self,
@@ -36,7 +60,9 @@ class SearchLine(QLineEdit, QtUseContext, Generic[DBM]):
         parent: Optional["QWidget"] = None,
     ):
         super().__init__(parent)
+        self.permanent = False
         self.ctx = ctx
+        self.initial_text = ""
         self._search_timer = None
         self._callback = callback
         self._exact_search_enabled = False
@@ -114,14 +140,38 @@ class SearchLine(QLineEdit, QtUseContext, Generic[DBM]):
         )
         self._search_timer.start()
 
+    def leaveEvent(self, e: Optional[QEvent]) -> None:  # type: ignore
+        """Handle mouse leaving the header widget.
+
+        This ensures we hide the search line when mouse moves outside the
+        header, since mouseMoveEvent won't fire once outside the widget bounds.
+        """
+        if (
+            not self.rect().contains(self.mapFromGlobal(self.cursor().pos()))
+            and not self.permanent
+        ):
+            self.hide_and_cancel_search.emit()
+        super().leaveEvent(e)
+
+    def mousePressEvent(self, e: Optional[QMouseEvent]) -> None:  # type: ignore
+        """Handle mouse press events."""
+        self.permanent = True
+        if e:  # Ensure e is not None before calling super
+            super().mousePressEvent(e)
+
     def keyPressEvent(self, e: Optional[QKeyEvent]) -> None:  # type: ignore
         """Handle key press events."""
+        self.permanent = True
         if e and e.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
-            # On Enter, finalize search and request to be hidden
-            self.hide_and_apply_search.emit(
-                self.text(), self._exact_search_enabled
-            )
+            new_text = self.text()
+            if new_text != self.initial_text:
+                # On Enter, finalize search and request to be hidden
+                self.hide_and_apply_search.emit(
+                    new_text, self._exact_search_enabled
+                )
             e.accept()
+        elif e and e.key() == Qt.Key.Key_Escape:
+            self.hide_and_cancel_search.emit()
         elif e:  # Ensure e is not None before calling super
             super().keyPressEvent(e)
 
@@ -130,7 +180,20 @@ class SearchLine(QLineEdit, QtUseContext, Generic[DBM]):
         event: Optional[QFocusEvent],
     ) -> None:
         """Handle focus out event."""
-        # When focus is lost, finalize search and request to be hidden
-        self.hide_and_apply_search.emit(self.text(), self._exact_search_enabled)
+        new_text = self.text()
+        if new_text != self.initial_text:
+            # When focus is lost, finalize search and request to be hidden
+            self.hide_and_apply_search.emit(
+                new_text, self._exact_search_enabled
+            )
         # Call super with the event, whether it's None or a QFocusEvent object
         super().focusOutEvent(event)
+
+    def setText(self, text: str) -> None:  # type: ignore
+        """Set the text of the search line.
+
+        We keep track of the initial text that was set. If the text does not
+        change, we do not emit the search signal.
+        """
+        super().setText(text)
+        self.initial_text = text

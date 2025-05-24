@@ -792,15 +792,18 @@ class QtModel(
 
         The function clears the cache and resets the total count.
         """
-        self.beginResetModel()
-        self.sort_by = [
-            (
-                self.column_fields[column].name,
-                "asc" if order == Qt.SortOrder.AscendingOrder else "desc",
-            )
-        ]
-        self.reset_model()
-        self.endResetModel()
+        try:
+            self.beginResetModel()
+            self.sort_by = [
+                (
+                    self.column_fields[column].name,
+                    "asc" if order == Qt.SortOrder.AscendingOrder else "desc",
+                )
+            ]
+            self.reset_model()
+            self.endResetModel()
+        except Exception as e:
+            logger.error("Error sorting model: %s", e, exc_info=True)
 
     def apply_filter(self, filter: Union[FilterType, None]) -> None:
         """Sort the model by the given column and order.
