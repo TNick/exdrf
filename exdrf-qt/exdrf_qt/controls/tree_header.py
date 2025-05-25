@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING, Generic, Optional, Set, TypeVar, cast
 
-from exdrf.filter import FieldFilter, FilterVisitor
+from exdrf.filter import FieldFilter, FilterVisitor, insert_quick_search
 from PyQt5.QtCore import QEvent, QRect, Qt
 from PyQt5.QtGui import QCursor, QMouseEvent, QPainter, QPen
 from PyQt5.QtWidgets import (
@@ -294,11 +294,6 @@ class HeaderViewWithMenu(QHeaderView, QtUseContext, Generic[DBM]):
             exact: Whether the filter should be an exact match.
         """
         self.apply_filter(section, text, exact)
-        if text:
-            self.filtered_sections.add(section)
-        else:
-            self.filtered_sections.discard(section)
-
         self.hide_search_line()
 
     def apply_filter(self, section: int, text: str, exact: bool):
@@ -309,53 +304,25 @@ class HeaderViewWithMenu(QHeaderView, QtUseContext, Generic[DBM]):
             text: The text to filter the data by.
             exact: Whether the filter should be an exact match.
         """
+        text = text.strip()
+        if text:
+            self.filtered_sections.add(section)
+        else:
+            self.filtered_sections.discard(section)
+
         assert self.search_line is not None
         if text == self.search_line.initial_text:
             return
 
-        filter = self.qt_model.filters
-        if filter is None:
-            if text == "":
-                return
-            filter = []
-        elif not isinstance(filter, list):
-            filter = [filter]
-
-        fld_name = self.qt_model.column_fields[section].name
-
-        wrap_after = None
-        if isinstance(filter, list) and len(filter) == 2:
-            if isinstance(filter[0], str) and filter[0].lower() in (
-                "and",
-                "or",
-            ):
-                wrap_after = filter[0].lower()
-                filter = filter[1]
-
-        # Get rid of previous filters on this field.
-        filter = [
-            flt
-            for flt in filter
-            if not isinstance(flt, dict)
-            or flt["fld"] != fld_name  # type: ignore
-        ]
-
-        # Add the new filter.
-        if text != "":
-            if not exact:
-                text = text.replace(" ", "%")
-                if "*" not in text:
-                    if "%" not in text:
-                        text = f"%{text}%"
-                else:
-                    text = text.replace("*", "%")
-            filter.append(FieldFilter(fld=fld_name, op="ilike", vl=text))
-
-        if wrap_after is not None:
-            filter = [wrap_after, filter]
-
         try:
-            self.qt_model.apply_filter(filter)  # type: ignore
+            self.qt_model.apply_filter(
+                insert_quick_search(
+                    self.qt_model.column_fields[section].name,
+                    text,
+                    self.qt_model.filters,
+                    exact,
+                )
+            )  # type: ignore
         except Exception as e:
             self.ctx.show_error(
                 title=self.t("cmn.error", "Error"),
