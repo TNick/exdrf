@@ -10,6 +10,8 @@ from exdrf_qt.models.fields import Qt{{ fld_bc }}Field
 {%- if fld_is_ref %}
 from exdrf.constants import RecIdType
 {%- endif %}
+from exdrf_qt.models.fi_op import filter_op_registry
+from sqlalchemy import or_
 
 # exdrf-keep-start other_imports ----------------------------------------------
 {{other_imports}}
@@ -21,6 +23,8 @@ if TYPE_CHECKING:
     from {{ db_module }}.{{ field.ref.categories[0] }}.api import {{ field.ref.pascal_case_name }}  # noqa: F401
     from exdrf.resource import ExResource  # noqa: F401
     {%- endif %}
+    from exdrf_qt.models.selector import Selector
+    from exdrf.filter import FieldFilter
 
 
 @define
@@ -67,6 +71,28 @@ class {{ FldPascal }}Field(Qt{{ fld_bc }}Field["{{ ResPascal }}"]):
     def part_label(self, record: "{{ field.ref.pascal_case_name }}") -> str:
         """Compute the label for one of the components of the field."""
         return {{ field.ref.label_to_python() }}
+    
+    def apply_filter(self, item: "FieldFilter", selector: "Selector") -> Any:
+        from {{ db_module }}.{{ field.ref.categories[0] }}.api import {{ field.ref.name }} as Db{{ field.ref.name }}
+        predicate = filter_op_registry[item.op].predicate
+        selector.joins.append(getattr(self.resource.db_model, self.name))
+
+        {% if len(field.ref.get_fields_for_ref_filtering()) == 1 -%}
+        return predicate(
+            Db{{ field.ref.name }}.{{ field.ref.get_fields_for_ref_filtering()[0].name }},
+            item.vl,
+        )
+        {%- else %}
+        return or_(
+            {%- for other_f in field.ref.get_fields_for_ref_filtering() %}
+            predicate(
+                Db{{ field.ref.name }}.{{ other_f.name }},
+                item.vl,
+            ),
+            {%- endfor %}
+        )
+        {%- endif %}
+
     {%- endif %}
 
     # exdrf-keep-start extra_field_content ------------------------------------

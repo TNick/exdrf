@@ -274,7 +274,7 @@ def all_related_label_paths(model: "ExResource"):
 
 
 def all_related_label_models(model: "ExResource"):
-    result = list()
+    result: List["ExResource"] = []
     for jn in all_related_label_paths(model):
         jn.collect_resources(result)
 

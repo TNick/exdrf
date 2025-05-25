@@ -1,5 +1,5 @@
 # This file was automatically generated using the exdrf_gen package.
-# Source: exdrf_gen_al2qt -> c/m/m_ful.py.j2
+# Source: exdrf_gen_al2qt.creator -> c/m/m_ful.py.j2
 # Don't change it manually.
 
 from typing import TYPE_CHECKING, Union
@@ -27,6 +27,40 @@ if TYPE_CHECKING:
     from exdrf_dev.db.api import Parent  # noqa: F401
 
 
+def default_parent_list_selection():
+    from exdrf_dev.db.api import Child as DbChild
+    from exdrf_dev.db.api import Parent as DbParent
+    from exdrf_dev.db.api import Profile as DbProfile
+    from exdrf_dev.db.api import Tag as DbTag
+
+    return (
+        select(DbParent)
+        .options(
+            selectinload(DbParent.children).load_only(
+                DbChild.data,
+                DbChild.id,
+            ),
+            selectinload(DbParent.children)
+            .joinedload(DbChild.parent)
+            .load_only(
+                DbParent.name,
+            ),
+        )
+        .options(
+            joinedload(DbParent.profile).load_only(
+                DbProfile.bio,
+                DbProfile.id,
+            ),
+        )
+        .options(
+            selectinload(DbParent.tags).load_only(
+                DbTag.id,
+                DbTag.name,
+            ),
+        )
+    )
+
+
 class QtParentFuMo(QtModel["Parent"]):
     """The model that contains all the fields of the Parent table."""
 
@@ -41,10 +75,7 @@ class QtParentFuMo(QtModel["Parent"]):
         fields=None,
         **kwargs,
     ):
-        from exdrf_dev.db.api import Child as DbChild
         from exdrf_dev.db.api import Parent as DbParent
-        from exdrf_dev.db.api import Profile as DbProfile
-        from exdrf_dev.db.api import Tag as DbTag
 
         super().__init__(
             ctx=ctx,
@@ -52,30 +83,7 @@ class QtParentFuMo(QtModel["Parent"]):
             selection=(
                 selection
                 if selection is not None
-                else select(DbParent)
-                .options(
-                    selectinload(DbParent.children).load_only(
-                        DbChild.data,
-                        DbChild.id,
-                    ),
-                    selectinload(DbParent.children)
-                    .joinedload(DbChild.parent)
-                    .load_only(
-                        DbParent.name,
-                    ),
-                )
-                .options(
-                    joinedload(DbParent.profile).load_only(
-                        DbProfile.bio,
-                        DbProfile.id,
-                    ),
-                )
-                .options(
-                    selectinload(DbParent.tags).load_only(
-                        DbTag.id,
-                        DbTag.name,
-                    ),
-                )
+                else default_parent_list_selection()
             ),
             fields=(
                 fields

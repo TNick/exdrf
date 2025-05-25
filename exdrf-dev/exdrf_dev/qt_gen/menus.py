@@ -1,5 +1,5 @@
 # This file was automatically generated using the exdrf_gen package.
-# Source: exdrf_gen_al2qt -> menus.py.j2
+# Source: exdrf_gen_al2qt.creator -> menus.py.j2
 # Don't change it manually.
 import logging
 from typing import TYPE_CHECKING, Type
@@ -97,47 +97,59 @@ class ExdrfMenus:
         """Initialize the menus."""
         self.ctx = ctx
 
-        self.db_menu = QMenu("Db", parent)
+        self.db_menu = QMenu(self.ctx.t("menus.db.t", "Db"), parent)
         parent.addMenu(self.db_menu)
 
         self.open_child_list_ac = OpenListAc(
-            "Child list",
+            self.ctx.t("menus.db.child.list", "Child list"),
             self.db_menu,
             ctx,
             QtChildList,
         )
+
         self.open_composite_key_model_list_ac = OpenListAc(
-            "Composite key model list",
+            self.ctx.t(
+                "menus.db.composite_key_model.list", "Composite key model list"
+            ),
             self.db_menu,
             ctx,
             QtCompositeKeyModelList,
         )
+
         self.open_parent_list_ac = OpenListAc(
-            "Parent list",
+            self.ctx.t("menus.db.parent.list", "Parent list"),
             self.db_menu,
             ctx,
             QtParentList,
         )
+
         self.open_parent_tag_association_list_ac = OpenListAc(
-            "Parent tag association list",
+            self.ctx.t(
+                "menus.db.parent_tag_association.list",
+                "Parent tag association list",
+            ),
             self.db_menu,
             ctx,
             QtParentTagAssociationList,
         )
+        self.db_menu.addSeparator()
+
         self.open_profile_list_ac = OpenListAc(
-            "Profile list",
+            self.ctx.t("menus.db.profile.list", "Profile list"),
             self.db_menu,
             ctx,
             QtProfileList,
         )
+
         self.open_related_item_list_ac = OpenListAc(
-            "Related item list",
+            self.ctx.t("menus.db.related_item.list", "Related item list"),
             self.db_menu,
             ctx,
             QtRelatedItemList,
         )
+
         self.open_tag_list_ac = OpenListAc(
-            "Tag list",
+            self.ctx.t("menus.db.tag.list", "Tag list"),
             self.db_menu,
             ctx,
             QtTagList,
@@ -148,6 +160,7 @@ class ExdrfMenus:
             lambda: SelectDatabaseDlg.change_connection_str(ctx)  # type: ignore
         )
         parent.addAction(self.show_conn_settings_ac)
+
         # exdrf-keep-start extra_menus_init -----------------------------------
 
         # exdrf-keep-end extra_menus_init -------------------------------------

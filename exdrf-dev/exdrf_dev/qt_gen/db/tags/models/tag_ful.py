@@ -1,5 +1,5 @@
 # This file was automatically generated using the exdrf_gen package.
-# Source: exdrf_gen_al2qt -> c/m/m_ful.py.j2
+# Source: exdrf_gen_al2qt.creator -> c/m/m_ful.py.j2
 # Don't change it manually.
 
 from typing import TYPE_CHECKING, Union
@@ -23,6 +23,18 @@ if TYPE_CHECKING:
     from exdrf_dev.db.api import Tag  # noqa: F401
 
 
+def default_tag_list_selection():
+    from exdrf_dev.db.api import Parent as DbParent
+    from exdrf_dev.db.api import Tag as DbTag
+
+    return select(DbTag).options(
+        selectinload(DbTag.parents).load_only(
+            DbParent.id,
+            DbParent.name,
+        ),
+    )
+
+
 class QtTagFuMo(QtModel["Tag"]):
     """The model that contains all the fields of the Tag table."""
 
@@ -37,7 +49,6 @@ class QtTagFuMo(QtModel["Tag"]):
         fields=None,
         **kwargs,
     ):
-        from exdrf_dev.db.api import Parent as DbParent
         from exdrf_dev.db.api import Tag as DbTag
 
         super().__init__(
@@ -46,12 +57,7 @@ class QtTagFuMo(QtModel["Tag"]):
             selection=(
                 selection
                 if selection is not None
-                else select(DbTag).options(
-                    selectinload(DbTag.parents).load_only(
-                        DbParent.id,
-                        DbParent.name,
-                    ),
-                )
+                else default_tag_list_selection()
             ),
             fields=(
                 fields

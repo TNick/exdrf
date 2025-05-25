@@ -1,5 +1,5 @@
 # This file was automatically generated using the exdrf_gen package.
-# Source: exdrf_gen_al2qt -> c/m/m_ful.py.j2
+# Source: exdrf_gen_al2qt.creator -> c/m/m_ful.py.j2
 # Don't change it manually.
 
 from typing import TYPE_CHECKING, Union
@@ -50,6 +50,17 @@ if TYPE_CHECKING:
     from exdrf_dev.db.api import CompositeKeyModel  # noqa: F401
 
 
+def default_composite_key_model_list_selection():
+    from exdrf_dev.db.api import CompositeKeyModel as DbCompositeKeyModel
+    from exdrf_dev.db.api import RelatedItem as DbRelatedItem
+
+    return select(DbCompositeKeyModel).options(
+        selectinload(DbCompositeKeyModel.related_items).load_only(
+            DbRelatedItem.id,
+        ),
+    )
+
+
 class QtCompositeKeyModelFuMo(QtModel["CompositeKeyModel"]):
     """The model that contains all the fields of the CompositeKeyModel table."""
 
@@ -65,7 +76,6 @@ class QtCompositeKeyModelFuMo(QtModel["CompositeKeyModel"]):
         **kwargs,
     ):
         from exdrf_dev.db.api import CompositeKeyModel as DbCompositeKeyModel
-        from exdrf_dev.db.api import RelatedItem as DbRelatedItem
 
         super().__init__(
             ctx=ctx,
@@ -73,11 +83,7 @@ class QtCompositeKeyModelFuMo(QtModel["CompositeKeyModel"]):
             selection=(
                 selection
                 if selection is not None
-                else select(DbCompositeKeyModel).options(
-                    selectinload(DbCompositeKeyModel.related_items).load_only(
-                        DbRelatedItem.id,
-                    ),
-                )
+                else default_composite_key_model_list_selection()
             ),
             fields=(
                 fields

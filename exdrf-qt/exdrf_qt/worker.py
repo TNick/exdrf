@@ -56,12 +56,12 @@ class Relay(QObject):
         """
         work = self.data.pop(work_id, None)
         if work is None:
-            logger.debug("Work with ID %d not found in data", work_id)
+            logger.debug("Work with ID %s not found in data", work_id)
             return
 
         try:
             work.callback(work)
-            logger.debug("Work with ID %d completed successfully", work_id)
+            logger.debug("Work with ID %s completed successfully", work_id)
         except Exception as e:
             logger.error("Exception while handling the work result: %s", e)
 
@@ -147,7 +147,7 @@ class Worker(QThread):
                 with self.cn.session() as session:
                     work.result = list(session.scalars(work.statement))
                     session.expunge_all()
-                logger.debug("Work with ID %d completed", work.req_id)
+                logger.debug("Work with ID %s completed", work.req_id)
             except Exception as e:
                 logger.error(
                     "Error while executing work: %s\n%s",

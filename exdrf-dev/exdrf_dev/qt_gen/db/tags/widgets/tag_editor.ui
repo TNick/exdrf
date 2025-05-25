@@ -30,6 +30,9 @@
          <property name="text">
           <string>Name </string>
          </property>
+         <property name="buddy">
+          <cstring>c_name</cstring>
+         </property>
         </widget>
        </item>
        <item row="0" column="1">
@@ -47,12 +50,18 @@
          <property name="text">
           <string>Parents </string>
          </property>
+         <property name="buddy">
+          <cstring>c_parents</cstring>
+         </property>
         </widget>
        </item>
        <item row="1" column="1">
         <widget class="QtParentMuSe" name="c_parents">
          <property name="name" stdset="0">
           <string notr="true">parents</string>
+         </property>
+         <property name="clearable" stdset="0">
+          <bool>true</bool>
          </property>
         
         </widget>
@@ -71,6 +80,9 @@
         <widget class="QLabel" name="lbl_id">
          <property name="text">
           <string>Id </string>
+         </property>
+         <property name="buddy">
+          <cstring>c_id</cstring>
          </property>
         </widget>
        </item>

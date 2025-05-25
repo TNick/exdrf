@@ -83,6 +83,7 @@ class Ui_QtParentEditor:
         )
         self.c_children = QtChildMuSe(parent=self.tab_general, ctx=self.ctx)
         self.c_children.setProperty("name", "children")
+        self.c_children.setProperty("clearable", True)
         self.c_children.setObjectName("c_children")
         self.formLayout.setWidget(
             0, QtWidgets.QFormLayout.FieldRole, self.c_children
@@ -129,6 +130,7 @@ class Ui_QtParentEditor:
         )
         self.c_profile = QtProfileSiSe(parent=self.tab_general, ctx=self.ctx)
         self.c_profile.setProperty("name", "profile")
+        self.c_profile.setProperty("clearable", True)
         self.c_profile.setObjectName("c_profile")
         self.formLayout.setWidget(
             4, QtWidgets.QFormLayout.FieldRole, self.c_profile
@@ -140,6 +142,7 @@ class Ui_QtParentEditor:
         )
         self.c_tags = QtTagMuSe(parent=self.tab_general, ctx=self.ctx)
         self.c_tags.setProperty("name", "tags")
+        self.c_tags.setProperty("clearable", True)
         self.c_tags.setObjectName("c_tags")
         self.formLayout.setWidget(
             5, QtWidgets.QFormLayout.FieldRole, self.c_tags
@@ -162,6 +165,13 @@ class Ui_QtParentEditor:
         )
         self.main_tab.addTab(self.tab_keys, "")
         self.verticalLayout.addWidget(self.main_tab)
+        self.lbl_children.setBuddy(self.c_children)
+        self.lbl_created_at.setBuddy(self.c_created_at)
+        self.lbl_is_active.setBuddy(self.c_is_active)
+        self.lbl_name.setBuddy(self.c_name)
+        self.lbl_profile.setBuddy(self.c_profile)
+        self.lbl_tags.setBuddy(self.c_tags)
+        self.lbl_id.setBuddy(self.c_id)
 
         self.retranslate_ui(QtParentEditor)
         self.main_tab.setCurrentIndex(0)

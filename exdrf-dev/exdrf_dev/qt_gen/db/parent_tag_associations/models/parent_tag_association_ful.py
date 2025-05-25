@@ -1,5 +1,5 @@
 # This file was automatically generated using the exdrf_gen package.
-# Source: exdrf_gen_al2qt -> c/m/m_ful.py.j2
+# Source: exdrf_gen_al2qt.creator -> c/m/m_ful.py.j2
 # Don't change it manually.
 
 from typing import TYPE_CHECKING, Union
@@ -23,6 +23,12 @@ if TYPE_CHECKING:
     from sqlalchemy import Select  # noqa: F401
 
     from exdrf_dev.db.api import ParentTagAssociation  # noqa: F401
+
+
+def default_parent_tag_association_list_selection():
+    from exdrf_dev.db.api import ParentTagAssociation as DbParentTagAssociation
+
+    return select(DbParentTagAssociation)
 
 
 class QtParentTagAssociationFuMo(QtModel["ParentTagAssociation"]):
@@ -49,7 +55,7 @@ class QtParentTagAssociationFuMo(QtModel["ParentTagAssociation"]):
             selection=(
                 selection
                 if selection is not None
-                else select(DbParentTagAssociation)
+                else default_parent_tag_association_list_selection()
             ),
             fields=(
                 fields

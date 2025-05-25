@@ -30,12 +30,18 @@
          <property name="text">
           <string>Comp Key Owner </string>
          </property>
+         <property name="buddy">
+          <cstring>c_comp_key_owner</cstring>
+         </property>
         </widget>
        </item>
        <item row="0" column="1">
         <widget class="QtCompositeKeyModelSiSe" name="c_comp_key_owner">
          <property name="name" stdset="0">
           <string notr="true">comp_key_owner</string>
+         </property>
+         <property name="clearable" stdset="0">
+          <bool>true</bool>
          </property>
         
         </widget>
@@ -46,6 +52,9 @@
         <widget class="QLabel" name="lbl_comp_key_part1">
          <property name="text">
           <string>Comp Key Part1 </string>
+         </property>
+         <property name="buddy">
+          <cstring>c_comp_key_part1</cstring>
          </property>
         </widget>
        </item>
@@ -64,6 +73,9 @@
          <property name="text">
           <string>Comp Key Part2 </string>
          </property>
+         <property name="buddy">
+          <cstring>c_comp_key_part2</cstring>
+         </property>
         </widget>
        </item>
        <item row="2" column="1">
@@ -81,12 +93,18 @@
          <property name="text">
           <string>Item Data </string>
          </property>
+         <property name="buddy">
+          <cstring>c_item_data</cstring>
+         </property>
         </widget>
        </item>
        <item row="3" column="1">
         <widget class="DrfLineEditor" name="c_item_data">
          <property name="name" stdset="0">
           <string notr="true">item_data</string>
+         </property>
+         <property name="clearable" stdset="0">
+          <bool>true</bool>
          </property>
         
         </widget>
@@ -98,12 +116,18 @@
          <property name="text">
           <string>Some Int </string>
          </property>
+         <property name="buddy">
+          <cstring>c_some_int</cstring>
+         </property>
         </widget>
        </item>
        <item row="4" column="1">
         <widget class="DrfIntEditor" name="c_some_int">
          <property name="name" stdset="0">
           <string notr="true">some_int</string>
+         </property>
+         <property name="clearable" stdset="0">
+          <bool>true</bool>
          </property>
         
         </widget>
@@ -122,6 +146,9 @@
         <widget class="QLabel" name="lbl_id">
          <property name="text">
           <string>Id </string>
+         </property>
+         <property name="buddy">
+          <cstring>c_id</cstring>
          </property>
         </widget>
        </item>

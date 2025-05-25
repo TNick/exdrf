@@ -17,7 +17,7 @@ from typing import (
 
 import sqlparse
 from exdrf.constants import RecIdType
-from exdrf.filter import FilterType
+from exdrf.filter import FieldFilter, FilterType, validate_filter
 from PyQt5.QtCore import QAbstractItemModel, QModelIndex, Qt, QTimer, pyqtSignal
 from sqlalchemy import func, select, tuple_
 from sqlalchemy.exc import SQLAlchemyError
@@ -44,6 +44,19 @@ DBM = TypeVar("DBM")
 logger = logging.getLogger(__name__)
 
 
+def compare_filters(f1, f2):
+    if isinstance(f1, (list, tuple)) and isinstance(f2, (list, tuple)):
+        if len(f1) != len(f2):
+            return False
+        return all(compare_filters(i1, i2) for i1, i2 in zip(f1, f2))
+    else:
+        if isinstance(f1, dict):
+            f1 = FieldFilter(**f1)
+        if isinstance(f2, dict):
+            f2 = FieldFilter(**f2)
+        return f1 == f2
+
+
 class QtModel(
     QtUseContext,
     RecordRequestManager,
@@ -55,7 +68,8 @@ class QtModel(
 
     To change filtering or sorting change the `filters` and `sort_by`
     parameters then call the `reset_model` method. The cache will be cleared
-    and the total count will be recomputed.
+    and the total count will be recomputed. You can also use apply_filter()
+    and apply_simple_search() methods to change the filters.
 
     Attributes:
         ctx: The top level context.
@@ -101,7 +115,7 @@ class QtModel(
     selection: "Select"
     base_selection: "Select"
     sort_by: List[Tuple[str, Literal["asc", "desc"]]]
-    filters: FilterType
+    _filters: FilterType
     cache: SparseList["QtRecord"]
     batch_size: int
     _total_count: int
@@ -156,7 +170,7 @@ class QtModel(
         )
         self.base_selection = self.selection
         self.sort_by = []
-        self.filters = []
+        self._filters = []
         self.batch_size = batch_size
         self.cache = SparseList(lambda: QtRecord(model=self, db_id=-1))
 
@@ -233,6 +247,24 @@ class QtModel(
         return self.db_model.__name__
 
     @property
+    def filters(self) -> FilterType:
+        """Return the filters."""
+        return self._filters
+
+    @filters.setter
+    def filters(self, value: FilterType) -> None:
+        """Set the filters."""
+        validate_result = validate_filter(value)
+        if validate_result:
+            error = (
+                f"Invalid filters: {validate_result[0]} "
+                f"{'->'.join(validate_result[1:])}"
+            )
+            logger.error(error)
+            raise ValueError(error)
+        self._filters = value
+
+    @property
     def filtered_selection(self) -> "Select":
         """Return the selection with filtering applied.
 
@@ -247,7 +279,7 @@ class QtModel(
             return (
                 Selector[DBM]
                 .from_qt_model(self)  # type: ignore
-                .run(self.filters)
+                .run(self._filters)
             )
         except Exception:
             logger.error("Error applying filters", exc_info=True)
@@ -684,7 +716,7 @@ class QtModel(
             selection=self.base_selection,
             prevent_total_count=True,
         )
-        result.filters = self.filters
+        result.filters = self._filters
         result.sort_by = self.sort_by
         result.total_count = self.recalculate_total_count()
         result.loaded_count = -1
@@ -826,10 +858,33 @@ class QtModel(
 
         The function clears the cache and resets the total count.
         """
-        self.beginResetModel()
-        self.filters = filter if filter else []
+        previous = self._filters
+        try:
+            # Handle None cases
+            if filter is None and previous is None:
+                return
+            if filter is None or previous is None:
+                # Continue to reset model
+                pass
+            else:
+                # Deep compare the filter structures
+                if compare_filters(filter, previous):
+                    return
+        except Exception as e:
+            logger.error("Error applying filter: %s", e, exc_info=True)
+
+        # Make sure that the filter is valid.
+        if filter:
+            validate_result = validate_filter(filter)
+            if validate_result:
+                raise ValueError(
+                    f"Invalid filters: {validate_result[0]} "
+                    f"{'->'.join(validate_result[1:])}"
+                )
+
+        self._filters = filter if filter else []
+        logger.debug("Changing filters from %s to %s", previous, self._filters)
         self.reset_model()
-        self.endResetModel()
 
     def apply_simple_search(
         self,
@@ -855,9 +910,8 @@ class QtModel(
             exact: If True, the search will be exact.
             limit: If present, the search will be limited to the given field.
         """
-        self.beginResetModel()
         if len(text) == 0:
-            self.filters = []
+            filters = []
         else:
             if not exact:
                 text = text.replace(" ", "%")
@@ -866,7 +920,7 @@ class QtModel(
                         text = f"%{text}%"
                 else:
                     text = text.replace("*", "%")
-            self.filters = [  # type: ignore
+            filters = [  # type: ignore
                 "OR",  # type: ignore
                 [  # type: ignore
                     {  # type: ignore
@@ -878,9 +932,7 @@ class QtModel(
                     if limit is None or f.name == limit
                 ],
             ]  # type: ignore
-        self.reset_model()
-        self.endResetModel()
-        logger.debug("Simple search filters: %s", self.filters)
+        self.apply_filter(filters)
 
     def checked_rows(self) -> Optional[List[RecIdType]]:
         """Return the list of checked items."""

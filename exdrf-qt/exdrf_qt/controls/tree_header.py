@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING, Generic, Optional, Set, TypeVar, cast
 
-from exdrf.filter import FilterVisitor
+from exdrf.filter import FieldFilter, FilterVisitor
 from PyQt5.QtCore import QEvent, QRect, Qt
 from PyQt5.QtGui import QCursor, QMouseEvent, QPainter, QPen
 from PyQt5.QtWidgets import (
@@ -186,12 +186,9 @@ class HeaderViewWithMenu(QHeaderView, QtUseContext, Generic[DBM]):
         filtered_sections = self.filtered_sections
 
         class Visitor(FilterVisitor):
-            def visit_field(self, filter: dict):
-                if (
-                    filter["fld"] == current_filter_fld
-                    and filter["op"] == "ilike"
-                ):
-                    value = filter["vl"]
+            def visit_field(self, filter: FieldFilter):
+                if filter.fld == current_filter_fld and filter.op == "ilike":
+                    value = filter.vl
                     if isinstance(value, str):
                         if value.startswith("%") and value.endswith("%"):
                             value = value[1:-1]
@@ -326,6 +323,15 @@ class HeaderViewWithMenu(QHeaderView, QtUseContext, Generic[DBM]):
 
         fld_name = self.qt_model.column_fields[section].name
 
+        wrap_after = None
+        if isinstance(filter, list) and len(filter) == 2:
+            if isinstance(filter[0], str) and filter[0].lower() in (
+                "and",
+                "or",
+            ):
+                wrap_after = filter[0].lower()
+                filter = filter[1]
+
         # Get rid of previous filters on this field.
         filter = [
             flt
@@ -343,14 +349,22 @@ class HeaderViewWithMenu(QHeaderView, QtUseContext, Generic[DBM]):
                         text = f"%{text}%"
                 else:
                     text = text.replace("*", "%")
-            filter.append(
-                {
-                    "fld": fld_name,
-                    "op": "ilike",
-                    "vl": text,
-                }
-            )  # type: ignore
-        self.qt_model.apply_filter(filter)  # type: ignore
+            filter.append(FieldFilter(fld=fld_name, op="ilike", vl=text))
+
+        if wrap_after is not None:
+            filter = [wrap_after, filter]
+
+        try:
+            self.qt_model.apply_filter(filter)  # type: ignore
+        except Exception as e:
+            self.ctx.show_error(
+                title=self.t("cmn.error", "Error"),
+                message=self.t(
+                    "cmn.error.bad_filter",
+                    "Invalid filter: {error}",
+                    error=str(e),
+                ),
+            )
         self.search_line.initial_text = text
 
     def paintSection(

@@ -70,6 +70,7 @@ class Ui_QtTagEditor:
         )
         self.c_parents = QtParentMuSe(parent=self.tab_general, ctx=self.ctx)
         self.c_parents.setProperty("name", "parents")
+        self.c_parents.setProperty("clearable", True)
         self.c_parents.setObjectName("c_parents")
         self.formLayout.setWidget(
             1, QtWidgets.QFormLayout.FieldRole, self.c_parents
@@ -92,6 +93,9 @@ class Ui_QtTagEditor:
         )
         self.main_tab.addTab(self.tab_keys, "")
         self.verticalLayout.addWidget(self.main_tab)
+        self.lbl_name.setBuddy(self.c_name)
+        self.lbl_parents.setBuddy(self.c_parents)
+        self.lbl_id.setBuddy(self.c_id)
 
         self.retranslate_ui(QtTagEditor)
         self.main_tab.setCurrentIndex(0)

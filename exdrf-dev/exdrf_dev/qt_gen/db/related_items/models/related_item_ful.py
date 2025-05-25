@@ -1,5 +1,5 @@
 # This file was automatically generated using the exdrf_gen package.
-# Source: exdrf_gen_al2qt -> c/m/m_ful.py.j2
+# Source: exdrf_gen_al2qt.creator -> c/m/m_ful.py.j2
 # Don't change it manually.
 
 from typing import TYPE_CHECKING, Union
@@ -32,6 +32,19 @@ if TYPE_CHECKING:
     from exdrf_dev.db.api import RelatedItem  # noqa: F401
 
 
+def default_related_item_list_selection():
+    from exdrf_dev.db.api import CompositeKeyModel as DbCompositeKeyModel
+    from exdrf_dev.db.api import RelatedItem as DbRelatedItem
+
+    return select(DbRelatedItem).options(
+        joinedload(DbRelatedItem.comp_key_owner).load_only(
+            DbCompositeKeyModel.description,
+            DbCompositeKeyModel.key_part1,
+            DbCompositeKeyModel.key_part2,
+        ),
+    )
+
+
 class QtRelatedItemFuMo(QtModel["RelatedItem"]):
     """The model that contains all the fields of the RelatedItem table."""
 
@@ -46,7 +59,6 @@ class QtRelatedItemFuMo(QtModel["RelatedItem"]):
         fields=None,
         **kwargs,
     ):
-        from exdrf_dev.db.api import CompositeKeyModel as DbCompositeKeyModel
         from exdrf_dev.db.api import RelatedItem as DbRelatedItem
 
         super().__init__(
@@ -55,13 +67,7 @@ class QtRelatedItemFuMo(QtModel["RelatedItem"]):
             selection=(
                 selection
                 if selection is not None
-                else select(DbRelatedItem).options(
-                    joinedload(DbRelatedItem.comp_key_owner).load_only(
-                        DbCompositeKeyModel.description,
-                        DbCompositeKeyModel.key_part1,
-                        DbCompositeKeyModel.key_part2,
-                    ),
-                )
+                else default_related_item_list_selection()
             ),
             fields=(
                 fields

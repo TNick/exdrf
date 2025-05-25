@@ -63,6 +63,8 @@ class Ui_QtParentTagAssociationEditor:
         )
         self.main_tab.addTab(self.tab_keys, "")
         self.verticalLayout.addWidget(self.main_tab)
+        self.lbl_parent_id.setBuddy(self.c_parent_id)
+        self.lbl_tag_id.setBuddy(self.c_tag_id)
 
         self.retranslate_ui(QtParentTagAssociationEditor)
         self.main_tab.setCurrentIndex(0)

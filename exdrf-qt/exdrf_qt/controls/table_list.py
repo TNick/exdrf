@@ -570,7 +570,17 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
                 parent=self,
             )
             if dlg.exec_() == dlg.Accepted:
-                self.qt_model.apply_filter(dlg.filter)  # type: ignore
+                try:
+                    self.qt_model.apply_filter(dlg.filter)  # type: ignore
+                except Exception as e:
+                    self.ctx.show_error(
+                        title=self.t("cmn.error", "Error"),
+                        message=self.t(
+                            "cmn.error.bad_filter",
+                            "Invalid filter: {error}",
+                            error=str(e),
+                        ),
+                    )
         except Exception as e:
             logger.exception("Error in ListDb.on_filter")
             self.ctx.show_error(

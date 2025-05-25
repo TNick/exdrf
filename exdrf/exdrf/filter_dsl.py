@@ -822,6 +822,11 @@ def raw_filter_to_text(filter: Union[FilterType, FieldFilter]) -> str:
             if isinstance(value, str):
                 value = f"'{value}'"
             result += prefix + f"{part['fld']} {part['op']} {value}\n"
+        elif isinstance(part, FieldFilter):
+            value = part.vl
+            if isinstance(value, str):
+                value = f"'{value}'"
+            result += prefix + f"{part.fld} {part.op} {value}\n"
         else:
             raise ValueError(f"Invalid filter part: {part}")
 

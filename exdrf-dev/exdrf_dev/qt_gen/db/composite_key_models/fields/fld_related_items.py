@@ -1,11 +1,12 @@
 # This file was automatically generated using the exdrf_gen package.
-# Source: exdrf_gen_al2qt -> c/m/field.py.j2
+# Source: exdrf_gen_al2qt.creator -> c/m/field.py.j2
 # Don't change it manually.
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from attrs import define, field
 from exdrf.constants import RecIdType
+from exdrf_qt.models.fi_op import filter_op_registry
 from exdrf_qt.models.fields import QtRefOneToManyField
 
 # exdrf-keep-start other_imports ----------------------------------------------
@@ -13,7 +14,9 @@ from exdrf_qt.models.fields import QtRefOneToManyField
 # exdrf-keep-end other_imports ------------------------------------------------
 
 if TYPE_CHECKING:
+    from exdrf.filter import FieldFilter
     from exdrf.resource import ExResource  # noqa: F401
+    from exdrf_qt.models.selector import Selector
 
     from exdrf_dev.db.api import CompositeKeyModel  # noqa: F401
     from exdrf_dev.db.api import RelatedItem  # noqa: F401
@@ -41,6 +44,17 @@ class RelatedItemsField(QtRefOneToManyField["CompositeKeyModel"]):
     def part_label(self, record: "RelatedItem") -> str:
         """Compute the label for one of the components of the field."""
         return str("ID:") + str(record.id)
+
+    def apply_filter(self, item: "FieldFilter", selector: "Selector") -> Any:
+        from exdrf_dev.db.api import RelatedItem as DbRelatedItem
+
+        predicate = filter_op_registry[item.op].predicate
+        selector.joins.append(getattr(self.resource.db_model, self.name))
+
+        return predicate(
+            DbRelatedItem.id,
+            item.vl,
+        )
 
     # exdrf-keep-start extra_field_content ------------------------------------
 

@@ -65,6 +65,32 @@ class ExResource:
     def __hash__(self):
         return hash(f'{self.name}.{".".join(self.categories)}')
 
+    def __contains__(self, key: Union[int, str]) -> bool:
+        if isinstance(key, int):
+            return key < len(self.fields)
+        return key in self.fields
+
+    def __iter__(self):
+        """Make the resource iterable over its fields."""
+        return iter(self.fields)
+
+    def __len__(self) -> int:
+        """Return the number of fields in the resource."""
+        return len(self.fields)
+
+    def __in__(self, key: Union[int, str]) -> bool:
+        """Check if a field exists in the resource.
+
+        Args:
+            key: The key to check for. Can be either an index or field name.
+
+        Returns:
+            True if the field exists, False otherwise.
+        """
+        if isinstance(key, int):
+            return key < len(self.fields)
+        return any(f.name == key for f in self.fields)
+
     def __getitem__(self, key: Union[int, str]) -> "ExField":
         # If it is an index, return the field at that index.
         if isinstance(key, int):
@@ -154,6 +180,13 @@ class ExResource:
         """
         return "keys" if fld.primary else "general"
 
+    def get_fields_for_ref_filtering(self) -> List["ExField"]:
+        """Get the fields that are going to be used with other models that
+        reference this model when the user searches for text.
+        """
+        lst = self.minium_field_set_wo_primaries() or self.minimum_field_set()
+        return [self[n] for n in lst if not self[n].is_ref_type]
+
     def visit(
         self,
         visitor: "ExVisitor",
@@ -240,6 +273,15 @@ class ExResource:
             if f.primary:
                 names.add(f.name)
         return sorted(names)
+
+    def minium_field_set_wo_primaries(self) -> List[str]:
+        """Get the minimum set of fields that are used to represent the
+        resource except those fields that are also primary keys.
+        """
+        names: Set[str] = set(get_used_fields(self.label_ast))
+        return sorted(
+            n for n in names if self.__in__(n) and not self[n].primary
+        )
 
     def primary_fields(self) -> List[str]:
         """Get the fields that are primary keys of the resource."""

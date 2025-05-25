@@ -122,7 +122,7 @@ class SearchLine(QLineEdit, QtUseContext, Generic[DBM]):
 
         # If term is empty, apply immediately via callback, don't wait for timer
         if not term:
-            self._callback("", self._exact_search_enabled)
+            self.trigger_callback("")
             return
 
         # Disconnect previous timeout connection to avoid multiple calls with
@@ -136,7 +136,7 @@ class SearchLine(QLineEdit, QtUseContext, Generic[DBM]):
         # Using a lambda here to capture current state of term and
         # exact_search_enabled for when the timer fires.
         self._search_timer.timeout.connect(
-            lambda: self._callback(self.text(), self._exact_search_enabled)
+            lambda: self.trigger_callback(self.text())
         )
         self._search_timer.start()
 
@@ -197,3 +197,17 @@ class SearchLine(QLineEdit, QtUseContext, Generic[DBM]):
         """
         super().setText(text)
         self.initial_text = text
+
+    def trigger_callback(self, text: str) -> None:
+        """Trigger the callback."""
+        try:
+            self._callback(self.text(), self._exact_search_enabled)
+        except Exception as e:
+            self.ctx.show_error(
+                title=self.t("cmn.error", "Error"),
+                message=self.t(
+                    "cmn.error.search_callback_failed",
+                    "Search failed: {error}",
+                    error=str(e),
+                ),
+            )

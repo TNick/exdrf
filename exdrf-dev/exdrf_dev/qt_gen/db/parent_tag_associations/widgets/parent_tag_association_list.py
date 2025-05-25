@@ -1,5 +1,5 @@
 # This file was automatically generated using the exdrf_gen package.
-# Source: exdrf_gen_al2qt -> c/m/w/list.py.j2
+# Source: exdrf_gen_al2qt.creator -> c/m/w/list.py.j2
 # Don't change it manually.
 
 from typing import TYPE_CHECKING

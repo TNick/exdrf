@@ -4,6 +4,7 @@ import os
 from importlib import resources
 from typing import TYPE_CHECKING, Any, Callable, List, Optional, cast
 
+import sqlparse
 from attrs import define, field
 from exdrf_al.connection import DbConn
 from PyQt5.QtGui import QIcon
@@ -17,16 +18,79 @@ if TYPE_CHECKING:
     from PyQt5.QtWidgets import QWidget  # noqa: F401
     from sqlalchemy import Select  # noqa: F401
 
+
+def is_dict_arg(record: logging.LogRecord) -> bool:
+    if not record.args:
+        return False
+    if len(record.args) != 2:
+        return False
+
+    first_rec: str = record.args[0]  # type: ignore
+    if not isinstance(first_rec, str):
+        return False
+
+    if not first_rec.startswith("generated in ") and not first_rec.startswith(
+        "cached since"
+    ):
+        return False
+
+    if record.args[1].__class__.__name__ != "_repr_params":  # type: ignore
+        return False
+    return True
+
+
+def pformat(obj: Any) -> str:
+    """Pretty-print a _repr_params object."""
+    result = []
+    for k, v in obj.params.items():
+        if isinstance(v, str):
+            result.append(f'  {k}: "{v}",')
+        else:
+            result.append(f"  {k}: {v},")
+    if len(result) == 0:
+        return "{}"
+    return "{\n" + "\n".join(result) + "\n}"
+
+
+class SQLPrettyFormatter(logging.Formatter):
+    """Custom formatter that pretty-prints SQL statements from SQLAlchemy."""
+
+    def format(self, record):
+        msg = record.getMessage()
+
+        if record.name == "sqlalchemy.engine.Engine" and isinstance(
+            record.msg, str
+        ):
+            try:
+                if is_dict_arg(record):
+                    record.msg = "[%s]\n%s"
+                    record.args = (
+                        record.args[0],  # type: ignore
+                        pformat(record.args[1]),  # type: ignore
+                    )
+                    return super().format(record)
+
+                if "[cached since" in msg or "[generated in" in msg:
+                    return super().format(record)
+
+                pretty_sql = sqlparse.format(
+                    record.getMessage(), reindent=True, keyword_case="upper"
+                ).replace(" ON ", "\n    ON ")
+                record.msg = "\n" + pretty_sql
+                record.args = ()
+            except Exception as e:
+                # fallback to default formatting if sqlparse fails
+                print(f"Error formatting SQL: {record.msg}: {e}")
+        return super().format(record)
+
+
 # Default logging configuration
 DEFAULT_LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "formatters": {
-        "standard": {
-            "format": "%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-            "datefmt": "%Y-%m-%d %H:%M:%S",
-        },
-        "detailed": {
+        "sqlpretty": {
+            "()": "exdrf_qt.context.SQLPrettyFormatter",
             "format": "%(asctime)s [%(levelname)s] %(name)s:%(lineno)d: %(message)s",
             "datefmt": "%Y-%m-%d %H:%M:%S",
         },
@@ -35,13 +99,13 @@ DEFAULT_LOGGING = {
         "console": {
             "class": "logging.StreamHandler",
             "level": "INFO",
-            "formatter": "standard",
+            "formatter": "sqlpretty",
             "stream": "ext://sys.stdout",
         },
         "file": {
             "class": "logging.handlers.RotatingFileHandler",
             "level": "DEBUG",
-            "formatter": "detailed",
+            "formatter": "sqlpretty",
             "filename": "exdrf.log",
             "maxBytes": 10485760,  # 10MB
             "backupCount": 5,
@@ -53,7 +117,7 @@ DEFAULT_LOGGING = {
             "handlers": ["console", "file"],
             "level": "INFO",
             "propagate": True,
-        }
+        },
     },
 }
 

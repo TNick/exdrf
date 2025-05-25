@@ -1,5 +1,5 @@
 # This file was automatically generated using the exdrf_gen package.
-# Source: exdrf_gen_al2qt -> c/m/m_ocm.py.j2
+# Source: exdrf_gen_al2qt.creator -> c/m/m_ocm.py.j2
 # Don't change it manually.
 
 from typing import TYPE_CHECKING, Union
@@ -22,6 +22,17 @@ if TYPE_CHECKING:
     from sqlalchemy import Select  # noqa: F401
 
 
+def default_profile_ocm_selection():
+    from exdrf_dev.db.api import Profile as DbProfile
+
+    return select(DbProfile).options(
+        load_only(
+            DbProfile.bio,
+            DbProfile.id,
+        )
+    )
+
+
 class QtProfileNaMo(QtProfileFuMo):
     """The model that contains only the label field of the
     Profile table.
@@ -36,18 +47,13 @@ class QtProfileNaMo(QtProfileFuMo):
     def __init__(
         self, selection: Union["Select", None] = None, fields=None, **kwargs
     ):
-        from exdrf_dev.db.api import Profile as DbProfile
+        pass
 
         super().__init__(
             selection=(
                 selection
                 if selection is not None
-                else select(DbProfile).options(
-                    load_only(
-                        DbProfile.bio,
-                        DbProfile.id,
-                    )
-                )
+                else default_profile_ocm_selection()
             ),
             fields=(
                 fields

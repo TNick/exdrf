@@ -74,6 +74,7 @@ class Ui_QtRelatedItemEditor:
             parent=self.tab_general, ctx=self.ctx
         )
         self.c_comp_key_owner.setProperty("name", "comp_key_owner")
+        self.c_comp_key_owner.setProperty("clearable", True)
         self.c_comp_key_owner.setObjectName("c_comp_key_owner")
         self.formLayout.setWidget(
             0, QtWidgets.QFormLayout.FieldRole, self.c_comp_key_owner
@@ -111,6 +112,7 @@ class Ui_QtRelatedItemEditor:
         )
         self.c_item_data = DrfLineEditor(parent=self.tab_general, ctx=self.ctx)
         self.c_item_data.setProperty("name", "item_data")
+        self.c_item_data.setProperty("clearable", True)
         self.c_item_data.setObjectName("c_item_data")
         self.formLayout.setWidget(
             3, QtWidgets.QFormLayout.FieldRole, self.c_item_data
@@ -122,6 +124,7 @@ class Ui_QtRelatedItemEditor:
         )
         self.c_some_int = DrfIntEditor(parent=self.tab_general, ctx=self.ctx)
         self.c_some_int.setProperty("name", "some_int")
+        self.c_some_int.setProperty("clearable", True)
         self.c_some_int.setObjectName("c_some_int")
         self.formLayout.setWidget(
             4, QtWidgets.QFormLayout.FieldRole, self.c_some_int
@@ -144,6 +147,12 @@ class Ui_QtRelatedItemEditor:
         )
         self.main_tab.addTab(self.tab_keys, "")
         self.verticalLayout.addWidget(self.main_tab)
+        self.lbl_comp_key_owner.setBuddy(self.c_comp_key_owner)
+        self.lbl_comp_key_part1.setBuddy(self.c_comp_key_part1)
+        self.lbl_comp_key_part2.setBuddy(self.c_comp_key_part2)
+        self.lbl_item_data.setBuddy(self.c_item_data)
+        self.lbl_some_int.setBuddy(self.c_some_int)
+        self.lbl_id.setBuddy(self.c_id)
 
         self.retranslate_ui(QtRelatedItemEditor)
         self.main_tab.setCurrentIndex(0)

@@ -1,5 +1,5 @@
 # This file was automatically generated using the exdrf_gen package.
-# Source: exdrf_gen_al2qt -> c/m/m_ocm.py.j2
+# Source: exdrf_gen_al2qt.creator -> c/m/m_ocm.py.j2
 # Don't change it manually.
 
 from typing import TYPE_CHECKING, Union
@@ -50,6 +50,18 @@ if TYPE_CHECKING:
     from sqlalchemy import Select  # noqa: F401
 
 
+def default_composite_key_model_ocm_selection():
+    from exdrf_dev.db.api import CompositeKeyModel as DbCompositeKeyModel
+
+    return select(DbCompositeKeyModel).options(
+        load_only(
+            DbCompositeKeyModel.description,
+            DbCompositeKeyModel.key_part1,
+            DbCompositeKeyModel.key_part2,
+        )
+    )
+
+
 class QtCompositeKeyModelNaMo(QtCompositeKeyModelFuMo):
     """The model that contains only the label field of the
     CompositeKeyModel table.
@@ -64,19 +76,13 @@ class QtCompositeKeyModelNaMo(QtCompositeKeyModelFuMo):
     def __init__(
         self, selection: Union["Select", None] = None, fields=None, **kwargs
     ):
-        from exdrf_dev.db.api import CompositeKeyModel as DbCompositeKeyModel
+        pass
 
         super().__init__(
             selection=(
                 selection
                 if selection is not None
-                else select(DbCompositeKeyModel).options(
-                    load_only(
-                        DbCompositeKeyModel.description,
-                        DbCompositeKeyModel.key_part1,
-                        DbCompositeKeyModel.key_part2,
-                    )
-                )
+                else default_composite_key_model_ocm_selection()
             ),
             fields=(
                 fields

@@ -96,6 +96,7 @@ class Ui_QtCompositeKeyModelEditor:
             parent=self.tab_general, ctx=self.ctx
         )
         self.c_description.setProperty("name", "description")
+        self.c_description.setProperty("clearable", True)
         self.c_description.setObjectName("c_description")
         self.formLayout.setWidget(
             0, QtWidgets.QFormLayout.FieldRole, self.c_description
@@ -109,6 +110,7 @@ class Ui_QtCompositeKeyModelEditor:
             parent=self.tab_general, ctx=self.ctx
         )
         self.c_related_items.setProperty("name", "related_items")
+        self.c_related_items.setProperty("clearable", True)
         self.c_related_items.setObjectName("c_related_items")
         self.formLayout.setWidget(
             1, QtWidgets.QFormLayout.FieldRole, self.c_related_items
@@ -122,6 +124,7 @@ class Ui_QtCompositeKeyModelEditor:
             parent=self.tab_general, ctx=self.ctx
         )
         self.c_some_binary.setProperty("name", "some_binary")
+        self.c_some_binary.setProperty("clearable", True)
         self.c_some_binary.setObjectName("c_some_binary")
         self.formLayout.setWidget(
             2, QtWidgets.QFormLayout.FieldRole, self.c_some_binary
@@ -133,6 +136,7 @@ class Ui_QtCompositeKeyModelEditor:
         )
         self.c_some_date = DrfDateEditor(parent=self.tab_general, ctx=self.ctx)
         self.c_some_date.setProperty("name", "some_date")
+        self.c_some_date.setProperty("clearable", True)
         self.c_some_date.setObjectName("c_some_date")
         self.formLayout.setWidget(
             3, QtWidgets.QFormLayout.FieldRole, self.c_some_date
@@ -148,6 +152,7 @@ class Ui_QtCompositeKeyModelEditor:
             "choices",
             "PENDING:Pending,PROCESSING:Processing,COMPLETED:Completed,FAILED:Failed",
         )
+        self.c_some_enum.setProperty("clearable", True)
         self.c_some_enum.setObjectName("c_some_enum")
         self.formLayout.setWidget(
             4, QtWidgets.QFormLayout.FieldRole, self.c_some_enum
@@ -159,6 +164,7 @@ class Ui_QtCompositeKeyModelEditor:
         )
         self.c_some_float = DrfRealEditor(parent=self.tab_general, ctx=self.ctx)
         self.c_some_float.setProperty("name", "some_float")
+        self.c_some_float.setProperty("clearable", True)
         self.c_some_float.setObjectName("c_some_float")
         self.formLayout.setWidget(
             5, QtWidgets.QFormLayout.FieldRole, self.c_some_float
@@ -170,6 +176,7 @@ class Ui_QtCompositeKeyModelEditor:
         )
         self.c_some_json = DrfTextEditor(parent=self.tab_general, ctx=self.ctx)
         self.c_some_json.setProperty("name", "some_json")
+        self.c_some_json.setProperty("clearable", True)
         self.c_some_json.setObjectName("c_some_json")
         self.formLayout.setWidget(
             6, QtWidgets.QFormLayout.FieldRole, self.c_some_json
@@ -181,6 +188,7 @@ class Ui_QtCompositeKeyModelEditor:
         )
         self.c_some_time = DrfTimeEditor(parent=self.tab_general, ctx=self.ctx)
         self.c_some_time.setProperty("name", "some_time")
+        self.c_some_time.setProperty("clearable", True)
         self.c_some_time.setObjectName("c_some_time")
         self.formLayout.setWidget(
             7, QtWidgets.QFormLayout.FieldRole, self.c_some_time
@@ -214,6 +222,16 @@ class Ui_QtCompositeKeyModelEditor:
         )
         self.main_tab.addTab(self.tab_keys, "")
         self.verticalLayout.addWidget(self.main_tab)
+        self.lbl_description.setBuddy(self.c_description)
+        self.lbl_related_items.setBuddy(self.c_related_items)
+        self.lbl_some_binary.setBuddy(self.c_some_binary)
+        self.lbl_some_date.setBuddy(self.c_some_date)
+        self.lbl_some_enum.setBuddy(self.c_some_enum)
+        self.lbl_some_float.setBuddy(self.c_some_float)
+        self.lbl_some_json.setBuddy(self.c_some_json)
+        self.lbl_some_time.setBuddy(self.c_some_time)
+        self.lbl_key_part1.setBuddy(self.c_key_part1)
+        self.lbl_key_part2.setBuddy(self.c_key_part2)
 
         self.retranslate_ui(QtCompositeKeyModelEditor)
         self.main_tab.setCurrentIndex(0)

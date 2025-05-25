@@ -1,3 +1,4 @@
+import logging
 from typing import Any, Union
 
 from attrs import define, field
@@ -14,6 +15,8 @@ from sqlalchemy.sql.operators import (
     ne,
     regexp_match_op,
 )
+
+logger = logging.getLogger(__name__)
 
 
 @define
@@ -59,6 +62,12 @@ class ILikeFiOp(FiOp):
             if col_type not in ("String",):
                 column = al_cast(column, String)
         else:
+            logger.warning(
+                "ILIKE default implementation only works with "
+                "SQLAlchemy columns. Got: %s (type: %s)",
+                column,
+                type(column),
+            )
             return False
 
         return ilike_op(column, value)

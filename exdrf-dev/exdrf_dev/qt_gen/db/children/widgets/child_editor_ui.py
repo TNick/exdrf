@@ -59,6 +59,7 @@ class Ui_QtChildEditor:
         )
         self.c_data = DrfTextEditor(parent=self.tab_general, ctx=self.ctx)
         self.c_data.setProperty("name", "data")
+        self.c_data.setProperty("clearable", True)
         self.c_data.setObjectName("c_data")
         self.formLayout.setWidget(
             0, QtWidgets.QFormLayout.FieldRole, self.c_data
@@ -70,6 +71,7 @@ class Ui_QtChildEditor:
         )
         self.c_parent = QtParentSiSe(parent=self.tab_general, ctx=self.ctx)
         self.c_parent.setProperty("name", "parent_id")
+        self.c_parent.setProperty("clearable", True)
         self.c_parent.setObjectName("c_parent")
         self.formLayout.setWidget(
             1, QtWidgets.QFormLayout.FieldRole, self.c_parent
@@ -92,6 +94,9 @@ class Ui_QtChildEditor:
         )
         self.main_tab.addTab(self.tab_keys, "")
         self.verticalLayout.addWidget(self.main_tab)
+        self.lbl_data.setBuddy(self.c_data)
+        self.lbl_parent.setBuddy(self.c_parent)
+        self.lbl_id.setBuddy(self.c_id)
 
         self.retranslate_ui(QtChildEditor)
         self.main_tab.setCurrentIndex(0)
