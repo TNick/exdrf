@@ -52,6 +52,7 @@
         "notr",
         "pflake",
         "popd",
+        "poolclass",
         "pushd",
         "pycache",
         "pyenv",

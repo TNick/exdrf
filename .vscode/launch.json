@@ -81,5 +81,58 @@
             ],
             "justMyCode": false
         },
+        {
+            "name": "[DB] Auto DB Migration",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "exdrf_al.click_support.auto_db_migration",
+            "args": [
+                "-",
+                "exdrf_dev.db.models:Base",
+                "--schema", "some_schema",
+            ],
+            "justMyCode": false
+        },
+        {
+            "name": "[DB] Upgrade DB",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "exdrf_al.click_support.upgrade_db",
+            "args": [
+                "-",
+                "--schema", "some_schema",
+            ],
+        },
+        {
+            "name": "[DB] Downgrade DB",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "exdrf_al.click_support.downgrade_db",
+            "args": [
+                "-",
+                "--schema", "some_schema",
+            ],
+        },
+        {
+            "name": "[DB] Set version",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "exdrf_al.click_support.set_db_version",
+            "args": [
+                "-",
+                "6870ef2417bc",
+                "--schema", "some_schema",
+            ],
+        },
+        {
+            "name": "[DB] List DB Version",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "exdrf_al.click_support.list_db_version",
+            "args": [
+                "-",
+                "--schema", "some_schema",
+            ],
+        }
     ]
 }
