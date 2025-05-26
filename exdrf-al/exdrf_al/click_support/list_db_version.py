@@ -12,7 +12,7 @@ from exdrf_al.db_ver.db_ver import DbVer
     help="The directory to store the migration files.",
     envvar="EXDRF_DB_MIGRATIONS_DIR",
 )
-def list_db_version(conn: DbConn, schema: str, m_dir: str):
+def list_db_versions(conn: DbConn, schema: str, m_dir: str):
     """List the database version.
 
     Arguments:
@@ -24,4 +24,4 @@ def list_db_version(conn: DbConn, schema: str, m_dir: str):
 
 
 if __name__ == "__main__":
-    list_db_version()
+    list_db_versions()

@@ -17,6 +17,7 @@ from exdrf_al.db_ver.db_ver import DbVer
     type=str,
     default="public",
     help="The schema to use for the database.",
+    envvar="EXDRF_DB_SCHEMA",
 )
 @click.option(
     "--m-dir",
@@ -25,7 +26,7 @@ from exdrf_al.db_ver.db_ver import DbVer
     help="The directory to store the migration files.",
     envvar="EXDRF_DB_MIGRATIONS_DIR",
 )
-def set_version(target: str, conn: DbConn, schema: str, m_dir: str):
+def set_db_version(target: str, conn: DbConn, schema: str, m_dir: str):
     """Set the version of the database.
 
     The version is simply saved in the `alembic_version` table without
@@ -39,4 +40,4 @@ def set_version(target: str, conn: DbConn, schema: str, m_dir: str):
 
 
 if __name__ == "__main__":
-    set_version()
+    set_db_version()

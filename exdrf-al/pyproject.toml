@@ -17,6 +17,7 @@ requires-python = ">=3.13"
 dependencies = [
   "SQLAlchemy>=2.0.38",
   "sqlparse>=0.5.3",
+  "alembic>=1.16.1",
 ]
 
 [project.optional-dependencies]

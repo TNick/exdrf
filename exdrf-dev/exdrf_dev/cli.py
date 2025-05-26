@@ -4,6 +4,11 @@ import subprocess
 
 import click
 from dotenv import load_dotenv
+from exdrf_al.click_support.auto_db_migration import auto_db_migration
+from exdrf_al.click_support.downgrade_db import downgrade_db
+from exdrf_al.click_support.list_db_version import list_db_versions
+from exdrf_al.click_support.set_db_version import set_db_version
+from exdrf_al.click_support.upgrade_db import upgrade_db
 
 from exdrf_dev.__version__ import __version__
 
@@ -75,6 +80,12 @@ def run(args):
     except FileNotFoundError:
         click.echo("Command not found", err=True)
 
+
+cli.add_command(auto_db_migration)
+cli.add_command(list_db_versions)
+cli.add_command(set_db_version)
+cli.add_command(upgrade_db)
+cli.add_command(downgrade_db)
 
 if __name__ == "__main__":
     cli()

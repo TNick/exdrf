@@ -16,6 +16,7 @@ from exdrf_al.db_ver.db_ver import DbVer
     type=str,
     default="public",
     help="The schema to use for the database.",
+    envvar="EXDRF_DB_SCHEMA",
 )
 @click.option(
     "--target",
