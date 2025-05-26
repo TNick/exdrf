@@ -5,6 +5,7 @@ from PyQt5.QtCore import QEvent, QRect, Qt
 from PyQt5.QtGui import QCursor, QMouseEvent, QPainter, QPen
 from PyQt5.QtWidgets import (
     QAction,
+    QDialog,
     QHeaderView,
     QMenu,
     QStyle,
@@ -14,6 +15,7 @@ from PyQt5.QtWidgets import (
 )
 
 from exdrf_qt.context_use import QtUseContext
+from exdrf_qt.controls.column_sel.column_sel import ColumnSelDlg
 from exdrf_qt.controls.search_line import SearchLine
 from exdrf_qt.models import QtModel
 
@@ -149,12 +151,20 @@ class HeaderViewWithMenu(QHeaderView, QtUseContext, Generic[DBM]):
         )
 
         # Filter
-        filter_action = QAction(
+        ac_filter = QAction(
             self.get_icon("filter"),
             self.t("cmn.filter.title", "Filter..."),
             self,
         )
-        filter_action.triggered.connect(lambda: self.show_search_line(section))
+        ac_filter.triggered.connect(lambda: self.show_search_line(section))
+
+        # Choose column visibility.
+        ac_show = QAction(
+            self.get_icon("column_double"),
+            self.t("cmn.columns", "Columns"),
+            self,
+        )
+        ac_show.triggered.connect(self.on_choose_columns)
 
         sort_order = self.sortIndicatorOrder()
         current_sort_col = self.sortIndicatorSection()
@@ -173,9 +183,16 @@ class HeaderViewWithMenu(QHeaderView, QtUseContext, Generic[DBM]):
             menu.addAction(ac_sort_asc)
             menu.addAction(ac_sort_desc)
             menu.addSeparator()
-        menu.addAction(filter_action)
+        menu.addAction(ac_filter)
+        menu.addAction(ac_show)
 
         menu.exec_(QCursor.pos())
+
+    def on_choose_columns(self):
+        """Show the dialog for choosing which columns to show."""
+        dlg = ColumnSelDlg(self.ctx, self)
+        if dlg.exec_() == QDialog.Accepted:
+            dlg.apply_changes()
 
     def _load_current_filter(self, section: int):
         # Get the current filter.
