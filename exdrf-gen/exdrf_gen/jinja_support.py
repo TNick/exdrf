@@ -42,12 +42,12 @@ class Loader(BaseLoader):
         return source, template_path, lambda: mtime == getmtime(template_path)
 
 
-def create_jinja_env():
+def create_jinja_env(auto_reload=False):
     """Creates a base Jinja2 environment for rendering templates."""
     jinja_env = Environment(
         loader=Loader(os.path.dirname(__file__)),
         autoescape=select_autoescape(),
-        auto_reload=False,
+        auto_reload=auto_reload,
     )
 
     # List functions.

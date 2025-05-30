@@ -114,18 +114,7 @@ class HeaderViewWithMenu(QHeaderView, QtUseContext, Generic[DBM]):
             self.hide_search_line()
         super().leaveEvent(e)
 
-    def contextMenuEvent(self, event):  # type: ignore
-        """Show a context menu when the user right-clicks on the header.
-
-        Args:
-            event: The event that triggered the context menu.
-        """
-        section = self.logicalIndexAt(event.pos())
-        if section < 0:
-            return
-
-        menu = QMenu(self)
-
+    def create_sort_actions(self, menu: QMenu, section: int):
         # Sort ascending
         ac_sort_asc = QAction(
             self.get_icon("sort_asc_az"),
@@ -150,26 +139,50 @@ class HeaderViewWithMenu(QHeaderView, QtUseContext, Generic[DBM]):
             )
         )
 
-        # Filter
+        return ac_sort_asc, ac_sort_desc
+
+    def create_filter_action(self, menu: QMenu, section: int):
         ac_filter = QAction(
             self.get_icon("filter"),
             self.t("cmn.filter.title", "Filter..."),
             self,
         )
         ac_filter.triggered.connect(lambda: self.show_search_line(section))
+        return ac_filter
 
-        # Choose column visibility.
+    def create_show_columns_action(self, menu: QMenu, section: int):
         ac_show = QAction(
             self.get_icon("column_double"),
             self.t("cmn.columns", "Columns"),
             self,
         )
         ac_show.triggered.connect(self.on_choose_columns)
+        return ac_show
+
+    def contextMenuEvent(self, event):  # type: ignore
+        """Show a context menu when the user right-clicks on the header.
+
+        Args:
+            event: The event that triggered the context menu.
+        """
+        section = self.logicalIndexAt(event.pos())
+        if section < 0:
+            return
+
+        menu = QMenu(self)
+
+        ac_sort_asc, ac_sort_desc = self.create_sort_actions(menu, section)
+
+        # Filter
+        ac_filter = self.create_filter_action(menu, section)
+
+        # Choose column visibility.
+        ac_show = self.create_show_columns_action(menu, section)
 
         sort_order = self.sortIndicatorOrder()
         current_sort_col = self.sortIndicatorSection()
 
-        if self.treeview.isSortingEnabled():
+        if self.treeview.isSortingEnabled() and ac_sort_asc and ac_sort_desc:
             if current_sort_col == section:
                 ac_sort_asc.setCheckable(True)
                 ac_sort_asc.setChecked(
@@ -183,9 +196,15 @@ class HeaderViewWithMenu(QHeaderView, QtUseContext, Generic[DBM]):
             menu.addAction(ac_sort_asc)
             menu.addAction(ac_sort_desc)
             menu.addSeparator()
-        menu.addAction(ac_filter)
-        menu.addAction(ac_show)
 
+        if ac_filter:
+            menu.addAction(ac_filter)
+
+        if ac_show:
+            menu.addAction(ac_show)
+
+        if menu.isEmpty():
+            return
         menu.exec_(QCursor.pos())
 
     def on_choose_columns(self):
@@ -215,6 +234,20 @@ class HeaderViewWithMenu(QHeaderView, QtUseContext, Generic[DBM]):
 
         Visitor(current_filter).run(current_filter)
 
+    def prepare_search_line(self, section: int):
+        if self.search_line is None:
+            return
+
+        # Replace the default placeholder text with the header text.
+        model = self.model()
+        assert model is not None
+        self.search_line.setPlaceholderText(
+            model.headerData(section, Qt.Orientation.Horizontal)
+        )
+
+        # Load the current filter.
+        self._load_current_filter(section)
+
     def show_search_line(self, section: int):
         """Show the search line for the given section.
 
@@ -241,15 +274,7 @@ class HeaderViewWithMenu(QHeaderView, QtUseContext, Generic[DBM]):
         self.search_line.setFixedHeight(self.height() + 1)
         self.search_line.raise_()
 
-        # Replace the default placeholder text with the header text.
-        model = self.model()
-        assert model is not None
-        self.search_line.setPlaceholderText(
-            model.headerData(section, Qt.Orientation.Horizontal)
-        )
-
-        # Load the current filter.
-        self._load_current_filter(section)
+        self.prepare_search_line(section)
 
         # Place just above the header
         x = self.sectionPosition(section) + 1
@@ -313,6 +338,16 @@ class HeaderViewWithMenu(QHeaderView, QtUseContext, Generic[DBM]):
         self.apply_filter(section, text, exact)
         self.hide_search_line()
 
+    def _apply_filter(self, section: int, text: str, exact: bool):
+        self.qt_model.apply_filter(
+            insert_quick_search(
+                self.qt_model.column_fields[section].name,
+                text,
+                self.qt_model.filters,
+                exact,
+            )
+        )  # type: ignore
+
     def apply_filter(self, section: int, text: str, exact: bool):
         """Apply a filter to the data.
 
@@ -332,14 +367,7 @@ class HeaderViewWithMenu(QHeaderView, QtUseContext, Generic[DBM]):
             return
 
         try:
-            self.qt_model.apply_filter(
-                insert_quick_search(
-                    self.qt_model.column_fields[section].name,
-                    text,
-                    self.qt_model.filters,
-                    exact,
-                )
-            )  # type: ignore
+            self._apply_filter(section, text, exact)
         except Exception as e:
             self.ctx.show_error(
                 title=self.t("cmn.error", "Error"),
@@ -450,15 +478,3 @@ class HeaderViewWithMenu(QHeaderView, QtUseContext, Generic[DBM]):
             opt.rect = prev_rect
 
         painter.restore()
-        # super().paintSection(painter, rect, logicalIndex)
-        # if logicalIndex in self.filtered_sections:
-        #     icon = self.get_icon("filter")
-        #     assert icon.isNull() is False
-        #     icon_size = min(rect.height(), rect.width()) // 2
-        #     icon_rect = QRect(
-        #         rect.right() - icon_size - 2,
-        #         rect.top() + (rect.height() - icon_size) // 2,
-        #         icon_size,
-        #         icon_size,
-        #     )
-        #     icon.paint(painter, icon_rect, Qt.AlignmentFlag.AlignCenter)

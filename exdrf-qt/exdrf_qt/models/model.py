@@ -841,7 +841,6 @@ class QtModel(
         The function clears the cache and resets the total count.
         """
         try:
-            self.beginResetModel()
             self.sort_by = [
                 (
                     self.column_fields[column].name,
@@ -849,7 +848,6 @@ class QtModel(
                 )
             ]
             self.reset_model()
-            self.endResetModel()
         except Exception as e:
             logger.error("Error sorting model: %s", e, exc_info=True)
 
@@ -932,7 +930,7 @@ class QtModel(
                     if limit is None or f.name == limit
                 ],
             ]  # type: ignore
-        self.apply_filter(filters)
+        self.apply_filter(filters)  # type: ignore
 
     def checked_rows(self) -> Optional[List[RecIdType]]:
         """Return the list of checked items."""

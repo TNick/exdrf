@@ -227,6 +227,22 @@ class ExField:
         """
         return []
 
+    def value_to_str(self, value: Any) -> str:
+        """Convert a value of this type to a string.
+
+        Args:
+            value: The value to convert.
+
+        Returns:
+            A string representation of the value.
+        """
+        if isinstance(value, (list, tuple)):
+            return ", ".join(str(v) for v in value)
+        elif isinstance(value, dict):
+            return ", ".join(f"{k}: {v}" for k, v in value.items())
+        else:
+            return str(value)
+
 
 class FieldInfo(BaseModel):
     """Base parser for information about a field.
