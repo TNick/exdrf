@@ -22,6 +22,9 @@ from exdrf_dev.qt_gen.db.children.widgets.child_selector import (  # noqa: F401
     QtChildMuSe,
     QtChildSiSe,
 )
+from exdrf_dev.qt_gen.db.children.widgets.child_tv import (  # noqa: F401
+    QtChildTv,
+)
 
 # exdrf-keep-start more_content ------------------------------------------------
 

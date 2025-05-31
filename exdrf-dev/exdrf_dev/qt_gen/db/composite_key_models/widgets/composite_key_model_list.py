@@ -25,9 +25,15 @@ class QtCompositeKeyModelList(ListDb["CompositeKeyModel"]):
         from exdrf_dev.qt_gen.db.composite_key_models.api import (
             QtCompositeKeyModelEditor,
             QtCompositeKeyModelFuMo,
+            QtCompositeKeyModelTv,
         )
 
-        super().__init__(editor=QtCompositeKeyModelEditor, *args, **kwargs)
+        super().__init__(
+            editor=QtCompositeKeyModelEditor,
+            viewer=QtCompositeKeyModelTv,
+            *args,
+            **kwargs,
+        )
         self.setModel(
             QtCompositeKeyModelFuMo(
                 ctx=self.ctx,

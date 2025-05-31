@@ -25,9 +25,12 @@ class QtChildList(ListDb["Child"]):
         from exdrf_dev.qt_gen.db.children.api import (
             QtChildEditor,
             QtChildFuMo,
+            QtChildTv,
         )
 
-        super().__init__(editor=QtChildEditor, *args, **kwargs)
+        super().__init__(
+            editor=QtChildEditor, viewer=QtChildTv, *args, **kwargs
+        )
         self.setModel(
             QtChildFuMo(
                 ctx=self.ctx,

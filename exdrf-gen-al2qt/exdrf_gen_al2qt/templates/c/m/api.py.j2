@@ -22,6 +22,9 @@ from {{ out_module }}.{{ r.categories[0] }}.{{ r.snake_case_name_plural }}.widge
     Qt{{ ResPascal }}SiSe,
     Qt{{ ResPascal }}MuSe,
 )
+from {{ out_module }}.{{ r.categories[0] }}.{{ r.snake_case_name_plural }}.widgets.{{ res_snake }}_tv import (  # noqa: F401
+    Qt{{ ResPascal }}Tv,
+)
 
 # exdrf-keep-start more_content ------------------------------------------------
 {{more_content}}

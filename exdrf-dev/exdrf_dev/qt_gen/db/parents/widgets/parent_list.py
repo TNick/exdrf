@@ -25,9 +25,12 @@ class QtParentList(ListDb["Parent"]):
         from exdrf_dev.qt_gen.db.parents.api import (
             QtParentEditor,
             QtParentFuMo,
+            QtParentTv,
         )
 
-        super().__init__(editor=QtParentEditor, *args, **kwargs)
+        super().__init__(
+            editor=QtParentEditor, viewer=QtParentTv, *args, **kwargs
+        )
         self.setModel(
             QtParentFuMo(
                 ctx=self.ctx,

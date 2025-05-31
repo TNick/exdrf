@@ -22,6 +22,9 @@ from exdrf_dev.qt_gen.db.composite_key_models.widgets.composite_key_model_select
     QtCompositeKeyModelMuSe,
     QtCompositeKeyModelSiSe,
 )
+from exdrf_dev.qt_gen.db.composite_key_models.widgets.composite_key_model_tv import (  # noqa: F401
+    QtCompositeKeyModelTv,
+)
 
 # exdrf-keep-start more_content ------------------------------------------------
 

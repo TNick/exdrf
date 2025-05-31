@@ -1,0 +1,68 @@
+from typing import TYPE_CHECKING
+
+from exdrf_qt.controls.templ_viewer.templ_viewer import RecordTemplViewer
+from exdrf.field_types.api import (
+    IntField,
+    FloatField,
+    StrField,
+    BoolField,
+    DateField,
+    DateTimeField,
+    TimeField,
+    EnumField,
+    RefOneToOneField,
+    RefOneToManyField,
+    RefManyToManyField,
+    RefManyToOneField,
+)
+from sqlalchemy import select
+
+if TYPE_CHECKING:
+    from sqlalchemy.orm import Session
+    from {{ db_module }}.{{ r.categories[0] }}.api import {{ r.name }} as {{ r.name }}
+
+
+class Qt{{ ResPascal }}Tv(RecordTemplViewer):
+    """Template viewer for a {{ ResPascal }} database record.
+    """
+
+    def __init__(self, **kwargs):
+        from {{ db_module }}.{{ r.categories[0] }}.api import {{ r.name }} as Db{{ r.name }}
+
+        super().__init__(
+            db_model=Db{{ ResPascal }},
+            template_src="{{ res_snake }}_tv.html",
+            **kwargs
+        )
+    
+    def read_record(
+        self,
+        session: "Session"
+    ) -> "{{ ResPascal }}":
+        return session.scalar(
+            select(self.db_model).where(
+                {%- if res_spl_id %}
+                self.db_model.{{ res_primaries[0] }} == self.record_id,  # type: ignore[operator]
+                {%- else %}
+                {%- for itr, prm in enumerate(res_primaries) %}
+                self.db_model.{{ prm }} == self.record_id[{{ itr }}],  # type: ignore[operator]
+                {%- endfor %}
+                {%- endif %}
+            )
+        )
+    
+    def _populate_from_record(self, record: "{{ ResPascal }}"):
+        self.model.var_bag.add_fields([
+        {%- for field in sorted_fields_for_ui(dset, r, fields) %}
+            (
+                {{ field.__class__.__name__ }}(
+                    name="{{ field.name }}",
+                    title="{{ field.title }}",
+                    {%- if field.description %}
+                    description="{{ field.description }}",
+                    {%- endif %}
+                ),
+                record.{{ field.name }},
+            ),
+        {%- endfor %}
+        ])

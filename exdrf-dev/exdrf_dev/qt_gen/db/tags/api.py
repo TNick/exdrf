@@ -18,6 +18,9 @@ from exdrf_dev.qt_gen.db.tags.widgets.tag_selector import (  # noqa: F401
     QtTagMuSe,
     QtTagSiSe,
 )
+from exdrf_dev.qt_gen.db.tags.widgets.tag_tv import (  # noqa: F401
+    QtTagTv,
+)
 
 # exdrf-keep-start more_content ------------------------------------------------
 

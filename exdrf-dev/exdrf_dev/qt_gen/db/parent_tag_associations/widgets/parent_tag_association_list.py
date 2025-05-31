@@ -25,9 +25,15 @@ class QtParentTagAssociationList(ListDb["ParentTagAssociation"]):
         from exdrf_dev.qt_gen.db.parent_tag_associations.api import (
             QtParentTagAssociationEditor,
             QtParentTagAssociationFuMo,
+            QtParentTagAssociationTv,
         )
 
-        super().__init__(editor=QtParentTagAssociationEditor, *args, **kwargs)
+        super().__init__(
+            editor=QtParentTagAssociationEditor,
+            viewer=QtParentTagAssociationTv,
+            *args,
+            **kwargs,
+        )
         self.setModel(
             QtParentTagAssociationFuMo(
                 ctx=self.ctx,

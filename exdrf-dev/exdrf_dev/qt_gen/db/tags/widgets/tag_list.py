@@ -25,9 +25,10 @@ class QtTagList(ListDb["Tag"]):
         from exdrf_dev.qt_gen.db.tags.api import (
             QtTagEditor,
             QtTagFuMo,
+            QtTagTv,
         )
 
-        super().__init__(editor=QtTagEditor, *args, **kwargs)
+        super().__init__(editor=QtTagEditor, viewer=QtTagTv, *args, **kwargs)
         self.setModel(
             QtTagFuMo(
                 ctx=self.ctx,

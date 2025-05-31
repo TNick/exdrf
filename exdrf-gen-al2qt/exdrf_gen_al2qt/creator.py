@@ -294,6 +294,10 @@ def generate_qt_from_alchemy(
                                         "{res_snake}_list.py",
                                         "c/m/w/list.py.j2",
                                     ),
+                                    File(
+                                        "{res_snake}_tv.py",
+                                        "c/m/w/templ_viewer.py.j2",
+                                    ),
                                 ],
                             ),
                         ],

@@ -33,6 +33,7 @@ if TYPE_CHECKING:
 
     from exdrf_qt.context import QtContext  # noqa: F401
     from exdrf_qt.controls.base_editor import EditorDb  # noqa: F401
+    from exdrf_qt.controls.templ_viewer.templ_viewer import RecordTemplViewer
     from exdrf_qt.models import QtModel  # noqa: F401
 
 
@@ -65,6 +66,7 @@ class ListDb(QWidget, QtUseContext, Generic[DBM]):
         parent: Optional["QWidget"] = None,
         menu_handler: Optional[Callable] = None,
         editor: Optional[Type["EditorDb[DBM]"]] = None,
+        viewer: Optional[Type["RecordTemplViewer[DBM]"]] = None,
     ):
         super().__init__(parent=parent)
         self.ctx = ctx
@@ -78,6 +80,7 @@ class ListDb(QWidget, QtUseContext, Generic[DBM]):
             parent=self,
             menu_handler=menu_handler,
             editor=editor,
+            viewer=viewer,
         )
         self.ly.addWidget(self.tree)
 
@@ -234,10 +237,12 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
         parent: Optional["QWidget"] = None,
         menu_handler: Optional[Callable] = None,
         editor: Optional[Type["EditorDb[DBM]"]] = None,
+        viewer: Optional[Type["RecordTemplViewer[DBM]"]] = None,
     ):
         super().__init__(parent=parent)
         self.ctx = ctx
         self.editor = editor
+        self.viewer = viewer
         self.setAlternatingRowColors(True)
         self.setRootIsDecorated(False)
         self.setSortingEnabled(True)
@@ -488,19 +493,26 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
             if rec_id is None:
                 return
 
-            assert self.editor is not None, "Editor should not be None"
-            editor = self.editor(  # type: ignore
-                ctx=self.ctx,
-                parent=None,
-                record_id=rec_id,
-            )
-            self.ctx.create_window(editor, editor.windowTitle())
             if editing:
-                editor.on_begin_edit()
+                assert self.editor is not None, "Editor should not be None"
+                editor = self.editor(  # type: ignore
+                    ctx=self.ctx,
+                    parent=None,
+                    record_id=rec_id,
+                )
+                self.ctx.create_window(editor, editor.windowTitle())
+                if editing:
+                    editor.on_begin_edit()
             else:
-                editor.on_begin_view()
+                assert self.viewer is not None, "Viewer should not be None"
+                viewer = self.viewer(  # type: ignore
+                    ctx=self.ctx,
+                    parent=None,
+                    record_id=rec_id,
+                )
+                self.ctx.create_window(viewer, viewer.windowTitle())
         except Exception as e:
-            logger.exception("Error in ListDb.on_edit_selected")
+            logger.exception("Error in ListDb._view_or_edit")
             self.ctx.show_error(
                 title=self.t("sq.common.error", "Error"),
                 message=str(e),

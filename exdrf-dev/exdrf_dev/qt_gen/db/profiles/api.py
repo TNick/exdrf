@@ -22,6 +22,9 @@ from exdrf_dev.qt_gen.db.profiles.widgets.profile_selector import (  # noqa: F40
     QtProfileMuSe,
     QtProfileSiSe,
 )
+from exdrf_dev.qt_gen.db.profiles.widgets.profile_tv import (  # noqa: F401
+    QtProfileTv,
+)
 
 # exdrf-keep-start more_content ------------------------------------------------
 

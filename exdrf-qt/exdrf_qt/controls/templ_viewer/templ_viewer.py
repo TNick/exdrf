@@ -1,0 +1,843 @@
+import logging
+import traceback
+from enum import IntEnum
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Generic,
+    Optional,
+    Type,
+    TypeVar,
+    cast,
+)
+
+import yaml
+from exdrf.constants import RecIdType
+from exdrf.var_bag import VarBag
+from exdrf_gen.jinja_support import jinja_env
+from jinja2 import Environment, Template
+from PyQt5.QtCore import QPoint, Qt
+from PyQt5.QtGui import QTextCursor
+from PyQt5.QtWidgets import (
+    QAction,
+    QDialog,
+    QFileDialog,
+    QMenu,
+    QMessageBox,
+    QWidget,
+)
+
+from exdrf_qt.context_use import QtUseContext
+from exdrf_qt.controls.templ_viewer.add_var_dlg import NewVariableDialog
+from exdrf_qt.controls.templ_viewer.header import VarHeader
+from exdrf_qt.controls.templ_viewer.model import VarModel
+from exdrf_qt.controls.templ_viewer.templ_viewer_ui import Ui_TemplViewer
+
+if TYPE_CHECKING:
+    from exdrf.field import ExField
+    from sqlalchemy.orm import Session
+
+    from exdrf_qt.context import QtContext  # noqa: F401
+
+logger = logging.getLogger(__name__)
+snippets = {
+    "templ.snp.var_name": ("Insert variable", "{{ $ }}"),
+    "templ.snp.for_loop": (
+        "Insert for loop",
+        "{% for $(itr) in $(src) %}\n" "$(body)\n" "{% endfor %}",
+    ),
+    "templ.snp.if_stmt": (
+        "Insert if statement",
+        "{% if $(cond) %}\n" "$(body)\n" "{% endif %}",
+    ),
+    "templ.snp.if_stmt_else": (
+        "Insert if-else",
+        "{% if $(cond) %}\n"
+        "$(body)\n"
+        "{% else %}\n"
+        "$(body)\n"
+        "{% endif %}",
+    ),
+    "templ.snp.if_stmt_else_if": (
+        "Insert if-else-if",
+        "{% if $(cond) %}\n"
+        "$(body)\n"
+        "{% elif $(cond) %}\n"
+        "$(body)\n"
+        "{% endif %}",
+    ),
+    "templ.snp.namespaced_name": (
+        "Insert namespaced name",
+        "{% set ns = namespace($(ns_name)=False) %}\n"
+        "{% for $(itr) in $(src) %}\n"
+        "{%- if not ns.$(ns_name) %}\n"
+        "$(body)\n"
+        "{%- set ns.$(ns_name) = True %}\n"
+        "{%- endif %}\n"
+        "{% endfor %}",
+    ),
+}
+
+
+class ViewMode(IntEnum):
+    """The mode of the template viewer.
+
+    Attributes:
+        SOURCE: The editor presents the user with the source code of the
+            template and the user can edit it.
+        RENDERED: The editor presents the user with the rendered HTML of the
+            template.
+    """
+
+    SOURCE = 0
+    RENDERED = 1
+
+
+class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
+    """Widget for rendering templates.
+
+    Attributes:
+        _current_template: The current compiled template.
+        _current_template_file: The file name of the current template.
+        _use_edited_text: Whether the text has been edited. If the text is
+            edited, the template will be replaced with one created from the
+            edited text.
+        jinja_env: The Jinja environment.
+        header: The header of the variable editor.
+        model: The model of the variable editor.
+        view_mode: The mode of the template viewer: source or rendered.
+    """
+
+    _current_template: Optional["Template"]
+    _current_template_file: Optional[str]
+    _use_edited_text: bool
+    jinja_env: "Environment"
+    header: "VarHeader"
+    model: "VarModel"
+    view_mode: "ViewMode"
+    extra_context: Dict[str, Any]
+
+    def __init__(
+        self,
+        ctx: "QtContext",
+        var_bag: "VarBag",
+        parent=None,
+        extra_context: Optional[Dict[str, Any]] = None,
+        template_src: Optional[str] = None,
+    ):
+        """Initialize the template viewer.
+
+        Args:
+            ctx: The context of the template viewer.
+            var_bag: The variable bag of the template viewer.
+            parent: The parent of the template viewer.
+        """
+        self.ctx = ctx
+        self.extra_context = extra_context or {}
+        self._current_template = None
+        self.jinja_env = jinja_env
+        self.view_mode = ViewMode.RENDERED
+        self._use_edited_text = False
+        super().__init__(parent)
+
+        # Prepare the model.
+        self.model = VarModel(ctx=ctx, var_bag=var_bag, parent=self)
+        self.model.varDataChanged.connect(self.render_template)
+
+        # Prepare the UI.
+        self.setup_ui(self)
+
+        # Browse for the template file.
+        self.c_sel_templ.clicked.connect(self.on_browse_templ_file)
+        self.c_templ.textChanged.connect(self.on_templ_file_changed)
+
+        # Create the actions.
+        self.create_actions()
+
+        # Context menu for the template renderer.
+        self.c_viewer.setContextMenuPolicy(
+            Qt.ContextMenuPolicy.CustomContextMenu
+        )
+        self.c_viewer.customContextMenuRequested.connect(
+            self.on_viewer_context_menu
+        )
+
+        # Context menu for template editor.
+        self.c_editor.setContextMenuPolicy(
+            Qt.ContextMenuPolicy.CustomContextMenu
+        )
+        self.c_editor.customContextMenuRequested.connect(
+            self.on_editor_context_menu
+        )
+
+        # Set a flag when the text is edited.
+        self.c_editor.textChanged.connect(self.on_editor_text_changed)
+
+        # Prepare the variables list.
+        self.prepare_vars_list()
+
+        if template_src:
+            self.c_templ.setText(template_src)
+
+    def prepare_vars_list(self):
+        """Prepare the variables list."""
+
+        # Install the model inside the tree view.
+        self.c_vars.setModel(self.model)
+
+        # Set-up the tree view.
+        self.c_vars.setRootIsDecorated(False)
+        self.c_vars.setUniformRowHeights(True)
+
+        # Set alternating row colors
+        self.c_vars.setAlternatingRowColors(True)
+        self.c_vars.setStyleSheet(
+            """
+            QTreeView {
+                alternate-background-color: #f0f0f0;
+                background-color: white;
+                font-size: 12px;
+            }
+            """
+        )
+
+        # Use custom header
+        self.header = VarHeader(parent=self.c_vars, ctx=self.ctx, viewer=self)
+        self.c_vars.setHeader(self.header)
+        self.header.setStretchLastSection(True)
+
+        # Context menu for the list of variables.
+        self.c_vars.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.c_vars.customContextMenuRequested.connect(
+            self.on_vars_context_menu
+        )
+
+        # Selection change in the list of variables.
+        sel_model = self.c_vars.selectionModel()
+        assert sel_model is not None
+        sel_model.currentRowChanged.connect(self.on_vars_selection_changed)
+
+        # When an item is double-clicked, we may want to insert it into the
+        # template editor.
+        self.c_vars.doubleClicked.connect(self.on_vars_double_clicked)
+
+    @property
+    def var_bag(self) -> "VarBag":
+        """The variable bag of the template viewer."""
+        return self.model.var_bag
+
+    @var_bag.setter
+    def var_bag(self, value: "VarBag"):
+        """Set the variable bag of the template viewer."""
+        self.model.var_bag = value
+
+    @property
+    def current_template(self) -> Optional["Template"]:
+        """The current compiled template."""
+        return self._current_template
+
+    @current_template.setter
+    def current_template(self, value: "Template"):
+        """Set the current compiled template.
+
+        Changing the template will trigger a re-render.
+
+        Args:
+            value: The new template.
+        """
+        self._current_template = value
+        self.render_template()
+
+    @property
+    def current_field(self) -> Optional["ExField"]:
+        """The currently selected field in the variable list."""
+        crt_item = self.c_vars.currentIndex()
+        if crt_item.isValid():
+            return self.model.var_bag.fields[crt_item.row()]
+        return None
+
+    def on_copy_key(self):
+        """Copy the key of the currently selected variable to the clipboard."""
+        if not self.current_field:
+            return
+
+        clipboard = QApplication.clipboard()
+        if clipboard is None:
+            return
+        clipboard.setText(self.current_field.name)
+
+    def on_copy_value(self):
+        """Copy the value of the currently selected variable to the clipboard.
+
+        The value is converted to a string using the `str` function.
+        """
+        if not self.current_field:
+            return
+
+        clipboard = QApplication.clipboard()
+        if clipboard is None:
+            return
+        clipboard.setText(str(self.model.var_bag[self.current_field.name]))
+
+    def on_copy_keys(self):
+        """Copy all keys to the clipboard.
+
+        The keys are joined by a newline character.
+        """
+        clipboard = QApplication.clipboard()
+        if clipboard is None:
+            return
+        clipboard.setText("\n".join(self.model.var_bag.var_names))
+
+    def on_copy_values(self):
+        """Copy all values to the clipboard.
+
+        The values are converted to strings using the `str` function and joined
+        by a newline character.
+        """
+        clipboard = QApplication.clipboard()
+        if clipboard is None:
+            return
+        clipboard.setText(
+            "\n".join(str(v) for v in self.model.var_bag.var_values)
+        )
+
+    def on_copy_all(self):
+        """Copy all variables to the clipboard.
+
+        The variables are converted to a YAML dictionary and then to a string.
+        """
+        clipboard = QApplication.clipboard()
+        if clipboard is None:
+            return
+        dct = self.model.var_bag.as_dict
+        clipboard.setText(yaml.dump(dct, default_flow_style=False))
+
+    def on_add(self):
+        """Add a new variable.
+
+        The user is prompted to enter the name and value of the new variable.
+        """
+        dialog = NewVariableDialog(
+            ctx=self.ctx,
+            invalid_names=set(self.model.var_bag.var_names),
+        )
+        if dialog.exec_() == QDialog.Accepted:
+            fld, value = dialog.get_field()
+            if fld:
+                self.model.add_field(fld, value)
+
+    def on_clear(self):
+        """Clear the currently selected variable.
+
+        The currently selected variable is removed from the model.
+        """
+        crt_item = self.c_vars.currentIndex()
+        if crt_item.isValid():
+            crt_field = self.model.var_bag.fields[crt_item.row()]
+            self.model.var_bag[crt_field.name] = None
+            self.model.varDataChanged.emit()
+
+    def create_actions(self):
+        """Create the actions for the template viewer."""
+        # The action for copying the key of the currently selected variable.
+        self.ac_copy_key = QAction(
+            self.t("templ.vars.copy-key", "Copy Current Key")
+        )
+        self.ac_copy_key.triggered.connect(self.on_copy_key)
+
+        # The action for copying the value of the currently selected variable.
+        self.ac_copy_value = QAction(
+            self.t("templ.vars.copy-value", "Copy Current Value")
+        )
+        self.ac_copy_value.triggered.connect(self.on_copy_value)
+
+        # The action for copying all keys.
+        self.ac_copy_keys = QAction(
+            self.t("templ.vars.copy-keys", "Copy All Keys")
+        )
+        self.ac_copy_keys.triggered.connect(self.on_copy_keys)
+
+        # The action for copying all values.
+        self.ac_copy_values = QAction(
+            self.t("templ.vars.copy-values", "Copy All Values")
+        )
+        self.ac_copy_values.triggered.connect(self.on_copy_values)
+
+        # The action for copying all keys and values.
+        self.ac_copy_all = QAction(
+            self.get_icon("page_copy"),
+            self.t("templ.vars.copy-all", "Copy All"),
+        )
+        self.ac_copy_all.triggered.connect(self.on_copy_all)
+
+        # The action for adding a new variable.
+        self.ac_add = QAction(
+            self.get_icon("plus"), self.t("templ.vars.add", "Add...")
+        )
+        self.ac_add.triggered.connect(self.on_add)
+
+        # The action for clearing current variable.
+        self.ac_clear = QAction(
+            self.get_icon("cross"), self.t("templ.vars.clear", "Clear")
+        )
+        self.ac_clear.triggered.connect(self.on_clear)
+
+        # The action for switching between source and rendered mode.
+        self.ac_switch_mode = QAction()
+        self.ac_switch_mode.setCheckable(True)
+        self.ac_switch_mode.toggled.connect(self.on_switch_mode)
+        self.ac_switch_mode.setChecked(self.view_mode == ViewMode.SOURCE)
+        self.on_switch_mode(False)
+
+        # Toggle the visibility of the variable panel.
+        self.ac_toggle_vars = QAction(
+            self.get_icon("eye"),
+            self.t("templ.vars.toggle", "Toggle Variables"),
+        )
+        self.ac_toggle_vars.setCheckable(True)
+        self.ac_toggle_vars.setChecked(self.c_splitter.widget(1).isVisible())
+        self.ac_toggle_vars.toggled.connect(self.on_toggle_vars)
+
+        # Save the (edited) template.
+        self.ac_save_as_templ = QAction(
+            self.get_icon("file_save_as"),
+            self.t("templ.vars.save", "Save..."),
+        )
+        self.ac_save_as_templ.triggered.connect(self.on_save_as_templ)
+
+        # Save the generated HTML.
+        self.ac_save_as_html = QAction(
+            self.get_icon("file_save_as"),
+            self.t("templ.vars.save", "Save..."),
+        )
+        self.ac_save_as_html.triggered.connect(self.on_save_as_html)
+
+        # Save the rendered content as a .pdf file.
+        self.ac_save_as_pdf = QAction(
+            self.get_icon("file_extension_pdf"),
+            self.t("templ.vars.export.pdf", "Export as PDF"),
+        )
+        self.ac_save_as_pdf.triggered.connect(self.on_save_as_pdf)
+
+        # Save the rendered content as a .docx file.
+        self.ac_save_as_docx = QAction(
+            self.get_icon("file_extension_doc"),
+            self.t("templ.vars.export.docx", "Export as MS Word"),
+        )
+        self.ac_save_as_docx.triggered.connect(self.on_save_as_docx)
+
+        # Show snippets menu.
+        self.mnu_snippets = QMenu(self.t("templ.snp.t", "Snippets"))
+        for name, (default_tr, snippet) in snippets.items():
+            ac = QAction(self.t(name, default_tr), self.mnu_snippets)
+            self.mnu_snippets.addAction(ac)
+            ac.setToolTip(snippet)
+            ac.setData(snippet)
+            ac.triggered.connect(self.on_insert_snippet)
+
+        return [
+            self.ac_copy_key,
+            self.ac_copy_value,
+            self.ac_copy_keys,
+            self.ac_copy_values,
+            self.ac_copy_all,
+            self.ac_add,
+            self.ac_clear,
+            self.ac_switch_mode,
+            self.ac_save_as_templ,
+            self.ac_save_as_html,
+        ]
+
+    def on_insert_snippet(self) -> None:
+        """Insert a snippet into the editor."""
+        ac = cast(QAction, self.sender())
+        assert ac is not None
+        if ac.data() is None:
+            src = ac.text()
+        else:
+            src = ac.data()
+
+        # get the current indent level in the editor.
+        cursor: "QTextCursor" = self.c_editor.textCursor()
+        crs_text = cursor.block().text()
+        indent = len(crs_text) - len(crs_text.lstrip())
+        s_indent = crs_text[:indent]
+
+        # Divide the text into lines.
+        lines = src.split("\n")
+        for i, line in enumerate(lines):
+            if i > 0:
+                line = s_indent + line
+            if i < len(lines) - 1:
+                line += "\n"
+            self.c_editor.insertPlainText(line)
+
+    def update_switch_mode_action(self):
+        """Change the appearance of the switch mode action based on the view
+        mode.
+        """
+        if self.view_mode == ViewMode.SOURCE:
+            self.ac_switch_mode.setText(
+                self.t("templ.vars.switch-mode-rendered", "Switch to Rendered")
+            )
+            self.ac_switch_mode.setIcon(self.get_icon("book"))
+        else:
+            self.ac_switch_mode.setText(
+                self.t("templ.vars.switch-mode-source", "Switch to Source")
+            )
+            self.ac_switch_mode.setIcon(self.get_icon("blueprint"))
+
+    def on_toggle_vars(self, checked: bool):
+        """Toggle the visibility of the variable panel.
+
+        Args:
+            checked: Whether the variable panel is visible.
+        """
+        w = self.c_splitter.widget(1)
+        if w is None:
+            return
+        w.setVisible(checked)
+
+    def on_vars_selection_changed(self):
+        """Update the actions based on the selection of the variable list."""
+        crt_item = self.c_vars.currentIndex()
+        valid = crt_item.isValid()
+        self.ac_copy_key.setEnabled(valid)
+        self.ac_copy_value.setEnabled(valid)
+
+    def on_vars_double_clicked(self):
+        """Insert the currently selected variable into the template editor."""
+        crt_item = self.c_vars.currentIndex()
+        if crt_item.isValid() and self.view_mode == ViewMode.SOURCE:
+            self.c_editor.insertPlainText(
+                "{{ " + self.model.var_bag.fields[crt_item.row()].name + " }}"
+            )
+
+    def on_vars_context_menu(self, pos: QPoint):
+        """Context menu for the variable list."""
+        menu = QMenu()
+
+        menu.addAction(self.ac_copy_key)
+        menu.addAction(self.ac_copy_value)
+        menu.addAction(self.ac_copy_keys)
+        menu.addAction(self.ac_copy_values)
+        menu.addAction(self.ac_copy_all)
+        menu.addSeparator()
+        menu.addAction(self.ac_add)
+        menu.addAction(self.ac_clear)
+        menu.addSeparator()
+        menu.addAction(self.ac_toggle_vars)
+
+        menu.exec_(self.c_vars.mapToGlobal(pos))
+
+    def on_viewer_context_menu(self, pos: QPoint):
+        """Context menu for the template renderer."""
+        menu = self.c_viewer.createStandardContextMenu()
+        if menu is None:
+            menu = QMenu()
+        menu.addSeparator()
+        menu.addAction(self.ac_switch_mode)
+        menu.addAction(self.ac_toggle_vars)
+        menu.addSeparator()
+        menu.addAction(self.ac_save_as_html)
+        menu.addAction(self.ac_save_as_pdf)
+        menu.addAction(self.ac_save_as_docx)
+
+        menu.exec_(self.c_viewer.mapToGlobal(pos))
+
+    def on_editor_context_menu(self, pos: QPoint):
+        """Context menu for the template editor."""
+        menu = self.c_editor.createStandardContextMenu()
+        if menu is None:
+            menu = QMenu()
+        menu.addMenu(self.mnu_snippets)
+        menu.addSeparator()
+        menu.addAction(self.ac_switch_mode)
+        menu.addAction(self.ac_toggle_vars)
+        menu.addSeparator()
+        menu.addAction(self.ac_save_as_templ)
+
+        menu.exec_(self.c_editor.mapToGlobal(pos))
+
+    def on_browse_templ_file(self):
+        """Browse for the template file."""
+        file_name, _ = QFileDialog.getOpenFileName(
+            self,
+            self.t("templ.open-dlg.t", "Open Template File"),
+            "",
+            self.t("templ.open-dlg.filter", "Jinja2 Template Files (*.j2)"),
+        )
+        if file_name:
+            self.c_templ.setText(file_name)
+
+    def on_templ_file_changed(self, text: Optional[str]):
+        """React to change in the text of the template file line edit.
+
+        The template is compiled and the source code is displayed in the
+        editor.
+
+        Args:
+            text: The file system path or module path to the template file.
+        """
+        if not text:
+            self.c_templ.setStyleSheet("QLineEdit { color: black; }")
+            self.c_templ.setToolTip(
+                self.t("templ.open-dlg.none", "No template file selected")
+            )
+            self._current_template = None
+            self._current_template_file = None
+            self._use_edited_text = False
+            self.c_editor.setPlainText("")
+            self.render_template()
+            return
+
+        try:
+            self._current_template = self.jinja_env.get_template(text)
+            self.c_templ.setStyleSheet("QLineEdit { color: black; }")
+            self.c_templ.setToolTip("")
+
+            loader = self.jinja_env.loader
+            assert loader is not None
+            source, filename, _ = loader.get_source(self.jinja_env, text)
+            self.c_editor.setPlainText(source)
+            self._current_template_file = filename
+            self._use_edited_text = False
+            self.render_template()
+        except Exception as e:
+            logger.error("Error loading template: %s", e, exc_info=True)
+            self.c_templ.setStyleSheet("QLineEdit { color: red; }")
+            self.c_templ.setToolTip(str(e))
+            self.show_exception(e, traceback.format_exc())
+
+    def on_switch_mode(self, checked: bool):
+        """Switch between source and rendered mode.
+
+        Args:
+            checked: Whether the source mode is selected.
+        """
+        self.view_mode = ViewMode.SOURCE if checked else ViewMode.RENDERED
+        self.update_switch_mode_action()
+        if self.view_mode == ViewMode.RENDERED:
+            self.c_stacked.setCurrentWidget(self.page_viewer)
+            if self._use_edited_text:
+                self._current_template = Template(self.c_editor.toPlainText())
+            self.render_template()
+        else:
+            self.c_stacked.setCurrentWidget(self.page_editor)
+
+    def _render_template(self):
+        """The actual rendering of the template."""
+        assert self._current_template is not None
+        return self._current_template.render(
+            **self.model.var_bag.as_dict,
+            **self.extra_context,
+        )
+
+    def render_template(self):
+        """Render the template.
+
+        If the current view mode is source, the template is not rendered.
+        """
+        if self.view_mode == ViewMode.SOURCE:
+            return
+
+        try:
+            if self._current_template is not None:
+                html = self._render_template()
+            else:
+                html = self.t(
+                    "templ.render.none",
+                    "<p style='color: grey; font-style: italic;'>"
+                    "No template loaded"
+                    "</p>",
+                )
+            self.c_viewer.setHtml(html)
+        except Exception as e:
+            logger.error("Error rendering template: %s", e, exc_info=True)
+            self.show_exception(e, traceback.format_exc())
+
+    def show_exception(self, e: Exception, formatted: str):
+        """Show an exception in the viewer.
+
+        Args:
+            e: The exception to show.
+            formatted: The formatted exception.
+        """
+        html = self.t(
+            "templ.render.error",
+            "<p style='color: red;'>Error rendering template: {e}</p>",
+            e=e,
+        )
+        html += f"<pre style='color: grey;'>{formatted}</pre>"
+        self.c_viewer.setHtml(html)
+
+    def on_editor_text_changed(self):
+        """Handle the change of the editor text."""
+        self._use_edited_text = True
+
+    def on_save_as_templ(self):
+        """Save the template."""
+        file_name, _ = QFileDialog.getSaveFileName(
+            self,
+            self.t("templ.save-templ.t", "Save Template"),
+            "",
+            self.t("templ.save-templ.filter", "Jinja2 Template Files (*.j2)"),
+        )
+        if file_name:
+            with open(file_name, "w", encoding="utf-8") as f:
+                f.write(self.c_editor.toPlainText())
+
+    def on_save_as_html(self):
+        """Save the HTML."""
+        file_name, _ = QFileDialog.getSaveFileName(
+            self,
+            self.t("templ.save-html.t", "Save HTML"),
+            "",
+            self.t("templ.save-html.filter", "HTML Files (*.html)"),
+        )
+        if file_name:
+            try:
+                with open(file_name, "w", encoding="utf-8") as f:
+                    f.write(self.c_viewer.toHtml())
+            except Exception as e:
+                logger.error("Error saving HTML: %s", e, exc_info=True)
+                QMessageBox.critical(
+                    self,
+                    self.t("templ.save-html.error", "Error"),
+                    str(e),
+                )
+
+    def on_save_as_pdf(self):
+        """Save the rendered content as a .pdf file."""
+        file_name, _ = QFileDialog.getSaveFileName(
+            self,
+            self.t("templ.save-pdf.t", "Save PDF"),
+            "",
+            self.t("templ.save-pdf.filter", "PDF Files (*.pdf)"),
+        )
+        if file_name:
+            from PyQt5.QtGui import QTextDocument
+            from PyQt5.QtPrintSupport import QPrinter
+
+            try:
+                printer = QPrinter(QPrinter.HighResolution)
+                printer.setOutputFormat(QPrinter.PdfFormat)
+                printer.setOutputFileName(file_name)
+                doc = QTextDocument()
+                doc.setHtml(self.c_viewer.toHtml())
+                doc.print_(printer)
+            except Exception as e:
+                logger.error("Error saving PDF: %s", e, exc_info=True)
+                QMessageBox.critical(
+                    self,
+                    self.t("templ.save-pdf.error", "Error"),
+                    str(e),
+                )
+
+    def on_save_as_docx(self) -> None:
+        """Save the rendered content as a .docx file."""
+        file_name, _ = QFileDialog.getSaveFileName(
+            self,
+            self.t("templ.save-docx.t", "Save DOCX"),
+            "",
+            self.t("templ.save-docx.filter", "DOCX Files (*.docx)"),
+        )
+        if file_name:
+            from html4docx import HtmlToDocx
+
+            try:
+                docx = HtmlToDocx().parse_html_string(self.c_viewer.toHtml())
+                docx.save(file_name)
+            except Exception as e:
+                logger.error("Error saving DOCX: %s", e, exc_info=True)
+                QMessageBox.critical(
+                    self,
+                    self.t("templ.save-docx.error", "Error"),
+                    str(e),
+                )
+
+
+DBM = TypeVar("DBM")
+
+
+class RecordTemplViewer(TemplViewer, Generic[DBM]):
+    """A template viewer that displays a database record."""
+
+    record_id: RecIdType
+    db_model: Type[DBM]
+
+    def __init__(
+        self,
+        record_id: RecIdType,
+        db_model: Type[DBM],
+        **kwargs,
+    ):
+        super().__init__(var_bag=VarBag(), **kwargs)
+        self.record_id = record_id
+        self.db_model = db_model
+        self.populate()
+
+    def populate(self):
+        """Populate the variable bag with the fields of the database record."""
+        with self.ctx.same_session() as session:
+            record = self.read_record(session)
+            self.model.beginResetModel()
+            try:
+                self._populate_from_record(record)
+            except Exception as e:
+                logger.error(
+                    "Error populating variable bag: %s",
+                    e,
+                    exc_info=True,
+                )
+                self.show_exception(e, traceback.format_exc())
+            self.model.endResetModel()
+
+    def _populate_from_record(self, record: DBM):
+        """Populate the variable bag with the fields of the database record."""
+        raise NotImplementedError("Not implemented")
+
+    def _render_template(self):
+        """The actual rendering of the template."""
+        assert self._current_template is not None
+        with self.ctx.same_session() as session:
+            record = self.read_record(session)
+            return self._current_template.render(
+                **self.model.var_bag.as_dict,
+                **self.extra_context,
+                record=record,
+            )
+
+    def read_record(self, session: "Session") -> DBM:
+        """Read the database record indicated by the record ID.
+
+        Args:
+            session: The SQLAlchemy session.
+
+        Returns:
+            The database record.
+        """
+        raise NotImplementedError("Not implemented")
+
+
+if __name__ == "__main__":
+    import sys
+
+    from PyQt5.QtWidgets import QApplication
+
+    from exdrf_qt.context import QtContext as QtCtx
+
+    app = QApplication(sys.argv)
+
+    ctx = QtCtx(
+        "",
+        top_widget=None,  # type: ignore
+        schema="public",
+    )
+    var_bag = VarBag()
+    viewer = TemplViewer(ctx, var_bag, template_src="test.j2")
+    viewer.show()
+
+    app.exec_()

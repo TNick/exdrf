@@ -25,9 +25,12 @@ class QtRelatedItemList(ListDb["RelatedItem"]):
         from exdrf_dev.qt_gen.db.related_items.api import (
             QtRelatedItemEditor,
             QtRelatedItemFuMo,
+            QtRelatedItemTv,
         )
 
-        super().__init__(editor=QtRelatedItemEditor, *args, **kwargs)
+        super().__init__(
+            editor=QtRelatedItemEditor, viewer=QtRelatedItemTv, *args, **kwargs
+        )
         self.setModel(
             QtRelatedItemFuMo(
                 ctx=self.ctx,

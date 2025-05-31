@@ -25,9 +25,12 @@ class QtProfileList(ListDb["Profile"]):
         from exdrf_dev.qt_gen.db.profiles.api import (
             QtProfileEditor,
             QtProfileFuMo,
+            QtProfileTv,
         )
 
-        super().__init__(editor=QtProfileEditor, *args, **kwargs)
+        super().__init__(
+            editor=QtProfileEditor, viewer=QtProfileTv, *args, **kwargs
+        )
         self.setModel(
             QtProfileFuMo(
                 ctx=self.ctx,

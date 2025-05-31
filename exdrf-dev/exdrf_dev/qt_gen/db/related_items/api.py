@@ -22,6 +22,9 @@ from exdrf_dev.qt_gen.db.related_items.widgets.related_item_selector import (  #
     QtRelatedItemMuSe,
     QtRelatedItemSiSe,
 )
+from exdrf_dev.qt_gen.db.related_items.widgets.related_item_tv import (  # noqa: F401
+    QtRelatedItemTv,
+)
 
 # exdrf-keep-start more_content ------------------------------------------------
 

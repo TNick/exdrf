@@ -22,6 +22,9 @@ from exdrf_dev.qt_gen.db.parent_tag_associations.widgets.parent_tag_association_
     QtParentTagAssociationMuSe,
     QtParentTagAssociationSiSe,
 )
+from exdrf_dev.qt_gen.db.parent_tag_associations.widgets.parent_tag_association_tv import (  # noqa: F401
+    QtParentTagAssociationTv,
+)
 
 # exdrf-keep-start more_content ------------------------------------------------
 

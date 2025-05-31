@@ -24,9 +24,14 @@ class Qt{{ ResPascal }}List(ListDb["{{ ResPascal }}"]):
         from {{ out_module }}.{{ categories[0] }}.{{ res_p_snake }}.api import (
             Qt{{ ResPascal }}FuMo,
             Qt{{ ResPascal }}Editor,
+            Qt{{ ResPascal }}Tv,
         )
 
-        super().__init__(editor=Qt{{ ResPascal }}Editor, *args, **kwargs)
+        super().__init__(
+            editor=Qt{{ ResPascal }}Editor,
+            viewer=Qt{{ ResPascal }}Tv,
+            *args, **kwargs
+        )
         self.setModel(
             Qt{{ ResPascal }}FuMo(
                 ctx=self.ctx,
