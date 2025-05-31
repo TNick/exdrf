@@ -36,6 +36,7 @@ from exdrf_qt.controls.templ_viewer.templ_viewer_ui import Ui_TemplViewer
 
 if TYPE_CHECKING:
     from exdrf.field import ExField
+    from PyQt5.QtWebEngineWidgets import QWebEnginePage
     from sqlalchemy.orm import Session
 
     from exdrf_qt.context import QtContext  # noqa: F401
@@ -121,6 +122,20 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
     model: "VarModel"
     view_mode: "ViewMode"
     extra_context: Dict[str, Any]
+    ac_refresh: "QAction"
+    ac_copy_key: "QAction"
+    ac_copy_value: "QAction"
+    ac_copy_keys: "QAction"
+    ac_copy_values: "QAction"
+    ac_copy_all: "QAction"
+    ac_add: "QAction"
+    ac_clear: "QAction"
+    ac_switch_mode: "QAction"
+    ac_save_as_templ: "QAction"
+    ac_save_as_html: "QAction"
+    ac_save_as_pdf: "QAction"
+    ac_save_as_docx: "QAction"
+    mnu_snippets: "QMenu"
 
     def __init__(
         self,
@@ -149,7 +164,6 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
 
         # Prepare the model.
         self.model = VarModel(ctx=ctx, var_bag=var_bag, parent=self)
-        self.model.varDataChanged.connect(self.render_template)
 
         # Prepare the UI.
         self.setup_ui(self)
@@ -191,6 +205,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
 
         if template_src:
             self.c_templ.setText(template_src)
+        self.model.varDataChanged.connect(self.render_template)
 
     def prepare_vars_list(self):
         """Prepare the variables list."""
@@ -355,6 +370,14 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
 
     def create_actions(self):
         """Create the actions for the template viewer."""
+        # The action that refreshes the generated content from the current
+        # template and variable bag.
+        self.ac_refresh = QAction(
+            self.get_icon("arrow_refresh"),
+            self.t("templ.vars.refresh", "Refresh"),
+        )
+        self.ac_refresh.triggered.connect(self.render_template)
+
         # The action for copying the key of the currently selected variable.
         self.ac_copy_key = QAction(
             self.t("templ.vars.copy-key", "Copy Current Key")
@@ -541,7 +564,10 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
 
     def on_viewer_context_menu(self, pos: QPoint):
         """Context menu for the template renderer."""
-        menu = self.c_viewer.createStandardContextMenu()
+        page: "QWebEnginePage" = self.c_viewer.page()  # type: ignore
+        if page is None:
+            return
+        menu = page.createStandardContextMenu()
         if menu is None:
             menu = QMenu()
         menu.addSeparator()
@@ -551,6 +577,8 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
         menu.addAction(self.ac_save_as_html)
         menu.addAction(self.ac_save_as_pdf)
         menu.addAction(self.ac_save_as_docx)
+        menu.addSeparator()
+        menu.addAction(self.ac_refresh)
 
         menu.exec_(self.c_viewer.mapToGlobal(pos))
 
@@ -631,7 +659,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
             if self.view_mode == ViewMode.RENDERED:
                 self.c_stacked.setCurrentWidget(self.page_viewer)
                 if self._use_edited_text:
-                    self._current_template = Template(
+                    self._current_template = self.jinja_env.from_string(
                         self.c_editor.toPlainText()
                     )
                 self.render_template()
@@ -644,6 +672,22 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
     def _render_template(self):
         """The actual rendering of the template."""
         assert self._current_template is not None
+        if not self._use_edited_text and self._current_template_file:
+            # Check if the template file has been modified
+            loader = self.jinja_env.loader
+            assert loader is not None
+            try:
+                source, filename, _ = loader.get_source(
+                    self.jinja_env, self._current_template_file
+                )
+                if filename != self._current_template_file:
+                    # Template file has changed, reload it
+                    self._current_template = self.jinja_env.get_template(
+                        self._current_template_file
+                    )
+                    self.c_editor.setPlainText(source)
+            except Exception as e:
+                logger.warning("Error checking template file: %s", e)
         return self._current_template.render(
             **self.model.var_bag.as_dict,
             **self.extra_context,
@@ -831,6 +875,7 @@ class RecordTemplViewer(TemplViewer, Generic[DBM]):
         self.db_model = db_model
         super().__init__(var_bag=VarBag(), **kwargs)
         self.populate()
+        self.render_template()
 
     def populate(self):
         """Populate the variable bag with the fields of the database record."""
@@ -867,6 +912,15 @@ class RecordTemplViewer(TemplViewer, Generic[DBM]):
                     "No record found"
                     "</p>",
                 )
+
+            # Refresh the variable bag with the fields of the database record.
+            for fld in self.model.var_bag.fields:
+                if fld.name == "record":
+                    self.model.var_bag[fld.name] = record
+                else:
+                    self.model.var_bag[fld.name] = getattr(record, fld.name)
+
+            # Render the template.
             return self._current_template.render(
                 **self.model.var_bag.as_dict,
                 **self.extra_context,

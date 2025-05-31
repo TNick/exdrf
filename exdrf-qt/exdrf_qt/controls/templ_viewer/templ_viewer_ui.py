@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from PyQt5 import QtCore, QtWidgets
+from PyQt5 import QtCore, QtWebEngineWidgets, QtWidgets
 
 if TYPE_CHECKING:
     from exdrf_qt.controls.templ_viewer.code_text_edit import CodeTextEdit
@@ -33,7 +33,7 @@ class Ui_TemplViewer:
     c_stacked: "QtWidgets.QStackedWidget"
     page_viewer: "QtWidgets.QWidget"
     verticalLayout_3: "QtWidgets.QVBoxLayout"
-    c_viewer: "QtWidgets.QTextBrowser"
+    c_viewer: "QtWebEngineWidgets.QWebEngineView"
     page_editor: "QtWidgets.QWidget"
     verticalLayout_2: "QtWidgets.QVBoxLayout"
     c_editor: "CodeTextEdit"
@@ -68,7 +68,7 @@ class Ui_TemplViewer:
         self.verticalLayout_3.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_3.setSpacing(0)
         self.verticalLayout_3.setObjectName("verticalLayout_3")
-        self.c_viewer = QtWidgets.QTextBrowser(self.page_viewer)
+        self.c_viewer = QtWebEngineWidgets.QWebEngineView(self.page_viewer)
         self.c_viewer.setObjectName("c_viewer")
         self.verticalLayout_3.addWidget(self.c_viewer)
         self.c_stacked.addWidget(self.page_viewer)

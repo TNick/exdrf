@@ -57,8 +57,12 @@ class Loader(BaseLoader):
         mtime = getmtime(template_path)
 
         # Read the template file
-        with open(template_path) as f:
-            source = f.read()
+        try:
+            with open(template_path, "r", encoding="utf-8") as f:
+                source = f.read()
+        except Exception:
+            with open(template_path, "r") as f:
+                source = f.read()
 
         # Return the source, template path, and a function to check if the
         # template has changed
@@ -85,6 +89,16 @@ def create_jinja_env(auto_reload=False):
     jinja_env.globals["dict"] = dict
 
     # String utilities.
+    jinja_env.globals["str"] = lambda x: str(x)
+    jinja_env.globals["proper"] = lambda x: " ".join(
+        word.capitalize() for word in str(x).split()
+    )
+    jinja_env.globals["title"] = lambda x: x.title()
+    jinja_env.globals["lower"] = lambda x: x.lower()
+    jinja_env.globals["upper"] = lambda x: x.upper()
+    jinja_env.globals["strip"] = lambda x: x.strip()
+    jinja_env.globals["lstrip"] = lambda x: x.lstrip()
+    jinja_env.globals["rstrip"] = lambda x: x.rstrip()
     jinja_env.globals["pluralize"] = lambda x: inflect_e.plural(x)
     jinja_env.globals["snake_pl"] = lambda x: inflect_e.plural(
         re.sub(r"(?<!^)(?=[A-Z])", "_", x).lower()  # type: ignore
@@ -92,6 +106,24 @@ def create_jinja_env(auto_reload=False):
     jinja_env.globals["snake"] = lambda x: re.sub(
         r"(?<!^)(?=[A-Z])", "_", x
     ).lower()
+
+    # Number utilities.
+    jinja_env.globals["int"] = lambda x: int(x) if x is not None else None
+    jinja_env.globals["format_int"] = lambda x: (
+        f"{x:,.0f}" if x is not None else "-"
+    )
+    jinja_env.globals["float"] = lambda x: float(x) if x is not None else None
+    jinja_env.globals["format_float"] = lambda x, y: (
+        f"{x:.{y}f}" if x is not None else "-"
+    )
+
+    # Date utilities.
+    jinja_env.globals["format_date"] = lambda x: (
+        x.strftime("%d-%m-%Y") if x is not None else "-"
+    )
+    jinja_env.globals["format_datetime"] = lambda x: (
+        x.strftime("%d-%m-%Y %H:%M:%S") if x is not None else "-"
+    )
 
     # Tests.
     jinja_env.tests["None"] = lambda value: value is None

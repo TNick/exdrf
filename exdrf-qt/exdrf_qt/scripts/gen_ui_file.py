@@ -45,6 +45,7 @@ class Fixer:
     _has_qt_core: bool
     _has_qt_gui: bool
     _has_qt_widgets: bool
+    _has_qt_web_engine_widgets: bool
     _class_idx: int
     _setup_idx = 0
 
@@ -55,6 +56,7 @@ class Fixer:
         self._has_qt_core = False
         self._has_qt_gui = False
         self._has_qt_widgets = False
+        self._has_qt_web_engine_widgets = False
         self._custom_widgets = custom_widgets
         self._var_defs = []
         self._class_idx = 0
@@ -118,6 +120,8 @@ class Fixer:
                 self._has_qt_gui = True
             if "QtWidgets" in line:
                 self._has_qt_widgets = True
+            if "QtWebEngineWidgets" in line:
+                self._has_qt_web_engine_widgets = True
 
             if line.endswith("(object):"):
                 line = line.replace("(object)", "")
@@ -158,6 +162,8 @@ class Fixer:
             py_import.append("QtGui")
         if self._has_qt_widgets:
             py_import.append("QtWidgets")
+        if self._has_qt_web_engine_widgets:
+            py_import.append("QtWebEngineWidgets")
 
         before_class = changed[: self._class_idx]  # noqa: E203
         after_class = changed[self._class_idx : self._setup_idx]  # noqa: E203
