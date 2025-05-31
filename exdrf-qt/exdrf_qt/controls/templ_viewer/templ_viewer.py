@@ -18,7 +18,7 @@ from exdrf.constants import RecIdType
 from exdrf.var_bag import VarBag
 from exdrf_gen.jinja_support import jinja_env
 from jinja2 import Environment, Template
-from PyQt5.QtCore import QPoint, Qt
+from PyQt5.QtCore import QPoint, Qt, QTimer
 from PyQt5.QtWidgets import (
     QAction,
     QDialog,
@@ -103,6 +103,8 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
         _use_edited_text: Whether the text has been edited. If the text is
             edited, the template will be replaced with one created from the
             edited text.
+        _auto_save_to: The file name of the auto-save file.
+        _auto_save_timer: The auto-save timer.
         jinja_env: The Jinja environment.
         header: The header of the variable editor.
         model: The model of the variable editor.
@@ -112,6 +114,8 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
     _current_template: Optional["Template"]
     _current_template_file: Optional[str]
     _use_edited_text: bool
+    _auto_save_to: Optional[str]
+    _auto_save_timer: "QTimer"
     jinja_env: "Environment"
     header: "VarHeader"
     model: "VarModel"
@@ -137,6 +141,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
         self.extra_context = extra_context or {}
         self._current_template = None
         self.jinja_env = jinja_env
+        self._auto_save_to = None
         self.view_mode = ViewMode.RENDERED
         self._use_edited_text = False
         # self._active_snippet_placeholders: list[dict[str, Any]] = [] # Removed
@@ -177,6 +182,12 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
 
         # Prepare the variables list.
         self.prepare_vars_list()
+
+        # Initialize the auto-save timer
+        self._auto_save_timer = QTimer(self)
+        self._auto_save_timer.setSingleShot(True)
+        self._auto_save_timer.setInterval(500)  # 500 ms delay
+        self._auto_save_timer.timeout.connect(self._perform_auto_save)
 
         if template_src:
             self.c_templ.setText(template_src)
@@ -247,6 +258,8 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
         Args:
             value: The new template.
         """
+        self._auto_save_to = None
+        self._auto_save_timer.stop()
         self._current_template = value
         self.render_template()
 
@@ -408,6 +421,13 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
         )
         self.ac_save_as_templ.triggered.connect(self.on_save_as_templ)
 
+        # Auto-save the template.
+        self.ac_auto_save_templ = QAction(
+            self.get_icon("script_save"),
+            self.t("templ.vars.auto-save", "Auto-save to ..."),
+        )
+        self.ac_auto_save_templ.triggered.connect(self.on_auto_save_templ)
+
         # Save the generated HTML.
         self.ac_save_as_html = QAction(
             self.get_icon("file_save_as"),
@@ -545,6 +565,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
         menu.addAction(self.ac_toggle_vars)
         menu.addSeparator()
         menu.addAction(self.ac_save_as_templ)
+        menu.addAction(self.ac_auto_save_templ)
 
         menu.exec_(self.c_editor.mapToGlobal(pos))
 
@@ -604,15 +625,21 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
         Args:
             checked: Whether the source mode is selected.
         """
-        self.view_mode = ViewMode.SOURCE if checked else ViewMode.RENDERED
-        self.update_switch_mode_action()
-        if self.view_mode == ViewMode.RENDERED:
-            self.c_stacked.setCurrentWidget(self.page_viewer)
-            if self._use_edited_text:
-                self._current_template = Template(self.c_editor.toPlainText())
-            self.render_template()
-        else:
-            self.c_stacked.setCurrentWidget(self.page_editor)
+        try:
+            self.view_mode = ViewMode.SOURCE if checked else ViewMode.RENDERED
+            self.update_switch_mode_action()
+            if self.view_mode == ViewMode.RENDERED:
+                self.c_stacked.setCurrentWidget(self.page_viewer)
+                if self._use_edited_text:
+                    self._current_template = Template(
+                        self.c_editor.toPlainText()
+                    )
+                self.render_template()
+            else:
+                self.c_stacked.setCurrentWidget(self.page_editor)
+        except Exception as e:
+            logger.error("Error switching mode: %s", e, exc_info=True)
+            self.show_exception(e, traceback.format_exc())
 
     def _render_template(self):
         """The actual rendering of the template."""
@@ -663,18 +690,57 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
     def on_editor_text_changed(self):
         """Handle the change of the editor text."""
         self._use_edited_text = True
+        if self._auto_save_timer.isActive():
+            self._auto_save_timer.stop()
+        if self._auto_save_to is not None:
+            self._auto_save_timer.start()
+
+    def _perform_auto_save(self):
+        """Perform the actual auto-save operation."""
+        if self._auto_save_to is not None:
+            try:
+                with open(self._auto_save_to, "w", encoding="utf-8") as f:
+                    f.write(self.c_editor.toPlainText())
+            except Exception as e:
+                logger.error("Error auto-saving template: %s", e, exc_info=True)
 
     def on_save_as_templ(self):
         """Save the template."""
-        file_name, _ = QFileDialog.getSaveFileName(
-            self,
-            self.t("templ.save-templ.t", "Save Template"),
-            "",
-            self.t("templ.save-templ.filter", "Jinja2 Template Files (*.j2)"),
-        )
-        if file_name:
-            with open(file_name, "w", encoding="utf-8") as f:
-                f.write(self.c_editor.toPlainText())
+        try:
+            filter_str = self.t(
+                "templ.save-templ.filter", "Jinja2 Template Files (*.j2)"
+            )
+            file_name, _ = QFileDialog.getSaveFileName(
+                self,
+                self.t("templ.save-templ.t", "Save Template"),
+                "",
+                filter_str,
+            )
+            if file_name:
+                with open(file_name, "w", encoding="utf-8") as f:
+                    f.write(self.c_editor.toPlainText())
+                self._auto_save_to = None
+                self._auto_save_timer.stop()
+        except Exception as e:
+            logger.error("Error saving template: %s", e, exc_info=True)
+
+    def on_auto_save_templ(self):
+        """Save the template."""
+        try:
+            filter_str = self.t(
+                "templ.save-templ.filter", "Jinja2 Template Files (*.j2)"
+            )
+            file_name, _ = QFileDialog.getSaveFileName(
+                self,
+                self.t("templ.save-templ.t-auto", "Auto-save template"),
+                "",
+                filter_str,
+            )
+            if file_name:
+                self._auto_save_to = file_name
+                self._perform_auto_save()
+        except Exception as e:
+            logger.error("Error auto-saving template: %s", e, exc_info=True)
 
     def on_save_as_html(self):
         """Save the HTML."""
