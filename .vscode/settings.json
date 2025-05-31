@@ -18,6 +18,7 @@
         "customwidget",
         "customwidgets",
         "darkgrey",
+        "datatables",
         "dateutil",
         "dmypy",
         "doctests",

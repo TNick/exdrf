@@ -1,9 +1,10 @@
 from typing import TYPE_CHECKING
 
-from PyQt5 import QtCore, QtWebEngineWidgets, QtWidgets
+from PyQt5 import QtCore, QtWidgets
 
 if TYPE_CHECKING:
     from exdrf_qt.controls.templ_viewer.code_text_edit import CodeTextEdit
+    from exdrf_qt.controls.templ_viewer.view_widget import WebView
 
 
 class Ui_TemplViewer:
@@ -33,7 +34,7 @@ class Ui_TemplViewer:
     c_stacked: "QtWidgets.QStackedWidget"
     page_viewer: "QtWidgets.QWidget"
     verticalLayout_3: "QtWidgets.QVBoxLayout"
-    c_viewer: "QtWebEngineWidgets.QWebEngineView"
+    c_viewer: "WebView"
     page_editor: "QtWidgets.QWidget"
     verticalLayout_2: "QtWidgets.QVBoxLayout"
     c_editor: "CodeTextEdit"
@@ -47,6 +48,7 @@ class Ui_TemplViewer:
 
     def setup_ui(self, TemplViewer):
         from exdrf_qt.controls.templ_viewer.code_text_edit import CodeTextEdit
+        from exdrf_qt.controls.templ_viewer.view_widget import WebView
 
         TemplViewer.setObjectName("TemplViewer")
         TemplViewer.resize(640, 480)
@@ -68,7 +70,7 @@ class Ui_TemplViewer:
         self.verticalLayout_3.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_3.setSpacing(0)
         self.verticalLayout_3.setObjectName("verticalLayout_3")
-        self.c_viewer = QtWebEngineWidgets.QWebEngineView(self.page_viewer)
+        self.c_viewer = WebView(parent=self.page_viewer, ctx=self.ctx)
         self.c_viewer.setObjectName("c_viewer")
         self.verticalLayout_3.addWidget(self.c_viewer)
         self.c_stacked.addWidget(self.page_viewer)

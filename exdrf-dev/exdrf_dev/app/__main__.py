@@ -81,6 +81,8 @@ def main():
     import signal
     import sys
 
+    import PyQt5.QtWebEngineWidgets  # noqa: F401
+
     from exdrf_dev.db.models import Base  # noqa: F401, F403
 
     init_qt_info()

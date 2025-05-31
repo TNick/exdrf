@@ -2,6 +2,7 @@ import importlib
 import logging
 import os
 import re
+from datetime import datetime
 from os.path import getmtime, isfile, join
 
 from exdrf.utils import inflect_e
@@ -124,6 +125,7 @@ def create_jinja_env(auto_reload=False):
     jinja_env.globals["format_datetime"] = lambda x: (
         x.strftime("%d-%m-%Y %H:%M:%S") if x is not None else "-"
     )
+    jinja_env.globals["get_now"] = lambda: datetime.now()
 
     # Tests.
     jinja_env.tests["None"] = lambda value: value is None

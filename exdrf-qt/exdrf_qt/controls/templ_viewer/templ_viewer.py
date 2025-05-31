@@ -19,6 +19,8 @@ from exdrf.var_bag import VarBag
 from exdrf_gen.jinja_support import jinja_env
 from jinja2 import Environment, Template
 from PyQt5.QtCore import QPoint, Qt, QTimer
+from PyQt5.QtGui import QPageLayout, QPageSize
+from PyQt5.QtWebEngineWidgets import QWebEnginePage
 from PyQt5.QtWidgets import (
     QAction,
     QDialog,
@@ -33,13 +35,15 @@ from exdrf_qt.controls.templ_viewer.add_var_dlg import NewVariableDialog
 from exdrf_qt.controls.templ_viewer.header import VarHeader
 from exdrf_qt.controls.templ_viewer.model import VarModel
 from exdrf_qt.controls.templ_viewer.templ_viewer_ui import Ui_TemplViewer
-from exdrf_qt.controls.templ_viewer.view_page import WebEnginePage
 
 if TYPE_CHECKING:
     from exdrf.field import ExField  # noqa: F401
     from sqlalchemy.orm import Session  # noqa: F401
 
     from exdrf_qt.context import QtContext  # noqa: F401
+    from exdrf_qt.controls.templ_viewer.view_page import (
+        WebEnginePage,
+    )  # noqa: F401
 
 logger = logging.getLogger(__name__)
 snippets = {
@@ -182,7 +186,6 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
         self.c_viewer.customContextMenuRequested.connect(
             self.on_viewer_context_menu
         )
-        self.c_viewer.setPage(WebEnginePage(parent=self.c_viewer, ctx=self.ctx))
 
         # Context menu for template editor.
         self.c_editor.setContextMenuPolicy(
@@ -568,10 +571,28 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
         # page: "QWebEnginePage" = self.c_viewer.page()  # type: ignore
         # if page is None:
         #     return
-        # menu = page.createStandardContextMenu()
-        # if menu is None:
+        ac_copy_link = self.c_viewer.pageAction(
+            QWebEnginePage.WebAction.CopyLinkToClipboard
+        )
+        assert ac_copy_link is not None
+        ac_copy = self.c_viewer.pageAction(QWebEnginePage.WebAction.Copy)
+        assert ac_copy is not None
+        ac_cut = self.c_viewer.pageAction(QWebEnginePage.WebAction.Cut)
+        assert ac_cut is not None
+        ac_paste = self.c_viewer.pageAction(QWebEnginePage.WebAction.Paste)
+        assert ac_paste is not None
+        ac_inspect = self.c_viewer.pageAction(
+            QWebEnginePage.WebAction.InspectElement
+        )
+        assert ac_inspect is not None
+
         menu = QMenu()
-        # menu.addSeparator()
+
+        menu.addAction(ac_copy)
+        menu.addAction(ac_copy_link)
+        menu.addAction(ac_cut)
+        menu.addAction(ac_paste)
+        menu.addSeparator()
         menu.addAction(self.ac_switch_mode)
         menu.addAction(self.ac_toggle_vars)
         menu.addSeparator()
@@ -580,8 +601,12 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
         menu.addAction(self.ac_save_as_docx)
         menu.addSeparator()
         menu.addAction(self.ac_refresh)
+        menu.addAction(ac_inspect)
 
-        menu.exec_(self.c_viewer.mapToGlobal(pos))
+        result_ac = menu.exec_(self.c_viewer.mapToGlobal(pos))
+        if result_ac == ac_inspect:
+            # Show devtools view when inspect is triggered
+            self.c_viewer.show_devtools()
 
     def on_editor_context_menu(self, pos: QPoint):
         """Context menu for the template editor."""
@@ -792,18 +817,15 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
         except Exception as e:
             logger.error("Error auto-saving template: %s", e, exc_info=True)
 
-    def on_save_as_html(self):
+    def on_save_as_html(self) -> None:
         """Save the HTML."""
-        file_name, _ = QFileDialog.getSaveFileName(
-            self,
-            self.t("templ.save-html.t", "Save HTML"),
-            "",
-            self.t("templ.save-html.filter", "HTML Files (*.html)"),
-        )
-        if file_name:
+        page: "WebEnginePage" = cast("WebEnginePage", self.c_viewer.page())
+        assert page is not None
+
+        def do_save_html(html: str, output_file_name: str):
             try:
-                with open(file_name, "w", encoding="utf-8") as f:
-                    f.write(self.c_viewer.toHtml())
+                with open(output_file_name, "w", encoding="utf-8") as f:
+                    f.write(html)
             except Exception as e:
                 logger.error("Error saving HTML: %s", e, exc_info=True)
                 QMessageBox.critical(
@@ -812,8 +834,24 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
                     str(e),
                 )
 
-    def on_save_as_pdf(self):
+        file_name, _ = QFileDialog.getSaveFileName(
+            self,
+            self.t("templ.save-html.t", "Save HTML"),
+            "",
+            self.t("templ.save-html.filter", "HTML Files (*.html)"),
+        )
+        if file_name:
+            page.toHtml(
+                lambda html: (
+                    do_save_html(html, file_name) if html is not None else None
+                )
+            )
+
+    def on_save_as_pdf(self) -> None:
         """Save the rendered content as a .pdf file."""
+        page: "WebEnginePage" = cast("WebEnginePage", self.c_viewer.page())
+        assert page is not None
+
         file_name, _ = QFileDialog.getSaveFileName(
             self,
             self.t("templ.save-pdf.t", "Save PDF"),
@@ -821,16 +859,10 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
             self.t("templ.save-pdf.filter", "PDF Files (*.pdf)"),
         )
         if file_name:
-            from PyQt5.QtGui import QTextDocument
-            from PyQt5.QtPrintSupport import QPrinter
-
             try:
-                printer = QPrinter(QPrinter.HighResolution)
-                printer.setOutputFormat(QPrinter.PdfFormat)
-                printer.setOutputFileName(file_name)
-                doc = QTextDocument()
-                doc.setHtml(self.c_viewer.toHtml())
-                doc.print_(printer)
+                pg_lay = QPageLayout(QPageSize(QPageSize.PageSizeId.A4))
+                pg_lay.setOrientation(QPageLayout.Orientation.Portrait)
+                page.printToPdf(file_name, pg_lay)
             except Exception as e:
                 logger.error("Error saving PDF: %s", e, exc_info=True)
                 QMessageBox.critical(
