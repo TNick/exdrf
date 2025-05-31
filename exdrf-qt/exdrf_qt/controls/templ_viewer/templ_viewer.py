@@ -33,11 +33,11 @@ from exdrf_qt.controls.templ_viewer.add_var_dlg import NewVariableDialog
 from exdrf_qt.controls.templ_viewer.header import VarHeader
 from exdrf_qt.controls.templ_viewer.model import VarModel
 from exdrf_qt.controls.templ_viewer.templ_viewer_ui import Ui_TemplViewer
+from exdrf_qt.controls.templ_viewer.view_page import WebEnginePage
 
 if TYPE_CHECKING:
-    from exdrf.field import ExField
-    from PyQt5.QtWebEngineWidgets import QWebEnginePage
-    from sqlalchemy.orm import Session
+    from exdrf.field import ExField  # noqa: F401
+    from sqlalchemy.orm import Session  # noqa: F401
 
     from exdrf_qt.context import QtContext  # noqa: F401
 
@@ -182,6 +182,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
         self.c_viewer.customContextMenuRequested.connect(
             self.on_viewer_context_menu
         )
+        self.c_viewer.setPage(WebEnginePage(parent=self.c_viewer, ctx=self.ctx))
 
         # Context menu for template editor.
         self.c_editor.setContextMenuPolicy(
@@ -564,13 +565,13 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
 
     def on_viewer_context_menu(self, pos: QPoint):
         """Context menu for the template renderer."""
-        page: "QWebEnginePage" = self.c_viewer.page()  # type: ignore
-        if page is None:
-            return
-        menu = page.createStandardContextMenu()
-        if menu is None:
-            menu = QMenu()
-        menu.addSeparator()
+        # page: "QWebEnginePage" = self.c_viewer.page()  # type: ignore
+        # if page is None:
+        #     return
+        # menu = page.createStandardContextMenu()
+        # if menu is None:
+        menu = QMenu()
+        # menu.addSeparator()
         menu.addAction(self.ac_switch_mode)
         menu.addAction(self.ac_toggle_vars)
         menu.addSeparator()
@@ -669,25 +670,30 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
             logger.error("Error switching mode: %s", e, exc_info=True)
             self.show_exception(e, traceback.format_exc())
 
-    def _render_template(self):
-        """The actual rendering of the template."""
-        assert self._current_template is not None
-        if not self._use_edited_text and self._current_template_file:
+    def _ensure_fresh_template(self):
+        if not self._use_edited_text and self._current_template:
             # Check if the template file has been modified
-            loader = self.jinja_env.loader
-            assert loader is not None
             try:
-                source, filename, _ = loader.get_source(
-                    self.jinja_env, self._current_template_file
-                )
-                if filename != self._current_template_file:
+                if not self._current_template.is_up_to_date:
                     # Template file has changed, reload it
+                    assert self._current_template.filename is not None
                     self._current_template = self.jinja_env.get_template(
-                        self._current_template_file
+                        self._current_template.filename
+                    )
+                    loader = self.jinja_env.loader
+                    assert loader is not None
+                    assert self._current_template.filename is not None
+                    source, filename, _ = loader.get_source(
+                        self.jinja_env, self._current_template.filename
                     )
                     self.c_editor.setPlainText(source)
             except Exception as e:
                 logger.warning("Error checking template file: %s", e)
+
+    def _render_template(self):
+        """The actual rendering of the template."""
+        assert self._current_template is not None
+        self._ensure_fresh_template()
         return self._current_template.render(
             **self.model.var_bag.as_dict,
             **self.extra_context,
@@ -903,6 +909,7 @@ class RecordTemplViewer(TemplViewer, Generic[DBM]):
     def _render_template(self):
         """The actual rendering of the template."""
         assert self._current_template is not None
+        self._ensure_fresh_template()
         with self.ctx.same_session() as session:
             record = self.read_record(session)
             if record is None:
