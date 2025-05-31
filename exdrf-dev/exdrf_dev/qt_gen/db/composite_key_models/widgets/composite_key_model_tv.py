@@ -1,15 +1,15 @@
 from typing import TYPE_CHECKING
 
 from exdrf.field_types.api import (
+    BlobField,
     DateField,
     EnumField,
     FloatField,
+    FormattedField,
     IntField,
     RefOneToManyField,
     StrField,
     TimeField,
-    BlobField,
-    FormattedField,
 )
 from exdrf_qt.controls.templ_viewer.templ_viewer import RecordTemplViewer
 from sqlalchemy import select

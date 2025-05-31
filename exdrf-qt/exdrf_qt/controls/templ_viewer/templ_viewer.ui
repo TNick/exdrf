@@ -78,7 +78,7 @@
          <number>0</number>
         </property>
         <item>
-         <widget class="LineNumberedPlainTextEdit" name="c_editor"/>
+         <widget class="CodeTextEdit" name="c_editor"/>
         </item>
        </layout>
       </widget>
@@ -117,9 +117,9 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>LineNumberedPlainTextEdit</class>
+   <class>CodeTextEdit</class>
    <extends>QPlainTextEdit</extends>
-   <header location="global">exdrf_qt.controls.templ_viewer.line_numbered_plain_text_edit</header>
+   <header location="global">exdrf_qt.controls.templ_viewer.code_text_edit</header>
   </customwidget>
  </customwidgets>
  <resources/>

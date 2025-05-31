@@ -3,9 +3,7 @@ from typing import TYPE_CHECKING
 from PyQt5 import QtCore, QtWidgets
 
 if TYPE_CHECKING:
-    from exdrf_qt.controls.templ_viewer.line_numbered_plain_text_edit import (
-        LineNumberedPlainTextEdit,
-    )
+    from exdrf_qt.controls.templ_viewer.code_text_edit import CodeTextEdit
 
 
 class Ui_TemplViewer:
@@ -38,7 +36,7 @@ class Ui_TemplViewer:
     c_viewer: "QtWidgets.QTextBrowser"
     page_editor: "QtWidgets.QWidget"
     verticalLayout_2: "QtWidgets.QVBoxLayout"
-    c_editor: "LineNumberedPlainTextEdit"
+    c_editor: "CodeTextEdit"
     layoutWidget: "QtWidgets.QWidget"
     verticalLayout: "QtWidgets.QVBoxLayout"
     c_vars: "QtWidgets.QTreeView"
@@ -48,9 +46,7 @@ class Ui_TemplViewer:
     c_sel_templ: "QtWidgets.QToolButton"
 
     def setup_ui(self, TemplViewer):
-        from exdrf_qt.controls.templ_viewer.line_numbered_plain_text_edit import (
-            LineNumberedPlainTextEdit,
-        )
+        from exdrf_qt.controls.templ_viewer.code_text_edit import CodeTextEdit
 
         TemplViewer.setObjectName("TemplViewer")
         TemplViewer.resize(640, 480)
@@ -82,9 +78,7 @@ class Ui_TemplViewer:
         self.verticalLayout_2.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_2.setSpacing(0)
         self.verticalLayout_2.setObjectName("verticalLayout_2")
-        self.c_editor = LineNumberedPlainTextEdit(
-            parent=self.page_editor, ctx=self.ctx
-        )
+        self.c_editor = CodeTextEdit(parent=self.page_editor, ctx=self.ctx)
         self.c_editor.setObjectName("c_editor")
         self.verticalLayout_2.addWidget(self.c_editor)
         self.c_stacked.addWidget(self.page_editor)

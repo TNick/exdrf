@@ -12,13 +12,12 @@ from typing import (
     cast,
 )
 
-import yaml
+import yaml  # type: ignore
 from exdrf.constants import RecIdType
 from exdrf.var_bag import VarBag
 from exdrf_gen.jinja_support import jinja_env
 from jinja2 import Environment, Template
 from PyQt5.QtCore import QPoint, Qt
-from PyQt5.QtGui import QTextCursor
 from PyQt5.QtWidgets import (
     QAction,
     QDialog,
@@ -42,7 +41,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 snippets = {
-    "templ.snp.var_name": ("Insert variable", "{{ $ }}"),
+    "templ.snp.var_name": ("Insert variable", "{{ $(name) }}"),
     "templ.snp.for_loop": (
         "Insert for loop",
         "{% for $(itr) in $(src) %}\n" "$(body)\n" "{% endfor %}",
@@ -139,6 +138,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
         self.jinja_env = jinja_env
         self.view_mode = ViewMode.RENDERED
         self._use_edited_text = False
+        # self._active_snippet_placeholders: list[dict[str, Any]] = [] # Removed
         super().__init__(parent)
 
         # Prepare the model.
@@ -458,21 +458,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
             src = ac.text()
         else:
             src = ac.data()
-
-        # get the current indent level in the editor.
-        cursor: "QTextCursor" = self.c_editor.textCursor()
-        crs_text = cursor.block().text()
-        indent = len(crs_text) - len(crs_text.lstrip())
-        s_indent = crs_text[:indent]
-
-        # Divide the text into lines.
-        lines = src.split("\n")
-        for i, line in enumerate(lines):
-            if i > 0:
-                line = s_indent + line
-            if i < len(lines) - 1:
-                line += "\n"
-            self.c_editor.insertPlainText(line)
+        self.c_editor.insert_snippet(src)
 
     def update_switch_mode_action(self):
         """Change the appearance of the switch mode action based on the view
@@ -745,7 +731,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
             self.t("templ.save-docx.filter", "DOCX Files (*.docx)"),
         )
         if file_name:
-            from html4docx import HtmlToDocx
+            from html4docx import HtmlToDocx  # type: ignore
 
             try:
                 docx = HtmlToDocx().parse_html_string(self.c_viewer.toHtml())
