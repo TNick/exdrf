@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Union
 
 from exdrf_qt.controls.templ_viewer.templ_viewer import RecordTemplViewer
 from exdrf.field_types.api import (
@@ -18,27 +18,35 @@ from exdrf.field_types.api import (
 from sqlalchemy import select
 
 if TYPE_CHECKING:
-    from sqlalchemy.orm import Session
-    from {{ db_module }}.{{ r.categories[0] }}.api import {{ r.name }} as {{ r.name }}
+    from sqlalchemy.orm import Session  # noqa: F401
+    from exdrf_qt.context import QtContext  # noqa: F401
+    from {{ db_module }}.{{ r.categories[0] }}.api import {{ r.name }} as {{ r.name }}  # noqa: F401
 
 
 class Qt{{ ResPascal }}Tv(RecordTemplViewer):
     """Template viewer for a {{ ResPascal }} database record.
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, ctx: "QtContext", **kwargs):
         from {{ db_module }}.{{ r.categories[0] }}.api import {{ r.name }} as Db{{ r.name }}
 
         super().__init__(
-            db_model=Db{{ ResPascal }},
-            template_src="{{ res_snake }}_tv.html",
+            db_model=ctx.get_ovr(
+                "{{ out_module }}.{{ r.categories[0] }}.{{ res_p_snake }}.tv.model",
+                Db{{ ResPascal }},
+            ),
+            template_src=ctx.get_ovr(
+                "{{ out_module }}.{{ r.categories[0] }}.{{ res_p_snake }}.tv.template",
+                "{{ out_module }}/{{ r.categories[0] }}/{{ res_p_snake }}/widgets/{{ res_snake }}_tv.html"
+            ),
+            ctx=ctx,
             **kwargs
         )
     
     def read_record(
         self,
         session: "Session"
-    ) -> "{{ ResPascal }}":
+    ) -> Union[None, "{{ ResPascal }}"]:
         return session.scalar(
             select(self.db_model).where(
                 {%- if res_spl_id %}

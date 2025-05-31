@@ -79,7 +79,9 @@ class QtParentFuMo(QtModel["Parent"]):
 
         super().__init__(
             ctx=ctx,
-            db_model=DbParent,
+            db_model=ctx.get_ovr(
+                "exdrf_dev.qt_gen.db.parents.ful.model", DbParent
+            ),
             selection=(
                 selection
                 if selection is not None

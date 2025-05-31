@@ -11,6 +11,8 @@ from exdrf_qt.controls.table_list import ListDb
 # exdrf-keep-end other_imports ------------------------------------------------
 
 if TYPE_CHECKING:
+    from exdrf_qt.context import QtContext  # noqa: F401
+
     from exdrf_dev.db.api import Profile  # noqa: F401
 
 
@@ -21,7 +23,7 @@ class QtProfileList(ListDb["Profile"]):
 
     # exdrf-keep-end other_attributes -----------------------------------------
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, ctx: "QtContext", *args, **kwargs):
         from exdrf_dev.qt_gen.db.profiles.api import (
             QtProfileEditor,
             QtProfileFuMo,
@@ -29,10 +31,20 @@ class QtProfileList(ListDb["Profile"]):
         )
 
         super().__init__(
-            editor=QtProfileEditor, viewer=QtProfileTv, *args, **kwargs
+            editor=ctx.get_ovr(
+                "exdrf_dev.qt_gen.db.profiles.list.editor", QtProfileEditor
+            ),
+            viewer=ctx.get_ovr(
+                "exdrf_dev.qt_gen.db.profiles.list.viewer", QtProfileTv
+            ),
+            ctx=ctx,
+            *args,
+            **kwargs,
         )
         self.setModel(
-            QtProfileFuMo(
+            ctx.get_c_ovr(
+                "exdrf_dev.qt_gen.db.profiles.list.model",
+                QtProfileFuMo,
                 ctx=self.ctx,
                 parent=self,
             )

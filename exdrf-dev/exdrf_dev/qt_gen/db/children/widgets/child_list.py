@@ -11,6 +11,8 @@ from exdrf_qt.controls.table_list import ListDb
 # exdrf-keep-end other_imports ------------------------------------------------
 
 if TYPE_CHECKING:
+    from exdrf_qt.context import QtContext  # noqa: F401
+
     from exdrf_dev.db.api import Child  # noqa: F401
 
 
@@ -21,7 +23,7 @@ class QtChildList(ListDb["Child"]):
 
     # exdrf-keep-end other_attributes -----------------------------------------
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, ctx: "QtContext", *args, **kwargs):
         from exdrf_dev.qt_gen.db.children.api import (
             QtChildEditor,
             QtChildFuMo,
@@ -29,10 +31,20 @@ class QtChildList(ListDb["Child"]):
         )
 
         super().__init__(
-            editor=QtChildEditor, viewer=QtChildTv, *args, **kwargs
+            editor=ctx.get_ovr(
+                "exdrf_dev.qt_gen.db.children.list.editor", QtChildEditor
+            ),
+            viewer=ctx.get_ovr(
+                "exdrf_dev.qt_gen.db.children.list.viewer", QtChildTv
+            ),
+            ctx=ctx,
+            *args,
+            **kwargs,
         )
         self.setModel(
-            QtChildFuMo(
+            ctx.get_c_ovr(
+                "exdrf_dev.qt_gen.db.children.list.model",
+                QtChildFuMo,
                 ctx=self.ctx,
                 parent=self,
             )

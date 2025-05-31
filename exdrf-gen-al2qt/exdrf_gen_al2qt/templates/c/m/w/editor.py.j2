@@ -40,7 +40,10 @@ class Qt{{ ResPascal }}Editor(
 
         super().__init__(
             ctx=ctx,
-            db_model=Db{{ ResPascal }},
+            db_model=ctx.get_ovr(
+                "{{ out_module }}.{{ r.categories[0] }}.{{ res_p_snake }}.editor.model",
+                Db{{ ResPascal }}
+            ),
             **kwargs
         )
         self.verticalLayout.addWidget(self.create_button_box())

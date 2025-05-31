@@ -31,7 +31,13 @@ class QtTagEditor(EditorDb["Tag"], Ui_QtTagEditor):
         """Initialize the editor widget."""
         from exdrf_dev.db.api import Tag as DbTag
 
-        super().__init__(ctx=ctx, db_model=DbTag, **kwargs)
+        super().__init__(
+            ctx=ctx,
+            db_model=ctx.get_ovr(
+                "exdrf_dev.qt_gen.db.tags.editor.model", DbTag
+            ),
+            **kwargs,
+        )
         self.verticalLayout.addWidget(self.create_button_box())
         # exdrf-keep-start extra_init -----------------------------------------
 

@@ -54,7 +54,9 @@ class QtProfileFuMo(QtModel["Profile"]):
 
         super().__init__(
             ctx=ctx,
-            db_model=DbProfile,
+            db_model=ctx.get_ovr(
+                "exdrf_dev.qt_gen.db.profiles.ful.model", DbProfile
+            ),
             selection=(
                 selection
                 if selection is not None

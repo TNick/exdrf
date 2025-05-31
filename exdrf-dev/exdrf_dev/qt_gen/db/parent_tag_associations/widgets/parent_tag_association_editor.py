@@ -37,7 +37,14 @@ class QtParentTagAssociationEditor(
             ParentTagAssociation as DbParentTagAssociation,
         )
 
-        super().__init__(ctx=ctx, db_model=DbParentTagAssociation, **kwargs)
+        super().__init__(
+            ctx=ctx,
+            db_model=ctx.get_ovr(
+                "exdrf_dev.qt_gen.db.parent_tag_associations.editor.model",
+                DbParentTagAssociation,
+            ),
+            **kwargs,
+        )
         self.verticalLayout.addWidget(self.create_button_box())
         # exdrf-keep-start extra_init -----------------------------------------
 

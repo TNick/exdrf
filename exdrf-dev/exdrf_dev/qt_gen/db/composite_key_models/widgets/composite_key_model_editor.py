@@ -35,7 +35,14 @@ class QtCompositeKeyModelEditor(
         """Initialize the editor widget."""
         from exdrf_dev.db.api import CompositeKeyModel as DbCompositeKeyModel
 
-        super().__init__(ctx=ctx, db_model=DbCompositeKeyModel, **kwargs)
+        super().__init__(
+            ctx=ctx,
+            db_model=ctx.get_ovr(
+                "exdrf_dev.qt_gen.db.composite_key_models.editor.model",
+                DbCompositeKeyModel,
+            ),
+            **kwargs,
+        )
         self.verticalLayout.addWidget(self.create_button_box())
         # exdrf-keep-start extra_init -----------------------------------------
 

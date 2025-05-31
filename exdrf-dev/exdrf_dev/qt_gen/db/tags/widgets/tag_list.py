@@ -11,6 +11,8 @@ from exdrf_qt.controls.table_list import ListDb
 # exdrf-keep-end other_imports ------------------------------------------------
 
 if TYPE_CHECKING:
+    from exdrf_qt.context import QtContext  # noqa: F401
+
     from exdrf_dev.db.api import Tag  # noqa: F401
 
 
@@ -21,16 +23,26 @@ class QtTagList(ListDb["Tag"]):
 
     # exdrf-keep-end other_attributes -----------------------------------------
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, ctx: "QtContext", *args, **kwargs):
         from exdrf_dev.qt_gen.db.tags.api import (
             QtTagEditor,
             QtTagFuMo,
             QtTagTv,
         )
 
-        super().__init__(editor=QtTagEditor, viewer=QtTagTv, *args, **kwargs)
+        super().__init__(
+            editor=ctx.get_ovr(
+                "exdrf_dev.qt_gen.db.tags.list.editor", QtTagEditor
+            ),
+            viewer=ctx.get_ovr("exdrf_dev.qt_gen.db.tags.list.viewer", QtTagTv),
+            ctx=ctx,
+            *args,
+            **kwargs,
+        )
         self.setModel(
-            QtTagFuMo(
+            ctx.get_c_ovr(
+                "exdrf_dev.qt_gen.db.tags.list.model",
+                QtTagFuMo,
                 ctx=self.ctx,
                 parent=self,
             )

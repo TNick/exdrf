@@ -1,0 +1,9 @@
+<h1>{{ ResPascal }}</h1>
+<table>
+{%- for field in sorted_fields_for_ui(dset, r, fields) %}
+    <tr>
+        <td>{{ field.name }}</td>
+        <td>{{ '{{' }} record.{{ field.name }} {{ '}}' }}</td>
+    </tr>
+{%- endfor %}
+</table>

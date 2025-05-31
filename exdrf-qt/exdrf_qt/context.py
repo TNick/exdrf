@@ -2,9 +2,9 @@ import logging
 import logging.config
 import os
 from importlib import resources
-from typing import TYPE_CHECKING, Any, Callable, List, Optional, cast
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, cast
 
-import sqlparse
+import sqlparse  # type: ignore
 from attrs import define, field
 from exdrf_al.connection import DbConn
 from PyQt5.QtGui import QIcon
@@ -89,9 +89,12 @@ DEFAULT_LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "formatters": {
-        "sqlpretty": {
+        "sql-pretty": {
             "()": "exdrf_qt.context.SQLPrettyFormatter",
-            "format": "%(asctime)s [%(levelname)s] %(name)s:%(lineno)d: %(message)s",
+            "format": (
+                "%(asctime)s [%(levelname)s] %(name)s:%(lineno)d: "
+                "%(message)s"
+            ),
             "datefmt": "%Y-%m-%d %H:%M:%S",
         },
     },
@@ -99,13 +102,13 @@ DEFAULT_LOGGING = {
         "console": {
             "class": "logging.StreamHandler",
             "level": "INFO",
-            "formatter": "sqlpretty",
+            "formatter": "sql-pretty",
             "stream": "ext://sys.stdout",
         },
         "file": {
             "class": "logging.handlers.RotatingFileHandler",
             "level": "DEBUG",
-            "formatter": "sqlpretty",
+            "formatter": "sql-pretty",
             "filename": "exdrf.log",
             "maxBytes": 10485760,  # 10MB
             "backupCount": 5,
@@ -127,12 +130,21 @@ class QtContext(DbConn):
     """Provides a context for Qt application classes.
 
     It is used to manage the database and the application state.
+
+    Attributes:
+        top_widget: The main widget of the application. This will be the default
+            parent for widgets.
+        work_relay: The relay for the worker thread.
+        asset_sources: The list of asset sources to search for icons.
+        stg: The local settings.
+        overrides: A dictionary of general-purpose overrides.
     """
 
     top_widget: "QWidget" = cast("QWidget", None)
     work_relay: Optional[Relay] = None
     asset_sources: List[str] = field(factory=lambda: ["exdrf_qt.assets"])
     stg: LocalSettings = field(factory=LocalSettings)
+    _overrides: Dict[str, Any] = field(factory=dict)
 
     def __attrs_post_init__(self):
         self.setup_logging()
@@ -338,3 +350,37 @@ class QtContext(DbConn):
 
         # Apply the configuration
         logging.config.dictConfig(log_stg)
+
+    def get_ovr(self, key: str, default: Any = None) -> Any:
+        """Get an override value.
+
+        Args:
+            key: The key to get the override for.
+            default: The default value if the key is not found.
+        """
+        return self._overrides.get(key, default)
+
+    def get_c_ovr(self, key: str, default, *args, **kwargs) -> Any:
+        """Get then evaluate a function.
+
+        Args:
+            key: The key to get the override for.
+            default: The function to call to get the default value.
+            *args: Additional arguments for the default function.
+            **kwargs: Additional keyword arguments for the default function.
+        """
+        ovr = self._overrides.get(key, None)
+        if ovr is None:
+            ovr = default(*args, **kwargs)
+        else:
+            ovr = ovr(*args, **kwargs)
+        return ovr
+
+    def set_ovr(self, key: str, value: Any):
+        """Set an override value.
+
+        Args:
+            key: The key to set the override for.
+            value: The value to set.
+        """
+        self._overrides[key] = value

@@ -53,7 +53,7 @@ class QtTagFuMo(QtModel["Tag"]):
 
         super().__init__(
             ctx=ctx,
-            db_model=DbTag,
+            db_model=ctx.get_ovr("exdrf_dev.qt_gen.db.tags.ful.model", DbTag),
             selection=(
                 selection
                 if selection is not None

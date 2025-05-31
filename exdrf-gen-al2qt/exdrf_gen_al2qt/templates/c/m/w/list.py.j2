@@ -11,6 +11,7 @@ from exdrf_qt.controls.table_list import ListDb
 # exdrf-keep-end other_imports ------------------------------------------------
 
 if TYPE_CHECKING:
+    from exdrf_qt.context import QtContext  # noqa: F401
     from {{ db_module }}.{{ r.categories[0] }}.api import {{ ResPascal }}  # noqa: F401
 
 
@@ -20,7 +21,7 @@ class Qt{{ ResPascal }}List(ListDb["{{ ResPascal }}"]):
 {{other_attributes}}
     # exdrf-keep-end other_attributes -----------------------------------------
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, ctx: "QtContext", *args, **kwargs):
         from {{ out_module }}.{{ categories[0] }}.{{ res_p_snake }}.api import (
             Qt{{ ResPascal }}FuMo,
             Qt{{ ResPascal }}Editor,
@@ -28,12 +29,21 @@ class Qt{{ ResPascal }}List(ListDb["{{ ResPascal }}"]):
         )
 
         super().__init__(
-            editor=Qt{{ ResPascal }}Editor,
-            viewer=Qt{{ ResPascal }}Tv,
+            editor=ctx.get_ovr(
+                "{{ out_module }}.{{ r.categories[0] }}.{{ res_p_snake }}.list.editor",
+                Qt{{ ResPascal }}Editor
+            ),
+            viewer=ctx.get_ovr(
+                "{{ out_module }}.{{ r.categories[0] }}.{{ res_p_snake }}.list.viewer",
+                Qt{{ ResPascal }}Tv
+            ),
+            ctx=ctx,
             *args, **kwargs
         )
         self.setModel(
-            Qt{{ ResPascal }}FuMo(
+            ctx.get_c_ovr(
+                "{{ out_module }}.{{ r.categories[0] }}.{{ res_p_snake }}.list.model",
+                Qt{{ ResPascal }}FuMo,
                 ctx=self.ctx,
                 parent=self,
             )

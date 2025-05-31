@@ -12,7 +12,7 @@ from exdrf_qt.field_ed.fed_sel_one import DrfSelOneEditor
 # exdrf-keep-end other_imports ------------------------------------------------
 
 if TYPE_CHECKING:
-    from exdrf_qt.context import QtContext
+    from exdrf_qt.context import QtContext  # noqa: F401
 
 
 class QtCompositeKeyModelSiSe(DrfSelOneEditor):
@@ -30,7 +30,13 @@ class QtCompositeKeyModelSiSe(DrfSelOneEditor):
         )
 
         super().__init__(
-            qt_model=QtCompositeKeyModelNaMo(ctx=ctx), ctx=ctx, **kwargs
+            qt_model=ctx.get_c_ovr(
+                "exdrf_dev.qt_gen.db.composite_key_models.selector.model",
+                QtCompositeKeyModelNaMo,
+                ctx=ctx,
+            ),
+            ctx=ctx,
+            **kwargs,
         )
         self.qt_model.setParent(self)
         # exdrf-keep-start extra_sise_init -----------------------------------

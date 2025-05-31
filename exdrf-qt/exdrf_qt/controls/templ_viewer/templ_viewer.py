@@ -9,6 +9,7 @@ from typing import (
     Optional,
     Type,
     TypeVar,
+    Union,
     cast,
 )
 
@@ -760,15 +761,18 @@ class RecordTemplViewer(TemplViewer, Generic[DBM]):
         db_model: Type[DBM],
         **kwargs,
     ):
-        super().__init__(var_bag=VarBag(), **kwargs)
         self.record_id = record_id
         self.db_model = db_model
+        super().__init__(var_bag=VarBag(), **kwargs)
         self.populate()
 
     def populate(self):
         """Populate the variable bag with the fields of the database record."""
         with self.ctx.same_session() as session:
             record = self.read_record(session)
+            if record is None:
+                return
+
             self.model.beginResetModel()
             try:
                 self._populate_from_record(record)
@@ -790,13 +794,20 @@ class RecordTemplViewer(TemplViewer, Generic[DBM]):
         assert self._current_template is not None
         with self.ctx.same_session() as session:
             record = self.read_record(session)
+            if record is None:
+                return self.t(
+                    "templ.render.no-record",
+                    "<p style='color: grey; font-style: italic;'>"
+                    "No record found"
+                    "</p>",
+                )
             return self._current_template.render(
                 **self.model.var_bag.as_dict,
                 **self.extra_context,
                 record=record,
             )
 
-    def read_record(self, session: "Session") -> DBM:
+    def read_record(self, session: "Session") -> Union[None, DBM]:
         """Read the database record indicated by the record ID.
 
         Args:

@@ -51,7 +51,10 @@ class QtParentTagAssociationFuMo(QtModel["ParentTagAssociation"]):
 
         super().__init__(
             ctx=ctx,
-            db_model=DbParentTagAssociation,
+            db_model=ctx.get_ovr(
+                "exdrf_dev.qt_gen.db.parent_tag_associations.ful.model",
+                DbParentTagAssociation,
+            ),
             selection=(
                 selection
                 if selection is not None

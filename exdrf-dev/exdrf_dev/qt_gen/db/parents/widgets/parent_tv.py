@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Union
 
 from exdrf.field_types.api import (
     BoolField,
@@ -13,22 +13,32 @@ from exdrf_qt.controls.templ_viewer.templ_viewer import RecordTemplViewer
 from sqlalchemy import select
 
 if TYPE_CHECKING:
-    from sqlalchemy.orm import Session
+    from exdrf_qt.context import QtContext  # noqa: F401
+    from sqlalchemy.orm import Session  # noqa: F401
 
-    from exdrf_dev.db.api import Parent as Parent
+    from exdrf_dev.db.api import Parent as Parent  # noqa: F401
 
 
 class QtParentTv(RecordTemplViewer):
     """Template viewer for a Parent database record."""
 
-    def __init__(self, **kwargs):
+    def __init__(self, ctx: "QtContext", **kwargs):
         from exdrf_dev.db.api import Parent as DbParent
 
         super().__init__(
-            db_model=DbParent, template_src="parent_tv.html", **kwargs
+            db_model=ctx.get_ovr(
+                "exdrf_dev.qt_gen.db.parents.tv.model",
+                DbParent,
+            ),
+            template_src=ctx.get_ovr(
+                "exdrf_dev.qt_gen.db.parents.tv.template",
+                "exdrf_dev.qt_gen/db/parents/widgets/parent_tv.html",
+            ),
+            ctx=ctx,
+            **kwargs,
         )
 
-    def read_record(self, session: "Session") -> "Parent":
+    def read_record(self, session: "Session") -> Union[None, "Parent"]:
         return session.scalar(
             select(self.db_model).where(
                 self.db_model.id == self.record_id,  # type: ignore[operator]

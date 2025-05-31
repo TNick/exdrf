@@ -79,7 +79,10 @@ class QtCompositeKeyModelFuMo(QtModel["CompositeKeyModel"]):
 
         super().__init__(
             ctx=ctx,
-            db_model=DbCompositeKeyModel,
+            db_model=ctx.get_ovr(
+                "exdrf_dev.qt_gen.db.composite_key_models.ful.model",
+                DbCompositeKeyModel,
+            ),
             selection=(
                 selection
                 if selection is not None

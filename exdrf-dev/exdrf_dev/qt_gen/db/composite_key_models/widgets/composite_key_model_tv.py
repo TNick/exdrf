@@ -1,38 +1,50 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Union
 
 from exdrf.field_types.api import (
-    BlobField,
     DateField,
     EnumField,
     FloatField,
-    FormattedField,
     IntField,
     RefOneToManyField,
     StrField,
     TimeField,
+    BlobField,
+    FormattedField,
 )
 from exdrf_qt.controls.templ_viewer.templ_viewer import RecordTemplViewer
 from sqlalchemy import select
 
 if TYPE_CHECKING:
-    from sqlalchemy.orm import Session
+    from exdrf_qt.context import QtContext  # noqa: F401
+    from sqlalchemy.orm import Session  # noqa: F401
 
-    from exdrf_dev.db.api import CompositeKeyModel as CompositeKeyModel
+    from exdrf_dev.db.api import (
+        CompositeKeyModel as CompositeKeyModel,
+    )  # noqa: F401
 
 
 class QtCompositeKeyModelTv(RecordTemplViewer):
     """Template viewer for a CompositeKeyModel database record."""
 
-    def __init__(self, **kwargs):
+    def __init__(self, ctx: "QtContext", **kwargs):
         from exdrf_dev.db.api import CompositeKeyModel as DbCompositeKeyModel
 
         super().__init__(
-            db_model=DbCompositeKeyModel,
-            template_src="composite_key_model_tv.html",
+            db_model=ctx.get_ovr(
+                "exdrf_dev.qt_gen.db.composite_key_models.tv.model",
+                DbCompositeKeyModel,
+            ),
+            template_src=ctx.get_ovr(
+                "exdrf_dev.qt_gen.db.composite_key_models.tv.template",
+                "exdrf_dev.qt_gen/db/composite_key_models/widgets/composite_key_model_tv.html",
+            ),
+            ctx=ctx,
             **kwargs,
         )
 
-    def read_record(self, session: "Session") -> "CompositeKeyModel":
+    def read_record(
+        self, session: "Session"
+    ) -> Union[None, "CompositeKeyModel"]:
         return session.scalar(
             select(self.db_model).where(
                 self.db_model.key_part1 == self.record_id[0],  # type: ignore[operator]

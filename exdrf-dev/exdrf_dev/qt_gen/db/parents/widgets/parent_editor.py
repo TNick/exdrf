@@ -33,7 +33,13 @@ class QtParentEditor(EditorDb["Parent"], Ui_QtParentEditor):
         """Initialize the editor widget."""
         from exdrf_dev.db.api import Parent as DbParent
 
-        super().__init__(ctx=ctx, db_model=DbParent, **kwargs)
+        super().__init__(
+            ctx=ctx,
+            db_model=ctx.get_ovr(
+                "exdrf_dev.qt_gen.db.parents.editor.model", DbParent
+            ),
+            **kwargs,
+        )
         self.verticalLayout.addWidget(self.create_button_box())
         # exdrf-keep-start extra_init -----------------------------------------
 

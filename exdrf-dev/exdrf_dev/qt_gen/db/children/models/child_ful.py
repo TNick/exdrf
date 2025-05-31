@@ -54,7 +54,9 @@ class QtChildFuMo(QtModel["Child"]):
 
         super().__init__(
             ctx=ctx,
-            db_model=DbChild,
+            db_model=ctx.get_ovr(
+                "exdrf_dev.qt_gen.db.children.ful.model", DbChild
+            ),
             selection=(
                 selection
                 if selection is not None

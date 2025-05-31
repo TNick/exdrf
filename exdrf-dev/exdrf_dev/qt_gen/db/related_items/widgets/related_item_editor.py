@@ -33,7 +33,13 @@ class QtRelatedItemEditor(EditorDb["RelatedItem"], Ui_QtRelatedItemEditor):
         """Initialize the editor widget."""
         from exdrf_dev.db.api import RelatedItem as DbRelatedItem
 
-        super().__init__(ctx=ctx, db_model=DbRelatedItem, **kwargs)
+        super().__init__(
+            ctx=ctx,
+            db_model=ctx.get_ovr(
+                "exdrf_dev.qt_gen.db.related_items.editor.model", DbRelatedItem
+            ),
+            **kwargs,
+        )
         self.verticalLayout.addWidget(self.create_button_box())
         # exdrf-keep-start extra_init -----------------------------------------
 

@@ -12,7 +12,7 @@ from exdrf_qt.field_ed.fed_sel_one import DrfSelOneEditor
 # exdrf-keep-end other_imports ------------------------------------------------
 
 if TYPE_CHECKING:
-    from exdrf_qt.context import QtContext
+    from exdrf_qt.context import QtContext  # noqa: F401
 
 
 class QtParentSiSe(DrfSelOneEditor):
@@ -29,7 +29,15 @@ class QtParentSiSe(DrfSelOneEditor):
             QtParentNaMo,
         )
 
-        super().__init__(qt_model=QtParentNaMo(ctx=ctx), ctx=ctx, **kwargs)
+        super().__init__(
+            qt_model=ctx.get_c_ovr(
+                "exdrf_dev.qt_gen.db.parents.selector.model",
+                QtParentNaMo,
+                ctx=ctx,
+            ),
+            ctx=ctx,
+            **kwargs,
+        )
         self.qt_model.setParent(self)
         # exdrf-keep-start extra_sise_init -----------------------------------
 

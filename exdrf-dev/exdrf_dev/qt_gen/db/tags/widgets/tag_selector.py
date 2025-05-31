@@ -12,7 +12,7 @@ from exdrf_qt.field_ed.fed_sel_one import DrfSelOneEditor
 # exdrf-keep-end other_imports ------------------------------------------------
 
 if TYPE_CHECKING:
-    from exdrf_qt.context import QtContext
+    from exdrf_qt.context import QtContext  # noqa: F401
 
 
 class QtTagSiSe(DrfSelOneEditor):
@@ -25,11 +25,17 @@ class QtTagSiSe(DrfSelOneEditor):
     # exdrf-keep-end other_sise_attributes ------------------------------------
 
     def __init__(self, ctx: "QtContext", **kwargs):
-        from exdrf_dev.qt_gen.db.tags.models.tag_ocm import (  # noqa: E501
+        from exdrf_dev.qt_gen.db.tags.models.tag_ocm import (
             QtTagNaMo,
-        )
+        )  # noqa: E501
 
-        super().__init__(qt_model=QtTagNaMo(ctx=ctx), ctx=ctx, **kwargs)
+        super().__init__(
+            qt_model=ctx.get_c_ovr(
+                "exdrf_dev.qt_gen.db.tags.selector.model", QtTagNaMo, ctx=ctx
+            ),
+            ctx=ctx,
+            **kwargs,
+        )
         self.qt_model.setParent(self)
         # exdrf-keep-start extra_sise_init -----------------------------------
 
@@ -50,9 +56,9 @@ class QtTagMuSe(DrfSelMultiEditor):
     # exdrf-keep-end other_muse_attributes ------------------------------------
 
     def __init__(self, ctx: "QtContext", **kwargs):
-        from exdrf_dev.qt_gen.db.tags.models.tag_ocm import (  # noqa: E501
+        from exdrf_dev.qt_gen.db.tags.models.tag_ocm import (
             QtTagNaMo,
-        )
+        )  # noqa: E501
 
         super().__init__(qt_model=QtTagNaMo(ctx=ctx), ctx=ctx, **kwargs)
         self.qt_model.setParent(self)

@@ -1,3 +1,4 @@
+import importlib
 import logging
 import os
 import re
@@ -25,6 +26,28 @@ class Loader(BaseLoader):
                 if isfile(candidate_path):
                     template_path = candidate_path
                     break
+
+            # Attempt to treat it like a module name.
+            if template_path is None:
+                m_parts = template.split("/")
+                m_path = ".".join(m_parts[:-1])
+                m_name = m_parts[-1]
+                try:
+                    # "exdrf_dev.db.tags.widgets"
+                    module = importlib.import_module(m_path)
+                    module_file = getattr(module, "__file__", None)
+                    if module_file is not None:
+                        template_path = join(
+                            os.path.dirname(module_file), m_name
+                        )
+                        if not isfile(template_path):
+                            template_path = template_path + ".j2"
+                            if not isfile(template_path):
+                                template_path = None
+                except Exception as e:
+                    logger.warning(
+                        f"Failed to treat {template} as a module: {e}"
+                    )
 
         # If the template is not found in any of these paths, raise an error
         if template_path is None:

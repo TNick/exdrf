@@ -33,7 +33,13 @@ class QtProfileEditor(EditorDb["Profile"], Ui_QtProfileEditor):
         """Initialize the editor widget."""
         from exdrf_dev.db.api import Profile as DbProfile
 
-        super().__init__(ctx=ctx, db_model=DbProfile, **kwargs)
+        super().__init__(
+            ctx=ctx,
+            db_model=ctx.get_ovr(
+                "exdrf_dev.qt_gen.db.profiles.editor.model", DbProfile
+            ),
+            **kwargs,
+        )
         self.verticalLayout.addWidget(self.create_button_box())
         # exdrf-keep-start extra_init -----------------------------------------
 

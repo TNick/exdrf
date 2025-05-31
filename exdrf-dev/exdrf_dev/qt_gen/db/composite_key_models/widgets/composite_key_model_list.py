@@ -11,6 +11,8 @@ from exdrf_qt.controls.table_list import ListDb
 # exdrf-keep-end other_imports ------------------------------------------------
 
 if TYPE_CHECKING:
+    from exdrf_qt.context import QtContext  # noqa: F401
+
     from exdrf_dev.db.api import CompositeKeyModel  # noqa: F401
 
 
@@ -21,7 +23,7 @@ class QtCompositeKeyModelList(ListDb["CompositeKeyModel"]):
 
     # exdrf-keep-end other_attributes -----------------------------------------
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, ctx: "QtContext", *args, **kwargs):
         from exdrf_dev.qt_gen.db.composite_key_models.api import (
             QtCompositeKeyModelEditor,
             QtCompositeKeyModelFuMo,
@@ -29,13 +31,22 @@ class QtCompositeKeyModelList(ListDb["CompositeKeyModel"]):
         )
 
         super().__init__(
-            editor=QtCompositeKeyModelEditor,
-            viewer=QtCompositeKeyModelTv,
+            editor=ctx.get_ovr(
+                "exdrf_dev.qt_gen.db.composite_key_models.list.editor",
+                QtCompositeKeyModelEditor,
+            ),
+            viewer=ctx.get_ovr(
+                "exdrf_dev.qt_gen.db.composite_key_models.list.viewer",
+                QtCompositeKeyModelTv,
+            ),
+            ctx=ctx,
             *args,
             **kwargs,
         )
         self.setModel(
-            QtCompositeKeyModelFuMo(
+            ctx.get_c_ovr(
+                "exdrf_dev.qt_gen.db.composite_key_models.list.model",
+                QtCompositeKeyModelFuMo,
                 ctx=self.ctx,
                 parent=self,
             )

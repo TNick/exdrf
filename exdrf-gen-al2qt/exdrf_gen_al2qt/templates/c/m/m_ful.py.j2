@@ -63,7 +63,10 @@ class Qt{{ ResPascal }}FuMo(QtModel["{{ ResPascal }}"]):
 
         super().__init__(
             ctx=ctx,
-            db_model=Db{{ ResPascal }},
+            db_model=ctx.get_ovr(
+                "{{ out_module }}.{{ r.categories[0] }}.{{ res_p_snake }}.ful.model",
+                Db{{ ResPascal }}
+            ),
             selection=selection if selection is not None
             else default_{{ r.snake_case_name }}_list_selection(),
             fields=fields if fields is not None
