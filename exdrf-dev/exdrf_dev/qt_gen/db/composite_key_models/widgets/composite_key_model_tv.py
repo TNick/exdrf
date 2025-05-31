@@ -8,8 +8,6 @@ from exdrf.field_types.api import (
     RefOneToManyField,
     StrField,
     TimeField,
-    BlobField,
-    FormattedField,
 )
 from exdrf_qt.controls.templ_viewer.templ_viewer import RecordTemplViewer
 from sqlalchemy import select
@@ -47,8 +45,8 @@ class QtCompositeKeyModelTv(RecordTemplViewer):
     ) -> Union[None, "CompositeKeyModel"]:
         return session.scalar(
             select(self.db_model).where(
-                self.db_model.key_part1 == self.record_id[0],  # type: ignore[operator]
-                self.db_model.key_part2 == self.record_id[1],  # type: ignore[operator]
+                self.db_model.key_part1 == self.record_id[0],  # type: ignore
+                self.db_model.key_part2 == self.record_id[1],  # type: ignore
             )
         )
 
@@ -69,14 +67,6 @@ class QtCompositeKeyModelTv(RecordTemplViewer):
                         title="Related Items",
                     ),
                     record.related_items,
-                ),
-                (
-                    BlobField(
-                        name="some_binary",
-                        title="Some Binary",
-                        description="Binary data.",
-                    ),
-                    record.some_binary,
                 ),
                 (
                     DateField(
@@ -101,14 +91,6 @@ class QtCompositeKeyModelTv(RecordTemplViewer):
                         description="A floating-point number.",
                     ),
                     record.some_float,
-                ),
-                (
-                    FormattedField(
-                        name="some_json",
-                        title="Some Json",
-                        description="A JSON object.",
-                    ),
-                    record.some_json,
                 ),
                 (
                     TimeField(

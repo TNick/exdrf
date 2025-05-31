@@ -41,8 +41,8 @@ class QtParentTagAssociationTv(RecordTemplViewer):
     ) -> Union[None, "ParentTagAssociation"]:
         return session.scalar(
             select(self.db_model).where(
-                self.db_model.parent_id == self.record_id[0],  # type: ignore[operator]
-                self.db_model.tag_id == self.record_id[1],  # type: ignore[operator]
+                self.db_model.parent_id == self.record_id[0],  # type: ignore
+                self.db_model.tag_id == self.record_id[1],  # type: ignore
             )
         )
 

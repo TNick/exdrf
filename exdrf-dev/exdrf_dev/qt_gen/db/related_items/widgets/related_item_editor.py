@@ -53,7 +53,7 @@ class QtRelatedItemEditor(EditorDb["RelatedItem"], Ui_QtRelatedItemEditor):
     ) -> "RelatedItem":
         return session.scalar(
             self.selection.where(
-                self.db_model.id == record_id,  # type: ignore[operator]
+                self.db_model.id == record_id,  # type: ignore
             )
         )
 

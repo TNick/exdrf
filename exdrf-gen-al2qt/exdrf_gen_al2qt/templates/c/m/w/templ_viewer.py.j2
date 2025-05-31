@@ -50,10 +50,10 @@ class Qt{{ ResPascal }}Tv(RecordTemplViewer):
         return session.scalar(
             select(self.db_model).where(
                 {%- if res_spl_id %}
-                self.db_model.{{ res_primaries[0] }} == self.record_id,  # type: ignore[operator]
+                self.db_model.{{ res_primaries[0] }} == self.record_id,  # type: ignore
                 {%- else %}
                 {%- for itr, prm in enumerate(res_primaries) %}
-                self.db_model.{{ prm }} == self.record_id[{{ itr }}],  # type: ignore[operator]
+                self.db_model.{{ prm }} == self.record_id[{{ itr }}],  # type: ignore
                 {%- endfor %}
                 {%- endif %}
             )
@@ -62,6 +62,7 @@ class Qt{{ ResPascal }}Tv(RecordTemplViewer):
     def _populate_from_record(self, record: "{{ ResPascal }}"):
         self.model.var_bag.add_fields([
         {%- for field in sorted_fields_for_ui(dset, r, fields) %}
+        {%- if not field.__class__.__name__ in ('BlobField', 'FormattedField', 'FilterField', 'SortField') %}
             (
                 {{ field.__class__.__name__ }}(
                     name="{{ field.name }}",
@@ -72,5 +73,6 @@ class Qt{{ ResPascal }}Tv(RecordTemplViewer):
                 ),
                 record.{{ field.name }},
             ),
+        {%- endif %}
         {%- endfor %}
         ])

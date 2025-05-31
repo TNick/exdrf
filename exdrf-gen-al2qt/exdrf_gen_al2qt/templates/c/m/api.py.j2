@@ -1,3 +1,5 @@
+# autoflake: skip_file
+# flake8: noqa
 # This file was automatically generated using the exdrf_gen package.
 # Source: {{ source_module }} -> {{ source_templ }}
 # Don't change it manually.
@@ -6,23 +8,23 @@
 {{other_imports}}
 # exdrf-keep-end other_imports ------------------------------------------------
 
-from {{ out_module }}.{{ r.categories[0] }}.{{ r.snake_case_name_plural }}.models.{{ res_snake }}_ful import (  # noqa: F401
+from {{ out_module }}.{{ r.categories[0] }}.{{ r.snake_case_name_plural }}.models.{{ res_snake }}_ful import (
     Qt{{ ResPascal }}FuMo
 )
-from {{ out_module }}.{{ r.categories[0] }}.{{ r.snake_case_name_plural }}.models.{{ res_snake }}_ocm import (  # noqa: F401
+from {{ out_module }}.{{ r.categories[0] }}.{{ r.snake_case_name_plural }}.models.{{ res_snake }}_ocm import (
     Qt{{ ResPascal }}NaMo
 )
-from {{ out_module }}.{{ r.categories[0] }}.{{ r.snake_case_name_plural }}.widgets.{{ res_snake }}_editor import (  # noqa: F401
+from {{ out_module }}.{{ r.categories[0] }}.{{ r.snake_case_name_plural }}.widgets.{{ res_snake }}_editor import (
     Qt{{ ResPascal }}Editor,
 )
-from {{ out_module }}.{{ r.categories[0] }}.{{ r.snake_case_name_plural }}.widgets.{{ res_snake }}_list import (  # noqa: F401
+from {{ out_module }}.{{ r.categories[0] }}.{{ r.snake_case_name_plural }}.widgets.{{ res_snake }}_list import (
     Qt{{ ResPascal }}List,
 )
-from {{ out_module }}.{{ r.categories[0] }}.{{ r.snake_case_name_plural }}.widgets.{{ res_snake }}_selector import (  # noqa: F401
+from {{ out_module }}.{{ r.categories[0] }}.{{ r.snake_case_name_plural }}.widgets.{{ res_snake }}_selector import (
     Qt{{ ResPascal }}SiSe,
     Qt{{ ResPascal }}MuSe,
 )
-from {{ out_module }}.{{ r.categories[0] }}.{{ r.snake_case_name_plural }}.widgets.{{ res_snake }}_tv import (  # noqa: F401
+from {{ out_module }}.{{ r.categories[0] }}.{{ r.snake_case_name_plural }}.widgets.{{ res_snake }}_tv import (
     Qt{{ ResPascal }}Tv,
 )
 

@@ -79,7 +79,6 @@ lint:
 delint: ui aflake
 	@for %%d in ($(DIRS)) do ( \
 		pushd "$(CURDIR)\%%d" && \
-		autoflake --in-place --remove-all-unused-imports --recursive . && \
 		python -m isort . && \
 		python -m black . && \
 		popd)
@@ -149,7 +148,6 @@ lint:
 # Fixes the code style in all the packages in the mono-repo.
 delint: ui aflake
 	@for dir in $(DIRS); do \
-		cd $$dir && autoflake --in-place --remove-all-unused-imports --recursive .; \
 		cd $$dir && python -m isort .; \
 		cd $$dir && python -m black --quiet .; \
 		cd - > /dev/null; \

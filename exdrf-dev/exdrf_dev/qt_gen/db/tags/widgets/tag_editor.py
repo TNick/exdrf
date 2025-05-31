@@ -49,7 +49,7 @@ class QtTagEditor(EditorDb["Tag"], Ui_QtTagEditor):
     def read_record(self, session: "Session", record_id: RecIdType) -> "Tag":
         return session.scalar(
             self.selection.where(
-                self.db_model.id == record_id,  # type: ignore[operator]
+                self.db_model.id == record_id,  # type: ignore
             )
         )
 

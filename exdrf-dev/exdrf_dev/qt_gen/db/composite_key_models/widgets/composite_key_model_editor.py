@@ -56,8 +56,8 @@ class QtCompositeKeyModelEditor(
     ) -> "CompositeKeyModel":
         return session.scalar(
             self.selection.where(
-                self.db_model.key_part1 == record_id[0],  # type: ignore[operator]
-                self.db_model.key_part2 == record_id[1],  # type: ignore[operator]
+                self.db_model.key_part1 == record_id[0],  # type: ignore
+                self.db_model.key_part2 == record_id[1],  # type: ignore
             )
         )
 

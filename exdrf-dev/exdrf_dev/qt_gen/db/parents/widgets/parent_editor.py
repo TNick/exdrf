@@ -51,7 +51,7 @@ class QtParentEditor(EditorDb["Parent"], Ui_QtParentEditor):
     def read_record(self, session: "Session", record_id: RecIdType) -> "Parent":
         return session.scalar(
             self.selection.where(
-                self.db_model.id == record_id,  # type: ignore[operator]
+                self.db_model.id == record_id,  # type: ignore
             )
         )
 

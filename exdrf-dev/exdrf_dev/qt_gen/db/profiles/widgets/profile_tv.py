@@ -37,7 +37,7 @@ class QtProfileTv(RecordTemplViewer):
     def read_record(self, session: "Session") -> Union[None, "Profile"]:
         return session.scalar(
             select(self.db_model).where(
-                self.db_model.id == self.record_id,  # type: ignore[operator]
+                self.db_model.id == self.record_id,  # type: ignore
             )
         )
 

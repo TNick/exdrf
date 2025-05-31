@@ -58,8 +58,8 @@ class QtParentTagAssociationEditor(
     ) -> "ParentTagAssociation":
         return session.scalar(
             self.selection.where(
-                self.db_model.parent_id == record_id[0],  # type: ignore[operator]
-                self.db_model.tag_id == record_id[1],  # type: ignore[operator]
+                self.db_model.parent_id == record_id[0],  # type: ignore
+                self.db_model.tag_id == record_id[1],  # type: ignore
             )
         )
 
