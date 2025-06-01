@@ -6,6 +6,7 @@ from exdrf.field_types.api import (
     StrField,
 )
 from exdrf_qt.controls.templ_viewer.templ_viewer import RecordTemplViewer
+from exdrf_qt.controls.templ_viewer.view_page import WebEnginePage
 from sqlalchemy import select
 
 if TYPE_CHECKING:
@@ -29,6 +30,13 @@ class QtChildTv(RecordTemplViewer):
             template_src=ctx.get_ovr(
                 "exdrf_dev.qt_gen.db.children.tv.template",
                 "exdrf_dev.qt_gen/db/children/widgets/child_tv.html",
+            ),
+            page_class=ctx.get_ovr(
+                "exdrf_dev.qt_gen.db.children.tv.page_class",
+                ctx.get_ovr(
+                    "tv.page_class",
+                    WebEnginePage,
+                ),
             ),
             ctx=ctx,
             **kwargs,

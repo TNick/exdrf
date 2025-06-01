@@ -35,15 +35,16 @@ from exdrf_qt.controls.templ_viewer.add_var_dlg import NewVariableDialog
 from exdrf_qt.controls.templ_viewer.header import VarHeader
 from exdrf_qt.controls.templ_viewer.model import VarModel
 from exdrf_qt.controls.templ_viewer.templ_viewer_ui import Ui_TemplViewer
+from exdrf_qt.controls.templ_viewer.view_page import (  # noqa: F401
+    WebEnginePage,
+)
 
 if TYPE_CHECKING:
     from exdrf.field import ExField  # noqa: F401
     from sqlalchemy.orm import Session  # noqa: F401
 
     from exdrf_qt.context import QtContext  # noqa: F401
-    from exdrf_qt.controls.templ_viewer.view_page import (
-        WebEnginePage,
-    )  # noqa: F401
+
 
 logger = logging.getLogger(__name__)
 snippets = {
@@ -148,6 +149,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
         parent=None,
         extra_context: Optional[Dict[str, Any]] = None,
         template_src: Optional[str] = None,
+        page_class: Type[WebEnginePage] = WebEnginePage,
     ):
         """Initialize the template viewer.
 
@@ -163,7 +165,6 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
         self._auto_save_to = None
         self.view_mode = ViewMode.RENDERED
         self._use_edited_text = False
-        # self._active_snippet_placeholders: list[dict[str, Any]] = [] # Removed
         super().__init__(parent)
 
         # Prepare the model.
@@ -171,6 +172,10 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
 
         # Prepare the UI.
         self.setup_ui(self)
+
+        # Set the page for the viewer.
+        page = page_class(parent=self, ctx=self.ctx)
+        self.c_viewer.setPage(page)
 
         # Browse for the template file.
         self.c_sel_templ.clicked.connect(self.on_browse_templ_file)
@@ -210,6 +215,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
         if template_src:
             self.c_templ.setText(template_src)
         self.model.varDataChanged.connect(self.render_template)
+        self.on_toggle_vars(self.ac_toggle_vars.isChecked())
 
     def prepare_vars_list(self):
         """Prepare the variables list."""

@@ -1,8 +1,10 @@
 import logging
+import os
+from datetime import datetime, timedelta
 from importlib import resources
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, List, Optional, Tuple
 
-from PyQt5.QtCore import QBuffer, QByteArray, QIODevice, QUrl
+from PyQt5.QtCore import QBuffer, QByteArray, QIODevice, QTimer, QUrl
 from PyQt5.QtWebEngineCore import (
     QWebEngineUrlRequestJob,
     QWebEngineUrlScheme,
@@ -37,13 +39,85 @@ def read_local_assets(path: str) -> bytes:
     raise FileNotFoundError(f"File `{path}` not found in assets directory")
 
 
-class ExDrfHandler(QWebEngineUrlSchemeHandler):
-    """Custom URL scheme handler for exdrf://."""
+class ExDrfHandler(QWebEngineUrlSchemeHandler, QtUseContext):
+    """Custom URL scheme handler for exdrf://.
 
-    def __init__(self, parent=None):
+    This class is used to handle requests for assets, attachments, and
+    attachment images.
+
+    For now the buffers are not discarded, which is a memory leak.
+    There seem to be no way to detect when the job is finished.
+
+    The collector timer is used to collect buffers that are no longer needed.
+    It is started when the handler is created and runs every minute.
+    When a buffer is added the time when it will be removed is set to 5 minutes
+    from the current time.
+
+    Attributes:
+        _buffers: Keep a reference to buffers to prevent them from being
+            garbage collected until the job is finished.
+        collector_timer: Timer that runs every minute to collect buffers that
+            are no longer needed.
+    """
+
+    _buffers: List[Tuple[datetime, QBuffer]]
+    collector_timer: QTimer
+
+    def __init__(self, ctx: "QtContext", parent=None):
         super().__init__(parent)
-        # Buffer references to prevent GC until jobs are done
+        self.ctx = ctx
         self._buffers = []
+        self.collector_timer = QTimer()
+        self.collector_timer.timeout.connect(self.collect_buffers)
+        self.collector_timer.start(1 * 60 * 1000)
+
+    def collect_buffers(self):
+        """Collect buffers that are no longer needed."""
+        before = len(self._buffers)
+        now = datetime.now()
+        self._buffers = [(t, b) for t, b in self._buffers if t > now]
+        after = len(self._buffers)
+        if after < before:
+            logger.debug("Discarded %d buffers", before - after)
+
+    def get_asset(self, path: str) -> Tuple[bytes, bytes]:
+        if path in ("datatables.min.css", "bootstrap.min.css"):
+            data = read_local_assets(path)
+            mime = b"text/css"
+        elif path in (
+            "datatables.min.js",
+            "jquery-3.7.1.min.js",
+            "bootstrap.bundle.min.js",
+            "dataTables.bootstrap5.js",
+        ):
+            data = read_local_assets(path)
+            mime = b"application/javascript"
+        else:
+            data = b"404 Not Found"
+            mime = b"text/plain"
+        return data, mime
+
+    def get_attachment(self, path: str) -> Tuple[bytes, bytes]:
+        """Get an attachment."""
+        if os.path.isfile(path):
+            data = read_local_assets(path)
+            mime = b"application/pdf"
+        else:
+            logger.error(f"Attachment not found: {path}")
+            data = read_local_assets("not-found.png")
+            mime = b"application/png"
+        return data, mime
+
+    def get_att_img(self, path: str) -> Tuple[bytes, bytes]:
+        """Get an attachment as an image."""
+        if os.path.isfile(path):
+            data = read_local_assets(path)
+            mime = b"image/png"
+        else:
+            logger.error(f"Attachment image not found: {path}")
+            data = read_local_assets("not-found.png")
+            mime = b"image/png"
+        return data, mime
 
     def requestStarted(  # type: ignore
         self,
@@ -54,26 +128,23 @@ class ExDrfHandler(QWebEngineUrlSchemeHandler):
         req_url: "QUrl" = job.requestUrl()
         path = req_url.path()
         host = req_url.host()
-        print(f"host: {host}, path: {path}")
+
+        if path.startswith("/"):
+            path = path[1:]
+        logger.debug("Request for host '%s' path '%s'", host, path)
 
         data: bytes
         mime: bytes
 
         try:
-            if host in ("datatables.min.css", "bootstrap.min.css"):
-                data = read_local_assets(host)
-                mime = b"text/css"
-            elif host in (
-                "datatables.min.js",
-                "jquery-3.7.1.min.js",
-                "bootstrap.bundle.min.js",
-                "dataTables.bootstrap5.js",
-            ):
-                data = read_local_assets(host)
-                mime = b"application/javascript"
+            if host == "assets":
+                data, mime = self.get_asset(path)
+            elif host == "attachments":
+                data, mime = self.get_attachment(path)
+            elif host == "att-img":
+                data, mime = self.get_att_img(path)
             else:
-                data = b"404 Not Found"
-                mime = b"text/plain"
+                raise RuntimeError(f"Unknown host: {host}")
         except Exception as e:
             logger.error(
                 f"Error handling request for {req_url.toString()}: {e}"
@@ -85,36 +156,36 @@ class ExDrfHandler(QWebEngineUrlSchemeHandler):
         content_type_qba = QByteArray(mime)
         data_buffer = QBuffer()
         data_buffer.setData(data)
-        if not data_buffer.open(QIODevice.ReadOnly):
+        if not data_buffer.open(QIODevice.OpenModeFlag.ReadOnly):
             logger.error(f"Failed to open QBuffer for URL {req_url.toString()}")
             job.fail(QWebEngineUrlRequestJob.Error.RequestFailed)
             return
 
-        self._buffers.append(data_buffer)
+        # Add buffer to collector list.
+        five_minutes_later = datetime.now() + timedelta(minutes=5)
+        self._buffers.append((five_minutes_later, data_buffer))
 
-        # def cleanup_buffer():
-        #     # Remove buffer reference after job is finished
-        #     try:
-        #         self._buffers.remove(data_buffer)
-        #     except ValueError:
-        #         pass
-        # job.finished.connect(cleanup_buffer)
-
-        print(f"replying with {len(data)} bytes")
+        # Reply to the request.
         job.reply(content_type_qba, data_buffer)
-        print(f"replied with {len(data)} bytes")
+        logger.debug("replied with %d bytes", len(data))
 
 
 class WebEnginePage(QWebEnginePage, QtUseContext):
     """A custom web engine page that can handle internal navigation requests."""
 
+    handler: ExDrfHandler
+
     def __init__(self, ctx: "QtContext", *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.ctx = ctx
+        self.handler = None  # type: ignore
         profile = QWebEngineProfile.defaultProfile()
         if profile is None:
             raise RuntimeError("Failed to get default profile")
-        self.handler = ExDrfHandler(profile)
+        self.setup_handler(profile)
+
+    def setup_handler(self, profile: "QWebEngineProfile"):
+        self.handler = ExDrfHandler(self.ctx, profile)
         profile.installUrlSchemeHandler(b"exdrf", self.handler)
 
     def javaScriptConsoleMessage(self, level, message, lineNumber, sourceID):
@@ -136,12 +207,19 @@ class WebEnginePage(QWebEnginePage, QtUseContext):
                 f"JS: {message} (line {lineNumber}, source: {sourceID})"
             )
 
-    def acceptNavigationRequest(self, url, _type, isMainFrame):  # type: ignore
+    def acceptNavigationRequest(  # type: ignore
+        self, url: "QUrl", _type, isMainFrame: bool
+    ) -> bool:
+        """Accept navigation requests."""
+        # host = url.host()
+        # path = url.path()
+        # scheme = url.scheme()
+
         url_str = url.toString()
         view = self.view()
         if view is None:
             return False
-        if url_str.startswith("exdrf://"):
+        if scheme == "exdrf":
             # Render your own content instead of navigating
             view.setHtml(f"<h1>Custom content for {url_str}</h1>")
             # Block navigation

@@ -4,7 +4,6 @@ from PyQt5.QtCore import QEvent, Qt
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 
 from exdrf_qt.context_use import QtUseContext
-from exdrf_qt.controls.templ_viewer.view_page import WebEnginePage
 
 if TYPE_CHECKING:
     from exdrf_qt.context import QtContext  # noqa: F401
@@ -17,8 +16,6 @@ class WebView(QWebEngineView, QtUseContext):
         super().__init__(*args, **kwargs)
         self.ctx = ctx
         self.devtools_view = None
-        page = WebEnginePage(parent=self, ctx=self.ctx)
-        self.setPage(page)
         self.installEventFilter(self)
 
     def eventFilter(self, obj, event):  # type: ignore

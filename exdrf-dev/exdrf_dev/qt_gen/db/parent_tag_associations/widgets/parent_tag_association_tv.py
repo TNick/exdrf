@@ -4,6 +4,7 @@ from exdrf.field_types.api import (
     IntField,
 )
 from exdrf_qt.controls.templ_viewer.templ_viewer import RecordTemplViewer
+from exdrf_qt.controls.templ_viewer.view_page import WebEnginePage
 from sqlalchemy import select
 
 if TYPE_CHECKING:
@@ -31,6 +32,13 @@ class QtParentTagAssociationTv(RecordTemplViewer):
             template_src=ctx.get_ovr(
                 "exdrf_dev.qt_gen.db.parent_tag_associations.tv.template",
                 "exdrf_dev.qt_gen/db/parent_tag_associations/widgets/parent_tag_association_tv.html",
+            ),
+            page_class=ctx.get_ovr(
+                "exdrf_dev.qt_gen.db.parent_tag_associations.tv.page_class",
+                ctx.get_ovr(
+                    "tv.page_class",
+                    WebEnginePage,
+                ),
             ),
             ctx=ctx,
             **kwargs,
