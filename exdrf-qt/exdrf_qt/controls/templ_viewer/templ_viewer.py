@@ -1,5 +1,9 @@
 import logging
+import os
+import re
+import tempfile
 import traceback
+from datetime import datetime, timedelta
 from enum import IntEnum
 from typing import (
     TYPE_CHECKING,
@@ -122,6 +126,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
     _use_edited_text: bool
     _auto_save_to: Optional[str]
     _auto_save_timer: "QTimer"
+    _backup_file: Optional[str]
     jinja_env: "Environment"
     header: "VarHeader"
     model: "VarModel"
@@ -159,6 +164,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
             parent: The parent of the template viewer.
         """
         self.ctx = ctx
+        self._backup_file = None
         self.extra_context = extra_context or {}
         self._current_template = None
         self.jinja_env = jinja_env
@@ -784,6 +790,50 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
                     f.write(self.c_editor.toPlainText())
             except Exception as e:
                 logger.error("Error auto-saving template: %s", e, exc_info=True)
+        else:
+            # Compute a backup file name.
+            if self._backup_file is None:
+                now_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+                self._backup_file = tempfile.mktemp(
+                    suffix=f"-exdrf-template-backup-{now_str}.j2"
+                )
+                logger.info("Created backup file: %s", self._backup_file)
+
+            # Save the backup file.
+            with open(self._backup_file, "w", encoding="utf-8") as f:
+                f.write(self.c_editor.toPlainText())
+
+            # Delete old backups.
+            self.delete_old_backups()
+
+    def delete_old_backups(self):
+        """Iterate existing file and delete those that are older than two
+        days.
+        """
+        assert self._backup_file is not None
+        tmp_dir = os.path.dirname(self._backup_file)
+        pattern = re.compile(
+            r"^.*-exdrf-template-backup-"
+            r"(\d{4})(\d{2})(\d{2})_"
+            r"(\d{2})(\d{2})(\d{2})\.j2$"
+        )
+        now = datetime.now()
+        limit = now - timedelta(days=2)
+        for file in os.listdir(tmp_dir):
+            match = pattern.match(file)
+            if match:
+                file_path = os.path.join(tmp_dir, file)
+                created = datetime(
+                    int(match.group(1)),
+                    int(match.group(2)),
+                    int(match.group(3)),
+                    int(match.group(4)),
+                    int(match.group(5)),
+                    int(match.group(6)),
+                )
+                if created < limit:
+                    os.remove(file_path)
+                    logger.info("Deleted old backup file: %s", file_path)
 
     def on_save_as_templ(self):
         """Save the template."""
