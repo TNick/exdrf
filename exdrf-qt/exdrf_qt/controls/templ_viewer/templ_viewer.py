@@ -215,7 +215,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
         # Initialize the auto-save timer
         self._auto_save_timer = QTimer(self)
         self._auto_save_timer.setSingleShot(True)
-        self._auto_save_timer.setInterval(500)  # 500 ms delay
+        self._auto_save_timer.setInterval(2000)  # 2 seconds delay
         self._auto_save_timer.timeout.connect(self._perform_auto_save)
 
         if template_src:
@@ -675,10 +675,13 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
             loader = self.jinja_env.loader
             assert loader is not None
             source, filename, _ = loader.get_source(self.jinja_env, text)
+            self.c_editor.blockSignals(True)
             self.c_editor.setPlainText(source)
+            self.c_editor.blockSignals(False)
             self._current_template_file = filename
             self._use_edited_text = False
             self.render_template()
+
         except Exception as e:
             logger.error("Error loading template: %s", e, exc_info=True)
             self.c_templ.setStyleSheet("QLineEdit { color: red; }")
@@ -723,7 +726,9 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
                     source, filename, _ = loader.get_source(
                         self.jinja_env, self._current_template.filename
                     )
+                    self.c_editor.blockSignals(True)
                     self.c_editor.setPlainText(source)
+                    self.c_editor.blockSignals(False)
             except Exception as e:
                 logger.warning("Error checking template file: %s", e)
 
@@ -734,6 +739,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
         return self._current_template.render(
             **self.model.var_bag.as_dict,
             **self.extra_context,
+            api_point=self.ctx.data,  # type: ignore
         )
 
     def render_template(self):
@@ -779,8 +785,8 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
         self._use_edited_text = True
         if self._auto_save_timer.isActive():
             self._auto_save_timer.stop()
-        if self._auto_save_to is not None:
-            self._auto_save_timer.start()
+        # if self._auto_save_to is not None:
+        self._auto_save_timer.start()
 
     def _perform_auto_save(self):
         """Perform the actual auto-save operation."""
@@ -1020,6 +1026,7 @@ class RecordTemplViewer(TemplViewer, Generic[DBM]):
                 **self.model.var_bag.as_dict,
                 **self.extra_context,
                 record=record,
+                api_point=self.ctx.data,  # type: ignore
             )
 
     def read_record(self, session: "Session") -> Union[None, DBM]:

@@ -1,5 +1,6 @@
 import importlib
 import logging
+import math
 import os
 import re
 from datetime import datetime
@@ -70,6 +71,50 @@ class Loader(BaseLoader):
         return source, template_path, lambda: mtime == getmtime(template_path)
 
 
+def jinja_round(value, precision=0, method="common"):
+    import math
+
+    s_value = repr(value)
+    if s_value.startswith("Markup('") and s_value.endswith("')"):
+        value = float(s_value[8:-2])
+
+    if method == "common":
+        try:
+            return round(value, precision)
+        except Exception:
+            return value
+    elif method == "ceil":
+        factor = 10**precision
+        return math.ceil(value * factor) / factor
+    elif method == "floor":
+        factor = 10**precision
+        return math.floor(value * factor) / factor
+    else:
+        raise ValueError("method must be 'common', 'ceil', or 'floor'")
+
+
+def jinja_length(value):
+    return len(value)
+
+
+def jinja_list(value):
+    return list(value)
+
+
+def jinja_range(*args):
+    return list(range(*args))
+
+
+def jinja_format(value, *args, **kwargs):
+    # Accepts both old-style and new-style formatting
+    if isinstance(value, str):
+        if args and ("{" in value and "}" in value):
+            return value.format(*args, **kwargs)
+        else:
+            return value % args if args else value
+    return value
+
+
 def create_jinja_env(auto_reload=False):
     """Creates a base Jinja2 environment for rendering templates."""
     jinja_env = Environment(
@@ -127,8 +172,59 @@ def create_jinja_env(auto_reload=False):
     )
     jinja_env.globals["get_now"] = lambda: datetime.now()
 
+    # Math utilities.
+    jinja_env.globals["sqrt"] = lambda x: math.sqrt(x)
+    jinja_env.globals["atan2"] = lambda x, y: math.atan2(x, y)
+    jinja_env.globals["min"] = lambda x, y: min(x, y)
+    jinja_env.globals["max"] = lambda x, y: max(x, y)
+    jinja_env.globals["abs"] = lambda x: abs(x)
+    jinja_env.globals["range"] = range
+    jinja_env.globals["round"] = round
+    jinja_env.globals["pi"] = math.pi
+
     # Tests.
     jinja_env.tests["None"] = lambda value: value is None
+
+    # Jinja filters.
+    jinja_env.filters["format_int"] = lambda x: (
+        f"{x:,.0f}" if x is not None else "-"
+    )
+    jinja_env.filters["format_float"] = lambda x, y: (
+        f"{x:.{y}f}" if x is not None else "-"
+    )
+    jinja_env.filters["format_date"] = lambda x: (
+        x.strftime("%d-%m-%Y") if x is not None else "-"
+    )
+    jinja_env.filters["format_datetime"] = lambda x: (
+        x.strftime("%d-%m-%Y %H:%M:%S") if x is not None else "-"
+    )
+    jinja_env.filters["proper"] = lambda x: " ".join(
+        word.capitalize() for word in str(x).split()
+    )
+    jinja_env.filters["title"] = lambda x: x.title()
+    jinja_env.filters["round"] = jinja_round
+    jinja_env.filters["length"] = jinja_length
+    jinja_env.filters["list"] = jinja_list
+    jinja_env.filters["format"] = jinja_format
+    jinja_env.filters["range"] = jinja_range
+    jinja_env.filters["sqrt"] = lambda x: math.sqrt(x)
+    jinja_env.filters["atan2"] = lambda x, y: math.atan2(x, y)
+    jinja_env.filters["min"] = lambda x, y: min(x, y)
+    jinja_env.filters["max"] = lambda x, y: max(x, y)
+    jinja_env.filters["abs"] = lambda x: abs(x)
+    jinja_env.filters["lower"] = lambda x: x.lower()
+    jinja_env.filters["upper"] = lambda x: x.upper()
+    jinja_env.filters["strip"] = lambda x: x.strip()
+    jinja_env.filters["lstrip"] = lambda x: x.lstrip()
+    jinja_env.filters["rstrip"] = lambda x: x.rstrip()
+    jinja_env.filters["pluralize"] = lambda x: inflect_e.plural(x)
+    jinja_env.filters["snake_pl"] = lambda x: inflect_e.plural(
+        re.sub(r"(?<!^)(?=[A-Z])", "_", x).lower()  # type: ignore
+    )
+    jinja_env.filters["snake"] = lambda x: re.sub(
+        r"(?<!^)(?=[A-Z])", "_", x
+    ).lower()
+
     return jinja_env
 
 
