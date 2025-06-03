@@ -1,5 +1,6 @@
 {
     "cSpell.words": [
+        "addprevious",
         "aflake",
         "autoflake",
         "Backtab",
@@ -51,6 +52,8 @@
         "nosetests",
         "notlike",
         "notr",
+        "nsdecls",
+        "oxml",
         "pflake",
         "poolclass",
         "popd",
@@ -64,6 +67,7 @@
         "PYQTDESIGNERPATH",
         "pysqlite",
         "pytestconfig",
+        "qimage",
         "qsearch",
         "recwarn",
         "redef",
@@ -71,6 +75,8 @@
         "relativedelta",
         "repr",
         "ropeproject",
+        "rowspan",
+        "RRGGBB",
         "scrapy",
         "sdist",
         "seldb",
@@ -93,7 +99,8 @@
         "usebackq",
         "verstretch",
         "vsizetype",
-        "webassets"
+        "webassets",
+        "xmlchemy"
     ],
     "python.analysis.extraPaths": [
         "${workspaceFolder}/exdrf",

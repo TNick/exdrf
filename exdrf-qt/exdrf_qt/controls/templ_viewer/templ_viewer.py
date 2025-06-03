@@ -22,8 +22,8 @@ from exdrf.constants import RecIdType
 from exdrf.var_bag import VarBag
 from exdrf_gen.jinja_support import jinja_env
 from jinja2 import Environment, Template
-from PyQt5.QtCore import QPoint, Qt, QTimer
-from PyQt5.QtGui import QPageLayout, QPageSize
+from PyQt5.QtCore import QMarginsF, QPoint, Qt, QTimer, QUrl
+from PyQt5.QtGui import QDesktopServices, QPageLayout, QPageSize
 from PyQt5.QtWebEngineWidgets import QWebEnginePage
 from PyQt5.QtWidgets import (
     QAction,
@@ -42,6 +42,7 @@ from exdrf_qt.controls.templ_viewer.templ_viewer_ui import Ui_TemplViewer
 from exdrf_qt.controls.templ_viewer.view_page import (  # noqa: F401
     WebEnginePage,
 )
+from exdrf_qt.controls.templ_viewer.view_widget import HtmlToDocxConverter
 
 if TYPE_CHECKING:
     from exdrf.field import ExField  # noqa: F401
@@ -888,6 +889,9 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
             try:
                 with open(output_file_name, "w", encoding="utf-8") as f:
                     f.write(html)
+                parent_dir = os.path.dirname(output_file_name)
+                if parent_dir:
+                    QDesktopServices.openUrl(QUrl.fromLocalFile(parent_dir))
             except Exception as e:
                 logger.error("Error saving HTML: %s", e, exc_info=True)
                 QMessageBox.critical(
@@ -922,9 +926,16 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
         )
         if file_name:
             try:
-                pg_lay = QPageLayout(QPageSize(QPageSize.PageSizeId.A4))
-                pg_lay.setOrientation(QPageLayout.Orientation.Portrait)
+                pg_lay = QPageLayout(
+                    QPageSize(QPageSize.PageSizeId.A4),
+                    QPageLayout.Orientation.Portrait,
+                    QMarginsF(20, 10, 10, 10),
+                    QPageLayout.Unit.Millimeter,
+                    QMarginsF(0, 0, 0, 0),
+                )
                 page.printToPdf(file_name, pg_lay)
+
+                QDesktopServices.openUrl(QUrl.fromLocalFile(file_name))
             except Exception as e:
                 logger.error("Error saving PDF: %s", e, exc_info=True)
                 QMessageBox.critical(
@@ -935,6 +946,11 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
 
     def on_save_as_docx(self) -> None:
         """Save the rendered content as a .docx file."""
+        # from html4docx import HtmlToDocx  # type: ignore
+
+        page: "WebEnginePage" = cast("WebEnginePage", self.c_viewer.page())
+        assert page is not None
+
         file_name, _ = QFileDialog.getSaveFileName(
             self,
             self.t("templ.save-docx.t", "Save DOCX"),
@@ -942,18 +958,8 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
             self.t("templ.save-docx.filter", "DOCX Files (*.docx)"),
         )
         if file_name:
-            from html4docx import HtmlToDocx  # type: ignore
-
-            try:
-                docx = HtmlToDocx().parse_html_string(self.c_viewer.toHtml())
-                docx.save(file_name)
-            except Exception as e:
-                logger.error("Error saving DOCX: %s", e, exc_info=True)
-                QMessageBox.critical(
-                    self,
-                    self.t("templ.save-docx.error", "Error"),
-                    str(e),
-                )
+            converter = HtmlToDocxConverter(self.c_viewer)
+            converter.export_to_docx(file_name)
 
 
 DBM = TypeVar("DBM")

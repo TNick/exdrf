@@ -115,6 +115,36 @@ def jinja_format(value, *args, **kwargs):
     return value
 
 
+def jinja_sorted(value, key=None, reverse=False):
+    if key is not None:
+        return sorted(value, key=lambda x: getattr(x, key), reverse=reverse)
+    else:
+        return sorted(value, reverse=reverse)
+
+
+def jinja_sorted_k(value, key=None, reverse=False):
+    if key is not None:
+        return sorted(value, key=lambda x: x[key], reverse=reverse)
+    else:
+        return sorted(value, reverse=reverse)
+
+
+def jinja_equals(target_list, key, value):
+    return list(item for item in target_list if getattr(item, key) == value)
+
+
+def jinja_not_equals(target_list, key, value):
+    return list(item for item in target_list if getattr(item, key) != value)
+
+
+def jinja_contains(target_list, key, value):
+    return any(getattr(item, key) == value for item in target_list)
+
+
+def jinja_format_date(date, format_string="%d-%m-%Y"):
+    return date.strftime(format_string)
+
+
 def create_jinja_env(auto_reload=False):
     """Creates a base Jinja2 environment for rendering templates."""
     jinja_env = Environment(
@@ -164,11 +194,9 @@ def create_jinja_env(auto_reload=False):
     )
 
     # Date utilities.
-    jinja_env.globals["format_date"] = lambda x: (
-        x.strftime("%d-%m-%Y") if x is not None else "-"
-    )
+    jinja_env.globals["format_date"] = jinja_format_date
     jinja_env.globals["format_datetime"] = lambda x: (
-        x.strftime("%d-%m-%Y %H:%M:%S") if x is not None else "-"
+        jinja_format_date(x, "%d-%m-%Y %H:%M:%S")
     )
     jinja_env.globals["get_now"] = lambda: datetime.now()
 
@@ -207,6 +235,11 @@ def create_jinja_env(auto_reload=False):
     jinja_env.filters["list"] = jinja_list
     jinja_env.filters["format"] = jinja_format
     jinja_env.filters["range"] = jinja_range
+    jinja_env.filters["sorted"] = jinja_sorted
+    jinja_env.filters["sorted_k"] = jinja_sorted_k
+    jinja_env.filters["equals"] = jinja_equals
+    jinja_env.filters["not_equals"] = jinja_not_equals
+    jinja_env.filters["contains"] = jinja_contains
     jinja_env.filters["sqrt"] = lambda x: math.sqrt(x)
     jinja_env.filters["atan2"] = lambda x, y: math.atan2(x, y)
     jinja_env.filters["min"] = lambda x, y: min(x, y)
