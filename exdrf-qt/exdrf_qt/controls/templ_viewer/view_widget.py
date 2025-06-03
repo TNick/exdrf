@@ -6,7 +6,7 @@ from copy import deepcopy  # Added for cloning OXML elements
 from typing import TYPE_CHECKING, Any, Union
 
 from bs4 import BeautifulSoup, FeatureNotFound, Tag
-from bs4.element import NavigableString  # Corrected import
+from bs4.element import NavigableString, PageElement  # Corrected import
 
 # Imports for HtmlToDocxConverter
 from docx import Document
@@ -146,7 +146,19 @@ class HtmlToDocxConverter:
                 let id = 'docgen_elem_' + i;
                 el.setAttribute('data-docgen-id', id);
 
-                let isHidden = el.classList.contains('d-none');
+                let classList = el.classList;
+                let isHiddenByDNone = classList.contains('d-none');
+                let hasCollapse = classList.contains('collapse');
+                let hasShow = classList.contains('show');
+
+                let isHiddenByCollapseLogic = false;
+                if (hasCollapse && !hasShow) {
+                    isHiddenByCollapseLogic = true;
+                }
+
+                let isEffectivelyHidden =
+                    isHiddenByDNone || isHiddenByCollapseLogic;
+
                 let geometry = null;
                 let tagName = el.tagName.toLowerCase();
 
@@ -169,7 +181,7 @@ class HtmlToDocxConverter:
                 elementInfoList.push({
                     id: id,
                     tagName: tagName,
-                    isHiddenByDNone: isHidden,
+                    isEffectivelyHidden: isEffectivelyHidden,
                     geometry: geometry
                 });
             }
@@ -212,7 +224,7 @@ class HtmlToDocxConverter:
         for item in raw_element_info:
             self.elements_map[item["id"]] = {
                 "tagName": item["tagName"],
-                "is_hidden": item["isHiddenByDNone"],
+                "is_hidden": item["isEffectivelyHidden"],
                 "geometry": item.get("geometry"),  # Will be None if not present
             }
 
@@ -544,7 +556,7 @@ class HtmlToDocxConverter:
 
     def _process_inline_content(
         self,
-        html_node,
+        html_node: PageElement,
         docx_parent_paragraph,
         active_format_tags: list[Tag],
         first: bool = False,
@@ -1100,7 +1112,7 @@ class HtmlToDocxConverter:
 
     def _process_block_element(
         self,
-        element: Tag | NavigableString,
+        element: PageElement,
         parent_docx_object,
         active_format_tags: list[Tag],
         indent_level_inches: float | None = None,
@@ -1109,28 +1121,37 @@ class HtmlToDocxConverter:
         current_paragraph: Any = None
 
         if isinstance(element, NavigableString):
-            text = str(element).strip()
-            if text:
-                target_p = None
-                # If parent is a cell and has paragraphs, append to the last one.
-                if (
-                    hasattr(parent_docx_object, "_tc")
-                    and parent_docx_object.paragraphs
-                ):
-                    target_p = parent_docx_object.paragraphs[-1]
+            # MODIFIED: Delegate NavigableString to _process_inline_content
+            # Ensure a paragraph context exists in parent_docx_object
+            target_p_for_nav_str = None
+            is_first_run = True
+            if hasattr(parent_docx_object, "_tc"):  # Parent is a cell
+                if parent_docx_object.paragraphs:
+                    target_p_for_nav_str = parent_docx_object.paragraphs[-1]
+                    is_first_run = not bool(target_p_for_nav_str.runs)
                 else:
-                    # Otherwise, create a new paragraph in the parent_docx_object.
-                    target_p = self._create_paragraph_for_block(
-                        parent_docx_object, indent_level_inches
-                    )
+                    target_p_for_nav_str = parent_docx_object.add_paragraph()
+            elif hasattr(
+                parent_docx_object, "add_run"
+            ):  # Parent is already a paragraph
+                target_p_for_nav_str = parent_docx_object
+                is_first_run = not bool(target_p_for_nav_str.runs)
+            else:  # Fallback (e.g., document root)
+                target_p_for_nav_str = self._create_paragraph_for_block(
+                    parent_docx_object, indent_level_inches
+                )
 
-                run = target_p.add_run(text)
-                for fmt_tag in active_format_tags:
-                    self._apply_formatting_to_run(run, fmt_tag)
+            self._process_inline_content(
+                element,  # The NavigableString itself
+                target_p_for_nav_str,
+                active_format_tags,
+                first=is_first_run,  # Pass 'first' status
+                # is_dt_content and current_paragraph_classes are context-dependent
+            )
             return
 
         if not isinstance(element, Tag):
-            return
+            return  # Ignore other PageElement types like Comment
 
         # Check if element should be skipped based on d-none
         # MODIFIED: Safely get element_id for map lookup
@@ -1196,6 +1217,7 @@ class HtmlToDocxConverter:
                 )
             return  # Consumed img/svg or skipped
 
+        # MODIFIED: Handle p, div, h* separately from other block/inline logic
         if tag_name in ["p", "div", "h1", "h2", "h3", "h4", "h5", "h6"]:
             current_paragraph = self._create_paragraph_for_block(
                 parent_docx_object, indent_level_inches
@@ -1274,8 +1296,56 @@ class HtmlToDocxConverter:
             pBdr.append(bottom)
             pPr.append(pBdr)
 
+        # MODIFIED: New explicit handling for known inline tags found at block level
+        elif tag_name in [
+            "sup",
+            "sub",
+            "span",
+            "font",
+            "b",
+            "i",
+            "strong",
+            "em",
+            "u",
+            "s",
+            "a",
+            "del",
+            "strike",
+            "br",
+        ]:
+            target_p_for_inline_tag = None
+            is_first_run_in_target_p = True
+            if hasattr(parent_docx_object, "_tc"):  # Parent is a cell
+                if parent_docx_object.paragraphs:
+                    target_p_for_inline_tag = parent_docx_object.paragraphs[-1]
+                    is_first_run_in_target_p = not bool(
+                        target_p_for_inline_tag.runs
+                    )
+                else:
+                    target_p_for_inline_tag = parent_docx_object.add_paragraph()
+            elif hasattr(
+                parent_docx_object, "add_run"
+            ):  # Parent is already a paragraph
+                target_p_for_inline_tag = parent_docx_object
+                is_first_run_in_target_p = not bool(
+                    target_p_for_inline_tag.runs
+                )
+            else:  # Fallback
+                target_p_for_inline_tag = self._create_paragraph_for_block(
+                    parent_docx_object, indent_level_inches
+                )
+
+            self._process_inline_content(
+                element,  # The inline Tag itself (e.g., <sup>, <br>)
+                target_p_for_inline_tag,
+                active_format_tags,  # Pass current active formatting context
+                first=is_first_run_in_target_p,
+                current_paragraph_classes=current_paragraph_classes,  # Pass through if available
+            )
+
         else:
-            # Unrecognized block tags, or inline tags found at block level
+            # Default handling for unrecognized block tags or block-ish wrappers
+            # (e.g. a div not handled above, or custom tags treated as blocks)
             new_active_tags = list(active_format_tags)
             if element.name.lower() in ["span", "font", "div"]:
                 new_active_tags.append(element)
@@ -1353,8 +1423,11 @@ class HtmlToDocxConverter:
                         child,
                         created_para_for_inline,
                         new_active_tags,
-                        first=(i == 0),
-                        is_dt_content=False,
+                        first=(i == 0)
+                        and (
+                            not bool(created_para_for_inline.runs)
+                        ),  # Check if para is empty
+                        is_dt_content=False,  # Assuming default context here
                         current_paragraph_classes=current_paragraph_classes,
                     )
 
@@ -1394,12 +1467,9 @@ class HtmlToDocxConverter:
             child_tag_name = child_node.name.lower()
 
             if child_tag_name == "dt":
-                # Create a paragraph for DT, apply current indent (if any, e.g.
-                # nested DL)
                 p_dt = self._create_paragraph_for_block(
                     parent_docx_object, current_indent_inches
                 )
-                # Process DT's children as bold inline content
                 for i, dt_content_child in enumerate(child_node.children):
                     self._process_inline_content(
                         dt_content_child,
@@ -1410,25 +1480,119 @@ class HtmlToDocxConverter:
                         current_paragraph_classes=current_paragraph_classes,
                     )
 
-            elif child_tag_name == "dd":
-                # Calculate indentation for DD's content
-                dd_children_indent_val = (
-                    current_indent_inches or 0
-                ) + 0.25  # Standard indent for DD
+            elif child_tag_name == "dd":  # child_node is the <dd> Tag
+                dd_children_indent_val = (current_indent_inches or 0) + 0.25
 
                 if not list(child_node.children):  # If DD is empty, skip
                     continue
 
-                # Process each child of DD as a block element with the new
-                # indentation
-                for dd_content_child in child_node.children:
-                    self._process_block_element(  # type: ignore
-                        dd_content_child,  # type: ignore
-                        parent_docx_object,
-                        active_format_tags,
-                        indent_level_inches=dd_children_indent_val,
-                        current_paragraph_classes=current_paragraph_classes,
-                    )
+                # Create the primary paragraph for this <dd>'s inline content stream
+                current_dd_paragraph = self._create_paragraph_for_block(
+                    parent_docx_object, dd_children_indent_val
+                )
+                is_first_run_in_dd_para = True
+
+                for (
+                    dd_content_item
+                ) in child_node.children:  # Iterate children of <dd>
+                    if isinstance(dd_content_item, (NavigableString, Tag)):
+                        is_item_a_block_within_dd = False
+                        if isinstance(dd_content_item, Tag):
+                            item_tag_name = dd_content_item.name.lower()
+                            # Define tags that should be treated as block-level when direct children of DD
+                            if item_tag_name in [
+                                "p",
+                                "div",
+                                "h1",
+                                "h2",
+                                "h3",
+                                "h4",
+                                "h5",
+                                "h6",
+                                "ul",
+                                "ol",
+                                "dl",
+                                "table",
+                                "hr",
+                            ]:
+                                is_item_a_block_within_dd = True
+
+                        if is_item_a_block_within_dd:
+                            # Finalize current_dd_paragraph or remove if empty
+                            if current_dd_paragraph:
+                                if (
+                                    not current_dd_paragraph.text.strip()
+                                    and not current_dd_paragraph.runs
+                                ):
+                                    p_elem = current_dd_paragraph._element
+                                    if p_elem.getparent() is not None:
+                                        p_elem.getparent().remove(p_elem)
+                                # Set to None to signal a new one is needed if more inline content follows this block
+                                current_dd_paragraph = None
+
+                            # Process this block element. Its parent is the DL's parent.
+                            # It will create its own paragraphs, using dd_children_indent_val.
+                            self._process_block_element(
+                                dd_content_item,  # The block Tag
+                                parent_docx_object,
+                                active_format_tags,
+                                indent_level_inches=dd_children_indent_val,
+                                current_paragraph_classes=current_paragraph_classes,
+                            )
+                            # After a block, the next inline item will need a new paragraph.
+                            is_first_run_in_dd_para = (
+                                True  # Reset for the potentially new paragraph
+                            )
+                        else:
+                            # This dd_content_item is inline (NavigableString or inline Tag like <sup>)
+                            # It should go into the current_dd_paragraph.
+                            if (
+                                current_dd_paragraph is None
+                            ):  # Means a block was just processed
+                                current_dd_paragraph = (
+                                    self._create_paragraph_for_block(
+                                        parent_docx_object,
+                                        dd_children_indent_val,
+                                    )
+                                )
+                                is_first_run_in_dd_para = True
+
+                            self._process_inline_content(
+                                dd_content_item,  # The NavigableString or inline Tag
+                                current_dd_paragraph,
+                                active_format_tags,
+                                first=is_first_run_in_dd_para,
+                                current_paragraph_classes=current_paragraph_classes,
+                            )
+                            # Update is_first_run_in_dd_para based on whether content was added
+                            if (
+                                isinstance(dd_content_item, NavigableString)
+                                and str(dd_content_item).strip()
+                            ):
+                                is_first_run_in_dd_para = False
+                            elif isinstance(dd_content_item, Tag):
+                                # Consider content-ful tags or explicit line breaks as "content added"
+                                if dd_content_item.get_text(
+                                    strip=True
+                                ) or dd_content_item.name.lower() in [
+                                    "br",
+                                    "img",
+                                    "svg",
+                                ]:
+                                    is_first_run_in_dd_para = False
+                    # else: ignore other PageElement types like Comment, etc.
+
+                # After processing all children of <dd>, if the last current_dd_paragraph is empty, remove it.
+                if (
+                    current_dd_paragraph
+                    and not current_dd_paragraph.text.strip()
+                    and not current_dd_paragraph.runs
+                ):
+                    p_elem = current_dd_paragraph._element
+                    if (
+                        p_elem.getparent() is not None
+                    ):  # Ensure it's still part of the tree
+                        p_elem.getparent().remove(p_elem)
 
     def _get_attribute_as_int(
         self, element: Tag, attr_name: str, default_val: int = 1
