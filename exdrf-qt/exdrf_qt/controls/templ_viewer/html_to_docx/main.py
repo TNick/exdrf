@@ -1,8 +1,7 @@
 import io
-import json  # For JS communication
 import logging
 import re
-from typing import Any
+from typing import Any, Optional, Union
 
 from bs4 import BeautifulSoup, FeatureNotFound, Tag
 from bs4.element import NavigableString, PageElement
@@ -16,8 +15,10 @@ from minify_html import minify
 from PyQt5.QtCore import QBuffer, QByteArray, QIODevice, QUrl
 from PyQt5.QtGui import QDesktopServices, QImage
 from PyQt5.QtWebEngineWidgets import QWebEngineView
-from PyQt5.QtWidgets import QApplication
 
+from exdrf_qt.controls.templ_viewer.html_to_docx.screen_grabber import (
+    FullPageGrabber,
+)
 from exdrf_qt.controls.templ_viewer.html_to_docx.tables import TableData
 
 logger = logging.getLogger(__name__)
@@ -29,219 +30,255 @@ BORDER_COLOR_SUCCESS_RGB = (0x19, 0x87, 0x54)  # Bootstrap's success green
 DEFAULT_BORDER_COLOR_RGB = (0x00, 0x00, 0x00)  # Black
 DEFAULT_BORDER_WIDTH_PT = 0.75  # Approx 1px, use in Pt() later
 
+default_styles = """
+No List (LIST (4))
+
+Header (PARAGRAPH (1))
+Footer (PARAGRAPH (1))
+
+Normal (PARAGRAPH (1))
+No Spacing (PARAGRAPH (1))
+
+Title (PARAGRAPH (1))
+Subtitle (PARAGRAPH (1))
+Heading 1 (PARAGRAPH (1))
+Heading 2 (PARAGRAPH (1))
+Heading 3 (PARAGRAPH (1))
+Heading 4 (PARAGRAPH (1))
+Heading 5 (PARAGRAPH (1))
+Heading 6 (PARAGRAPH (1))
+Heading 7 (PARAGRAPH (1))
+Heading 8 (PARAGRAPH (1))
+Heading 9 (PARAGRAPH (1))
+
+Body Text (PARAGRAPH (1))
+Body Text 2 (PARAGRAPH (1))
+Body Text 3 (PARAGRAPH (1))
+
+List Paragraph (PARAGRAPH (1))
+List (PARAGRAPH (1))
+List 2 (PARAGRAPH (1))
+List 3 (PARAGRAPH (1))
+List Bullet (PARAGRAPH (1))
+List Bullet 2 (PARAGRAPH (1))
+List Bullet 3 (PARAGRAPH (1))
+List Number (PARAGRAPH (1))
+List Number 2 (PARAGRAPH (1))
+List Number 3 (PARAGRAPH (1))
+List Continue (PARAGRAPH (1))
+List Continue 2 (PARAGRAPH (1))
+List Continue 3 (PARAGRAPH (1))
+
+macro (PARAGRAPH (1))
+Quote (PARAGRAPH (1))
+Intense Quote (PARAGRAPH (1))
+Caption (PARAGRAPH (1))
+
+TOC Heading (PARAGRAPH (1))
+
+------------ CHARACTERS ------------
+
+Header Char (CHARACTER (2))
+Footer Char (CHARACTER (2))
+Default Paragraph Font (CHARACTER (2))
+Heading 1 Char (CHARACTER (2))
+Heading 2 Char (CHARACTER (2))
+Heading 3 Char (CHARACTER (2))
+Title Char (CHARACTER (2))
+Subtitle Char (CHARACTER (2))
+Body Text Char (CHARACTER (2))
+Body Text 2 Char (CHARACTER (2))
+Body Text 3 Char (CHARACTER (2))
+Macro Text Char (CHARACTER (2))
+Quote Char (CHARACTER (2))
+Heading 4 Char (CHARACTER (2))
+Heading 5 Char (CHARACTER (2))
+Heading 6 Char (CHARACTER (2))
+Heading 7 Char (CHARACTER (2))
+Heading 8 Char (CHARACTER (2))
+Heading 9 Char (CHARACTER (2))
+Strong (CHARACTER (2))
+Emphasis (CHARACTER (2))
+Intense Quote Char (CHARACTER (2))
+Subtle Emphasis (CHARACTER (2))
+Intense Emphasis (CHARACTER (2))
+Subtle Reference (CHARACTER (2))
+Intense Reference (CHARACTER (2))
+Book Title (CHARACTER (2))
+
+------------ TABLES ------------
+
+Normal Table (TABLE (3))
+Table Grid (TABLE (3))
+Light Shading (TABLE (3))
+Light Shading Accent 1 (TABLE (3))
+Light Shading Accent 2 (TABLE (3))
+Light Shading Accent 3 (TABLE (3))
+Light Shading Accent 4 (TABLE (3))
+Light Shading Accent 5 (TABLE (3))
+Light Shading Accent 6 (TABLE (3))
+Light List (TABLE (3))
+Light List Accent 1 (TABLE (3))
+Light List Accent 2 (TABLE (3))
+Light List Accent 3 (TABLE (3))
+Light List Accent 4 (TABLE (3))
+Light List Accent 5 (TABLE (3))
+Light List Accent 6 (TABLE (3))
+Light Grid (TABLE (3))
+Light Grid Accent 1 (TABLE (3))
+Light Grid Accent 2 (TABLE (3))
+Light Grid Accent 3 (TABLE (3))
+Light Grid Accent 4 (TABLE (3))
+Light Grid Accent 5 (TABLE (3))
+Light Grid Accent 6 (TABLE (3))
+Medium Shading 1 (TABLE (3))
+Medium Shading 1 Accent 1 (TABLE (3))
+Medium Shading 1 Accent 2 (TABLE (3))
+Medium Shading 1 Accent 3 (TABLE (3))
+Medium Shading 1 Accent 4 (TABLE (3))
+Medium Shading 1 Accent 5 (TABLE (3))
+Medium Shading 1 Accent 6 (TABLE (3))
+Medium Shading 2 (TABLE (3))
+Medium Shading 2 Accent 1 (TABLE (3))
+Medium Shading 2 Accent 2 (TABLE (3))
+Medium Shading 2 Accent 3 (TABLE (3))
+Medium Shading 2 Accent 4 (TABLE (3))
+Medium Shading 2 Accent 5 (TABLE (3))
+Medium Shading 2 Accent 6 (TABLE (3))
+Medium List 1 (TABLE (3))
+Medium List 1 Accent 1 (TABLE (3))
+Medium List 1 Accent 2 (TABLE (3))
+Medium List 1 Accent 3 (TABLE (3))
+Medium List 1 Accent 4 (TABLE (3))
+Medium List 1 Accent 5 (TABLE (3))
+Medium List 1 Accent 6 (TABLE (3))
+Medium List 2 (TABLE (3))
+Medium List 2 Accent 1 (TABLE (3))
+Medium List 2 Accent 2 (TABLE (3))
+Medium List 2 Accent 3 (TABLE (3))
+Medium List 2 Accent 4 (TABLE (3))
+Medium List 2 Accent 5 (TABLE (3))
+Medium List 2 Accent 6 (TABLE (3))
+Medium Grid 1 (TABLE (3))
+Medium Grid 1 Accent 1 (TABLE (3))
+Medium Grid 1 Accent 2 (TABLE (3))
+Medium Grid 1 Accent 3 (TABLE (3))
+Medium Grid 1 Accent 4 (TABLE (3))
+Medium Grid 1 Accent 5 (TABLE (3))
+Medium Grid 1 Accent 6 (TABLE (3))
+Medium Grid 2 (TABLE (3))
+Medium Grid 2 Accent 1 (TABLE (3))
+Medium Grid 2 Accent 2 (TABLE (3))
+Medium Grid 2 Accent 3 (TABLE (3))
+Medium Grid 2 Accent 4 (TABLE (3))
+Medium Grid 2 Accent 5 (TABLE (3))
+Medium Grid 2 Accent 6 (TABLE (3))
+Medium Grid 3 (TABLE (3))
+Medium Grid 3 Accent 1 (TABLE (3))
+Medium Grid 3 Accent 2 (TABLE (3))
+Medium Grid 3 Accent 3 (TABLE (3))
+Medium Grid 3 Accent 4 (TABLE (3))
+Medium Grid 3 Accent 5 (TABLE (3))
+Medium Grid 3 Accent 6 (TABLE (3))
+Dark List (TABLE (3))
+Dark List Accent 1 (TABLE (3))
+Dark List Accent 2 (TABLE (3))
+Dark List Accent 3 (TABLE (3))
+Dark List Accent 4 (TABLE (3))
+Dark List Accent 5 (TABLE (3))
+Dark List Accent 6 (TABLE (3))
+Colorful Shading (TABLE (3))
+Colorful Shading Accent 1 (TABLE (3))
+Colorful Shading Accent 2 (TABLE (3))
+Colorful Shading Accent 3 (TABLE (3))
+Colorful Shading Accent 4 (TABLE (3))
+Colorful Shading Accent 5 (TABLE (3))
+Colorful Shading Accent 6 (TABLE (3))
+Colorful List (TABLE (3))
+Colorful List Accent 1 (TABLE (3))
+Colorful List Accent 2 (TABLE (3))
+Colorful List Accent 3 (TABLE (3))
+Colorful List Accent 4 (TABLE (3))
+Colorful List Accent 5 (TABLE (3))
+Colorful List Accent 6 (TABLE (3))
+Colorful Grid (TABLE (3))
+Colorful Grid Accent 1 (TABLE (3))
+Colorful Grid Accent 2 (TABLE (3))
+Colorful Grid Accent 3 (TABLE (3))
+Colorful Grid Accent 4 (TABLE (3))
+Colorful Grid Accent 5 (TABLE (3))
+Colorful Grid Accent 6 (TABLE (3))
+"""
+
 
 class HtmlToDocxConverter:
+    """Converts HTML to DOCX."""
+
     output_path: str
     view: QWebEngineView
     doc: DocumentObject
     image_cache: dict[str, bytes]
     full_page_qimage: QImage | None
     elements_map: dict[str, dict[str, Any]]
-    page_width: int
-    page_height: int
+    page_width: int = -1
+    page_height: int = -1
+    grabber: Optional[FullPageGrabber] = None
 
-    def __init__(self, view: QWebEngineView):  # view is now mandatory
+    def __init__(self, view: QWebEngineView):
         self.view = view
         self.doc = Document()
         self.image_cache: dict[str, bytes] = {}
         self.full_page_qimage: QImage | None = None
-        # Initialize new elements_map
-        # element_id: {
-        #   "tagName": str, "is_hidden": bool, "geometry": Optional[dict]
-        # }
         self.elements_map: dict[str, dict[str, Any]] = {}
 
     def export_to_docx(self, output_path: str):
+        if self.grabber is not None:
+            if self.grabber.view is not None:
+                self.grabber.view.deleteLater()
+            self.grabber = None
+
+        page = self.view.page()
+        assert page is not None
+        page.toHtml(self.got_html)
         self.output_path = output_path
         logger.debug("Starting DOCX export to: %s", output_path)
-        self.prepare_assets()
 
-    def prepare_assets(self):
-        logger.debug(
-            "Preparing assets (JS execution for element info and screenshot)..."
+    def got_html(self, html: Union[str, None]):
+        if not html:
+            logger.error("No HTML content received.")
+            return
+        logger.debug("Got HTML: %s", html)
+        self.grabber = FullPageGrabber(
+            html=html,
+            callback=self.got_page_from_grabber,  # type: ignore
         )
-        # Corrected string literal definition for JS code
-        js_get_geometries = """
-        (function() {
-            console.log(
-                "Preparing assets: identifying elements and their visibility"
-            );
-            let selector = 'p, div, h1, h2, h3, h4, h5, h6, ul, ol, li, dl, ' +
-                'dt, dd, table, tr, td, th, thead, tbody, tfoot, span, img, ' +
-                'svg, hr, a, b, i, strong, em, u, s, strike, del, font, ' +
-                'sup, sub';
-            let elements = document.querySelectorAll(selector);
-            console.log(
-                "Found", elements.length, "relevant elements for d-none check"
-            );
 
-            let elementInfoList = [];
-            let scrollX = window.scrollX;
-            let scrollY = window.scrollY;
-
-            for (let i = 0; i < elements.length; i++) {
-                let el = elements[i];
-                let id = 'docgen_elem_' + i;
-                el.setAttribute('data-docgen-id', id);
-                let tagName = el.tagName.toLowerCase();
-
-                let classList = el.classList;
-                let isHiddenByDNone = classList.contains('d-none');
-                console.log(
-                    "Element %s ID %s has d-none: %s",
-                    tagName, id, isHiddenByDNone
-                );
-                let hasCollapse = classList.contains('collapse');
-                console.log(
-                    "Element %s ID %s has collapse: %s",
-                    tagName, id, hasCollapse
-                );
-                let hasShow = classList.contains('show');
-                console.log(
-                    "Element %s ID %s has show: %s",
-                    tagName, id, hasShow
-                );
-
-                let isHiddenByCollapseLogic = false;
-                if (hasCollapse && !hasShow) {
-                    isHiddenByCollapseLogic = true;
-                    console.log(
-                        "Element %s ID %s has collapse logic",
-                        tagName, id
-                    );
-                }
-
-                let isEffectivelyHidden =
-                    isHiddenByDNone || isHiddenByCollapseLogic;
-                console.log(
-                    "Element %s ID %s is effectively hidden: %s",
-                    tagName, id, isEffectivelyHidden
-                );
-
-                let geometry = null;
-
-                if (tagName === 'img' || tagName === 'svg') {
-                    let rect = el.getBoundingClientRect();
-                    if (rect.width > 0 && rect.height > 0) {
-                        geometry = {
-                            docX: rect.left + scrollX,
-                            docY: rect.top + scrollY,
-                            docWidth: rect.width,
-                            docHeight: rect.height
-                        };
-                    } else {
-                         console.log(
-                            "Element " + id + " (" + tagName +
-                            ") has zero width/height, no geometry stored."
-                        );
-                    }
-                }
-                elementInfoList.push({
-                    id: id,
-                    tagName: tagName,
-                    isEffectivelyHidden: isEffectivelyHidden,
-                    geometry: geometry
-                });
-            }
-
-            let scrollWidth = document.documentElement.scrollWidth;
-            let scrollHeight = document.documentElement.scrollHeight;
-            console.log("Full page dimensions:", scrollWidth, scrollHeight);
-
-            let final_result = {
-                elementInfoList: elementInfoList,
-                pageDimensions: { width: scrollWidth, height: scrollHeight }
-            };
-            console.log(
-                "JS result sample:",
-                elementInfoList.length > 0 ? elementInfoList[0] : "No elements"
-            );
-            return JSON.stringify(final_result);
-        })();
-        """  # Corrected string literal definition for JS code
-        logger.debug("Running JS for geometries and visibility...")
-        self._run_js_async(js_get_geometries, self.assets_prepared)
-
-    def assets_prepared(self, js_result_str):
-        logger.debug("JS execution finished. assets_prepared called.")
-        if not js_result_str:
-            logger.error("Failed to get element information from JavaScript.")
+    def got_page_from_grabber(self, grabber: FullPageGrabber):
+        """The callback from the FullPageGrabber."""
+        if grabber.errors:
+            logger.error("Errors from grabber: %s", grabber.errors)
             return
-
-        try:
-            js_data = json.loads(js_result_str)
-        except json.JSONDecodeError as e:
-            logger.error(
-                f"Failed to parse JS result: {e}. Result was: {js_result_str}"
-            )
-            return
-        logger.debug("Successfully parsed JS result.")
-
-        # Process elementInfoList into self.elements_map
-        raw_element_info = js_data.get("elementInfoList", [])
-        page_dims = js_data.get("pageDimensions")
+        assert grabber.js_result is not None
+        assert grabber.width is not None
+        assert grabber.height is not None
+        assert grabber.pixmap is not None
+        assert grabber.html is not None
 
         self.elements_map = {}
-        for item in raw_element_info:
+        for item in grabber.js_result["elementInfoList"]:
             self.elements_map[item["id"]] = {
                 "tagName": item["tagName"],
                 "is_hidden": item["isEffectivelyHidden"],
-                "geometry": item.get("geometry"),  # Will be None if not present
+                # Will be None if not present
+                "geometry": item.get("geometry"),
             }
+        self.page_width = grabber.width
+        self.page_height = grabber.height
 
-        # Debug: Log a sample from the processed map
-        if self.elements_map:
-            sample_id = next(iter(self.elements_map))
-            logger.debug(f"Py map {sample_id}: {self.elements_map[sample_id]}")
-        logger.debug(
-            "Processed %d elements into self.elements_map.",
-            len(self.elements_map),
-        )
-
-        if not page_dims or not self.view:
-            logger.error(
-                "Could not get page dimensions or view not available "
-                "for screenshot."
-            )
-            return
-
-        self.page_width = int(page_dims["width"])
-        self.page_height = int(page_dims["height"])
-        logger.debug(
-            "Page dimensions from JS: %dx%s", self.page_width, self.page_height
-        )
-
-        # Ensure minimum size for grab
-        self.page_width = max(
-            self.page_width, self.view.minimumSizeHint().width(), 100
-        )
-        self.page_height = max(
-            self.page_height, self.view.minimumSizeHint().height(), 100
-        )
-        logger.debug(
-            "Adjusted page dimensions for grab: %dx%s",
-            self.page_width,
-            self.page_height,
-        )
-
-        self._run_js_async("window.scrollTo(0,0);", self.window_scrolled)
-
-    def window_scrolled(self, js_result_str):
-        logger.debug("Window scrolled to (0,0). Taking screenshot...")
-        original_size = self.view.size()
-        QApplication.processEvents()
-
-        self.view.resize(self.page_width, self.page_height)
-        QApplication.processEvents()  # Allow resize and layout
-        # A more robust wait might be needed here, e.g., QTimer
-
-        pixmap = self.view.grab()
-        self.full_page_qimage = pixmap.toImage()
+        self.full_page_qimage = grabber.pixmap.toImage()
+        if self.full_page_qimage is not None and grabber.debug_mode:
+            self.full_page_qimage.save("full_page_qimage.png")
         assert self.full_page_qimage is not None
-
-        self.view.resize(original_size)  # Restore original size
-        QApplication.processEvents()
-
         if self.full_page_qimage.isNull():
             logger.error("Failed to grab full page screenshot.")
             self.full_page_qimage = None
@@ -251,10 +288,11 @@ class HtmlToDocxConverter:
                 self.full_page_qimage.width(),
                 self.full_page_qimage.height(),
             )
-        logger.debug("Requesting HTML content with IDs...")
+
         page = self.view.page()
         assert page is not None
-        page.toHtml(self.got_current_html_with_ids)
+
+        self.got_current_html_with_ids(grabber.js_result["fullHTMLTree"])
 
     def got_current_html_with_ids(self, html_content: str):
         logger.debug(
@@ -314,11 +352,6 @@ class HtmlToDocxConverter:
             logger.error(
                 "Error saving DOCX file to %s: %s", self.output_path, e
             )
-
-    def _run_js_async(self, js_code: str, callback) -> Any:
-        page = self.view.page()
-        assert page is not None
-        page.runJavaScript(js_code, callback)
 
     def _add_element_as_image(self, element_id: str, parent_docx_object):
         # Use self.elements_map to get geometry
@@ -416,8 +449,8 @@ class HtmlToDocxConverter:
                 )
             logger.debug("Image %s added to DOCX.", element_id)
 
-    # --- Color and Style Parsers (largely unchanged but may need review) ---
     def _hex_to_rgb(self, hex_color: str) -> RGBColor | None:
+        """Color and Style Parsers."""
         hex_color = hex_color.lstrip("#")
         if len(hex_color) == 3:
             hex_color = "".join([c * 2 for c in hex_color])
@@ -491,8 +524,8 @@ class HtmlToDocxConverter:
         #           {element.name}: {final_class_list}")
         return styles, final_class_list
 
-    # --- Content Processors ---
     def _apply_formatting_to_run(self, run, element_tag: Tag):
+        """Content Processors"""
         tag_name = element_tag.name.lower()
         styles, _ = self._parse_styles(element_tag)
 
@@ -1179,6 +1212,10 @@ class HtmlToDocxConverter:
                         is_dt_content=True,
                         crt_par_classes=crt_par_classes,
                     )
+
+                # makes the dt paragraph have no spacing between it and the
+                # following dd paragraph.
+                p_dt.style = "No Spacing"
 
             elif child_tag_name == "dd":  # child_node is the <dd> Tag
                 dd_children_indent_val = (current_indent_inches or 0) + 0.25
