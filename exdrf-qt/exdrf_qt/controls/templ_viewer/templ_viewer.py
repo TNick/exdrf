@@ -37,12 +37,12 @@ from PyQt5.QtWidgets import (
 from exdrf_qt.context_use import QtUseContext
 from exdrf_qt.controls.templ_viewer.add_var_dlg import NewVariableDialog
 from exdrf_qt.controls.templ_viewer.header import VarHeader
+from exdrf_qt.controls.templ_viewer.html_to_docx.main import HtmlToDocxConverter
 from exdrf_qt.controls.templ_viewer.model import VarModel
 from exdrf_qt.controls.templ_viewer.templ_viewer_ui import Ui_TemplViewer
 from exdrf_qt.controls.templ_viewer.view_page import (  # noqa: F401
     WebEnginePage,
 )
-from exdrf_qt.controls.templ_viewer.view_widget import HtmlToDocxConverter
 
 if TYPE_CHECKING:
     from exdrf.field import ExField  # noqa: F401
