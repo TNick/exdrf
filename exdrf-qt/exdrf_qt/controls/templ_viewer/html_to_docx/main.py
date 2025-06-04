@@ -88,22 +88,42 @@ class HtmlToDocxConverter:
                 let el = elements[i];
                 let id = 'docgen_elem_' + i;
                 el.setAttribute('data-docgen-id', id);
+                let tagName = el.tagName.toLowerCase();
 
                 let classList = el.classList;
                 let isHiddenByDNone = classList.contains('d-none');
+                console.log(
+                    "Element %s ID %s has d-none: %s",
+                    tagName, id, isHiddenByDNone
+                );
                 let hasCollapse = classList.contains('collapse');
+                console.log(
+                    "Element %s ID %s has collapse: %s",
+                    tagName, id, hasCollapse
+                );
                 let hasShow = classList.contains('show');
+                console.log(
+                    "Element %s ID %s has show: %s",
+                    tagName, id, hasShow
+                );
 
                 let isHiddenByCollapseLogic = false;
                 if (hasCollapse && !hasShow) {
                     isHiddenByCollapseLogic = true;
+                    console.log(
+                        "Element %s ID %s has collapse logic",
+                        tagName, id
+                    );
                 }
 
                 let isEffectivelyHidden =
                     isHiddenByDNone || isHiddenByCollapseLogic;
+                console.log(
+                    "Element %s ID %s is effectively hidden: %s",
+                    tagName, id, isEffectivelyHidden
+                );
 
                 let geometry = null;
-                let tagName = el.tagName.toLowerCase();
 
                 if (tagName === 'img' || tagName === 'svg') {
                     let rect = el.getBoundingClientRect();
@@ -767,121 +787,7 @@ class HtmlToDocxConverter:
         border_side_element.set(qn("w:val"), "single")
         border_side_element.set(qn("w:sz"), str(size_pt))
         border_side_element.set(qn("w:color"), hex_color)
-
-    def _apply_cell_borders(
-        self,
-        cell,
-        cell_styles: dict,
-        cell_classes: list[str],
-        table_classes: list[str],
-    ):
-        tcPr = cell._tc.get_or_add_tcPr()
-        # type: ignore # mypy issue with lxml-based find
-        tcBorders = tcPr.first_child_found_in("w:tcBorders")
-        if tcBorders is None:
-            tcBorders = OxmlElement("w:tcBorders")
-            tcPr.append(tcBorders)
-            logger.debug("Created new w:tcBorders for cell.")
-        else:
-            logger.debug(
-                "Found existing w:tcBorders for cell. "
-                "Clearing existing border elements..."
-            )
-
-        for border_tag_to_clear in [
-            "top",
-            "left",
-            "bottom",
-            "right",
-            "insideH",
-            "insideV",
-        ]:
-            existing = tcBorders.find(  # type: ignore
-                qn(f"w:{border_tag_to_clear}")
-            )
-            if existing is not None:
-                tcBorders.remove(existing)
-
-        base_r, base_g, base_b = DEFAULT_BORDER_COLOR_RGB
-        logger.debug(
-            "Applying borders. Table classes: %s, Cell classes: %s, "
-            "Cell styles: %s",
-            table_classes,
-            cell_classes,
-            cell_styles,
-        )
-
-        if (
-            "border-success" in cell_classes
-            or "border-success" in table_classes
-        ):
-            base_r, base_g, base_b = BORDER_COLOR_SUCCESS_RGB
-
-        border_opacity = cell_styles.get("border_opacity", 1.0)
-        if not isinstance(border_opacity, (float, int)) or not (
-            0.0 <= border_opacity <= 1.0
-        ):
-            border_opacity = 1.0
-
-        sides_to_border = ["top", "bottom", "left", "right"]
-        apply_default_bordered = "table-bordered" in table_classes
-
-        for side in sides_to_border:
-            border_definition_from_style = cell_styles.get(f"border-{side}")
-            apply_this_side = False
-            parsed_width_val = DEFAULT_BORDER_WIDTH_PT
-
-            # If table-bordered, always apply border for the side,
-            # ignoring cell-specific border-style unless it explicitly says
-            # none.
-            if apply_default_bordered:
-                apply_this_side = True
-                # If cell explicitly sets this border to none, respect that
-                # even if table is bordered
-                if border_definition_from_style and (
-                    "none" in border_definition_from_style
-                    or "0px" in border_definition_from_style
-                    or "0pt" in border_definition_from_style
-                ):
-                    apply_this_side = False
-            elif border_definition_from_style:
-                # Not table-bordered, but cell has a specific border style
-                if (
-                    "none" in border_definition_from_style
-                    or "0px" in border_definition_from_style
-                    or "0pt" in border_definition_from_style
-                ):
-                    apply_this_side = False
-                else:
-                    apply_this_side = True
-                    # TODO: More detailed parsing of border-{side} for width,
-                    # color etc. For now, if style exists and is not none, it
-                    # uses default width/calculated color.
-
-            if apply_this_side:
-                if border_opacity < 0.05:  # Effectively transparent, skip
-                    continue
-
-                border_el = OxmlElement(f"w:{side}")
-                border_sz = max(1, int(parsed_width_val * 8))
-                logger.debug(
-                    "Setting border %s: color_rgb=(%s,%s,%s), "
-                    "size_pt=%s, alpha=%s",
-                    side,
-                    base_r,
-                    base_g,
-                    base_b,
-                    border_sz,
-                    border_opacity,
-                )
-                self._set_cell_border_color(
-                    border_el,
-                    (base_r, base_g, base_b),
-                    size_pt=border_sz,
-                    alpha=border_opacity,
-                )
-                tcBorders.append(border_el)
-                logger.debug("Appended %s border element to tcBorders.", side)
+        border_side_element.set(qn("w:space"), "1")
 
     def _handle_table(self, table_element: Tag, parent_docx_object):
         """Process a table element and convert it to a Docx table."""
@@ -963,11 +869,14 @@ class HtmlToDocxConverter:
 
         # Ignore <button> tags and their content
         if tag_name == "button":
-            logger.debug(
-                "Ignoring <button> tag and its content in block " "context: %s",
-                str(element)[:50],
-            )
-            return
+            if "include-btn-in-print" not in element.attrs["class"]:
+                logger.debug(
+                    "Ignoring <button> tag and its content in block "
+                    "context: %s; can include by setting "
+                    "include-btn-in-print class",
+                    str(element)[:50],
+                )
+                return
 
         if tag_name in ["img", "svg"]:
             # Safely get element_id for map lookup

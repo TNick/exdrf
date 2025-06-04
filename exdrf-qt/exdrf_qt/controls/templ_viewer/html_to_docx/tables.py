@@ -1,12 +1,12 @@
 import logging
-from copy import deepcopy
-from typing import TYPE_CHECKING, Any, List
+from typing import TYPE_CHECKING, Any, List, cast
 
 from attrs import define, field
 from bs4 import Tag
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import RGBColor
+from docx.table import Table, _Cell
 
 if TYPE_CHECKING:
     from exdrf_qt.controls.templ_viewer.html_to_docx.main import (
@@ -39,7 +39,7 @@ class TableData:
     table_styles: dict[str, Any] = field(factory=dict)
     table_classes: list[str] = field(factory=list)
     grid_r_idx: int = -1
-    doc_table: Any = None
+    doc_table: Table = cast(Table, None)
     num_logical_rows: int = 0
 
     def _collect_table_rows(self, table_element: Tag):
@@ -116,7 +116,8 @@ class TableData:
 
         # Increment grid_r_idx and append row only for visible <tr>
         self.grid_r_idx += 1
-        self.html_grid.append([])
+        while len(self.html_grid) < self.grid_r_idx + 1:
+            self.html_grid.append([])
         current_col_idx = 0
         if not isinstance(tr_element, Tag):
             # Should have been caught by first check
@@ -195,7 +196,7 @@ class TableData:
 
     def _merged_cell(
         self,
-        doc_cell,
+        doc_cell: _Cell,
         r_idx_grid_local: int,
         c_idx: int,
         colspan: int,
@@ -218,60 +219,6 @@ class TableData:
                 )
             except Exception as e:
                 logger.warning(f"Cell merge failed: {e}")
-
-    def _copy_borders(
-        self,
-        primary_tcBorders: Any,
-        continued_tcPr: Any,
-        r_idx_grid_local: int,
-        c_idx: int,
-        rowspan: int,
-    ):
-        """Copy borders from primary cell to continued cells"""
-        for row_offset in range(1, rowspan):
-            true_row_offset = r_idx_grid_local + row_offset
-            if true_row_offset < self.num_logical_rows:
-                continued_cell = self.doc_table.cell(true_row_offset, c_idx)
-                continued_tcPr = continued_cell._tc.get_or_add_tcPr()
-
-                logger.debug(
-                    "    Setting w:vMerge from restart to "
-                    "continue for cell (grid_row=%d, col=%d)",
-                    r_idx_grid_local + row_offset,
-                    c_idx,
-                )
-
-                # Set vMerge to "continue" for continued cells
-                vmerge_elem = continued_tcPr.find(qn("w:vMerge"))
-                if vmerge_elem is None:
-                    vmerge_elem = OxmlElement("w:vMerge")
-                    continued_tcPr.append(vmerge_elem)
-                vmerge_elem.set(qn("w:val"), "continue")
-                logger.debug(
-                    "     Changed w:vMerge from restart to "
-                    "continue for cell (grid_row=%d, col=%d)",
-                    true_row_offset,
-                    c_idx,
-                )
-
-                # Ensure all four sides (top, bottom, left, right) are
-                # cloned. Remove any existing <w:tcBorders> child
-                for old_borders in continued_tcPr.xpath("./w:tcBorders"):
-                    continued_tcPr.remove(old_borders)
-
-                # Create a new <w:tcBorders> and explicitly clone top,
-                # bottom, left, right
-                new_tc_borders_el = OxmlElement("w:tcBorders")
-                # The four possible side tags, in Word’s expected order
-                for side_tag in ("top", "bottom", "left", "right"):
-                    # look for that side under primary_tcBorders
-                    primary_side_el = primary_tcBorders.find(
-                        qn(f"w:{side_tag}")
-                    )
-                    if primary_side_el is not None:
-                        cloned_side_el = deepcopy(primary_side_el)
-                        new_tc_borders_el.append(cloned_side_el)
-                continued_tcPr.append(new_tc_borders_el)
 
     def _handle_cell(self, r_idx_grid_local: int, c_idx) -> None:
         html_cell_content = self.html_grid[r_idx_grid_local][c_idx]
@@ -317,14 +264,11 @@ class TableData:
             if not cell_styles.get("background-color"):
                 shade_color = RGBColor(*TABLE_STRIPED_BG_COLOR_RGB)
                 self.cv._set_cell_shading(doc_cell, str(shade_color))
-        bg_color_str = cell_styles.get("background-color")
+        bg_color_str = cell_styles.get(
+            "background-color"
+        ) or self.table_styles.get("background-color")
         if bg_color_str:
             self.cv._set_cell_shading(doc_cell, bg_color_str)
-
-        # Apply borders to the primary cell
-        self.cv._apply_cell_borders(
-            doc_cell, cell_styles, cell_classes, self.table_classes
-        )
 
         # Populate the cell with content from html_cell_element
         if html_cell_element and hasattr(html_cell_element, "children"):
@@ -334,28 +278,63 @@ class TableData:
                     child_node, doc_cell, active_tags_for_cell_content
                 )
 
-        # Direct OXML tcBorders copy for continued cells in rowspan
-        if rowspan > 1:
-            primary_tcPr = doc_cell._tc.get_or_add_tcPr()
-            primary_tcBorders = primary_tcPr.find(
-                qn("w:tcBorders")
-            )  # type: ignore[arg-type]
-            logger.debug(
-                "  Rowspan > 1 for cell at (grid_row=%d, col=%d). "
-                "Primary tcBorders exists: %s",
-                r_idx_grid_local,
-                c_idx,
-                primary_tcBorders is not None,
+    def set_table_borders(self):
+        """
+        Adds single-line borders to all cells in the given table.
+        """
+        from exdrf_qt.controls.templ_viewer.html_to_docx.main import (
+            BORDER_COLOR_SUCCESS_RGB,
+            DEFAULT_BORDER_COLOR_RGB,
+            DEFAULT_BORDER_WIDTH_PT,
+        )
+
+        tbl = self.doc_table._tbl
+        base_r, base_g, base_b = DEFAULT_BORDER_COLOR_RGB
+        if "border-success" in self.table_classes:
+            base_r, base_g, base_b = BORDER_COLOR_SUCCESS_RGB
+
+        border_opacity = self.table_styles.get("border_opacity", 1.0)
+        if not isinstance(border_opacity, (float, int)) or not (
+            0.0 <= border_opacity <= 1.0
+        ):
+            border_opacity = 1.0
+        if border_opacity < 0.05:  # Effectively transparent, skip
+            return
+
+        parsed_width_val = DEFAULT_BORDER_WIDTH_PT
+        border_sz = max(1, int(parsed_width_val * 8))
+
+        # Look for an existing <w:tblPr> element; if missing,
+        # create and insert it.
+        tblPr = tbl.find(qn("w:tblPr"))  # type: ignore
+        if tblPr is None:
+            tblPr = OxmlElement("w:tblPr")
+            tbl.insert(0, tblPr)
+
+        # Create <w:tblBorders> element
+        tblBorders = OxmlElement("w:tblBorders")
+
+        # Define border attributes for each side
+        for border_name in (
+            "top",
+            "left",
+            "bottom",
+            "right",
+            "insideH",
+            "insideV",
+        ):
+            border_el = OxmlElement(f"w:{border_name}")
+
+            self.cv._set_cell_border_color(
+                border_el,
+                (base_r, base_g, base_b),
+                size_pt=border_sz,
+                alpha=border_opacity,
             )
 
-            if primary_tcBorders is not None:
-                self._copy_borders(
-                    primary_tcBorders,
-                    doc_cell._tc.get_or_add_tcPr(),
-                    r_idx_grid_local,
-                    c_idx,
-                    rowspan,
-                )
+            tblBorders.append(border_el)
+
+        tblPr.append(tblBorders)
 
     def process(self, table_element: Tag, parent_docx_object):
         """Process a table element and convert it to a Docx table."""
@@ -380,7 +359,7 @@ class TableData:
         for r_idx, tr_element_maybe_str in enumerate(self.html_rows):
             self._handle_table_row(r_idx, tr_element_maybe_str)
 
-        # Ensure the grid has enough columns.
+        # Ensure the grid has enough columns in every row.
         self.num_logical_rows = len(self.html_grid)
         for r_list in self.html_grid:
             while len(r_list) < self.max_cols:
@@ -402,11 +381,10 @@ class TableData:
         # requested yet) doc_table.autofit = False doc_table.layout_type =
         # WD_TABLE_LAYOUT.FIXED
 
-        for r_idx_grid_local in range(
-            self.num_logical_rows
-        ):  # Iterate using num_logical_rows (len of html_grid)
+        for r_idx_grid_local in range(self.num_logical_rows):
             for c_idx in range(self.max_cols):
                 self._handle_cell(r_idx_grid_local, c_idx)
+        self.set_table_borders()
 
         logger.debug(
             "--- Finished _handle_table for: %s ---", str(table_element)[:100]
