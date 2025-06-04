@@ -1,12 +1,14 @@
 import logging
-from typing import TYPE_CHECKING, Any, List, cast
+from typing import TYPE_CHECKING, Any, List, Union, cast
 
 from attrs import define, field
 from bs4 import Tag
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
+from docx.oxml.xmlchemy import BaseOxmlElement
 from docx.shared import RGBColor
 from docx.table import Table, _Cell
+from lxml.etree import _Element  # type: ignore
 
 if TYPE_CHECKING:
     from exdrf_qt.controls.templ_viewer.html_to_docx.main import (
@@ -15,6 +17,24 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 TABLE_STRIPED_BG_COLOR_RGB = (0xF2, 0xF2, 0xF2)  # Light gray for striping
+OxmlElementType = Union[BaseOxmlElement, _Element]
+CLASS_COLOR_MAP = {
+    # "table-light": None,
+    "table-success": "#d1e7dd",
+    "bg-success": "#d1e7dd",
+    "table-primary": "#cfe2ff",
+    "bg-primary": "#cfe2ff",
+    "table-danger": "#f8d7da",
+    "bg-danger": "#f8d7da",
+    "table-warning": "#fff3cd",
+    "bg-warning": "#fff3cd",
+    "table-info": "#cff4fc",
+    "bg-info": "#cff4fc",
+    "table-light": "#f8f9fa",
+    "bg-light": "#f8f9fa",
+    "table-secondary": "#e2e3e5",
+    "bg-secondary": "#e2e3e5",
+}
 
 
 @define
@@ -88,8 +108,6 @@ class TableData:
 
         tr_element: Tag = tr_element_maybe_str
 
-        # Check if the <tr> itself is hidden
-
         # This is the ID that we created ourselves in javascript.
         raw_tr_id = tr_element.get("data-docgen-id")
         tr_id_str: str | None = None
@@ -119,14 +137,6 @@ class TableData:
         while len(self.html_grid) < self.grid_r_idx + 1:
             self.html_grid.append([])
         current_col_idx = 0
-        if not isinstance(tr_element, Tag):
-            # Should have been caught by first check
-            logger.error(
-                "Unexpected type for tr_element at index %d: %s",
-                r_idx,
-                type(tr_element),
-            )
-            return
 
         # Process each cell in the row.
         for td_th_element in tr_element.find_all(["td", "th"], recursive=False):
@@ -267,6 +277,12 @@ class TableData:
         bg_color_str = cell_styles.get(
             "background-color"
         ) or self.table_styles.get("background-color")
+        if not bg_color_str:
+            for cls in self.table_classes:
+                bg_color_str = CLASS_COLOR_MAP.get(cls)
+                if bg_color_str:
+                    break
+
         if bg_color_str:
             self.cv._set_cell_shading(doc_cell, bg_color_str)
 
@@ -325,7 +341,7 @@ class TableData:
         ):
             border_el = OxmlElement(f"w:{border_name}")
 
-            self.cv._set_cell_border_color(
+            self._set_cell_border_color(
                 border_el,
                 (base_r, base_g, base_b),
                 size_pt=border_sz,
@@ -335,6 +351,66 @@ class TableData:
             tblBorders.append(border_el)
 
         tblPr.append(tblBorders)
+
+    def _set_cell_border_color(
+        self,
+        border_side_element: OxmlElementType,
+        color_rgb: tuple[int, int, int],
+        size_pt: int = 4,
+        alpha: float = 1.0,
+    ):
+        """Set the borders of the cell.
+
+        Args:
+            border_side_element: The border side element to set the color of.
+            color_rgb: The color of the border in RGB format.
+            size_pt: The size of the border in points. This is w:sz unit
+                (eighths of a point).
+            alpha: The opacity of the border (0.0 to 1.0).
+        """
+        r, g, b = color_rgb
+        actual_r, actual_g, actual_b = r, g, b
+
+        # Apply opacity by blending with white
+        if alpha < 1.0 and alpha >= 0.0:
+            actual_r = int(r * alpha + 255 * (1 - alpha))
+            actual_g = int(g * alpha + 255 * (1 - alpha))
+            actual_b = int(b * alpha + 255 * (1 - alpha))
+
+        # Ensure values are within valid range
+        final_r = max(0, min(actual_r, 255))
+        final_g = max(0, min(actual_g, 255))
+        final_b = max(0, min(actual_b, 255))
+
+        # Convert to hex format expected by Word XML (without # prefix)
+        hex_color = f"{final_r:02X}{final_g:02X}{final_b:02X}"
+
+        border_side_element.set(qn("w:val"), "single")
+        border_side_element.set(qn("w:sz"), str(size_pt))
+        border_side_element.set(qn("w:color"), hex_color)
+        border_side_element.set(qn("w:space"), "0")
+
+    def set_full_width(self):
+        """Set the table to be the full width of the page."""
+        tbl = self.doc_table._tbl
+
+        # Look for an existing <w:tblPr> element; if missing,
+        # create and insert it.
+        tblPr = tbl.find(qn("w:tblPr"))  # type: ignore
+        if tblPr is None:
+            tblPr = OxmlElement("w:tblPr")
+            tbl.insert(0, tblPr)
+
+        tblW = tblPr.find(qn("w:tblW"))  # type: ignore
+        if tblW is not None:
+            tblPr.remove(tblW)
+        tblW = OxmlElement("w:tblW")
+        tblW.set(qn("w:w"), "5000")  # 5000 twentieths of a percent = 100%
+        tblW.set(qn("w:type"), "pct")  # pct means percentage-based width
+        tblPr.append(tblW)
+
+        # Disable automatic resizing so Word respects the 100% width
+        self.doc_table.autofit = False
 
     def process(self, table_element: Tag, parent_docx_object):
         """Process a table element and convert it to a Docx table."""
@@ -385,6 +461,7 @@ class TableData:
             for c_idx in range(self.max_cols):
                 self._handle_cell(r_idx_grid_local, c_idx)
         self.set_table_borders()
+        self.set_full_width()
 
         logger.debug(
             "--- Finished _handle_table for: %s ---", str(table_element)[:100]

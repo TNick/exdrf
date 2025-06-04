@@ -2,29 +2,24 @@ import io
 import json  # For JS communication
 import logging
 import re
-from typing import Any, Union
+from typing import Any
 
 from bs4 import BeautifulSoup, FeatureNotFound, Tag
-from bs4.element import NavigableString, PageElement  # Corrected import
-
-# Imports for HtmlToDocxConverter
+from bs4.element import NavigableString, PageElement
 from docx import Document
 from docx.document import Document as DocumentObject
 from docx.enum.text import WD_UNDERLINE
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
-from docx.oxml.xmlchemy import BaseOxmlElement
 from docx.shared import Inches, Pt, RGBColor
-from lxml.etree import _Element  # type: ignore
 from minify_html import minify
 from PyQt5.QtCore import QBuffer, QByteArray, QIODevice, QUrl
 from PyQt5.QtGui import QDesktopServices, QImage
 from PyQt5.QtWebEngineWidgets import QWebEngineView
-from PyQt5.QtWidgets import QApplication  # For processEvents
+from PyQt5.QtWidgets import QApplication
 
 from exdrf_qt.controls.templ_viewer.html_to_docx.tables import TableData
 
-OxmlElementType = Union[BaseOxmlElement, _Element]
 logger = logging.getLogger(__name__)
 
 # Define constants for styling
@@ -496,7 +491,7 @@ class HtmlToDocxConverter:
         #           {element.name}: {final_class_list}")
         return styles, final_class_list
 
-    # --- Content Processors (adapted for new image handling) ---
+    # --- Content Processors ---
     def _apply_formatting_to_run(self, run, element_tag: Tag):
         tag_name = element_tag.name.lower()
         styles, _ = self._parse_styles(element_tag)
@@ -738,16 +733,12 @@ class HtmlToDocxConverter:
                         crt_par_classes=crt_par_classes,
                     )
 
-    # --- Table Handlers (largely unchanged but verify context for
-    # image processing if any) ---
     def _set_cell_shading(self, cell, color_str: str):
         color = self._get_color(color_str)
         if color and color_str.lower() != "transparent":
             try:
                 logger.debug("Applying cell shading %s", color_str)
                 shd = OxmlElement("w:shd")
-                # RGBColor.__str__ already returns correct hex format for Word
-                # XML
                 shd.set(qn("w:fill"), str(color))
                 shd.set(qn("w:val"), "clear")
                 tcPr = cell._tc.get_or_add_tcPr()
@@ -760,34 +751,6 @@ class HtmlToDocxConverter:
                     color_str,
                     e,
                 )
-
-    def _set_cell_border_color(
-        self,
-        border_side_element: OxmlElementType,
-        color_rgb: tuple[int, int, int],  # Expect (R,G,B) tuple
-        size_pt: int = 4,  # This is w:sz unit (eighths of a point)
-        alpha: float = 1.0,  # Opacity (0.0 to 1.0)
-    ):
-        r, g, b = color_rgb
-        actual_r, actual_g, actual_b = r, g, b
-
-        if alpha < 1.0 and alpha >= 0.0:  # Apply opacity by blending with white
-            actual_r = int(r * alpha + 255 * (1 - alpha))
-            actual_g = int(g * alpha + 255 * (1 - alpha))
-            actual_b = int(b * alpha + 255 * (1 - alpha))
-
-        # Ensure values are within valid range
-        final_r = max(0, min(actual_r, 255))
-        final_g = max(0, min(actual_g, 255))
-        final_b = max(0, min(actual_b, 255))
-
-        # Convert to hex format expected by Word XML (without # prefix)
-        hex_color = f"{final_r:02X}{final_g:02X}{final_b:02X}"
-
-        border_side_element.set(qn("w:val"), "single")
-        border_side_element.set(qn("w:sz"), str(size_pt))
-        border_side_element.set(qn("w:color"), hex_color)
-        border_side_element.set(qn("w:space"), "1")
 
     def _handle_table(self, table_element: Tag, parent_docx_object):
         """Process a table element and convert it to a Docx table."""
@@ -840,7 +803,8 @@ class HtmlToDocxConverter:
             return
 
         if not isinstance(element, Tag):
-            return  # Ignore other PageElement types like Comment
+            # Ignore other PageElement types like Comment
+            return
 
         # Check if element should be skipped based on d-none
         # Safely get element_id for map lookup
