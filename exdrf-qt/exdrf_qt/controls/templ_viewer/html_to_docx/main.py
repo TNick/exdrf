@@ -892,7 +892,15 @@ class HtmlToDocxConverter:
 
             if tag_name.startswith("h"):
                 try:
-                    current_paragraph.style = f"Heading {int(tag_name[1])}"
+                    level = int(tag_name[1])
+                    if level == 1:
+                        style_name = "Title"
+                    elif level == 2:
+                        style_name = "Subtitle"
+                    else:
+                        level = level - 2
+                        style_name = f"Heading {level}"
+                    current_paragraph.style = style_name
                 except (ValueError, IndexError):
                     logger.warning(
                         "Could not apply heading style for %s", tag_name
