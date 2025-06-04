@@ -3,8 +3,9 @@ import json  # For JS communication
 import logging
 import re
 from copy import deepcopy
-from typing import TYPE_CHECKING, Any, Union
+from typing import TYPE_CHECKING, Any, List, Union
 
+from attrs import define, field
 from bs4 import BeautifulSoup, FeatureNotFound, Tag
 from bs4.element import NavigableString, PageElement  # Corrected import
 
@@ -16,7 +17,7 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.oxml.xmlchemy import BaseOxmlElement
 from docx.shared import Inches, Pt, RGBColor
-from lxml.etree import _Element
+from lxml.etree import _Element  # type: ignore
 from minify_html import minify
 from PyQt5.QtCore import QBuffer, QByteArray, QEvent, QIODevice, Qt, QUrl
 from PyQt5.QtGui import QDesktopServices, QImage
@@ -32,7 +33,7 @@ OxmlElementType = Union[BaseOxmlElement, _Element]
 logger = logging.getLogger(__name__)
 
 # Define constants for styling
-# MODIFIED: Store colors as (R, G, B) tuples for opacity processing
+# Store colors as (R, G, B) tuples for opacity processing
 # And create RGBColor objects on demand.
 BORDER_COLOR_SUCCESS_RGB = (0x19, 0x87, 0x54)  # Bootstrap's success green
 TABLE_STRIPED_BG_COLOR_RGB = (0xF2, 0xF2, 0xF2)  # Light gray for striping
@@ -113,8 +114,10 @@ class HtmlToDocxConverter:
         self.doc = Document()
         self.image_cache: dict[str, bytes] = {}
         self.full_page_qimage: QImage | None = None
-        # MODIFIED: Initialize new elements_map
-        # element_id: {"tagName": str, "is_hidden": bool, "geometry": Optional[dict]}
+        # Initialize new elements_map
+        # element_id: {
+        #   "tagName": str, "is_hidden": bool, "geometry": Optional[dict]
+        # }
         self.elements_map: dict[str, dict[str, Any]] = {}
 
     def export_to_docx(self, output_path: str):
@@ -126,7 +129,7 @@ class HtmlToDocxConverter:
         logger.debug(
             "Preparing assets (JS execution for element info and screenshot)..."
         )
-        # MODIFIED: Corrected string literal definition for JS code
+        # Corrected string literal definition for JS code
         js_get_geometries = """
         (function() {
             console.log(
@@ -204,7 +207,7 @@ class HtmlToDocxConverter:
             );
             return JSON.stringify(final_result);
         })();
-        """  # MODIFIED: Corrected string literal definition for JS code
+        """  # Corrected string literal definition for JS code
         logger.debug("Running JS for geometries and visibility...")
         self._run_js_async(js_get_geometries, self.assets_prepared)
 
@@ -223,7 +226,7 @@ class HtmlToDocxConverter:
             return
         logger.debug("Successfully parsed JS result.")
 
-        # MODIFIED: Process elementInfoList into self.elements_map
+        # Process elementInfoList into self.elements_map
         raw_element_info = js_data.get("elementInfoList", [])
         page_dims = js_data.get("pageDimensions")
 
@@ -336,7 +339,7 @@ class HtmlToDocxConverter:
             return
         logger.debug("HTML parsing complete. Decomposing script tags.")
 
-        # MODIFIED: Strip all <script> tags
+        # Strip all <script> tags
         for script_tag in soup.find_all("script"):
             logger.debug("Removing script tag: %s", str(script_tag)[:100])
             script_tag.decompose()
@@ -367,7 +370,7 @@ class HtmlToDocxConverter:
         page.runJavaScript(js_code, callback)
 
     def _add_element_as_image(self, element_id: str, parent_docx_object):
-        # MODIFIED: Use self.elements_map to get geometry
+        # Use self.elements_map to get geometry
         if not self.full_page_qimage:
             logger.error(
                 "Missing full page screenshot for element %s", element_id
@@ -391,7 +394,7 @@ class HtmlToDocxConverter:
             img_bytes = self.image_cache[element_id]
         else:
             logger.debug("Element %s not in image cache, cropping.", element_id)
-            # MODIFIED: Use geometry_data directly for coordinates and dimensions
+            # Use geometry_data directly for coordinates and dimensions
             x = int(geometry_data["docX"])
             y = int(geometry_data["docY"])
             width = int(geometry_data["docWidth"])
@@ -421,7 +424,7 @@ class HtmlToDocxConverter:
 
         if img_bytes:
             img_stream = io.BytesIO(img_bytes)
-            # MODIFIED: Use geometry_data directly for width/height
+            # Use geometry_data directly for width/height
             w_px = geometry_data["docWidth"]
             h_px = geometry_data["docHeight"]
 
@@ -514,12 +517,13 @@ class HtmlToDocxConverter:
                     prop, val = style_declaration.split(":", 1)
                     prop = prop.strip().lower()
                     val = val.strip()
-                    # logger.debug(f"Parsed style from element {element.name}: {prop}={val}")
+                    # logger.debug(f"Parsed style from element
+                    #           {element.name}: {prop}={val}")
                     if prop == "--bs-border-opacity":
                         try:
                             styles["border_opacity"] = float(val)
                         except ValueError:
-                            logger.warning(f"Invalid opacity: {val}")
+                            logger.warning("Invalid opacity: %s", val)
                     else:
                         styles[prop] = val
 
@@ -532,7 +536,8 @@ class HtmlToDocxConverter:
                 str(c) for c in class_attr if isinstance(c, str)
             ]
         # if final_class_list:
-        #     logger.debug(f"Parsed classes from element {element.name}: {final_class_list}")
+        #     logger.debug(f"Parsed classes from element
+        #           {element.name}: {final_class_list}")
         return styles, final_class_list
 
     # --- Content Processors (adapted for new image handling) ---
@@ -606,7 +611,7 @@ class HtmlToDocxConverter:
         active_format_tags: list[Tag],
         first: bool = False,
         is_dt_content: bool = False,
-        current_paragraph_classes: list[str] | None = None,
+        crt_par_classes: list[str] | None = None,
     ):
         if isinstance(html_node, NavigableString):
             text = str(html_node)
@@ -629,7 +634,7 @@ class HtmlToDocxConverter:
 
         elif isinstance(html_node, Tag):
             # Check if element should be skipped based on d-none
-            # MODIFIED: Safely get element_id for map lookup
+            # Safely get element_id for map lookup
             raw_element_id = html_node.get("data-docgen-id")
             element_id_str: str | None = None
             if isinstance(raw_element_id, list):
@@ -642,17 +647,21 @@ class HtmlToDocxConverter:
                 element_data = self.elements_map.get(element_id_str)
                 if element_data and element_data.get("is_hidden"):
                     logger.debug(
-                        f"Skip hidden inline {element_id_str} ({html_node.name})"
+                        "Skip hidden inline %s (%s)",
+                        element_id_str,
+                        html_node.name,
                     )
                     return  # Skip this hidden element
 
             tag_name = html_node.name.lower()
             logger.debug("Processing inline tag: <%s>", tag_name)
 
-            # MODIFIED: Ignore <button> tags and their content
+            # Ignore <button> tags and their content
             if tag_name == "button":
                 logger.debug(
-                    f"Ignoring <button> tag and its content in block context: {str(html_node)[:50]}"
+                    "Ignoring <button> tag and its content in block "
+                    "context: %s",
+                    str(html_node)[:50],
                 )
                 return
 
@@ -678,7 +687,7 @@ class HtmlToDocxConverter:
             logger.debug("Finished processing <sup> tag.")
 
             if tag_name in ["img", "svg"]:
-                # MODIFIED: Safely get element_id for map lookup
+                # Safely get element_id for map lookup
                 raw_img_id = html_node.get("data-docgen-id")
                 img_id_str: str | None = None
                 if isinstance(raw_img_id, list):
@@ -749,7 +758,7 @@ class HtmlToDocxConverter:
                                 current_active_tags,
                                 first=(i == 0),
                                 is_dt_content=False,
-                                current_paragraph_classes=current_paragraph_classes,
+                                crt_par_classes=crt_par_classes,
                             )
                     return
                 # Fallback for 'a' if no href/text or error
@@ -760,7 +769,7 @@ class HtmlToDocxConverter:
                         current_active_tags,
                         first=(i == 0),
                         is_dt_content=False,
-                        current_paragraph_classes=current_paragraph_classes,
+                        crt_par_classes=crt_par_classes,
                     )
             else:
                 for i, child in enumerate(html_node.children):
@@ -770,7 +779,7 @@ class HtmlToDocxConverter:
                         current_active_tags,
                         first=(i == 0),
                         is_dt_content=False,
-                        current_paragraph_classes=current_paragraph_classes,
+                        crt_par_classes=crt_par_classes,
                     )
 
     # --- Table Handlers (largely unchanged but verify context for
@@ -781,7 +790,8 @@ class HtmlToDocxConverter:
             try:
                 logger.debug("Applying cell shading %s", color_str)
                 shd = OxmlElement("w:shd")
-                # RGBColor.__str__ already returns correct hex format for Word XML
+                # RGBColor.__str__ already returns correct hex format for Word
+                # XML
                 shd.set(qn("w:fill"), str(color))
                 shd.set(qn("w:val"), "clear")
                 tcPr = cell._tc.get_or_add_tcPr()
@@ -798,7 +808,7 @@ class HtmlToDocxConverter:
     def _set_cell_border_color(
         self,
         border_side_element: OxmlElementType,
-        color_rgb: tuple[int, int, int],  # MODIFIED: Expect (R,G,B) tuple
+        color_rgb: tuple[int, int, int],  # Expect (R,G,B) tuple
         size_pt: int = 4,  # This is w:sz unit (eighths of a point)
         alpha: float = 1.0,  # Opacity (0.0 to 1.0)
     ):
@@ -830,14 +840,16 @@ class HtmlToDocxConverter:
         table_classes: list[str],
     ):
         tcPr = cell._tc.get_or_add_tcPr()
-        tcBorders = tcPr.first_child_found_in("w:tcBorders")  # type: ignore # mypy issue with lxml-based find
+        # type: ignore # mypy issue with lxml-based find
+        tcBorders = tcPr.first_child_found_in("w:tcBorders")
         if tcBorders is None:
             tcBorders = OxmlElement("w:tcBorders")
             tcPr.append(tcBorders)
             logger.debug("Created new w:tcBorders for cell.")
         else:
             logger.debug(
-                "Found existing w:tcBorders for cell. Clearing existing border elements..."
+                "Found existing w:tcBorders for cell. "
+                "Clearing existing border elements..."
             )
 
         for border_tag_to_clear in [
@@ -848,13 +860,16 @@ class HtmlToDocxConverter:
             "insideH",
             "insideV",
         ]:
-            existing = tcBorders.find(qn(f"w:{border_tag_to_clear}"))  # type: ignore # mypy issue with lxml-based find
+            existing = tcBorders.find(  # type: ignore
+                qn(f"w:{border_tag_to_clear}")
+            )
             if existing is not None:
                 tcBorders.remove(existing)
 
         base_r, base_g, base_b = DEFAULT_BORDER_COLOR_RGB
         logger.debug(
-            "Applying borders. Table classes: %s, Cell classes: %s, Cell styles: %s",
+            "Applying borders. Table classes: %s, Cell classes: %s, "
+            "Cell styles: %s",
             table_classes,
             cell_classes,
             cell_styles,
@@ -880,11 +895,13 @@ class HtmlToDocxConverter:
             apply_this_side = False
             parsed_width_val = DEFAULT_BORDER_WIDTH_PT
 
-            # MODIFIED: If table-bordered, always apply border for the side,
-            # ignoring cell-specific border-style unless it explicitly says none.
+            # If table-bordered, always apply border for the side,
+            # ignoring cell-specific border-style unless it explicitly says
+            # none.
             if apply_default_bordered:
                 apply_this_side = True
-                # If cell explicitly sets this border to none, respect that even if table is bordered
+                # If cell explicitly sets this border to none, respect that
+                # even if table is bordered
                 if border_definition_from_style and (
                     "none" in border_definition_from_style
                     or "0px" in border_definition_from_style
@@ -901,8 +918,9 @@ class HtmlToDocxConverter:
                     apply_this_side = False
                 else:
                     apply_this_side = True
-                    # TODO: More detailed parsing of border-{side} for width, color etc.
-                    # For now, if style exists and is not none, it uses default width/calculated color.
+                    # TODO: More detailed parsing of border-{side} for width,
+                    # color etc. For now, if style exists and is not none, it
+                    # uses default width/calculated color.
 
             if apply_this_side:
                 if border_opacity < 0.05:  # Effectively transparent, skip
@@ -911,7 +929,8 @@ class HtmlToDocxConverter:
                 border_el = OxmlElement(f"w:{side}")
                 border_sz = max(1, int(parsed_width_val * 8))
                 logger.debug(
-                    "Setting border %s: color_rgb=(%s,%s,%s), size_pt=%s, alpha=%s",
+                    "Setting border %s: color_rgb=(%s,%s,%s), "
+                    "size_pt=%s, alpha=%s",
                     side,
                     base_r,
                     base_g,
@@ -928,66 +947,78 @@ class HtmlToDocxConverter:
                 tcBorders.append(border_el)
                 logger.debug("Appended %s border element to tcBorders.", side)
 
-    def _handle_table(self, table_element: Tag, parent_docx_object):
-        logger.debug(
-            "--- Starting _handle_table for: %s ---", str(table_element)[:100]
-        )
-        table_styles, table_classes = self._parse_styles(
-            table_element
-        )  # Get table classes
-        logger.debug(
-            "Table styles: %s, Table classes: %s", table_styles, table_classes
-        )
+    @define
+    class TableData:
+        """Keeps track of the table data as we process the HTML.
 
-        html_grid: list[list[Tag | str | None]] = []
-        html_rows: list[Tag] = []
+        Attributes:
+            html_grid: The grid for the docx table.
+            html_rows: The rows from the HTML table.
+            max_cols: The maximum number of columns across all rows.
+            table_styles: The styles for the table.
+            table_classes: The classes for the table.
+            grid_r_idx: The current row index in the doc table.
+        """
 
-        # MODIFIED: Break down list comprehensions for extend to avoid line
-        # length errors
-        thead = table_element.find("thead", recursive=False)
-        if thead and isinstance(thead, Tag):
-            for tag in thead.find_all("tr", recursive=False):
-                if isinstance(tag, Tag):
-                    html_rows.append(tag)
+        cv: "HtmlToDocxConverter"
+        html_grid: List[List[Tag | str | None]] = field(factory=list)
+        html_rows: List[Tag] = field(factory=list)
+        max_cols: int = field(default=0)
+        table_styles: dict[str, Any] = field(factory=dict)
+        table_classes: list[str] = field(factory=list)
+        grid_r_idx: int = -1
+        doc_table: Any = None
+        num_logical_rows: int = 0
 
-        tbody_elements = table_element.find_all("tbody", recursive=False)
-        if tbody_elements:
-            for tbody in tbody_elements:
-                if isinstance(tbody, Tag):
-                    for tag in tbody.find_all("tr", recursive=False):
-                        if isinstance(tag, Tag):
-                            html_rows.append(tag)
-        else:
-            if not thead:
-                for tag in table_element.find_all("tr", recursive=False):
+        def _collect_table_rows(self, table_element: Tag):
+            """Collect all rows from a table element."""
+
+            # Collect rows from the table header.
+            thead = table_element.find("thead", recursive=False)
+            if thead and isinstance(thead, Tag):
+                for tag in thead.find_all("tr", recursive=False):
                     if isinstance(tag, Tag):
-                        html_rows.append(tag)
+                        self.html_rows.append(tag)
 
-        tfoot = table_element.find("tfoot", recursive=False)
-        if tfoot and isinstance(tfoot, Tag):
-            for tag in tfoot.find_all("tr", recursive=False):
-                if isinstance(tag, Tag):
-                    html_rows.append(tag)
+            # Collect rows from the table body.
+            tbody_elements = table_element.find_all("tbody", recursive=False)
+            if tbody_elements:
+                for tbody in tbody_elements:
+                    if isinstance(tbody, Tag):
+                        for tag in tbody.find_all("tr", recursive=False):
+                            if isinstance(tag, Tag):
+                                self.html_rows.append(tag)
 
-        if not html_rows and not (
-            thead or tbody_elements or tfoot
-        ):  # Final fallback if only direct tr children
-            logger.debug(
-                "No thead/tbody/tfoot, collecting direct <tr> children."
-            )
+            # Collect rows from within the table directly.
             for tag in table_element.find_all("tr", recursive=False):
                 if isinstance(tag, Tag):
-                    html_rows.append(tag)
-        logger.debug("Collected %d HTML rows for the table.", len(html_rows))
+                    self.html_rows.append(tag)
 
-        max_cols = 0
-        grid_r_idx = -1  # MODIFIED: Initialize grid_r_idx for html_grid
-        for r_idx, tr_element_maybe_str in enumerate(html_rows):
+            # Collect rows from the table footer.
+            tfoot = table_element.find("tfoot", recursive=False)
+            if tfoot and isinstance(tfoot, Tag):
+                for tag in tfoot.find_all("tr", recursive=False):
+                    if isinstance(tag, Tag):
+                        self.html_rows.append(tag)
+
+            logger.debug(
+                "Collected %d HTML rows for the table.", len(self.html_rows)
+            )
+
+        def _handle_table_row(self, r_idx, tr_element_maybe_str) -> None:
             if not isinstance(tr_element_maybe_str, Tag):
-                continue
+                logger.debug(
+                    "Skipping non-<tr> element at index %d: %s",
+                    r_idx,
+                    str(tr_element_maybe_str)[:50],
+                )
+                return
+
             tr_element: Tag = tr_element_maybe_str
 
-            # MODIFIED: Check if the <tr> itself is hidden
+            # Check if the <tr> itself is hidden
+
+            # This is the ID that we created ourselves in javascript.
             raw_tr_id = tr_element.get("data-docgen-id")
             tr_id_str: str | None = None
             if isinstance(raw_tr_id, list):
@@ -995,45 +1026,65 @@ class HtmlToDocxConverter:
                     tr_id_str = str(raw_tr_id[0])
             elif isinstance(raw_tr_id, str):
                 tr_id_str = raw_tr_id
+            else:
+                logger.warning(
+                    "Unexpected type for tr_id '%s': %s",
+                    raw_tr_id,
+                    type(raw_tr_id),
+                )
 
+            # Skip this entire row if the row is hidden.
             if tr_id_str:
-                tr_element_data = self.elements_map.get(tr_id_str)
+                tr_element_data = self.cv.elements_map.get(tr_id_str)
                 if tr_element_data and tr_element_data.get("is_hidden"):
                     logger.debug(
-                        f"Skipping hidden <tr> element with ID {tr_id_str}"
+                        "Skipping hidden <tr> element with ID %s", tr_id_str
                     )
-                    continue  # Skip this entire row
+                    return
 
-            # MODIFIED: Increment grid_r_idx and append row only for visible <tr>
-            grid_r_idx += 1
-            html_grid.append([])
+            # Increment grid_r_idx and append row only for visible <tr>
+            self.grid_r_idx += 1
+            self.html_grid.append([])
             current_col_idx = 0
-            if not isinstance(
-                tr_element, Tag
-            ):  # Should have been caught by first check
-                continue
+            if not isinstance(tr_element, Tag):
+                # Should have been caught by first check
+                logger.error(
+                    "Unexpected type for tr_element at index %d: %s",
+                    r_idx,
+                    type(tr_element),
+                )
+                return
 
+            # Process each cell in the row.
             for td_th_element in tr_element.find_all(
                 ["td", "th"], recursive=False
             ):
                 if not isinstance(td_th_element, Tag):
-                    continue
-                # MODIFIED: Use grid_r_idx for html_grid access
+                    logger.warning(
+                        "Skipping non-<td>/<th> element at index %d: %s",
+                        r_idx,
+                        str(td_th_element)[:50],
+                    )
+                    return
+
+                # Move to the next available column in the grid
                 while (
-                    len(html_grid[grid_r_idx]) > current_col_idx
-                    and html_grid[grid_r_idx][current_col_idx] is not None
+                    len(self.html_grid[self.grid_r_idx]) > current_col_idx
+                    and self.html_grid[self.grid_r_idx][current_col_idx]
+                    is not None
                 ):
                     current_col_idx += 1
                 logger.debug(
                     "  Cell processing: grid_r_idx=%d, current_col_idx=%d",
-                    grid_r_idx,
+                    self.grid_r_idx,
                     current_col_idx,
                 )
 
-                colspan = self._get_attribute_as_int(
+                # Get colspan and rowspan attributes
+                colspan = self.cv._get_attribute_as_int(
                     td_th_element, "colspan", 1
                 )
-                rowspan = self._get_attribute_as_int(
+                rowspan = self.cv._get_attribute_as_int(
                     td_th_element, "rowspan", 1
                 )
                 logger.debug(
@@ -1043,228 +1094,265 @@ class HtmlToDocxConverter:
                     rowspan,
                 )
 
+                # Process rowspan
                 for i in range(rowspan):
-                    # MODIFIED: Use grid_r_idx for html_grid access
-                    target_r_in_grid = grid_r_idx + i
-                    while len(html_grid) <= target_r_in_grid:
-                        html_grid.append([])
-                    while len(html_grid[target_r_in_grid]) < current_col_idx:
-                        html_grid[target_r_in_grid].append(None)
-                    for j in range(colspan):
-                        while (
-                            len(html_grid[target_r_in_grid])
-                            <= current_col_idx + j
-                        ):
-                            html_grid[target_r_in_grid].append(None)
-                        if i == 0 and j == 0:
-                            html_grid[target_r_in_grid][
-                                current_col_idx + j
-                            ] = td_th_element
-                        else:
-                            html_grid[target_r_in_grid][
-                                current_col_idx + j
-                            ] = "SPAN"
-                current_col_idx += colspan
-            if current_col_idx > max_cols:
-                max_cols = current_col_idx
+                    target_r_in_grid = self.grid_r_idx + i
 
-        num_logical_rows = len(html_grid)
-        for r_list in html_grid:
-            while len(r_list) < max_cols:
+                    # Ensure rows up to the target row exist
+                    self.html_grid.extend(
+                        [
+                            []
+                            for _ in range(
+                                len(self.html_grid), target_r_in_grid + 1
+                            )
+                        ]
+                    )
+
+                    # Ensure enough columns in the target row
+                    while (
+                        len(self.html_grid[target_r_in_grid])
+                        < current_col_idx + colspan
+                    ):
+                        self.html_grid[target_r_in_grid].append(None)
+
+                    # Assign cell or mark as SPAN
+                    for j in range(colspan):
+                        cell_value = (
+                            td_th_element if i == 0 and j == 0 else "SPAN"
+                        )
+                        self.html_grid[target_r_in_grid][
+                            current_col_idx + j
+                        ] = cell_value
+
+                # Update column index for the next cell
+                current_col_idx += colspan
+
+                # Track maximum number of columns across all rows.
+                self.max_cols = max(self.max_cols, current_col_idx)
+
+        def _merged_cell(
+            self,
+            doc_cell,
+            r_idx_grid_local: int,
+            c_idx: int,
+            colspan: int,
+            rowspan: int,
+        ) -> None:
+            end_r_idx = min(
+                r_idx_grid_local + rowspan - 1, self.num_logical_rows - 1
+            )
+            end_c_idx = min(c_idx + colspan - 1, self.max_cols - 1)
+            if end_r_idx > r_idx_grid_local or end_c_idx > c_idx:
+                try:
+                    doc_cell.merge(self.doc_table.cell(end_r_idx, end_c_idx))
+                    logger.debug(
+                        "Merged cell at (grid_row=%d, col=%d) to "
+                        "(grid_row=%d, col=%d)",
+                        r_idx_grid_local,
+                        c_idx,
+                        end_r_idx,
+                        end_c_idx,
+                    )
+                except Exception as e:
+                    logger.warning(f"Cell merge failed: {e}")
+
+        def _copy_borders(
+            self,
+            primary_tcBorders: Any,
+            continued_tcPr: Any,
+            r_idx_grid_local: int,
+            c_idx: int,
+            rowspan: int,
+        ):
+            """Copy borders from primary cell to continued cells"""
+            for row_offset in range(1, rowspan):
+                true_row_offset = r_idx_grid_local + row_offset
+                if true_row_offset < self.num_logical_rows:
+                    continued_cell = self.doc_table.cell(true_row_offset, c_idx)
+                    continued_tcPr = continued_cell._tc.get_or_add_tcPr()
+
+                    logger.debug(
+                        "    Setting w:vMerge from restart to "
+                        "continue for cell (grid_row=%d, col=%d)",
+                        r_idx_grid_local + row_offset,
+                        c_idx,
+                    )
+
+                    # Set vMerge to "continue" for continued cells
+                    vmerge_elem = continued_tcPr.find(qn("w:vMerge"))
+                    if vmerge_elem is None:
+                        vmerge_elem = OxmlElement("w:vMerge")
+                        continued_tcPr.append(vmerge_elem)
+                    vmerge_elem.set(qn("w:val"), "continue")
+                    logger.debug(
+                        "     Changed w:vMerge from restart to "
+                        "continue for cell (grid_row=%d, col=%d)",
+                        true_row_offset,
+                        c_idx,
+                    )
+
+                    # Ensure all four sides (top, bottom, left, right) are
+                    # cloned. Remove any existing <w:tcBorders> child
+                    for old_borders in continued_tcPr.xpath("./w:tcBorders"):
+                        continued_tcPr.remove(old_borders)
+
+                    # Create a new <w:tcBorders> and explicitly clone top,
+                    # bottom, left, right
+                    new_tc_borders_el = OxmlElement("w:tcBorders")
+                    # The four possible side tags, in Word’s expected order
+                    for side_tag in ("top", "bottom", "left", "right"):
+                        # look for that side under primary_tcBorders
+                        primary_side_el = primary_tcBorders.find(
+                            qn(f"w:{side_tag}")
+                        )
+                        if primary_side_el is not None:
+                            cloned_side_el = deepcopy(primary_side_el)
+                            new_tc_borders_el.append(cloned_side_el)
+                    continued_tcPr.append(new_tc_borders_el)
+
+        def _handle_cell(self, r_idx_grid_local: int, c_idx) -> None:
+            html_cell_content = self.html_grid[r_idx_grid_local][c_idx]
+            if html_cell_content is None or html_cell_content == "SPAN":
+                return
+
+            if not isinstance(html_cell_content, Tag):
+                return
+
+            html_cell_element: Tag = html_cell_content
+            logger.debug(
+                "Processing doc_cell at (grid_row=%d, col=%d) for "
+                "HTML cell: %s",
+                r_idx_grid_local,
+                c_idx,
+                str(html_cell_element)[:50],
+            )
+            doc_cell = self.doc_table.cell(r_idx_grid_local, c_idx)
+
+            colspan = self.cv._get_attribute_as_int(
+                html_cell_element, "colspan", 1
+            )
+            rowspan = self.cv._get_attribute_as_int(
+                html_cell_element, "rowspan", 1
+            )
+
+            if rowspan > 1 or colspan > 1:
+                self._merged_cell(
+                    doc_cell,
+                    r_idx_grid_local,
+                    c_idx,
+                    colspan,
+                    rowspan,
+                )
+
+            # Only remove the default <w:p> if we actually have content to add
+            # i.e. if the HTML <td>/<th> has at least one child (text or tag)
+            if html_cell_element is not None and list(
+                html_cell_element.children
+            ):
+                if doc_cell.paragraphs and doc_cell.paragraphs[0].text == "":
+                    p_element = doc_cell.paragraphs[0]._element
+                    p_element.getparent().remove(p_element)
+
+            cell_styles, cell_classes = self.cv._parse_styles(html_cell_element)
+
+            # Table striping and background color
+            is_striped_table = "table-striped" in self.table_classes
+            if is_striped_table and (r_idx_grid_local % 2 != 0):
+                if not cell_styles.get("background-color"):
+                    shade_color = RGBColor(*TABLE_STRIPED_BG_COLOR_RGB)
+                    self.cv._set_cell_shading(doc_cell, str(shade_color))
+            bg_color_str = cell_styles.get("background-color")
+            if bg_color_str:
+                self.cv._set_cell_shading(doc_cell, bg_color_str)
+
+            # Apply borders to the primary cell
+            self.cv._apply_cell_borders(
+                doc_cell, cell_styles, cell_classes, self.table_classes
+            )
+
+            # Populate the cell with content from html_cell_element
+            if html_cell_element and hasattr(html_cell_element, "children"):
+                active_tags_for_cell_content = [html_cell_element]
+                for child_node in html_cell_element.children:
+                    self.cv._process_block_element(
+                        child_node, doc_cell, active_tags_for_cell_content
+                    )
+
+            # Direct OXML tcBorders copy for continued cells in rowspan
+            if rowspan > 1:
+                primary_tcPr = doc_cell._tc.get_or_add_tcPr()
+                primary_tcBorders = primary_tcPr.find(
+                    qn("w:tcBorders")
+                )  # type: ignore[arg-type]
+                logger.debug(
+                    "  Rowspan > 1 for cell at (grid_row=%d, col=%d). "
+                    "Primary tcBorders exists: %s",
+                    r_idx_grid_local,
+                    c_idx,
+                    primary_tcBorders is not None,
+                )
+
+                if primary_tcBorders is not None:
+                    self._copy_borders(
+                        primary_tcBorders,
+                        doc_cell._tc.get_or_add_tcPr(),
+                        r_idx_grid_local,
+                        c_idx,
+                        rowspan,
+                    )
+
+    def _handle_table(self, table_element: Tag, parent_docx_object):
+        """Process a table element and convert it to a Docx table."""
+        logger.debug(
+            "--- Starting _handle_table for: %s ---", str(table_element)[:100]
+        )
+        table_data = self.TableData(cv=self)
+
+        # Get table classes
+        table_data.table_styles, table_data.table_classes = self._parse_styles(
+            table_element
+        )
+        logger.debug(
+            "Table styles: %s, Table classes: %s",
+            table_data.table_styles,
+            table_data.table_classes,
+        )
+
+        # Collect html rows.
+        table_data._collect_table_rows(table_element)
+
+        # Process each row.
+        for r_idx, tr_element_maybe_str in enumerate(table_data.html_rows):
+            table_data._handle_table_row(r_idx, tr_element_maybe_str)
+
+        # Ensure the grid has enough columns.
+        table_data.num_logical_rows = len(table_data.html_grid)
+        for r_list in table_data.html_grid:
+            while len(r_list) < table_data.max_cols:
                 r_list.append(None)
 
-        if num_logical_rows == 0 or max_cols == 0:
+        # If the table has 0 rows or 0 columns, skip it.
+        if table_data.num_logical_rows == 0 or table_data.max_cols == 0:
             logger.warning(
-                "Table has 0 rows or 0 columns after processing grid. Skipping table."
+                "Table has 0 rows or 0 columns after processing grid. "
+                "Skipping table."
             )
             return
 
-        doc_table = parent_docx_object.add_table(
-            rows=num_logical_rows,
-            cols=max_cols,  # num_logical_rows is now correct
+        table_data.doc_table = parent_docx_object.add_table(
+            rows=table_data.num_logical_rows,
+            cols=table_data.max_cols,
         )
         # Apply table-level styles like table-layout: fixed if needed (not
         # requested yet) doc_table.autofit = False doc_table.layout_type =
         # WD_TABLE_LAYOUT.FIXED
 
         for r_idx_grid_local in range(
-            num_logical_rows
-        ):  # MODIFIED: Iterate using num_logical_rows (len of html_grid)
-            for c_idx in range(max_cols):
-                html_cell_content = html_grid[r_idx_grid_local][
-                    c_idx
-                ]  # MODIFIED: Use r_idx_grid_local
-                if html_cell_content is None or html_cell_content == "SPAN":
-                    continue
-                if not isinstance(html_cell_content, Tag):
-                    continue
-                html_cell_element: Tag = html_cell_content
-                logger.debug(
-                    "Processing doc_cell at (grid_row=%d, col=%d) for HTML cell: %s",
-                    r_idx_grid_local,
-                    c_idx,
-                    str(html_cell_element)[:50],
-                )
-                doc_cell = doc_table.cell(
-                    r_idx_grid_local, c_idx
-                )  # MODIFIED: Use r_idx_grid_local
+            table_data.num_logical_rows
+        ):  # Iterate using num_logical_rows (len of html_grid)
+            for c_idx in range(table_data.max_cols):
+                table_data._handle_cell(r_idx_grid_local, c_idx)
 
-                colspan = self._get_attribute_as_int(
-                    html_cell_element, "colspan", 1
-                )
-                rowspan = self._get_attribute_as_int(
-                    html_cell_element, "rowspan", 1
-                )
-
-                if rowspan > 1 or colspan > 1:
-                    # MODIFIED: Use r_idx_grid_local
-                    end_r_idx = min(
-                        r_idx_grid_local + rowspan - 1, num_logical_rows - 1
-                    )
-                    end_c_idx = min(c_idx + colspan - 1, max_cols - 1)
-                    if end_r_idx > r_idx_grid_local or end_c_idx > c_idx:
-                        try:
-                            doc_cell.merge(doc_table.cell(end_r_idx, end_c_idx))
-                            logger.debug(
-                                "Merged cell at (grid_row=%d, col=%d) to (grid_row=%d, col=%d)",
-                                r_idx_grid_local,
-                                c_idx,
-                                end_r_idx,
-                                end_c_idx,
-                            )
-                        except Exception as e:
-                            logger.warning(f"Cell merge failed: {e}")
-
-                # # Clear default empty paragraph if cell is truly empty before content processing
-                # if doc_cell.paragraphs and doc_cell.paragraphs[0].text == "":
-                #     p_element = doc_cell.paragraphs[0]._element
-                #     p_element.getparent().remove(p_element)
-
-                # ── FIXED: Only remove the default <w:p> if we actually have content to add ──
-                # i.e. if the HTML <td>/<th> has at least one child (text or tag)
-                if html_cell_element is not None and list(
-                    html_cell_element.children
-                ):
-                    if (
-                        doc_cell.paragraphs
-                        and doc_cell.paragraphs[0].text == ""
-                    ):
-                        p_element = doc_cell.paragraphs[0]._element
-                        p_element.getparent().remove(p_element)
-
-                cell_styles, cell_classes = self._parse_styles(
-                    html_cell_element
-                )
-
-                # Table striping and background color
-                is_striped_table = "table-striped" in table_classes
-                if is_striped_table and (r_idx_grid_local % 2 != 0):
-                    if not cell_styles.get("background-color"):
-                        shade_color = RGBColor(*TABLE_STRIPED_BG_COLOR_RGB)
-                        self._set_cell_shading(doc_cell, str(shade_color))
-                bg_color_str = cell_styles.get("background-color")
-                if bg_color_str:
-                    self._set_cell_shading(doc_cell, bg_color_str)
-
-                # Apply borders to the primary cell
-                self._apply_cell_borders(
-                    doc_cell, cell_styles, cell_classes, table_classes
-                )
-
-                # --- START MODIFIED CONTENT PROCESSING ---
-                # Populate the cell with content from html_cell_element
-                if html_cell_element and hasattr(html_cell_element, "children"):
-                    # Children will inherit styles from html_cell_element (the <td> or <th>)
-                    # if html_cell_element is passed as an active_format_tag.
-                    active_tags_for_cell_content = [html_cell_element]
-
-                    # for child_node in html_cell_element.children:
-                    #     # parent_docx_object is doc_cell, so content goes into the cell.
-                    #     # No explicit indent_level_inches for direct cell content.
-                    #     self._process_block_element(
-                    #         child_node, doc_cell, active_tags_for_cell_content
-                    #     )
-                    for child_node in html_cell_element.children:
-                        self._process_block_element(
-                            child_node, doc_cell, active_tags_for_cell_content
-                        )
-
-                # --- END MODIFIED CONTENT PROCESSING ---
-
-                # MODIFIED: Direct OXML tcBorders copy for continued cells in rowspan
-                if rowspan > 1:
-                    primary_tcPr = doc_cell._tc.get_or_add_tcPr()
-                    primary_tcBorders = primary_tcPr.find(qn("w:tcBorders"))  # type: ignore[arg-type]
-                    logger.debug(
-                        "  Rowspan > 1 for cell at (grid_row=%d, col=%d). Primary tcBorders exists: %s",
-                        r_idx_grid_local,
-                        c_idx,
-                        primary_tcBorders is not None,
-                    )
-
-                    if primary_tcBorders is not None:
-                        # Copy borders from primary cell to continued cells
-                        for row_offset in range(1, rowspan):
-                            if r_idx_grid_local + row_offset < num_logical_rows:
-                                continued_cell = doc_table.cell(
-                                    r_idx_grid_local + row_offset, c_idx
-                                )
-                                continued_tcPr = (
-                                    continued_cell._tc.get_or_add_tcPr()
-                                )
-
-                                logger.debug(
-                                    "    Setting w:vMerge from restart to continue for cell (grid_row=%d, col=%d)",
-                                    r_idx_grid_local + row_offset,
-                                    c_idx,
-                                )
-
-                                # Set vMerge to "continue" for continued cells
-                                vmerge_elem = continued_tcPr.find(
-                                    qn("w:vMerge")
-                                )
-                                if vmerge_elem is None:
-                                    vmerge_elem = OxmlElement("w:vMerge")
-                                    continued_tcPr.append(vmerge_elem)
-                                vmerge_elem.set(qn("w:val"), "continue")
-                                logger.debug(
-                                    "     Changed w:vMerge from restart to continue for cell (grid_row=%d, col=%d)",
-                                    r_idx_grid_local + row_offset,
-                                    c_idx,
-                                )
-
-                                # Remove any existing borders on the continued cell
-                                existing_borders = continued_tcPr.xpath(
-                                    "./w:tcBorders"
-                                )
-                                if existing_borders:
-                                    logger.debug(
-                                        "     Removing existing w:tcBorders from continued cell (grid_row=%d, col=%d)",
-                                        r_idx_grid_local + row_offset,
-                                        c_idx,
-                                    )
-                                    for b_el in existing_borders:
-                                        continued_tcPr.remove(b_el)
-
-                                # Copy borders from primary to continued cell
-                                new_tc_borders_el = OxmlElement("w:tcBorders")
-                                for border_child_el in primary_tcBorders:
-                                    cloned_border_child_el = deepcopy(
-                                        border_child_el
-                                    )
-                                    new_tc_borders_el.append(
-                                        cloned_border_child_el
-                                    )
-
-                                continued_tcPr.append(new_tc_borders_el)
-                                logger.debug(
-                                    "     Copied tcBorders from primary to "
-                                    "continued cell (grid_row=%d, col=%d). "
-                                    "New tcBorders: %s",
-                                    r_idx_grid_local + row_offset,
-                                    c_idx,
-                                    new_tc_borders_el,
-                                )
         logger.debug(
             "--- Finished _handle_table for: %s ---", str(table_element)[:100]
         )
@@ -1275,12 +1363,12 @@ class HtmlToDocxConverter:
         parent_docx_object,
         active_format_tags: list[Tag],
         indent_level_inches: float | None = None,
-        current_paragraph_classes: list[str] | None = None,
+        crt_par_classes: list[str] | None = None,
     ):
         current_paragraph: Any = None
 
         if isinstance(element, NavigableString):
-            # MODIFIED: Delegate NavigableString to _process_inline_content
+            # Delegate NavigableString to _process_inline_content
             # Ensure a paragraph context exists in parent_docx_object
             target_p_for_nav_str = None
             is_first_run = True
@@ -1309,7 +1397,8 @@ class HtmlToDocxConverter:
                 target_p_for_nav_str,
                 active_format_tags,
                 first=is_first_run,  # Pass 'first' status
-                # is_dt_content and current_paragraph_classes are context-dependent
+                # is_dt_content and crt_par_classes ar e
+                # context-dependent
             )
             return
 
@@ -1317,7 +1406,7 @@ class HtmlToDocxConverter:
             return  # Ignore other PageElement types like Comment
 
         # Check if element should be skipped based on d-none
-        # MODIFIED: Safely get element_id for map lookup
+        # Safely get element_id for map lookup
         raw_element_id_block = element.get("data-docgen-id")
         element_id_block_str: str | None = None
         if isinstance(raw_element_id_block, list):
@@ -1341,15 +1430,16 @@ class HtmlToDocxConverter:
             indent_level_inches,
         )
 
-        # MODIFIED: Ignore <button> tags and their content
+        # Ignore <button> tags and their content
         if tag_name == "button":
             logger.debug(
-                f"Ignoring <button> tag and its content in block context: {str(element)[:50]}"
+                "Ignoring <button> tag and its content in block " "context: %s",
+                str(element)[:50],
             )
             return
 
         if tag_name in ["img", "svg"]:
-            # MODIFIED: Safely get element_id for map lookup
+            # Safely get element_id for map lookup
             raw_img_id_block = element.get("data-docgen-id")
             img_id_block_str: str | None = None
             if isinstance(raw_img_id_block, list):
@@ -1366,7 +1456,8 @@ class HtmlToDocxConverter:
                         parent_docx_object, "add_paragraph"
                     ) and not isinstance(parent_docx_object, DocumentObject):
                         logger.debug(
-                            "Image parent is a cell/similar, adding new paragraph for image."
+                            "Image parent is a cell/similar, adding new "
+                            "paragraph for image."
                         )
                         target_for_image = parent_docx_object
                     elif hasattr(parent_docx_object, "add_run"):
@@ -1389,7 +1480,7 @@ class HtmlToDocxConverter:
                 )
             return  # Consumed img/svg or skipped
 
-        # MODIFIED: Handle p, div, h* separately from other block/inline logic
+        # Handle p, div, h* separately from other block/inline logic
         if tag_name in ["p", "div", "h1", "h2", "h3", "h4", "h5", "h6"]:
             current_paragraph = self._create_paragraph_for_block(
                 parent_docx_object, indent_level_inches
@@ -1404,11 +1495,11 @@ class HtmlToDocxConverter:
                     )
                 logger.debug(
                     "Applied style '%s' to paragraph for <%s>",
-                    current_paragraph.style.name,
+                    current_paragraph.style.name,  # type: ignore
                     tag_name,
                 )
 
-            # MODIFIED: Get styles and classes for the block element itself
+            # Get styles and classes for the block element itself
             element_styles, element_classes = self._parse_styles(element)
             new_active_tags = list(active_format_tags)
             # DIVs can provide formatting context via styles/classes
@@ -1424,7 +1515,7 @@ class HtmlToDocxConverter:
                     new_active_tags,
                     first=(i == 0),
                     is_dt_content=False,
-                    current_paragraph_classes=element_classes,
+                    crt_par_classes=element_classes,
                 )
 
         elif tag_name in ["ul", "ol"]:
@@ -1446,7 +1537,7 @@ class HtmlToDocxConverter:
                         active_format_tags,
                         first=(i == 0),
                         is_dt_content=False,
-                        current_paragraph_classes=current_paragraph_classes,
+                        crt_par_classes=crt_par_classes,
                     )
 
         elif tag_name == "dl":
@@ -1455,12 +1546,12 @@ class HtmlToDocxConverter:
                 parent_docx_object,
                 active_format_tags,
                 indent_level_inches,
-                current_paragraph_classes=current_paragraph_classes,
+                crt_par_classes=crt_par_classes,
             )
             logger.debug("Finished processing <dl> element.")
 
         elif tag_name == "table":
-            # MODIFIED: Pass table classes from _parse_styles to _handle_table
+            # Pass table classes from _parse_styles to _handle_table
             self._handle_table(element, parent_docx_object)
 
         elif tag_name == "hr":
@@ -1476,7 +1567,8 @@ class HtmlToDocxConverter:
             pBdr.append(bottom)
             pPr.append(pBdr)
 
-        # MODIFIED: New explicit handling for known inline tags found at block level
+        # New explicit handling for known inline tags found at block
+        # level
         elif tag_name in [
             "sup",
             "sub",
@@ -1520,7 +1612,7 @@ class HtmlToDocxConverter:
                 target_p_for_inline_tag,
                 active_format_tags,  # Pass current active formatting context
                 first=is_first_run_in_target_p,
-                current_paragraph_classes=current_paragraph_classes,  # Pass through if available
+                crt_par_classes=crt_par_classes,  # Pass through if available
             )
 
         else:
@@ -1556,17 +1648,18 @@ class HtmlToDocxConverter:
                         parent_docx_object,
                         new_active_tags,
                         indent_level_inches=indent_level_inches,
-                        current_paragraph_classes=current_paragraph_classes,
+                        crt_par_classes=crt_par_classes,
                     )
                     created_para_for_inline = (
                         None  # Reset: next inline content needs new para
                     )
                 elif isinstance(child, (NavigableString, Tag)):
-                    # Inline or text found at block level, needs a paragraph context.
+                    # Inline or text found at block level, needs a paragraph
+                    # context.
                     if created_para_for_inline is None:
-                        # If parent_docx_object is a cell with existing paragraphs,
-                        # and the current element (wrapper like <sup>) is inline,
-                        # use the cell's last paragraph.
+                        # If parent_docx_object is a cell with existing
+                        # paragraphs, and the current element (wrapper like
+                        # <sup>) is inline, use the cell's last paragraph.
                         is_inline_wrapper = element.name.lower() in [
                             "sup",
                             "sub",
@@ -1592,7 +1685,8 @@ class HtmlToDocxConverter:
                             )
                         else:
                             # Element is some other unknown block-ish wrapper,
-                            # or parent is not a cell / has no paras / element is not inline wrapper.
+                            # or parent is not a cell / has no paras / element
+                            # is not inline wrapper.
                             created_para_for_inline = (
                                 self._create_paragraph_for_block(
                                     parent_docx_object, indent_level_inches
@@ -1608,7 +1702,7 @@ class HtmlToDocxConverter:
                             not bool(created_para_for_inline.runs)
                         ),  # Check if para is empty
                         is_dt_content=False,  # Assuming default context here
-                        current_paragraph_classes=current_paragraph_classes,
+                        crt_par_classes=crt_par_classes,
                     )
 
     def _create_paragraph_for_block(
@@ -1647,7 +1741,7 @@ class HtmlToDocxConverter:
         parent_docx_object: Any,
         active_format_tags: list[Tag],
         current_indent_inches: float | None,
-        current_paragraph_classes: list[str] | None = None,
+        crt_par_classes: list[str] | None = None,
     ):
         """Handles <dl> elements: styled <dt> and indented <dd> blocks."""
         logger.debug(
@@ -1671,7 +1765,7 @@ class HtmlToDocxConverter:
                         active_format_tags,
                         first=(i == 0),
                         is_dt_content=True,
-                        current_paragraph_classes=current_paragraph_classes,
+                        crt_par_classes=crt_par_classes,
                     )
 
             elif child_tag_name == "dd":  # child_node is the <dd> Tag
@@ -1685,7 +1779,8 @@ class HtmlToDocxConverter:
                     logger.debug("    <dd> is empty, skipping.")
                     continue
 
-                # Create the primary paragraph for this <dd>'s inline content stream
+                # Create the primary paragraph for this <dd>'s inline content
+                # stream
                 current_dd_paragraph = self._create_paragraph_for_block(
                     parent_docx_object, dd_children_indent_val
                 )
@@ -1698,7 +1793,8 @@ class HtmlToDocxConverter:
                         is_item_a_block_within_dd = False
                         if isinstance(dd_content_item, Tag):
                             item_tag_name = dd_content_item.name.lower()
-                            # Define tags that should be treated as block-level when direct children of DD
+                            # Define tags that should be treated as block-level
+                            # when direct children of DD
                             if item_tag_name in [
                                 "p",
                                 "div",
@@ -1731,29 +1827,36 @@ class HtmlToDocxConverter:
                                     if p_elem.getparent() is not None:
                                         p_elem.getparent().remove(p_elem)
                                         logger.debug(
-                                            "    Removed empty paragraph from <dd> before processing block child."
+                                            "    Removed empty paragraph from "
+                                            "<dd> before processing block "
+                                            "child."
                                         )
-                                # Set to None to signal a new one is needed if more inline content follows this block
+                                # Set to None to signal a new one is needed if
+                                # more inline content follows this block
                                 current_dd_paragraph = None
 
-                            # Process this block element. Its parent is the DL's parent.
-                            # It will create its own paragraphs, using dd_children_indent_val.
+                            # Process this block element. Its parent is the
+                            # DL's parent. It will create its own paragraphs,
+                            # using dd_children_indent_val.
                             self._process_block_element(
                                 dd_content_item,  # The block Tag
                                 parent_docx_object,
                                 active_format_tags,
                                 indent_level_inches=dd_children_indent_val,
-                                current_paragraph_classes=current_paragraph_classes,
+                                crt_par_classes=crt_par_classes,
                             )
-                            # After a block, the next inline item will need a new paragraph.
+                            # After a block, the next inline item will need a
+                            # new paragraph.
                             is_first_run_in_dd_para = (
                                 True  # Reset for the potentially new paragraph
                             )
                             logger.debug(
-                                "    Finished processing block child in <dd>. Next inline needs new para."
+                                "    Finished processing block child in <dd>. "
+                                "Next inline needs new para."
                             )
                         else:
-                            # This dd_content_item is inline (NavigableString or inline Tag like <sup>)
+                            # This dd_content_item is inline (NavigableString
+                            # or inline Tag like <sup>)
                             # It should go into the current_dd_paragraph.
                             logger.debug(
                                 "    <dd> child is inline: %s",
@@ -1771,20 +1874,23 @@ class HtmlToDocxConverter:
                                 is_first_run_in_dd_para = True
 
                             self._process_inline_content(
-                                dd_content_item,  # The NavigableString or inline Tag
+                                # The NavigableString or inline Tag
+                                dd_content_item,
                                 current_dd_paragraph,
                                 active_format_tags,
                                 first=is_first_run_in_dd_para,
-                                current_paragraph_classes=current_paragraph_classes,
+                                crt_par_classes=crt_par_classes,
                             )
-                            # Update is_first_run_in_dd_para based on whether content was added
+                            # Update is_first_run_in_dd_para based on whether
+                            # content was added
                             if (
                                 isinstance(dd_content_item, NavigableString)
                                 and str(dd_content_item).strip()
                             ):
                                 is_first_run_in_dd_para = False
                             elif isinstance(dd_content_item, Tag):
-                                # Consider content-ful tags or explicit line breaks as "content added"
+                                # Consider content-ful tags or explicit line
+                                # breaks as "content added"
                                 if dd_content_item.get_text(
                                     strip=True
                                 ) or dd_content_item.name.lower() in [
