@@ -5,6 +5,7 @@ import os
 import re
 from datetime import datetime
 from os.path import getmtime, isfile, join
+from typing import Any
 
 from exdrf.utils import inflect_e
 from jinja2 import BaseLoader, Environment, TemplateNotFound, select_autoescape
@@ -145,6 +146,10 @@ def jinja_format_date(date, format_string="%d-%m-%Y"):
     return date.strftime(format_string)
 
 
+def url_for(resource: str, id: Any) -> str:
+    return f"exdrf://navigation/resource/{resource}/{id}"
+
+
 def create_jinja_env(auto_reload=False):
     """Creates a base Jinja2 environment for rendering templates."""
     jinja_env = Environment(
@@ -209,6 +214,8 @@ def create_jinja_env(auto_reload=False):
     jinja_env.globals["range"] = range
     jinja_env.globals["round"] = round
     jinja_env.globals["pi"] = math.pi
+    jinja_env.globals["url_for"] = url_for
+    jinja_env.globals["internal_link_class"] = "exdrf-internal-link"
 
     # Tests.
     jinja_env.tests["None"] = lambda value: value is None
