@@ -1,7 +1,7 @@
 import logging
 from typing import TYPE_CHECKING
 
-from PyQt5.QtCore import QEvent, Qt
+from PyQt5.QtCore import QEvent, Qt, pyqtSignal
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 
 from exdrf_qt.context_use import QtUseContext
@@ -13,7 +13,15 @@ logger = logging.getLogger(__name__)
 
 
 class WebView(QWebEngineView, QtUseContext):
-    """A custom web view that can handle internal navigation requests."""
+    """A custom web view that can handle internal navigation requests.
+
+    Signals:
+        simpleRefresh: Emitted when the user presses F5.
+        fullRefresh: Emitted when the user presses Ctrl+F5.
+    """
+
+    simpleRefresh = pyqtSignal()
+    fullRefresh = pyqtSignal()
 
     def __init__(self, ctx: "QtContext", *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -24,6 +32,14 @@ class WebView(QWebEngineView, QtUseContext):
     def eventFilter(self, obj, event):  # type: ignore
         """Handle mouse press events."""
         if event.type() == QEvent.Type.MouseButtonPress:
+            # These events do not show up here. The only mouse-related
+            # events that show up here are:
+            # - QEvent.Type.WindowActivate
+            # - QEvent.Type.Deactivate
+            # - QEvent.Type.Enter
+            # - QEvent.Type.Leave
+            # - QEvent.Type.ContextMenu
+            # - QEvent.Type.Wheel? = 31
             history = self.history()
             if history is None:
                 return super().eventFilter(obj, event)
@@ -41,6 +57,30 @@ class WebView(QWebEngineView, QtUseContext):
                     history.forward()
                 event.accept()
                 return True  # Return True as event is handled
+
+        elif event.type() == QEvent.Type.ShortcutOverride:
+            if event.key() == Qt.Key.Key_F5:
+                if event.modifiers() == Qt.KeyboardModifier.ControlModifier:
+                    self.fullRefresh.emit()
+                else:
+                    self.simpleRefresh.emit()
+                event.accept()
+                return True
+            # else:
+            #     print(
+            #         f"Event: {event.key()}, in hex"
+            #         f": {hex(event.key())}"
+            #     )
+        elif event.type() == QEvent.Type.KeyPress:
+            if event.key() == Qt.Key.Key_F5:
+                if event.modifiers() == Qt.KeyboardModifier.ControlModifier:
+                    self.fullRefresh.emit()
+                else:
+                    self.simpleRefresh.emit()
+                event.accept()
+                return True
+        # else:
+        #     print(f"Event: {event.type()}, in hex: {hex(event.type())}")
 
         # Otherwise, handle as usual
         return super().eventFilter(obj, event)

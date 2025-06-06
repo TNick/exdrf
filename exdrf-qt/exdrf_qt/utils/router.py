@@ -110,12 +110,12 @@ class ExdrfRouter(QtUseContext):
             )
             return
 
-    def open_viewer(self, list_class, id: Any = None):
+    def open_viewer(self, viewer_class, id: Any = None):
         """Open the list of the model."""
         try:
             if not self.ctx.ensure_db_conn():
                 return
-            w = list_class(
+            w = viewer_class(
                 ctx=self.ctx,
                 record_id=id,
             )

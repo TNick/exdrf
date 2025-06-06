@@ -315,3 +315,10 @@ def create_jinja_env(auto_reload=False):
 
 
 jinja_env = create_jinja_env()
+
+
+def recreate_global_env():
+    global jinja_env
+    jinja_env = create_jinja_env()
+    logger.info("Recreated Jinja environment")
+    return jinja_env

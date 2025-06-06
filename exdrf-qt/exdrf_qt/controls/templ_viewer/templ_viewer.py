@@ -20,7 +20,7 @@ from typing import (
 import yaml  # type: ignore
 from exdrf.constants import RecIdType
 from exdrf.var_bag import VarBag
-from exdrf_gen.jinja_support import jinja_env
+from exdrf_gen.jinja_support import jinja_env, recreate_global_env
 from jinja2 import Environment, Template
 from PyQt5.QtCore import QMarginsF, QPoint, Qt, QTimer, QUrl
 from PyQt5.QtGui import QDesktopServices, QPageLayout, QPageSize
@@ -180,9 +180,8 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
         # Prepare the UI.
         self.setup_ui(self)
 
-        # Set the page for the viewer.
-        page = page_class(parent=self, ctx=self.ctx)
-        self.c_viewer.setPage(page)
+        # Prepare the viewer.
+        self.prepare_viewer(page_class)
 
         # Browse for the template file.
         self.c_sel_templ.clicked.connect(self.on_browse_templ_file)
@@ -190,14 +189,6 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
 
         # Create the actions.
         self.create_actions()
-
-        # Context menu for the template renderer.
-        self.c_viewer.setContextMenuPolicy(
-            Qt.ContextMenuPolicy.CustomContextMenu
-        )
-        self.c_viewer.customContextMenuRequested.connect(
-            self.on_viewer_context_menu
-        )
 
         # Context menu for template editor.
         self.c_editor.setContextMenuPolicy(
@@ -223,6 +214,28 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
             self.c_templ.setText(template_src)
         self.model.varDataChanged.connect(self.render_template)
         self.on_toggle_vars(self.ac_toggle_vars.isChecked())
+
+    def prepare_viewer(
+        self,
+        page_class: Type[WebEnginePage] = WebEnginePage,
+    ):
+        """Prepare the viewer."""
+
+        # Set the page for the viewer.
+        page = page_class(parent=self, ctx=self.ctx)
+        self.c_viewer.setPage(page)
+
+        # Context menu for the template renderer.
+        self.c_viewer.setContextMenuPolicy(
+            Qt.ContextMenuPolicy.CustomContextMenu
+        )
+        self.c_viewer.customContextMenuRequested.connect(
+            self.on_viewer_context_menu
+        )
+
+        # React to refresh requests.
+        self.c_viewer.simpleRefresh.connect(self.render_template)
+        self.c_viewer.fullRefresh.connect(self.full_refresh)
 
     def prepare_vars_list(self):
         """Prepare the variables list."""
@@ -742,6 +755,20 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
             **self.extra_context,
             api_point=self.ctx.data,  # type: ignore
         )
+
+    def full_refresh(self):
+        """Full refresh of the template."""
+        self.jinja_env = recreate_global_env()
+
+        profile = self.c_viewer.page().profile()
+        profile.clearHttpCache()
+        profile.clearAllVisitedLinks()
+        profile.cookieStore().deleteAllCookies()
+
+        self.model = VarModel(self.ctx, self.var_bag)
+        self.c_vars.setModel(self.model)
+
+        self.render_template()
 
     def render_template(self):
         """Render the template.
