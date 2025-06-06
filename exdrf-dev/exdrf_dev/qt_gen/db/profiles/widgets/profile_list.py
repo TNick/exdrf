@@ -25,22 +25,10 @@ class QtProfileList(ListDb["Profile"]):
 
     def __init__(self, ctx: "QtContext", *args, **kwargs):
         from exdrf_dev.qt_gen.db.profiles.api import (
-            QtProfileEditor,
             QtProfileFuMo,
-            QtProfileTv,
         )
 
-        super().__init__(
-            editor=ctx.get_ovr(
-                "exdrf_dev.qt_gen.db.profiles.qt.editor", QtProfileEditor
-            ),
-            viewer=ctx.get_ovr(
-                "exdrf_dev.qt_gen.db.profiles.qt.viewer", QtProfileTv
-            ),
-            ctx=ctx,
-            *args,
-            **kwargs,
-        )
+        super().__init__(ctx=ctx, *args, **kwargs)
         self.setModel(
             ctx.get_c_ovr(
                 "exdrf_dev.qt_gen.db.profiles.list.model",

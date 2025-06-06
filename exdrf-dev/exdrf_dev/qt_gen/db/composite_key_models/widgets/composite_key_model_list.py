@@ -25,24 +25,10 @@ class QtCompositeKeyModelList(ListDb["CompositeKeyModel"]):
 
     def __init__(self, ctx: "QtContext", *args, **kwargs):
         from exdrf_dev.qt_gen.db.composite_key_models.api import (
-            QtCompositeKeyModelEditor,
             QtCompositeKeyModelFuMo,
-            QtCompositeKeyModelTv,
         )
 
-        super().__init__(
-            editor=ctx.get_ovr(
-                "exdrf_dev.qt_gen.db.composite_key_models.qt.editor",
-                QtCompositeKeyModelEditor,
-            ),
-            viewer=ctx.get_ovr(
-                "exdrf_dev.qt_gen.db.composite_key_models.qt.viewer",
-                QtCompositeKeyModelTv,
-            ),
-            ctx=ctx,
-            *args,
-            **kwargs,
-        )
+        super().__init__(ctx=ctx, *args, **kwargs)
         self.setModel(
             ctx.get_c_ovr(
                 "exdrf_dev.qt_gen.db.composite_key_models.list.model",

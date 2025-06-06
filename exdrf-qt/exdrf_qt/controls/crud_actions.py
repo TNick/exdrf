@@ -55,6 +55,14 @@ class OpenListAc(AcBase):
 class OpenCreateAc(AcBase):
     """Action to open an editor that allows creating a new record."""
 
+    def __init__(
+        self,
+        *args,
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
+        self.setIcon(self.get_icon("document_empty"))
+
     def do_open(self):
         """Create a new record."""
         result = self.ctx.router.route(self.route)
@@ -81,28 +89,45 @@ class AcBaseWithId(AcBase):
     def __init__(
         self,
         label: str,
-        menu: QMenu,
         ctx: "QtContext",
         route: str,
         id: Any,
+        menu_or_parent: Optional[QMenu] = None,
     ):
         """Initialize the action."""
-        super().__init__(label, menu, ctx, route)
+        super().__init__(label, ctx, route, menu_or_parent=menu_or_parent)
         self.id = id
 
     @property
     def str_id(self) -> str:
         """Get the string representation of the id."""
-        if isinstance(self.id, int):
-            return str(self.id)
-        elif isinstance(self.id, str):
-            return self.id
+        if callable(self.id):
+            true_id = self.id()
         else:
-            return ",".join(str(a) for a in self.id)
+            true_id = self.id
+
+        if isinstance(true_id, int):
+            return str(true_id)
+        elif isinstance(true_id, str):
+            return true_id
+        else:
+            return ",".join(str(a) for a in true_id)
 
 
 class OpenEditAc(AcBaseWithId):
-    """Action to open an editor that allows editing a record."""
+    """Action to open an editor that allows editing a record.
+
+    You can either provide wither the ID or a function that returns the ID of
+    the record to be deleted.
+    """
+
+    def __init__(
+        self,
+        *args,
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
+        self.setIcon(self.get_icon("edit_button"))
 
     def do_open(self):
         """Edit a record."""
@@ -125,7 +150,19 @@ class OpenEditAc(AcBaseWithId):
 
 
 class OpenViewAc(AcBaseWithId):
-    """Action to open a viewer that presents a record."""
+    """Action to open a viewer that presents a record.
+
+    You can either provide wither the ID or a function that returns the ID of
+    the record to be deleted.
+    """
+
+    def __init__(
+        self,
+        *args,
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
+        self.setIcon(self.get_icon("eye"))
 
     def do_open(self):
         """View a record."""
@@ -148,7 +185,19 @@ class OpenViewAc(AcBaseWithId):
 
 
 class OpenDeleteAc(AcBaseWithId):
-    """Action to open a dialog that allows deleting a record."""
+    """Action to open a dialog that allows deleting a record.
+
+    You can either provide wither the ID or a function that returns the ID of
+    the record to be deleted.
+    """
+
+    def __init__(
+        self,
+        *args,
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
+        self.setIcon(self.get_icon("cross"))
 
     def do_open(self):
         """Delete a record."""

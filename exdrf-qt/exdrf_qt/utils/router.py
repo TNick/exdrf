@@ -74,6 +74,10 @@ class ExdrfRouter(QtUseContext):
                 ctx=self.ctx,
                 record_id=id,
             )
+            if id is None:
+                w.on_create_new()
+            else:
+                w.on_begin_edit()
             self.ctx.create_window(w, w.windowTitle())
         except Exception as e:
             logger.error("Error opening list", exc_info=True)

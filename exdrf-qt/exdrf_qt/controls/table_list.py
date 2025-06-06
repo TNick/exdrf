@@ -4,7 +4,6 @@ from typing import (
     Callable,
     Generic,
     Optional,
-    Type,
     TypeVar,
     Union,
     cast,
@@ -24,6 +23,12 @@ from PyQt5.QtWidgets import (
 )
 
 from exdrf_qt.context_use import QtUseContext
+from exdrf_qt.controls.crud_actions import (
+    OpenCreateAc,
+    OpenDeleteAc,
+    OpenEditAc,
+    OpenViewAc,
+)
 from exdrf_qt.controls.filter_dlg.filter_dlg import FilterDlg
 from exdrf_qt.controls.search_line import SearchLine
 from exdrf_qt.controls.tree_header import HeaderViewWithMenu
@@ -32,8 +37,6 @@ if TYPE_CHECKING:
     from PyQt5.QtCore import QItemSelection, QItemSelectionModel  # noqa: F401
 
     from exdrf_qt.context import QtContext  # noqa: F401
-    from exdrf_qt.controls.base_editor import EditorDb  # noqa: F401
-    from exdrf_qt.controls.templ_viewer.templ_viewer import RecordTemplViewer
     from exdrf_qt.models import QtModel  # noqa: F401
 
 
@@ -65,8 +68,6 @@ class ListDb(QWidget, QtUseContext, Generic[DBM]):
         ctx: "QtContext",
         parent: Optional["QWidget"] = None,
         menu_handler: Optional[Callable] = None,
-        editor: Optional[Type["EditorDb[DBM]"]] = None,
-        viewer: Optional[Type["RecordTemplViewer[DBM]"]] = None,
     ):
         super().__init__(parent=parent)
         self.ctx = ctx
@@ -79,8 +80,6 @@ class ListDb(QWidget, QtUseContext, Generic[DBM]):
             ctx=ctx,
             parent=self,
             menu_handler=menu_handler,
-            editor=editor,
-            viewer=viewer,
         )
         self.ly.addWidget(self.tree)
 
@@ -203,9 +202,15 @@ class ListDb(QWidget, QtUseContext, Generic[DBM]):
 class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
     """A list that presents the content of a database table.
 
+    The list includes some default actions. If you want to discard any of it
+    call its .deleteLater() method and set it in this class to None.
+
+    To edit, view, create and delete items the class uses the router, which
+    needs a resource path. We assume that the names of the database model
+    classes passed to the model (through setModel) are the same as the names
+    of the resources in the router.
+
     Attributes:
-        editor: The editor that is used to create new items or edit the
-            existing items.
         ac_new: Action to create a new item.
         ac_rem: Action to remove the selected item.
         ac_rem_all: Action to remove all items.
@@ -218,13 +223,11 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
         ac_filter: Action to filter the items.
     """
 
-    editor: Optional[Type["EditorDb[DBM]"]] = None
-
-    ac_new: QAction
-    ac_rem: QAction
+    ac_new: OpenCreateAc
+    ac_rem: OpenDeleteAc
     ac_rem_all: QAction
-    ac_edit: QAction
-    ac_view: QAction
+    ac_edit: OpenEditAc
+    ac_view: OpenViewAc
     ac_clone: QAction
     ac_export: QAction
     ac_set_null: QAction
@@ -236,13 +239,9 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
         ctx: "QtContext",
         parent: Optional["QWidget"] = None,
         menu_handler: Optional[Callable] = None,
-        editor: Optional[Type["EditorDb[DBM]"]] = None,
-        viewer: Optional[Type["RecordTemplViewer[DBM]"]] = None,
     ):
         super().__init__(parent=parent)
         self.ctx = ctx
-        self.editor = editor
-        self.viewer = viewer
         self.setAlternatingRowColors(True)
         self.setRootIsDecorated(False)
         self.setSortingEnabled(True)
@@ -272,37 +271,73 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
         """The model that is used to present the data in the list."""
         return cast("QtModel[DBM]", self.model())
 
+    @property
+    def base_route(self) -> str:
+        """The base route for the list."""
+        try:
+            m_name = self.qt_model.db_model.__name__
+        except Exception:
+            m_name = "unknown"
+        return f"exdrf://navigation/resource/{m_name}"
+
     def setModel(self, model: "QtModel[DBM]") -> None:  # type: ignore[override]
         """Set the model for the list."""
         crt_model: Union[QItemSelectionModel, None] = self.selectionModel()
         if crt_model is not None:
             crt_model.selectionChanged.disconnect(self.on_selection_changed)
+
         super().setModel(model)
-        new_model = self.selectionModel()
-        if new_model:
-            new_model.selectionChanged.connect(self.on_selection_changed)
+
+        # Update the CRUD actions to use the new model.
+        base_route = self.base_route
+        if self.ac_new is not None:
+            self.ac_new.route = f"{base_route}/create"
+        if self.ac_rem is not None:
+            self.ac_rem.route = base_route
+        if self.ac_edit is not None:
+            self.ac_edit.route = base_route
+        if self.ac_view is not None:
+            self.ac_view.route = base_route
+
+        # Connect the selection model to the on_selection_changed method.
+        new_sel_model = self.selectionModel()
+        if new_sel_model:
+            new_sel_model.selectionChanged.connect(self.on_selection_changed)
 
         empty_model = model.total_count == 0
 
-        self.ac_rem_all.setEnabled(not empty_model)
-        self.ac_export.setEnabled(not empty_model)
-        self.ac_filter.setEnabled(not empty_model)
-
-        self.ac_new.setEnabled(self.editor is not None)
+        if self.ac_rem_all is not None:
+            self.ac_rem_all.setEnabled(not empty_model)
+        if self.ac_export is not None:
+            self.ac_export.setEnabled(not empty_model)
+        if self.ac_filter is not None:
+            self.ac_filter.setEnabled(not empty_model)
+        if self.ac_new is not None:
+            self.ac_new.setEnabled(True)
 
     def create_actions(self):
-        """Create the actions."""
-        self.ac_new = QAction(
-            self.get_icon("document_empty"),
-            self.t("sq.common.new", "New"),
-            self,
-        )
-        self.ac_new.triggered.connect(self.on_create_new)
+        """Create the actions.
 
-        self.ac_rem = QAction(
-            self.get_icon("cross"), self.t("sq.common.del", "Remove"), self
+        Note that we do not take a model as parameter in the constructor,
+        so the model is not available at this time, so we create the
+        CRUD actions with empty routes. The setModel() overloaded method
+        updates the routes to the correct ones.
+        """
+
+        self.ac_new = OpenCreateAc(
+            label=self.t("sq.common.new", "New"),
+            ctx=self.ctx,
+            route="",
+            menu_or_parent=self,
         )
-        self.ac_rem.triggered.connect(self.on_remove_selected)
+
+        self.ac_rem = OpenDeleteAc(
+            label=self.t("sq.common.del", "Remove"),
+            ctx=self.ctx,
+            route="",
+            menu_or_parent=self,
+            id=self.get_selected_db_id,
+        )
 
         self.ac_rem_all = QAction(
             self.get_icon("emotion_blow_current"),
@@ -311,15 +346,21 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
         )
         self.ac_rem_all.triggered.connect(self.on_remove_all)
 
-        self.ac_edit = QAction(
-            self.get_icon("edit_button"), self.t("sq.common.edit", "Edit"), self
+        self.ac_edit = OpenEditAc(
+            label=self.t("sq.common.edit", "Edit"),
+            ctx=self.ctx,
+            route="",
+            menu_or_parent=self,
+            id=self.get_selected_db_id,
         )
-        self.ac_edit.triggered.connect(self.on_edit_selected)
 
-        self.ac_view = QAction(
-            self.get_icon("eye"), self.t("sq.common.view", "View"), self
+        self.ac_view = OpenViewAc(
+            label=self.t("sq.common.view", "View"),
+            ctx=self.ctx,
+            route="",
+            menu_or_parent=self,
+            id=self.get_selected_db_id,
         )
-        self.ac_view.triggered.connect(self.on_view_selected)
 
         self.ac_clone = QAction(
             self.get_icon("page_copy"), self.t("sq.common.clone", "Clone"), self
@@ -366,7 +407,7 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
                 self.ac_filter,
             ]
         )
-        self.ac_new.setEnabled(self.editor is not None)
+        self.ac_new.setEnabled(True)
         self.ac_rem.setEnabled(False)
         self.ac_edit.setEnabled(False)
         self.ac_view.setEnabled(False)
@@ -397,20 +438,40 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
         """Show the context menu."""
         menu = QMenu(self)
 
-        menu.addAction(self.ac_reload)
-        menu.addAction(self.ac_filter)
-        menu.addSeparator()
-        menu.addAction(self.ac_new)
-        menu.addSeparator()
-        menu.addAction(self.ac_rem)
-        menu.addAction(self.ac_rem_all)
-        menu.addSeparator()
-        menu.addAction(self.ac_view)
-        menu.addAction(self.ac_edit)
-        menu.addAction(self.ac_set_null)
-        menu.addAction(self.ac_clone)
-        menu.addSeparator()
-        menu.addAction(self.ac_export)
+        if self.ac_reload is not None:
+            menu.addAction(self.ac_reload)
+
+        if self.ac_filter is not None:
+            menu.addAction(self.ac_filter)
+
+        if self.ac_new is not None:
+            menu.addSeparator()
+            menu.addAction(self.ac_new)
+
+        if self.ac_rem is not None:
+            menu.addSeparator()
+            menu.addAction(self.ac_rem)
+
+        if self.ac_rem_all is not None:
+            if self.ac_rem is None:
+                menu.addSeparator()
+            menu.addAction(self.ac_rem_all)
+
+        if self.ac_view is not None:
+            menu.addAction(self.ac_view)
+
+        if self.ac_edit is not None:
+            menu.addAction(self.ac_edit)
+
+        if self.ac_set_null is not None:
+            menu.addAction(self.ac_set_null)
+
+        if self.ac_clone is not None:
+            menu.addAction(self.ac_clone)
+
+        if self.ac_export is not None:
+            menu.addSeparator()
+            menu.addAction(self.ac_export)
 
         # Show the menu.
         vp = self.viewport()
@@ -424,53 +485,32 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
     ) -> None:
         """Handle selection changes."""
         try:
-            have_editor = self.editor is not None
             empty_sel = selected.isEmpty()
 
-            self.ac_rem.setEnabled(not empty_sel)
-            self.ac_view.setEnabled(not empty_sel and have_editor)
-            self.ac_edit.setEnabled(not empty_sel and have_editor)
-            self.ac_set_null.setEnabled(not empty_sel)
-            self.ac_clone.setEnabled(not empty_sel)
+            if self.ac_rem is not None:
+                self.ac_rem.setEnabled(not empty_sel)
+            if self.ac_view is not None:
+                self.ac_view.setEnabled(not empty_sel)
+            if self.ac_edit is not None:
+                self.ac_edit.setEnabled(not empty_sel)
+            if self.ac_set_null is not None:
+                self.ac_set_null.setEnabled(not empty_sel)
+            if self.ac_clone is not None:
+                self.ac_clone.setEnabled(not empty_sel)
 
             empty_model = self.qt_model.total_count == 0
 
-            self.ac_rem_all.setEnabled(not empty_model)
-            self.ac_export.setEnabled(not empty_model)
-            self.ac_filter.setEnabled(not empty_model)
+            if self.ac_rem_all is not None:
+                self.ac_rem_all.setEnabled(not empty_model)
+            if self.ac_export is not None:
+                self.ac_export.setEnabled(not empty_model)
+            if self.ac_filter is not None:
+                self.ac_filter.setEnabled(not empty_model)
 
-            self.ac_new.setEnabled(have_editor)
+            if self.ac_new is not None:
+                self.ac_new.setEnabled(True)
         except Exception as e:
             logger.exception("Error in ListDb.on_selection_changed")
-            self.ctx.show_error(
-                title=self.t("sq.common.error", "Error"),
-                message=str(e),
-            )
-
-    def on_create_new(self) -> None:
-        """Create a new item."""
-        try:
-            assert self.editor is not None, "Editor should not be None"
-            editor = self.editor(  # type: ignore
-                ctx=self.ctx,
-                parent=None,
-            )
-            self.ctx.create_window(editor, editor.windowTitle())
-            editor.set_record(None)
-            editor.on_create_new()
-        except Exception as e:
-            logger.exception("Error in ListDb.on_create_new")
-            self.ctx.show_error(
-                title=self.t("sq.common.error", "Error"),
-                message=str(e),
-            )
-
-    def on_remove_selected(self) -> None:
-        """Remove the selected item."""
-        try:
-            raise NotImplementedError("on_remove_selected() not implemented.")
-        except Exception as e:
-            logger.exception("Error in ListDb.on_remove_selected")
             self.ctx.show_error(
                 title=self.t("sq.common.error", "Error"),
                 message=str(e),
@@ -486,45 +526,6 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
                 title=self.t("sq.common.error", "Error"),
                 message=str(e),
             )
-
-    def _view_or_edit(self, editing: bool):
-        try:
-            rec_id = self.get_selected_db_id()
-            if rec_id is None:
-                return
-
-            if editing:
-                assert self.editor is not None, "Editor should not be None"
-                editor = self.editor(  # type: ignore
-                    ctx=self.ctx,
-                    parent=None,
-                    record_id=rec_id,
-                )
-                self.ctx.create_window(editor, editor.windowTitle())
-                if editing:
-                    editor.on_begin_edit()
-            else:
-                assert self.viewer is not None, "Viewer should not be None"
-                viewer = self.viewer(  # type: ignore
-                    ctx=self.ctx,
-                    parent=None,
-                    record_id=rec_id,
-                )
-                self.ctx.create_window(viewer, viewer.windowTitle())
-        except Exception as e:
-            logger.exception("Error in ListDb._view_or_edit")
-            self.ctx.show_error(
-                title=self.t("sq.common.error", "Error"),
-                message=str(e),
-            )
-
-    def on_view_selected(self) -> None:
-        """View the selected item."""
-        self._view_or_edit(editing=False)
-
-    def on_edit_selected(self) -> None:
-        """Edit the selected item."""
-        self._view_or_edit(editing=True)
 
     def on_clone_selected(self) -> None:
         """Clone the selected item."""

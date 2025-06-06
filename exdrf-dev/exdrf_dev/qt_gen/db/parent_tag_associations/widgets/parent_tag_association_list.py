@@ -25,24 +25,10 @@ class QtParentTagAssociationList(ListDb["ParentTagAssociation"]):
 
     def __init__(self, ctx: "QtContext", *args, **kwargs):
         from exdrf_dev.qt_gen.db.parent_tag_associations.api import (
-            QtParentTagAssociationEditor,
             QtParentTagAssociationFuMo,
-            QtParentTagAssociationTv,
         )
 
-        super().__init__(
-            editor=ctx.get_ovr(
-                "exdrf_dev.qt_gen.db.parent_tag_associations.qt.editor",
-                QtParentTagAssociationEditor,
-            ),
-            viewer=ctx.get_ovr(
-                "exdrf_dev.qt_gen.db.parent_tag_associations.qt.viewer",
-                QtParentTagAssociationTv,
-            ),
-            ctx=ctx,
-            *args,
-            **kwargs,
-        )
+        super().__init__(ctx=ctx, *args, **kwargs)
         self.setModel(
             ctx.get_c_ovr(
                 "exdrf_dev.qt_gen.db.parent_tag_associations.list.model",

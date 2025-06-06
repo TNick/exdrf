@@ -25,22 +25,10 @@ class QtChildList(ListDb["Child"]):
 
     def __init__(self, ctx: "QtContext", *args, **kwargs):
         from exdrf_dev.qt_gen.db.children.api import (
-            QtChildEditor,
             QtChildFuMo,
-            QtChildTv,
         )
 
-        super().__init__(
-            editor=ctx.get_ovr(
-                "exdrf_dev.qt_gen.db.children.qt.editor", QtChildEditor
-            ),
-            viewer=ctx.get_ovr(
-                "exdrf_dev.qt_gen.db.children.qt.viewer", QtChildTv
-            ),
-            ctx=ctx,
-            *args,
-            **kwargs,
-        )
+        super().__init__(ctx=ctx, *args, **kwargs)
         self.setModel(
             ctx.get_c_ovr(
                 "exdrf_dev.qt_gen.db.children.list.model",

@@ -24,19 +24,9 @@ class Qt{{ ResPascal }}List(ListDb["{{ ResPascal }}"]):
     def __init__(self, ctx: "QtContext", *args, **kwargs):
         from {{ out_module }}.{{ categories[0] }}.{{ res_p_snake }}.api import (
             Qt{{ ResPascal }}FuMo,
-            Qt{{ ResPascal }}Editor,
-            Qt{{ ResPascal }}Tv,
         )
 
         super().__init__(
-            editor=ctx.get_ovr(
-                "{{ out_module }}.{{ r.categories[0] }}.{{ res_p_snake }}.qt.editor",
-                Qt{{ ResPascal }}Editor
-            ),
-            viewer=ctx.get_ovr(
-                "{{ out_module }}.{{ r.categories[0] }}.{{ res_p_snake }}.qt.viewer",
-                Qt{{ ResPascal }}Tv
-            ),
             ctx=ctx,
             *args, **kwargs
         )
