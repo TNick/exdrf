@@ -30,11 +30,11 @@ class Qt{{ ResPascal }}List(ListDb["{{ ResPascal }}"]):
 
         super().__init__(
             editor=ctx.get_ovr(
-                "{{ out_module }}.{{ r.categories[0] }}.{{ res_p_snake }}.list.editor",
+                "{{ out_module }}.{{ r.categories[0] }}.{{ res_p_snake }}.qt.editor",
                 Qt{{ ResPascal }}Editor
             ),
             viewer=ctx.get_ovr(
-                "{{ out_module }}.{{ r.categories[0] }}.{{ res_p_snake }}.list.viewer",
+                "{{ out_module }}.{{ r.categories[0] }}.{{ res_p_snake }}.qt.viewer",
                 Qt{{ ResPascal }}Tv
             ),
             ctx=ctx,

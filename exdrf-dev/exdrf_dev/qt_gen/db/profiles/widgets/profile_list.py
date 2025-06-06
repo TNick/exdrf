@@ -32,10 +32,10 @@ class QtProfileList(ListDb["Profile"]):
 
         super().__init__(
             editor=ctx.get_ovr(
-                "exdrf_dev.qt_gen.db.profiles.list.editor", QtProfileEditor
+                "exdrf_dev.qt_gen.db.profiles.qt.editor", QtProfileEditor
             ),
             viewer=ctx.get_ovr(
-                "exdrf_dev.qt_gen.db.profiles.list.viewer", QtProfileTv
+                "exdrf_dev.qt_gen.db.profiles.qt.viewer", QtProfileTv
             ),
             ctx=ctx,
             *args,

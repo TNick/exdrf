@@ -32,9 +32,9 @@ class QtTagList(ListDb["Tag"]):
 
         super().__init__(
             editor=ctx.get_ovr(
-                "exdrf_dev.qt_gen.db.tags.list.editor", QtTagEditor
+                "exdrf_dev.qt_gen.db.tags.qt.editor", QtTagEditor
             ),
-            viewer=ctx.get_ovr("exdrf_dev.qt_gen.db.tags.list.viewer", QtTagTv),
+            viewer=ctx.get_ovr("exdrf_dev.qt_gen.db.tags.qt.viewer", QtTagTv),
             ctx=ctx,
             *args,
             **kwargs,

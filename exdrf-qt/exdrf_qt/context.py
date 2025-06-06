@@ -12,6 +12,7 @@ from PyQt5.QtWidgets import QMessageBox
 from exdrf_qt.controls.seldb.sel_db import SelectDatabaseDlg
 from exdrf_qt.local_settings import LocalSettings
 from exdrf_qt.utils.attr_dict import AttrDict
+from exdrf_qt.utils.router import ExdrfRouter
 from exdrf_qt.utils.sql_formatter import SQLPrettyFormatter  # noqa: F401
 from exdrf_qt.worker import Relay, Work
 
@@ -82,8 +83,15 @@ class QtContext(DbConn):
     stg: LocalSettings = field(factory=LocalSettings)
     _overrides: Dict[str, Any] = field(factory=dict)
     data: AttrDict = field(factory=AttrDict)
+    router: "ExdrfRouter" = field(default=None)
 
     def __attrs_post_init__(self):
+        if self.router is None:
+            self.router = ExdrfRouter(
+                ctx=self,
+                base_path="exdrf://navigation/resource",
+            )
+
         self.setup_logging()
 
     def create_window(self, w: "QWidget", title: str):

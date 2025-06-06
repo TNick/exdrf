@@ -32,11 +32,11 @@ class QtParentTagAssociationList(ListDb["ParentTagAssociation"]):
 
         super().__init__(
             editor=ctx.get_ovr(
-                "exdrf_dev.qt_gen.db.parent_tag_associations.list.editor",
+                "exdrf_dev.qt_gen.db.parent_tag_associations.qt.editor",
                 QtParentTagAssociationEditor,
             ),
             viewer=ctx.get_ovr(
-                "exdrf_dev.qt_gen.db.parent_tag_associations.list.viewer",
+                "exdrf_dev.qt_gen.db.parent_tag_associations.qt.viewer",
                 QtParentTagAssociationTv,
             ),
             ctx=ctx,

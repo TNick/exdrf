@@ -32,11 +32,11 @@ class QtRelatedItemList(ListDb["RelatedItem"]):
 
         super().__init__(
             editor=ctx.get_ovr(
-                "exdrf_dev.qt_gen.db.related_items.list.editor",
+                "exdrf_dev.qt_gen.db.related_items.qt.editor",
                 QtRelatedItemEditor,
             ),
             viewer=ctx.get_ovr(
-                "exdrf_dev.qt_gen.db.related_items.list.viewer", QtRelatedItemTv
+                "exdrf_dev.qt_gen.db.related_items.qt.viewer", QtRelatedItemTv
             ),
             ctx=ctx,
             *args,

@@ -32,10 +32,10 @@ class QtParentList(ListDb["Parent"]):
 
         super().__init__(
             editor=ctx.get_ovr(
-                "exdrf_dev.qt_gen.db.parents.list.editor", QtParentEditor
+                "exdrf_dev.qt_gen.db.parents.qt.editor", QtParentEditor
             ),
             viewer=ctx.get_ovr(
-                "exdrf_dev.qt_gen.db.parents.list.viewer", QtParentTv
+                "exdrf_dev.qt_gen.db.parents.qt.viewer", QtParentTv
             ),
             ctx=ctx,
             *args,

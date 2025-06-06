@@ -1,0 +1,180 @@
+from typing import List
+
+from attrs import define, field
+from exdrf_qt.utils.router import ExdrfRouter as BaseRouter
+from exdrf_qt.utils.router import Route
+
+# exdrf-keep-start other_imports ----------------------------------------------
+{{other_imports}}
+# exdrf-keep-end other_imports ------------------------------------------------
+
+{# 
+    To be used with pattern string.
+#}
+{% macro field_path(fields) -%}
+    {{ (
+        "{" ~
+        fields
+          | join_attrs(
+              attr="name",
+              sep="},{",
+              suffix="type_name",
+              suffix_is_attr=True,
+              suffix_sep=":"
+            )
+        ~ "}"
+      )
+      | replace("integer", "d")
+      | replace("boolean", "d")
+      | replace("string", "s")
+      | replace("float", "f")
+    }}
+{%- endmacro -%}
+
+{# 
+    To be used as arguments in functions.
+#}
+{%- macro field_params(fields) -%}
+    {{ (
+        fields
+          | join_attrs(
+              attr="name",
+              sep=", ",
+              suffix="type_name",
+              suffix_is_attr=True,
+              suffix_sep=": "
+            )
+      )
+      | replace("integer", "int")
+      | replace("boolean", "bool")
+      | replace("string", "str")
+      | replace("float", "str")
+    }}
+{%- endmacro %}
+
+{# 
+    To be used as values.
+#}
+{%- macro field_args(fields) -%}
+    {{ fields | join_attrs(attr="name", sep=", ") }}
+{%- endmacro %}
+
+# exdrf-keep-start other_globals ----------------------------------------------
+{{other_globals}}
+# exdrf-keep-end other_globals ------------------------------------------------
+
+
+@define
+class ExdrfRouter(BaseRouter):
+    routes: List[Route] = field(factory=lambda: [
+
+    {%- for name, c_res in categ_map.items() %}
+        # ---------------------- [ {{ name }} ] ----------------------
+        {% for res_name in sorted(c_res) -%}
+        {%- set mdl = dset[res_name] %}
+        Route(
+            'exdrf://navigation/resource/{{ mdl.pascal_case_name }}/{{ field_path(mdl.primary_inst_fields()) }}',
+            handler=ExdrfRouter.view_{{ mdl.snake_case_name }},
+        ),
+        Route(
+            "exdrf://navigation/resource/{{ mdl.pascal_case_name }}",
+            handler=ExdrfRouter.list_{{ mdl.snake_case_name }},
+        ),
+        Route(
+            "exdrf://navigation/resource/{{ mdl.pascal_case_name }}/{{ field_path(mdl.primary_inst_fields()) }}/edit",
+            handler=ExdrfRouter.edit_{{ mdl.snake_case_name }},
+        ),
+        Route(
+            "exdrf://navigation/resource/{{ mdl.pascal_case_name }}/create",
+            handler=ExdrfRouter.create_{{ mdl.snake_case_name }},
+        ),
+        Route(
+            "exdrf://navigation/resource/{{ mdl.pascal_case_name }}/{{ field_path(mdl.primary_inst_fields()) }}/delete",
+            handler=ExdrfRouter.delete_{{ mdl.snake_case_name }},
+        ),
+
+        {%- endfor %}
+    {%- endfor %}
+    ])
+
+    # exdrf-keep-start other_router_attributes ---------------------------------
+{{other_router_attributes}}
+    # exdrf-keep-end other_router_attributes -----------------------------------
+
+
+    {% for name, c_res in categ_map.items() %}
+    # -------------------------- [ {{ name }} ] --------------------------
+    {% for res_name in sorted(c_res) -%}
+    {%- set mdl = dset[res_name] %}
+    @staticmethod
+    def view_{{ mdl.snake_case_name }}(router: "ExdrfRouter", {{ field_params(mdl.primary_inst_fields()) }}):
+        from {{ out_module }}.{{ mdl.categories[0] }}.{{ mdl.snake_case_name_plural }}.api import (
+            Qt{{ mdl.pascal_case_name }}Tv,
+        )
+        
+        router.open_viewer(
+            router.ctx.get_ovr(
+                "{{ out_module }}.{{ mdl.categories[0] }}.{{ mdl.snake_case_name_plural }}.qt.viewer",
+                Qt{{ mdl.pascal_case_name }}Tv
+            ),
+            id=({{ field_args(mdl.primary_inst_fields()) }})
+        )
+
+    @staticmethod
+    def list_{{ mdl.snake_case_name }}(router: "ExdrfRouter"):
+        from {{ out_module }}.{{ mdl.categories[0] }}.{{ mdl.snake_case_name_plural }}.api import (
+            Qt{{ mdl.pascal_case_name }}List
+        )
+
+        router.open_list(
+            router.ctx.get_ovr(
+                "{{ out_module }}.{{ mdl.categories[0] }}.{{ mdl.snake_case_name_plural }}.qt.list",
+                Qt{{ mdl.pascal_case_name }}List
+            )
+        )
+
+    @staticmethod
+    def edit_{{ mdl.snake_case_name }}(router: "ExdrfRouter", {{ field_params(mdl.primary_inst_fields()) }}):
+        from {{ out_module }}.{{ mdl.categories[0] }}.{{ mdl.snake_case_name_plural }}.api import (
+            Qt{{ mdl.pascal_case_name }}Editor,
+        )
+
+        router.open_editor(
+            router.ctx.get_ovr(
+                "{{ out_module }}.{{ mdl.categories[0] }}.{{ mdl.snake_case_name_plural }}.qt.editor",
+                Qt{{ mdl.pascal_case_name }}Editor
+            ),
+            id=({{ field_args(mdl.primary_inst_fields()) }})
+        )
+
+    @staticmethod
+    def create_{{ mdl.snake_case_name }}(router: "ExdrfRouter"):
+        from {{ out_module }}.{{ mdl.categories[0] }}.{{ mdl.snake_case_name_plural }}.api import (
+            Qt{{ mdl.pascal_case_name }}Editor,
+        )
+
+        router.open_editor(
+            router.ctx.get_ovr(
+                "{{ out_module }}.{{ mdl.categories[0] }}.{{ mdl.snake_case_name_plural }}.qt.editor",
+                Qt{{ mdl.pascal_case_name }}Editor
+            ),
+        )
+
+    @staticmethod
+    def delete_{{ mdl.snake_case_name }}(router: "ExdrfRouter", {{ field_params(mdl.primary_inst_fields()) }}):
+        from {{ db_module }}.{{ mdl.categories[0] }}.api import {{ mdl.pascal_case_name }}
+        
+        router.delete_record({{ mdl.pascal_case_name }}, id=(
+            {{ field_args(mdl.primary_inst_fields()) }}
+        ))
+
+    {% endfor %}
+    {% endfor %}
+
+    # exdrf-keep-start extra_router_content ------------------------------------
+{{extra_router_content}}
+    # exdrf-keep-end extra_router_content --------------------------------------
+
+# exdrf-keep-start more_content ------------------------------------------------
+{{more_content}}
+# exdrf-keep-end more_content --------------------------------------------------

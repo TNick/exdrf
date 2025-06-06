@@ -291,6 +291,14 @@ class ExResource:
                 names.add(f.name)
         return sorted(names)
 
+    def primary_inst_fields(self) -> List["ExField"]:
+        """Get the fields that are primary keys of the resource."""
+        names: Set[str] = set()
+        for f in self.fields:
+            if f.primary:
+                names.add(f.name)
+        return [self[n] for n in sorted(names)]
+
     @property
     def is_primary_simple(self) -> bool:
         """Check if the resource has a simple primary key.

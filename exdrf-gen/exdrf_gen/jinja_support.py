@@ -146,8 +146,49 @@ def jinja_format_date(date, format_string="%d-%m-%Y"):
     return date.strftime(format_string)
 
 
-def url_for(resource: str, id: Any) -> str:
+def join_attrs(
+    source: Any,
+    attr: str,
+    sep: str = ",",
+    prefix: str = "",
+    suffix: str = "",
+    prefix_is_attr: bool = False,
+    suffix_is_attr: bool = False,
+    prefix_sep: str = "",
+    suffix_sep: str = "",
+) -> str:
+    def get_item(s: Any) -> str:
+        _prefix = getattr(s, prefix) if prefix_is_attr else prefix
+        _suffix = getattr(s, suffix) if suffix_is_attr else suffix
+        return (
+            _prefix + prefix_sep + str(getattr(s, attr)) + suffix_sep + _suffix
+        )
+
+    return sep.join(get_item(s) for s in source)
+
+
+def view_url_for(resource: str, id: Any) -> str:
     return f"exdrf://navigation/resource/{resource}/{id}"
+
+
+def list_url_for(resource: str) -> str:
+    return f"exdrf://navigation/resource/{resource}"
+
+
+def edit_url_for(resource: str, id: Any) -> str:
+    if not isinstance(id, int):
+        id = ",".join(str(i) for i in id)
+    return f"exdrf://navigation/resource/{resource}/{id}/edit"
+
+
+def create_url_for(resource: str) -> str:
+    return f"exdrf://navigation/resource/{resource}/create"
+
+
+def delete_url_for(resource: str, id: Any) -> str:
+    if not isinstance(id, int):
+        id = ",".join(str(i) for i in id)
+    return f"exdrf://navigation/resource/{resource}/{id}/delete"
 
 
 def create_jinja_env(auto_reload=False):
@@ -214,7 +255,11 @@ def create_jinja_env(auto_reload=False):
     jinja_env.globals["range"] = range
     jinja_env.globals["round"] = round
     jinja_env.globals["pi"] = math.pi
-    jinja_env.globals["url_for"] = url_for
+    jinja_env.globals["view_url_for"] = view_url_for
+    jinja_env.globals["list_url_for"] = list_url_for
+    jinja_env.globals["edit_url_for"] = edit_url_for
+    jinja_env.globals["create_url_for"] = create_url_for
+    jinja_env.globals["delete_url_for"] = delete_url_for
     jinja_env.globals["internal_link_class"] = "exdrf-internal-link"
 
     # Tests.
@@ -236,6 +281,7 @@ def create_jinja_env(auto_reload=False):
     jinja_env.filters["proper"] = lambda x: " ".join(
         word.capitalize() for word in str(x).split()
     )
+    jinja_env.filters["join_attrs"] = join_attrs
     jinja_env.filters["title"] = lambda x: x.title()
     jinja_env.filters["round"] = jinja_round
     jinja_env.filters["length"] = jinja_length

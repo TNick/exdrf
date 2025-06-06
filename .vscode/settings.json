@@ -93,6 +93,7 @@
         "spyproject",
         "sqlparse",
         "startswith",
+        "staticmethod",
         "stdset",
         "tablename",
         "templ",

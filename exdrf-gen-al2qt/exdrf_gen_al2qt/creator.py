@@ -234,6 +234,7 @@ def generate_qt_from_alchemy(
     generator = TopDir(
         comp=[
             File("menus.py", "menus.py.j2"),
+            File("router.py", "router.py.j2"),
             CategDir(
                 name="{category_snake}",
                 comp=[

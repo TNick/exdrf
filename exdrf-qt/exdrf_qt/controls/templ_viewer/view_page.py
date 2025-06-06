@@ -174,6 +174,7 @@ class WebEnginePage(QWebEnginePage, QtUseContext):
     """A custom web engine page that can handle internal navigation requests."""
 
     handler: ExDrfHandler
+    accept_navigation: bool = False
 
     def __init__(self, ctx: "QtContext", *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -211,17 +212,30 @@ class WebEnginePage(QWebEnginePage, QtUseContext):
         self, url: "QUrl", _type, isMainFrame: bool
     ) -> bool:
         """Accept navigation requests."""
-        # host = url.host()
-        # path = url.path()
-        # scheme = url.scheme()
+        host = url.host()
+        scheme = url.scheme()
 
         url_str = url.toString()
         view = self.view()
         if view is None:
             return False
+
+        if scheme == "data":
+            return True
+
         if scheme == "exdrf":
-            # Render your own content instead of navigating
+            if host == "navigation":
+                result = self.ctx.router.route(url_str)
+                if isinstance(result, Exception):
+                    logger.error("Error routing %s", url_str, exc_info=result)
+                    view.setHtml(f"<h1>Error routing {url_str}: {result}</h1>")
+                    return False
+                return False
             view.setHtml(f"<h1>Custom content for {url_str}</h1>")
-            # Block navigation
             return False
-        return super().acceptNavigationRequest(url, _type, isMainFrame)
+
+        if self.accept_navigation:
+            return super().acceptNavigationRequest(url, _type, isMainFrame)
+        else:
+            view.setHtml(f"<h1>Navigation not allowed for {url_str}</h1>")
+            return False

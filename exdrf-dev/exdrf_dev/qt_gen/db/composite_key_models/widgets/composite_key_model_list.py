@@ -32,11 +32,11 @@ class QtCompositeKeyModelList(ListDb["CompositeKeyModel"]):
 
         super().__init__(
             editor=ctx.get_ovr(
-                "exdrf_dev.qt_gen.db.composite_key_models.list.editor",
+                "exdrf_dev.qt_gen.db.composite_key_models.qt.editor",
                 QtCompositeKeyModelEditor,
             ),
             viewer=ctx.get_ovr(
-                "exdrf_dev.qt_gen.db.composite_key_models.list.viewer",
+                "exdrf_dev.qt_gen.db.composite_key_models.qt.viewer",
                 QtCompositeKeyModelTv,
             ),
             ctx=ctx,

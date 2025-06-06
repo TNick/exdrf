@@ -5,6 +5,7 @@ from PyQt5.QtWidgets import QApplication, QMainWindow
 
 from exdrf_dev.app.main_window_ui import Ui_MainWindow
 from exdrf_dev.qt_gen.menus import ExdrfMenus
+from exdrf_dev.qt_gen.router import ExdrfRouter
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +20,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def __init__(self, db_string: str, Base, parent=None):
         super().__init__(parent)
         self.setup_ui(self)
-        self.ctx = QtContext(c_string=db_string, top_widget=self)
+        self.ctx = QtContext(
+            c_string=db_string,
+            top_widget=self,
+            router=ExdrfRouter(
+                ctx=None,  # type: ignore
+                base_path="exdrf://navigation/resource",
+            ),
+        )
+        self.ctx.router.ctx = self.ctx
         self.ctx.create_all_tables(Base)
 
         # Create the menus.
