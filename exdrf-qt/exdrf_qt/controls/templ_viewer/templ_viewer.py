@@ -22,8 +22,8 @@ from exdrf.constants import RecIdType
 from exdrf.var_bag import VarBag
 from exdrf_gen.jinja_support import jinja_env, recreate_global_env
 from jinja2 import Environment, Template
-from PyQt5.QtCore import QMarginsF, QPoint, Qt, QTimer, QUrl
-from PyQt5.QtGui import QDesktopServices, QPageLayout, QPageSize
+from PyQt5.QtCore import QPoint, Qt, QTimer, QUrl
+from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtWebEngineWidgets import QWebEnginePage
 from PyQt5.QtWidgets import (
     QAction,
@@ -133,6 +133,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
     model: "VarModel"
     view_mode: "ViewMode"
     extra_context: Dict[str, Any]
+
     ac_refresh: "QAction"
     ac_copy_key: "QAction"
     ac_copy_value: "QAction"
@@ -236,6 +237,11 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
         # React to refresh requests.
         self.c_viewer.simpleRefresh.connect(self.render_template)
         self.c_viewer.fullRefresh.connect(self.full_refresh)
+        self.c_viewer.printRequested.connect(self.on_save_as_pdf)
+
+        # React to print requests.
+        page.printRequested.connect(self.on_save_as_pdf)
+        page.pdfPrintingFinished.connect(self.on_saved_as_pdf)
 
     def prepare_vars_list(self):
         """Prepare the variables list."""
@@ -768,6 +774,15 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
         self.model = VarModel(self.ctx, self.var_bag)
         self.c_vars.setModel(self.model)
 
+        if self._use_edited_text:
+            self._current_template = self.jinja_env.from_string(
+                self.c_editor.toPlainText()
+            )
+        elif self._current_template_file is not None:
+            self._current_template = self.jinja_env.get_template(
+                self._current_template_file
+            )
+
         self.render_template()
 
     def render_template(self):
@@ -940,36 +955,53 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
                 )
             )
 
+    def on_saved_as_pdf(self, file_path: str, result: bool):
+        """Handle the result of the PDF saving operation."""
+        if not result:
+            self.show_error(
+                self.t("templ.save-pdf.error", "Error"),
+                self.t("templ.save-pdf.error-msg", "Error saving PDF"),
+            )
+            logger.error("Error saving PDF")
+            return
+
+        if file_path is None:
+            self.show_error(
+                self.t("templ.save-pdf.error", "Error"),
+                self.t("templ.save-pdf.error-msg", "Error saving PDF"),
+            )
+            logger.error("Error saving PDF: file path is None")
+            return
+
+        QDesktopServices.openUrl(QUrl.fromLocalFile(file_path))
+
     def on_save_as_pdf(self) -> None:
         """Save the rendered content as a .pdf file."""
         page: "WebEnginePage" = cast("WebEnginePage", self.c_viewer.page())
         assert page is not None
+        from exdrf_qt.controls.templ_viewer.save_pdf_dlg import SavePdfDialog
 
-        file_name, _ = QFileDialog.getSaveFileName(
-            self,
-            self.t("templ.save-pdf.t", "Save PDF"),
-            "",
-            self.t("templ.save-pdf.filter", "PDF Files (*.pdf)"),
-        )
-        if file_name:
-            try:
-                pg_lay = QPageLayout(
-                    QPageSize(QPageSize.PageSizeId.A4),
-                    QPageLayout.Orientation.Portrait,
-                    QMarginsF(20, 10, 10, 10),
-                    QPageLayout.Unit.Millimeter,
-                    QMarginsF(0, 0, 0, 0),
-                )
-                page.printToPdf(file_name, pg_lay)
+        dialog = SavePdfDialog(self.ctx, self)
+        dialog.setFileMode(QFileDialog.AnyFile)
+        dialog.setViewMode(QFileDialog.Detail)
+        if dialog.exec_() == QFileDialog.Accepted:
+            file_name = dialog.selectedFiles()[0]
+            if file_name:
+                # Ensure the file name ends with .pdf.
+                _, ext = os.path.splitext(file_name)
+                if ext != ".pdf":
+                    file_name += ".pdf"
 
-                QDesktopServices.openUrl(QUrl.fromLocalFile(file_name))
-            except Exception as e:
-                logger.error("Error saving PDF: %s", e, exc_info=True)
-                QMessageBox.critical(
-                    self,
-                    self.t("templ.save-pdf.error", "Error"),
-                    str(e),
-                )
+                # Attempt to save the PDF.
+                try:
+                    page_layout = dialog.get_page_layout()
+                    page.printToPdf(file_name, page_layout)
+                except Exception as e:
+                    logger.error("Error saving PDF: %s", e, exc_info=True)
+                    self.show_error(
+                        self.t("templ.save-pdf.error", "Error"),
+                        str(e),
+                    )
 
     def on_save_as_docx(self) -> None:
         """Save the rendered content as a .docx file."""

@@ -8,7 +8,13 @@ from os.path import getmtime, isfile, join
 from typing import Any
 
 from exdrf.utils import inflect_e
-from jinja2 import BaseLoader, Environment, TemplateNotFound, select_autoescape
+from jinja2 import (
+    BaseLoader,
+    Environment,
+    TemplateNotFound,
+    Undefined,
+    select_autoescape,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -146,6 +152,25 @@ def jinja_format_date(date, format_string="%d-%m-%Y"):
     return date.strftime(format_string)
 
 
+def join_non_empty(sep: str = ",", *args: Any) -> str:
+    """Join a list of strings, ignoring empty strings.
+
+    Empty strings are:
+        - strings with length 0,
+        - None values,
+        - Jinja undefined values.
+
+    Args:
+        sep: The separator to use between the strings.
+        *args: The strings to join.
+    """
+    return sep.join(
+        arg
+        for arg in args
+        if arg is not None and not isinstance(arg, Undefined) and len(arg) > 0
+    )
+
+
 def join_attrs(
     source: Any,
     attr: str,
@@ -212,6 +237,7 @@ def create_jinja_env(auto_reload=False):
 
     # String utilities.
     jinja_env.globals["str"] = lambda x: str(x)
+    jinja_env.globals["join_non_empty"] = join_non_empty
     jinja_env.globals["proper"] = lambda x: " ".join(
         word.capitalize() for word in str(x).split()
     )
@@ -261,6 +287,7 @@ def create_jinja_env(auto_reload=False):
     jinja_env.globals["create_url_for"] = create_url_for
     jinja_env.globals["delete_url_for"] = delete_url_for
     jinja_env.globals["internal_link_class"] = "exdrf-internal-link"
+    jinja_env.globals["deleted_record_class"] = "exdrf-deleted-record"
 
     # Tests.
     jinja_env.tests["None"] = lambda value: value is None
@@ -319,6 +346,6 @@ jinja_env = create_jinja_env()
 
 def recreate_global_env():
     global jinja_env
-    jinja_env = create_jinja_env()
+    jinja_env = create_jinja_env(auto_reload=True)
     logger.info("Recreated Jinja environment")
     return jinja_env

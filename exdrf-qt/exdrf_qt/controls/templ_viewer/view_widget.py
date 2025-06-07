@@ -22,6 +22,7 @@ class WebView(QWebEngineView, QtUseContext):
 
     simpleRefresh = pyqtSignal()
     fullRefresh = pyqtSignal()
+    printRequested = pyqtSignal()
 
     def __init__(self, ctx: "QtContext", *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -64,6 +65,11 @@ class WebView(QWebEngineView, QtUseContext):
                     self.fullRefresh.emit()
                 else:
                     self.simpleRefresh.emit()
+                event.accept()
+                return True
+            elif event.key() == Qt.Key.Key_P:
+                if event.modifiers() == Qt.KeyboardModifier.ControlModifier:
+                    self.printRequested.emit()
                 event.accept()
                 return True
             # else:
