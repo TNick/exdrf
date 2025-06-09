@@ -237,7 +237,10 @@ class Selector(Generic[DBM]):
         # Apply the joins to the base selection.
         base = self.base
         for join in self.joins:
-            base = base.join(join)
+            if isinstance(join, (tuple, list)):
+                base = base.join(*join)
+            else:
+                base = base.join(join)
 
         # Apply the filters to the base selection.
         return base.where(*components)

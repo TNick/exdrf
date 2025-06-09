@@ -1,3 +1,4 @@
+import logging
 from typing import TYPE_CHECKING, Callable, Generic, Optional, TypeVar
 
 from PyQt5.QtCore import QEvent, Qt, QTimer, pyqtSignal
@@ -15,6 +16,7 @@ if TYPE_CHECKING:
 
 
 DBM = TypeVar("DBM")
+logger = logging.getLogger(__name__)
 
 
 class SearchLine(QLineEdit, QtUseContext, Generic[DBM]):
@@ -203,6 +205,7 @@ class SearchLine(QLineEdit, QtUseContext, Generic[DBM]):
         try:
             self._callback(self.text(), self._exact_search_enabled)
         except Exception as e:
+            logger.warning("Search callback failed", exc_info=e)
             self.ctx.show_error(
                 title=self.t("cmn.error", "Error"),
                 message=self.t(

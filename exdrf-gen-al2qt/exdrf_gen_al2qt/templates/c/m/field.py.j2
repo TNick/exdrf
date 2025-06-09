@@ -9,6 +9,7 @@ from attrs import define, field
 from exdrf_qt.models.fields import Qt{{ fld_bc }}Field
 {%- if fld_is_ref %}
 from exdrf.constants import RecIdType
+from sqlalchemy.orm import aliased
 {%- endif %}
 from exdrf_qt.models.fi_op import filter_op_registry
 from sqlalchemy import or_
@@ -53,6 +54,8 @@ class {{ FldPascal }}Field(Qt{{ fld_bc }}Field["{{ ResPascal }}"]):
 {{other_attributes}}
     # exdrf-keep-end other_attributes -----------------------------------------
 
+    {# --------------------------------------------------------------------- #}
+    {#- Only for reference fields -#}
     {%- if fld_is_ref %}
     ref: "ExResource" = field(default=None, repr=False)
 
@@ -74,19 +77,23 @@ class {{ FldPascal }}Field(Qt{{ fld_bc }}Field["{{ ResPascal }}"]):
     
     def apply_filter(self, item: "FieldFilter", selector: "Selector") -> Any:
         from {{ db_module }}.{{ field.ref.categories[0] }}.api import {{ field.ref.name }} as Db{{ field.ref.name }}
+        
+        with_alias = aliased(Db{{ field.ref.name }})
         predicate = filter_op_registry[item.op].predicate
-        selector.joins.append(getattr(self.resource.db_model, self.name))
+        selector.joins.append(
+            (with_alias, getattr(self.resource.db_model, self.name))
+        )
 
         {% if len(field.ref.get_fields_for_ref_filtering()) == 1 -%}
         return predicate(
-            Db{{ field.ref.name }}.{{ field.ref.get_fields_for_ref_filtering()[0].name }},
+            with_alias.{{ field.ref.get_fields_for_ref_filtering()[0].name }},
             item.vl,
         )
         {%- else %}
         return or_(
             {%- for other_f in field.ref.get_fields_for_ref_filtering() %}
             predicate(
-                Db{{ field.ref.name }}.{{ other_f.name }},
+                with_alias.{{ other_f.name }},
                 item.vl,
             ),
             {%- endfor %}
@@ -94,6 +101,8 @@ class {{ FldPascal }}Field(Qt{{ fld_bc }}Field["{{ ResPascal }}"]):
         {%- endif %}
 
     {%- endif %}
+    {#- Only for reference fields -#}
+    {# --------------------------------------------------------------------- #}
 
     # exdrf-keep-start extra_field_content ------------------------------------
 {{extra_field_content}}

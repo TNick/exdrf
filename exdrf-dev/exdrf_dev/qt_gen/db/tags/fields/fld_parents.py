@@ -8,6 +8,7 @@ from attrs import define, field
 from exdrf.constants import RecIdType
 from exdrf_qt.models.fi_op import filter_op_registry
 from exdrf_qt.models.fields import QtRefManyToManyField
+from sqlalchemy.orm import aliased
 
 # exdrf-keep-start other_imports ----------------------------------------------
 
@@ -35,6 +36,7 @@ class ParentsField(QtRefManyToManyField["Tag"]):
     # exdrf-keep-start other_attributes ---------------------------------------
 
     # exdrf-keep-end other_attributes -----------------------------------------
+
     ref: "ExResource" = field(default=None, repr=False)
 
     def part_id(self, record: "Parent") -> RecIdType:
@@ -48,11 +50,14 @@ class ParentsField(QtRefManyToManyField["Tag"]):
     def apply_filter(self, item: "FieldFilter", selector: "Selector") -> Any:
         from exdrf_dev.db.api import Parent as DbParent
 
+        with_alias = aliased(DbParent)
         predicate = filter_op_registry[item.op].predicate
-        selector.joins.append(getattr(self.resource.db_model, self.name))
+        selector.joins.append(
+            (with_alias, getattr(self.resource.db_model, self.name))
+        )
 
         return predicate(
-            DbParent.name,
+            with_alias.name,
             item.vl,
         )
 

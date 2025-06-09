@@ -179,4 +179,6 @@ class QtCompositeKeyModelTv(RecordTemplViewer):
     def get_deletion_function(
         self,
     ) -> Union[None, Callable[[Any, "Session"], bool]]:
-        return lambda rec, session: session.delete(rec)  # type: ignore
+        from exdrf_qt.utils.router import session_del_record
+
+        return session_del_record
