@@ -1,12 +1,13 @@
 import logging
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, Callable, Union
 
+from exdrf.constants import RecIdType
 from exdrf.field_types.api import (
     IntField,
 )
 from exdrf_qt.controls.templ_viewer.templ_viewer import RecordTemplViewer
 from exdrf_qt.controls.templ_viewer.view_page import WebEnginePage
-from sqlalchemy import select
+from sqlalchemy import Select, select
 
 if TYPE_CHECKING:
     from exdrf_qt.context import QtContext  # noqa: F401
@@ -43,15 +44,20 @@ class QtParentTagAssociationTv(RecordTemplViewer):
                     WebEnginePage,
                 ),
             ),
+            other_actions=ctx.get_ovr(
+                "exdrf_dev.qt_gen.db.parent_tag_associations.tv.extra-menus",
+                None,
+            ),
             ctx=ctx,
             **kwargs,
         )
-        self.setWindowTitle(
-            self.t(
-                "parent_tag_association.tv.title",
-                "Parent tag association viewer",
-            ),
-        )
+        if not self.windowTitle():
+            self.setWindowTitle(
+                self.t(
+                    "parent_tag_association.tv.title",
+                    "Parent tag association viewer",
+                ),
+            )
 
     def read_record(
         self, session: "Session"
@@ -106,3 +112,22 @@ class QtParentTagAssociationTv(RecordTemplViewer):
                 ),
             ]
         )
+
+    def get_db_item_id(self, record: "ParentTagAssociation") -> RecIdType:
+        return (
+            record.parent_id,
+            record.tag_id,
+        )
+
+    def get_current_record_selector(self) -> Union[None, "Select"]:
+        if self.record_id is None:
+            return None
+        return select(self.db_model).where(
+            self.db_model.parent_id == self.record_id[0],  # type: ignore
+            self.db_model.tag_id == self.record_id[1],  # type: ignore
+        )
+
+    def get_deletion_function(
+        self,
+    ) -> Union[None, Callable[[Any, Session], bool]]:
+        return lambda rec, session: session.delete(rec)  # type: ignore

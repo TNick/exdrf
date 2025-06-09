@@ -164,9 +164,20 @@ class ExdrfRouter(BaseRouter):
     def delete_{{ mdl.snake_case_name }}(router: "ExdrfRouter", {{ field_params(mdl.primary_inst_fields()) }}):
         from {{ db_module }}.{{ mdl.categories[0] }}.api import {{ mdl.pascal_case_name }}
         
-        router.delete_record({{ mdl.pascal_case_name }}, id=(
-            {{ field_args(mdl.primary_inst_fields()) }}
-        ))
+        router.delete_record(
+            {{ mdl.pascal_case_name }},
+            id=(
+                {{ field_args(mdl.primary_inst_fields()) }},
+            ),
+            selectors=(  # type: ignore
+                {%- for field in mdl.primary_fields() %}
+                {{ mdl.pascal_case_name }}.{{ field }},
+                {%- endfor %}
+            ),
+            {%- if 'deleted' not in mdl %}
+            perform_deletion=lambda rec, session: session.delete(rec),
+            {%- endif %}
+        )
 
     {% endfor %}
     {% endfor %}

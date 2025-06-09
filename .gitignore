@@ -106,6 +106,8 @@ venv-1/
 venv-2/
 venv-3/
 venv-4/
+venv-qt5/
+venv-qt6/
 ENV/
 env.bak/
 venv.bak/

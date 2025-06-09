@@ -12,7 +12,7 @@ aflake: $(PYTHON_FILES)
 		--in-place \
 		--remove-all-unused-imports \
 		--recursive \
-		--exclude ".vscode,playground,venv,legacy" .
+		--exclude ".vscode,playground,venv,venv-qt5,venv-qt6,legacy" .
 
 
 

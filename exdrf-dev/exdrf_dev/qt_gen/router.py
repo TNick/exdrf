@@ -220,7 +220,12 @@ class ExdrfRouter(BaseRouter):
     def delete_child(router: "ExdrfRouter", id: int):
         from exdrf_dev.db.api import Child
 
-        router.delete_record(Child, id=(id))
+        router.delete_record(
+            Child,
+            id=(id,),
+            selectors=(Child.id,),  # type: ignore
+            perform_deletion=lambda rec, session: session.delete(rec),
+        )
 
     @staticmethod
     def view_composite_key_model(
@@ -286,7 +291,18 @@ class ExdrfRouter(BaseRouter):
     ):
         from exdrf_dev.db.api import CompositeKeyModel
 
-        router.delete_record(CompositeKeyModel, id=(key_part1, key_part2))
+        router.delete_record(
+            CompositeKeyModel,
+            id=(
+                key_part1,
+                key_part2,
+            ),
+            selectors=(  # type: ignore
+                CompositeKeyModel.key_part1,
+                CompositeKeyModel.key_part2,
+            ),
+            perform_deletion=lambda rec, session: session.delete(rec),
+        )
 
     @staticmethod
     def view_parent(router: "ExdrfRouter", id: int):
@@ -340,7 +356,12 @@ class ExdrfRouter(BaseRouter):
     def delete_parent(router: "ExdrfRouter", id: int):
         from exdrf_dev.db.api import Parent
 
-        router.delete_record(Parent, id=(id))
+        router.delete_record(
+            Parent,
+            id=(id,),
+            selectors=(Parent.id,),  # type: ignore
+            perform_deletion=lambda rec, session: session.delete(rec),
+        )
 
     @staticmethod
     def view_parent_tag_association(
@@ -406,7 +427,18 @@ class ExdrfRouter(BaseRouter):
     ):
         from exdrf_dev.db.api import ParentTagAssociation
 
-        router.delete_record(ParentTagAssociation, id=(parent_id, tag_id))
+        router.delete_record(
+            ParentTagAssociation,
+            id=(
+                parent_id,
+                tag_id,
+            ),
+            selectors=(  # type: ignore
+                ParentTagAssociation.parent_id,
+                ParentTagAssociation.tag_id,
+            ),
+            perform_deletion=lambda rec, session: session.delete(rec),
+        )
 
     @staticmethod
     def view_profile(router: "ExdrfRouter", id: int):
@@ -460,7 +492,12 @@ class ExdrfRouter(BaseRouter):
     def delete_profile(router: "ExdrfRouter", id: int):
         from exdrf_dev.db.api import Profile
 
-        router.delete_record(Profile, id=(id))
+        router.delete_record(
+            Profile,
+            id=(id,),
+            selectors=(Profile.id,),  # type: ignore
+            perform_deletion=lambda rec, session: session.delete(rec),
+        )
 
     @staticmethod
     def view_related_item(router: "ExdrfRouter", id: int):
@@ -516,7 +553,12 @@ class ExdrfRouter(BaseRouter):
     def delete_related_item(router: "ExdrfRouter", id: int):
         from exdrf_dev.db.api import RelatedItem
 
-        router.delete_record(RelatedItem, id=(id))
+        router.delete_record(
+            RelatedItem,
+            id=(id,),
+            selectors=(RelatedItem.id,),  # type: ignore
+            perform_deletion=lambda rec, session: session.delete(rec),
+        )
 
     @staticmethod
     def view_tag(router: "ExdrfRouter", id: int):
@@ -566,7 +608,12 @@ class ExdrfRouter(BaseRouter):
     def delete_tag(router: "ExdrfRouter", id: int):
         from exdrf_dev.db.api import Tag
 
-        router.delete_record(Tag, id=(id))
+        router.delete_record(
+            Tag,
+            id=(id,),
+            selectors=(Tag.id,),  # type: ignore
+            perform_deletion=lambda rec, session: session.delete(rec),
+        )
 
     # exdrf-keep-start extra_router_content ------------------------------------
 

@@ -8,21 +8,18 @@ from enum import IntEnum
 from typing import (
     TYPE_CHECKING,
     Any,
+    Callable,
     Dict,
     Generic,
+    List,
     Optional,
     Tuple,
     Type,
     TypeVar,
     Union,
     cast,
-    List,
 )
-from exdrf_qt.controls.crud_actions import (
-    OpenCreateAc,
-    OpenDeleteAc,
-    OpenEditAc,
-)
+
 import yaml  # type: ignore
 from exdrf.constants import RecIdType
 from exdrf.var_bag import VarBag
@@ -33,16 +30,22 @@ from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtWebEngineWidgets import QWebEnginePage
 from PyQt5.QtWidgets import (
     QAction,
+    QApplication,
     QDialog,
     QFileDialog,
     QMenu,
     QMessageBox,
     QWidget,
-    QApplication,
 )
 
-from exdrf_qt.controls.crud_actions import AcBase
 from exdrf_qt.context_use import QtUseContext
+from exdrf_qt.controls.crud_actions import (
+    AcBase,
+    OpenCreatePac,
+    OpenDeletePac,
+    OpenEditPac,
+    RouteProvider,
+)
 from exdrf_qt.controls.templ_viewer.add_var_dlg import NewVariableDialog
 from exdrf_qt.controls.templ_viewer.header import VarHeader
 from exdrf_qt.controls.templ_viewer.html_to_docx.main import HtmlToDocxConverter
@@ -54,6 +57,7 @@ from exdrf_qt.controls.templ_viewer.view_page import (  # noqa: F401
 
 if TYPE_CHECKING:
     from exdrf.field import ExField  # noqa: F401
+    from sqlalchemy import Select  # noqa: F401
     from sqlalchemy.orm import Session  # noqa: F401
 
     from exdrf_qt.context import QtContext  # noqa: F401
@@ -113,7 +117,7 @@ class ViewMode(IntEnum):
     RENDERED = 1
 
 
-class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
+class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
     """Widget for rendering templates.
 
     Attributes:
@@ -1128,9 +1132,9 @@ class RecordTemplViewer(TemplViewer, Generic[DBM]):
     record_id: RecIdType
     db_model: Type[DBM]
 
-    ac_new: OpenCreateAc
-    ac_rem: OpenDeleteAc
-    ac_edit: OpenEditAc
+    ac_new: OpenCreatePac
+    ac_rem: Union[OpenDeletePac, None]
+    ac_edit: OpenEditPac
 
     def __init__(
         self,
@@ -1151,14 +1155,15 @@ class RecordTemplViewer(TemplViewer, Generic[DBM]):
         with self.ctx.same_session() as session:
             record = self.read_record(session)
             if record is None:
-                self.ac_edit.id = None
-                self.ac_rem.id = None
+                self.ac_edit.setEnabled(False)
+                if self.ac_rem is not None:
+                    self.ac_rem.setEnabled(False)
                 return
 
             # Populate the Ids.
-            rec_id = self.get_db_item_id(record)
-            self.ac_edit.id = rec_id
-            self.ac_rem.id = rec_id
+            self.ac_edit.setEnabled(True)
+            if self.ac_rem is not None:
+                self.ac_rem.setEnabled(True)
 
             # Populate the variable bag.
             self.model.beginResetModel()
@@ -1242,7 +1247,8 @@ class RecordTemplViewer(TemplViewer, Generic[DBM]):
         menu.addAction(self.ac_toggle_vars)
         menu.addSeparator()
         menu.addAction(self.ac_new)
-        menu.addAction(self.ac_rem)
+        if self.ac_rem is not None:
+            menu.addAction(self.ac_rem)
         menu.addAction(self.ac_edit)
         menu.addSeparator()
         menu.addAction(self.ac_save_as_html)
@@ -1265,25 +1271,71 @@ class RecordTemplViewer(TemplViewer, Generic[DBM]):
 
     def create_crud_actions(self):
         """Create the CRUD actions."""
-        base_route = self.base_route
+        try:
+            self.get_deletion_function()
+            self.get_current_record_selector()
+            has_delete = True
+        except NotImplementedError:
+            has_delete = False
+        except Exception:
+            has_delete = True
 
-        self.ac_new = OpenCreateAc(
+        self.ac_new = OpenCreatePac(
             label=self.t("sq.common.new", "New"),
             ctx=self.ctx,
-            route=f"{base_route}/create",
+            provider=self,
             menu_or_parent=self,
         )
-        self.ac_rem = OpenDeleteAc(
-            label=self.t("sq.common.del", "Remove"),
-            ctx=self.ctx,
-            route=base_route,
-            menu_or_parent=self,
-            id=self.record_id,
-        )
-        self.ac_edit = OpenEditAc(
+        if has_delete:
+            self.ac_rem = OpenDeletePac(
+                label=self.t("sq.common.del", "Remove"),
+                ctx=self.ctx,
+                provider=self,
+                menu_or_parent=self,
+            )
+        else:
+            self.ac_rem = None
+
+        self.ac_edit = OpenEditPac(
             label=self.t("sq.common.edit", "Edit"),
             ctx=self.ctx,
-            route=base_route,
+            provider=self,
             menu_or_parent=self,
-            id=self.record_id,
+        )
+
+    def get_list_route(self) -> Union[None, str]:
+        return f"{self.base_route}"
+
+    def get_create_route(self) -> Union[None, str]:
+        return f"{self.base_route}/create"
+
+    def get_edit_route(self) -> Union[None, str]:
+        if self.record_id is None:
+            return None
+        return f"{self.base_route}/{self.record_id}/edit"
+
+    def get_view_route(self) -> Union[None, str]:
+        if self.record_id is None:
+            return None
+        return f"{self.base_route}/{self.record_id}"
+
+    def get_delete_route(self) -> Union[None, str]:
+        if self.record_id is None:
+            return None
+        return f"{self.base_route}/{self.record_id}/delete"
+
+    def get_current_record_selector(self) -> Union[None, "Select"]:
+        raise NotImplementedError(
+            "exdrf_qt.controls.crud_actions.RouteProvider requires an "
+            "implementation of this function in order to be able to delete "
+            "records"
+        )
+
+    def get_deletion_function(
+        self,
+    ) -> Union[None, Callable[[Any, Session], bool]]:
+        raise NotImplementedError(
+            "exdrf_qt.controls.crud_actions.RouteProvider requires an "
+            "implementation of this function in order to be able to delete "
+            "records"
         )

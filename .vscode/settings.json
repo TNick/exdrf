@@ -36,6 +36,7 @@
         "Frameless",
         "fumo",
         "getattr",
+        "hookimpls",
         "horstretch",
         "hsizetype",
         "htmlcov",

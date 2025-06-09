@@ -35,6 +35,7 @@ dev = [
   "pytest",
   "twine",
   "wheel",
+  "click>=8.1.8,<8.2.0",
 ]
 
 [build-system]

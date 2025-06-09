@@ -1,5 +1,5 @@
 # Constants for field types
-from typing import Any, List, Literal, Union
+from typing import Any, Iterable, Literal, Union
 
 FIELD_TYPE_BLOB = "blob"
 FIELD_TYPE_BOOL = "bool"
@@ -27,4 +27,4 @@ RelType = Literal["OneToMany", "ManyToOne", "OneToOne", "ManyToMany"]
 
 # A record ID can be an int in the simple case or a list of various types
 # when there are multiple primary keys.
-RecIdType = Union[int, List[Any]]
+RecIdType = Union[int, Iterable[Any]]

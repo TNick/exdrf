@@ -25,6 +25,7 @@ dependencies = [
   "parse>=1.20.2",
   "minify_html>=0.16.4",
   "PyQtWebEngine==5.15.7",
+  "pluggy>=1.6.0",
 ]
 
 [project.optional-dependencies]
@@ -42,6 +43,7 @@ dev = [
   "pytest",
   "twine",
   "wheel",
+  "click>=8.1.8,<8.2.0",
 ]
 
 [build-system]

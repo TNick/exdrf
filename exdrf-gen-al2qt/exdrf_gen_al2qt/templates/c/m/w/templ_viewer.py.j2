@@ -1,5 +1,5 @@
 import logging
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, Callable, Union
 
 from exdrf.constants import RecIdType
 from exdrf.field_types.api import (
@@ -18,7 +18,7 @@ from exdrf.field_types.api import (
 )
 from exdrf_qt.controls.templ_viewer.templ_viewer import RecordTemplViewer
 from exdrf_qt.controls.templ_viewer.view_page import WebEnginePage
-from sqlalchemy import select
+from sqlalchemy import Select, select
 
 if TYPE_CHECKING:
     from exdrf_qt.context import QtContext  # noqa: F401
@@ -121,7 +121,7 @@ class Qt{{ ResPascal }}Tv(RecordTemplViewer):
         {%- endif %}
         {%- endfor %}
         ])
-    
+
     def get_db_item_id(self, record: "{{ ResPascal }}") -> RecIdType:
         {%- if res_spl_id %}
         return record.{{ res_primaries[0] }}
@@ -132,3 +132,30 @@ class Qt{{ ResPascal }}Tv(RecordTemplViewer):
             {%- endfor %}
         )
         {%- endif %}
+
+    def get_current_record_selector(self) -> Union[None, "Select"]:
+        if self.record_id is None:
+            return None
+        {%- if res_spl_id %}
+        return select(self.db_model).where(
+            self.db_model.{{ res_primaries[0] }} == self.record_id,  # type: ignore
+        )
+        {%- else %}
+        return select(self.db_model).where(
+            {%- for field in res_primaries %}
+            self.db_model.{{ field }} == self.record_id[{{ loop.index0 }}],  # type: ignore
+            {%- endfor %}
+        )
+        {%- endif %}
+
+    def get_deletion_function(self) -> Union[
+        None, Callable[[Any, Session], bool]
+    ]:
+        {%- if 'deleted' in r %}
+        from exdrf_qt.utils.router import default_del_record
+
+        return default_del_record
+        {%- else %}
+        return lambda rec, session: session.delete(rec)  # type: ignore
+        {%- endif %}
+{{- '\n' -}}

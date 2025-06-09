@@ -11,6 +11,7 @@ from PyQt5.QtWidgets import QMessageBox
 
 from exdrf_qt.controls.seldb.sel_db import SelectDatabaseDlg
 from exdrf_qt.local_settings import LocalSettings
+from exdrf_qt.plugins import exdrf_qt_pm, safe_hook_call
 from exdrf_qt.utils.attr_dict import AttrDict
 from exdrf_qt.utils.router import ExdrfRouter
 from exdrf_qt.utils.sql_formatter import SQLPrettyFormatter  # noqa: F401
@@ -71,10 +72,17 @@ class QtContext(DbConn):
     Attributes:
         top_widget: The main widget of the application. This will be the default
             parent for widgets.
-        work_relay: The relay for the worker thread.
+        work_relay: The relay for the worker thread. Provides the ability for
+            the application to retrieve data from the database asynchronously.
         asset_sources: The list of asset sources to search for icons.
-        stg: The local settings.
-        overrides: A dictionary of general-purpose overrides.
+        stg: The local read-write settings.
+        overrides: A dictionary of general-purpose overrides. You add values
+            through the `set_ovr` method and retrieve them through the
+            `get_ovr` method.
+        data: A dictionary of general-purpose data. Passes into the
+            api_point variable to the templates.
+        router: The router for the application. Provides the ability for
+            the application to open widgets using only a string url.
     """
 
     top_widget: "QWidget" = cast("QWidget", None)
@@ -93,6 +101,9 @@ class QtContext(DbConn):
             )
 
         self.setup_logging()
+
+        # Inform plugins that the context has been created.
+        safe_hook_call(exdrf_qt_pm.hook.context_created, context=self)
 
     def create_window(self, w: "QWidget", title: str):
         """Creates a stand-alone window.
@@ -314,14 +325,26 @@ class QtContext(DbConn):
         logger = logging.getLogger(__name__)
         logger.debug("Logging has been setup")
 
-    def get_ovr(self, key: str, default: Any = None) -> Any:
+    def get_ovr(
+        self,
+        key: str,
+        default: Any = None,
+        exception_if_missing: bool = False,
+    ) -> Any:
         """Get an override value.
 
         Args:
             key: The key to get the override for.
             default: The default value if the key is not found.
+            exception_if_missing: If True, an exception will be raised if the
+                key is not found.
         """
-        return self._overrides.get(key, default)
+        ovr = self._overrides.get(key, None)
+        if ovr is None:
+            if exception_if_missing:
+                raise ValueError(f"Override {key} not found")
+            ovr = default
+        return ovr
 
     def get_c_ovr(self, key: str, default, *args, **kwargs) -> Any:
         """Get then evaluate a function.
@@ -339,11 +362,15 @@ class QtContext(DbConn):
             ovr = ovr(*args, **kwargs)
         return ovr
 
-    def set_ovr(self, key: str, value: Any):
+    def set_ovr(self, key: str, value: Any, exception_if_exists: bool = False):
         """Set an override value.
 
         Args:
             key: The key to set the override for.
             value: The value to set.
+            exception_if_exists: If True, an exception will be raised if the
+                key already exists.
         """
+        if exception_if_exists and key in self._overrides:
+            raise ValueError(f"Override {key} already exists")
         self._overrides[key] = value

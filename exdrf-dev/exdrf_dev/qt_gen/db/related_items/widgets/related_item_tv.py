@@ -1,6 +1,7 @@
 import logging
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, Callable, Union
 
+from exdrf.constants import RecIdType
 from exdrf.field_types.api import (
     IntField,
     RefManyToOneField,
@@ -8,7 +9,7 @@ from exdrf.field_types.api import (
 )
 from exdrf_qt.controls.templ_viewer.templ_viewer import RecordTemplViewer
 from exdrf_qt.controls.templ_viewer.view_page import WebEnginePage
-from sqlalchemy import select
+from sqlalchemy import Select, select
 
 if TYPE_CHECKING:
     from exdrf_qt.context import QtContext  # noqa: F401
@@ -41,12 +42,16 @@ class QtRelatedItemTv(RecordTemplViewer):
                     WebEnginePage,
                 ),
             ),
+            other_actions=ctx.get_ovr(
+                "exdrf_dev.qt_gen.db.related_items.tv.extra-menus", None
+            ),
             ctx=ctx,
             **kwargs,
         )
-        self.setWindowTitle(
-            self.t("related_item.tv.title", "Related item viewer"),
-        )
+        if not self.windowTitle():
+            self.setWindowTitle(
+                self.t("related_item.tv.title", "Related item viewer"),
+            )
 
     def read_record(self, session: "Session") -> Union[None, "RelatedItem"]:
         from .db.related_item import related_item_label
@@ -129,3 +134,18 @@ class QtRelatedItemTv(RecordTemplViewer):
                 ),
             ]
         )
+
+    def get_db_item_id(self, record: "RelatedItem") -> RecIdType:
+        return record.id
+
+    def get_current_record_selector(self) -> Union[None, "Select"]:
+        if self.record_id is None:
+            return None
+        return select(self.db_model).where(
+            self.db_model.id == self.record_id,  # type: ignore
+        )
+
+    def get_deletion_function(
+        self,
+    ) -> Union[None, Callable[[Any, Session], bool]]:
+        return lambda rec, session: session.delete(rec)  # type: ignore

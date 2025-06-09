@@ -67,8 +67,8 @@ class ExResource:
 
     def __contains__(self, key: Union[int, str]) -> bool:
         if isinstance(key, int):
-            return key < len(self.fields)
-        return key in self.fields
+            return 0 <= key < len(self.fields)
+        return any(f.name == key for f in self.fields)
 
     def __iter__(self):
         """Make the resource iterable over its fields."""
