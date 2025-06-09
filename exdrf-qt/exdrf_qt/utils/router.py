@@ -6,18 +6,24 @@ from attrs import define, field
 from parse import compile as parse_compile
 from PyQt5.QtWidgets import QMessageBox
 from sqlalchemy import Select, select
-from sqlalchemy.orm import Session
 
 from exdrf_qt.context_use import QtUseContext
 
 if TYPE_CHECKING:
+    from sqlalchemy.orm import Session
+
     from exdrf_qt.context import QtContext  # noqa: F401
 
 logger = logging.getLogger(__name__)
 
 
-def default_del_record(record: Any, session: Session):
+def default_del_record(record: Any, session: "Session") -> bool:
     record.deleted = True
+    return True
+
+
+def session_del_record(record: Any, session: "Session") -> bool:
+    session.delete(record)
     return True
 
 
@@ -163,7 +169,7 @@ class ExdrfRouter(QtUseContext):
         record_class,
         id: Any = None,
         selectors: Union[List[Any], Select, None] = None,
-        perform_deletion: Callable[[Any, Session], bool] = default_del_record,
+        perform_deletion: Callable[[Any, "Session"], bool] = default_del_record,
     ):
         """Delete a record from the model.
 

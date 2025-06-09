@@ -157,5 +157,5 @@ class QtParentTv(RecordTemplViewer):
 
     def get_deletion_function(
         self,
-    ) -> Union[None, Callable[[Any, Session], bool]]:
+    ) -> Union[None, Callable[[Any, "Session"], bool]]:
         return lambda rec, session: session.delete(rec)  # type: ignore

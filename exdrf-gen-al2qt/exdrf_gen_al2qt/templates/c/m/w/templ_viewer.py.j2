@@ -149,13 +149,15 @@ class Qt{{ ResPascal }}Tv(RecordTemplViewer):
         {%- endif %}
 
     def get_deletion_function(self) -> Union[
-        None, Callable[[Any, Session], bool]
+        None, Callable[[Any, "Session"], bool]
     ]:
         {%- if 'deleted' in r %}
         from exdrf_qt.utils.router import default_del_record
 
         return default_del_record
         {%- else %}
-        return lambda rec, session: session.delete(rec)  # type: ignore
+        from exdrf_qt.utils.router import session_del_record
+
+        return session_del_record
         {%- endif %}
 {{- '\n' -}}

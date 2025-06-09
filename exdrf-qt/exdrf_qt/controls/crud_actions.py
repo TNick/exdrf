@@ -2,12 +2,13 @@ from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QAction, QMenu
-from pytest import Session
 from sqlalchemy import Select
 
 from exdrf_qt.context_use import QtUseContext
 
 if TYPE_CHECKING:
+    from sqlalchemy.orm import Session  # noqa: F401
+
     from exdrf_qt.context import QtContext  # noqa: F401
 
 
@@ -268,7 +269,7 @@ class RouteProvider:
 
     def get_deletion_function(
         self,
-    ) -> Union[None, Callable[[Any, Session], bool]]:
+    ) -> Union[None, Callable[[Any, "Session"], bool]]:
         """Get the function to use to delete the record."""
         raise NotImplementedError(
             "get_deletion_function must be implemented in subclasses"

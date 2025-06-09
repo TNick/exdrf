@@ -1333,7 +1333,7 @@ class RecordTemplViewer(TemplViewer, Generic[DBM]):
 
     def get_deletion_function(
         self,
-    ) -> Union[None, Callable[[Any, Session], bool]]:
+    ) -> Union[None, Callable[[Any, "Session"], bool]]:
         raise NotImplementedError(
             "exdrf_qt.controls.crud_actions.RouteProvider requires an "
             "implementation of this function in order to be able to delete "
