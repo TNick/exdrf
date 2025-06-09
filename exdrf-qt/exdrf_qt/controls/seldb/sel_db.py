@@ -378,19 +378,30 @@ class SelectDatabaseDlg(QDialog, Ui_SelectDatabase, QtUseContext):
 
     def set_con_str(self, con_str: str):
         """Set the connection string."""
-        if con_str.startswith("sqlite:///"):
-            self.main_tab.setCurrentWidget(self.tab_local)
-            self.c_file_path.setText(con_str[10:])
-        else:
-            self.main_tab.setCurrentWidget(self.tab_remote)
+        try:
+            if con_str.startswith("sqlite:///"):
+                self.main_tab.setCurrentWidget(self.tab_local)
+                self.c_file_path.setText(con_str[10:])
+            else:
+                self.main_tab.setCurrentWidget(self.tab_remote)
 
-            result = parse_sqlalchemy_conn_str(con_str)
-            self.c_backend.setCurrentText(result["host"])
-            self.c_username.setText(result["username"])
-            self.c_pass.setText(result["password"])
-            self.c_host.setText(result["host"])
-            self.c_port.setText(result["port"])
-            self.c_db_name.setText(result["database"])
+                result = parse_sqlalchemy_conn_str(con_str)
+                self.c_backend.setCurrentText(result["host"])
+                self.c_username.setText(result["username"])
+                self.c_pass.setText(result["password"])
+                self.c_host.setText(result["host"])
+                self.c_port.setText(result["port"])
+                self.c_db_name.setText(result["database"])
+        except Exception as e:
+            logger.error("Failed to set connection string", exc_info=True)
+            self.ctx.show_error(
+                title=self.ctx.t("cmn.error", "Error"),
+                message=self.ctx.t(
+                    "cmn.db.err-set-con-str",
+                    "Failed to set connection string: {err}",
+                    err=str(e),
+                ),
+            )
 
     def on_browse_file(self):
         """Browse for a file."""

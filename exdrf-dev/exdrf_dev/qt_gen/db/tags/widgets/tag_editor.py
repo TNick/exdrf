@@ -39,6 +39,11 @@ class QtTagEditor(EditorDb["Tag"], Ui_QtTagEditor):
             **kwargs,
         )
         self.verticalLayout.addWidget(self.create_button_box())
+
+        self.setWindowTitle(
+            self.t("tag.ed.title", "Tag editor"),
+        )
+
         # exdrf-keep-start extra_init -----------------------------------------
 
         # exdrf-keep-end extra_init -------------------------------------------

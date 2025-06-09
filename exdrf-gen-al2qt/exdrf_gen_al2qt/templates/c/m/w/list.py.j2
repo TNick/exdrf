@@ -38,6 +38,14 @@ class Qt{{ ResPascal }}List(ListDb["{{ ResPascal }}"]):
                 parent=self,
             )
         )
+
+        self.setWindowTitle(
+            self.t(
+                "{{ res_snake }}.tv.title",
+                "{{ r.text_name }} list"
+            ),
+        )
+
         # exdrf-keep-start extra_init -----------------------------------------
 {{extra_init}}
         # exdrf-keep-end extra_init -------------------------------------------

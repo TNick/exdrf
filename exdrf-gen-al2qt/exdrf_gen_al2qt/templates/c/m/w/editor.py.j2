@@ -47,6 +47,14 @@ class Qt{{ ResPascal }}Editor(
             **kwargs
         )
         self.verticalLayout.addWidget(self.create_button_box())
+
+        self.setWindowTitle(
+            self.t(
+                "{{ res_snake }}.ed.title", 
+                "{{ r.text_name }} editor"
+            ),
+        )
+
         # exdrf-keep-start extra_init -----------------------------------------
 {{extra_init}}
         # exdrf-keep-end extra_init -------------------------------------------

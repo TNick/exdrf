@@ -1,5 +1,6 @@
 from typing import TYPE_CHECKING, Any, Optional
 
+from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QAction, QMenu
 
 from exdrf_qt.context_use import QtUseContext
@@ -19,6 +20,7 @@ class AcBase(QAction, QtUseContext):
         ctx: "QtContext",
         route: str,
         menu_or_parent: Optional[QMenu] = None,
+        icon: Optional[QIcon] = None,
     ):
         super().__init__(label, parent=menu_or_parent)
         self.route = route
@@ -26,16 +28,26 @@ class AcBase(QAction, QtUseContext):
         self.triggered.connect(self.do_open)
         if isinstance(menu_or_parent, QMenu):
             menu_or_parent.addAction(self)
+        if icon is not None:
+            self.setIcon(icon)
 
     def do_open(self):
-        """Open the action."""
-        raise NotImplementedError("Subclass must implement do_open")
+        """Open the list of the model."""
+        result = self.ctx.router.route(self.route)
+        if isinstance(result, Exception):
+            self.ctx.show_error(
+                title=self.t("router.err-open.title", "Error opening route"),
+                message=self.t(
+                    "router.err-open.message",
+                    "An error occurred while opening route {route}: {e}",
+                    route=self.route,
+                    e=result,
+                ),
+            )
 
 
 class OpenListAc(AcBase):
     """Action to open a list of a model."""
-
-    route: str
 
     def do_open(self):
         """Open the list of the model."""
@@ -105,6 +117,9 @@ class AcBaseWithId(AcBase):
             true_id = self.id()
         else:
             true_id = self.id
+
+        if true_id is None:
+            return ""
 
         if isinstance(true_id, int):
             return str(true_id)

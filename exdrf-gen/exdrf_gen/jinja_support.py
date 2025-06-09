@@ -216,6 +216,33 @@ def delete_url_for(resource: str, id: Any) -> str:
     return f"exdrf://navigation/resource/{resource}/{id}/delete"
 
 
+def escape_character(value: str, char: str, mode: str = "html") -> str:
+    if not value:
+        return value
+    if mode == "html":
+        if char == "'":
+            return value.replace("'", "&apos;")
+        elif char == '"':
+            return value.replace('"', "&quot;")
+        else:
+            return value
+
+    # Skip characters that are already escaped
+    result = []
+    i = 0
+    while i < len(value):
+        if value[i] == "\\" and i + 1 < len(value) and value[i + 1] == char:
+            result.append(value[i : i + 2])  # noqa: E203
+            i += 2
+        elif value[i] == char:
+            result.append(f"\\{char}")
+            i += 1
+        else:
+            result.append(value[i])
+            i += 1
+    return "".join(result)
+
+
 def create_jinja_env(auto_reload=False):
     """Creates a base Jinja2 environment for rendering templates."""
     jinja_env = Environment(
@@ -288,6 +315,8 @@ def create_jinja_env(auto_reload=False):
     jinja_env.globals["delete_url_for"] = delete_url_for
     jinja_env.globals["internal_link_class"] = "exdrf-internal-link"
     jinja_env.globals["deleted_record_class"] = "exdrf-deleted-record"
+    jinja_env.globals["escape_sq"] = lambda x: escape_character(x, "'")
+    jinja_env.globals["escape_dq"] = lambda x: escape_character(x, '"')
 
     # Tests.
     jinja_env.tests["None"] = lambda value: value is None
@@ -330,6 +359,8 @@ def create_jinja_env(auto_reload=False):
     jinja_env.filters["strip"] = lambda x: x.strip()
     jinja_env.filters["lstrip"] = lambda x: x.lstrip()
     jinja_env.filters["rstrip"] = lambda x: x.rstrip()
+    jinja_env.filters["escape_sq"] = lambda x: escape_character(x, "'")
+    jinja_env.filters["escape_dq"] = lambda x: escape_character(x, '"')
     jinja_env.filters["pluralize"] = lambda x: inflect_e.plural(x)
     jinja_env.filters["snake_pl"] = lambda x: inflect_e.plural(
         re.sub(r"(?<!^)(?=[A-Z])", "_", x).lower()  # type: ignore

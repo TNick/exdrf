@@ -41,6 +41,11 @@ class QtRelatedItemEditor(EditorDb["RelatedItem"], Ui_QtRelatedItemEditor):
             **kwargs,
         )
         self.verticalLayout.addWidget(self.create_button_box())
+
+        self.setWindowTitle(
+            self.t("related_item.ed.title", "Related item editor"),
+        )
+
         # exdrf-keep-start extra_init -----------------------------------------
 
         # exdrf-keep-end extra_init -------------------------------------------

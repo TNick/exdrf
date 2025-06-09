@@ -1,3 +1,4 @@
+import logging
 from typing import TYPE_CHECKING, Union
 
 from exdrf.field_types.api import (
@@ -14,6 +15,8 @@ if TYPE_CHECKING:
     from sqlalchemy.orm import Session  # noqa: F401
 
     from exdrf_dev.db.api import RelatedItem as RelatedItem  # noqa: F401
+
+logger = logging.getLogger(__name__)
 
 
 class QtRelatedItemTv(RecordTemplViewer):
@@ -41,13 +44,38 @@ class QtRelatedItemTv(RecordTemplViewer):
             ctx=ctx,
             **kwargs,
         )
+        self.setWindowTitle(
+            self.t("related_item.tv.title", "Related item viewer"),
+        )
 
     def read_record(self, session: "Session") -> Union[None, "RelatedItem"]:
-        return session.scalar(
+        from .db.related_item import related_item_label
+
+        result = session.scalar(
             select(self.db_model).where(
                 self.db_model.id == self.record_id,  # type: ignore
             )
         )
+
+        if result is None:
+            label = self.t(
+                "related_item.tv.title-not-found",
+                f"Related item - record {self.record_id} not found",
+            )
+            return None
+        else:
+            try:
+                label = self.t(
+                    "related_item.tv.title-found",
+                    "Related item: view {name}",
+                    name=related_item_label(result),
+                )
+            except Exception as e:
+                logger.error("Error getting label: %s", e, exc_info=True)
+                label = "Related item viewer"
+
+        self.ctx.set_window_title(self, label)
+        return result
 
     def _populate_from_record(self, record: "RelatedItem"):
         self.model.var_bag.add_fields(

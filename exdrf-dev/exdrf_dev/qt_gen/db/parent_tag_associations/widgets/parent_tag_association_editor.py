@@ -46,6 +46,14 @@ class QtParentTagAssociationEditor(
             **kwargs,
         )
         self.verticalLayout.addWidget(self.create_button_box())
+
+        self.setWindowTitle(
+            self.t(
+                "parent_tag_association.ed.title",
+                "Parent tag association editor",
+            ),
+        )
+
         # exdrf-keep-start extra_init -----------------------------------------
 
         # exdrf-keep-end extra_init -------------------------------------------

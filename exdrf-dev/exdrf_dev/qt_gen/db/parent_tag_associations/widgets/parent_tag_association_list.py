@@ -37,6 +37,13 @@ class QtParentTagAssociationList(ListDb["ParentTagAssociation"]):
                 parent=self,
             )
         )
+
+        self.setWindowTitle(
+            self.t(
+                "parent_tag_association.tv.title", "Parent tag association list"
+            ),
+        )
+
         # exdrf-keep-start extra_init -----------------------------------------
 
         # exdrf-keep-end extra_init -------------------------------------------

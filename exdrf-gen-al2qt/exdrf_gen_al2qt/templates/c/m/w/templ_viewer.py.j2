@@ -1,6 +1,7 @@
+import logging
 from typing import TYPE_CHECKING, Union
-from exdrf_qt.controls.templ_viewer.view_page import WebEnginePage
-from exdrf_qt.controls.templ_viewer.templ_viewer import RecordTemplViewer
+
+from exdrf.constants import RecIdType
 from exdrf.field_types.api import (
     IntField,
     FloatField,
@@ -15,12 +16,16 @@ from exdrf.field_types.api import (
     RefManyToManyField,
     RefManyToOneField,
 )
+from exdrf_qt.controls.templ_viewer.templ_viewer import RecordTemplViewer
+from exdrf_qt.controls.templ_viewer.view_page import WebEnginePage
 from sqlalchemy import select
 
 if TYPE_CHECKING:
-    from sqlalchemy.orm import Session  # noqa: F401
     from exdrf_qt.context import QtContext  # noqa: F401
     from {{ db_module }}.{{ r.categories[0] }}.api import {{ r.name }} as {{ r.name }}  # noqa: F401
+    from sqlalchemy.orm import Session  # noqa: F401
+
+logger = logging.getLogger(__name__)
 
 
 class Qt{{ ResPascal }}Tv(RecordTemplViewer):
@@ -46,15 +51,28 @@ class Qt{{ ResPascal }}Tv(RecordTemplViewer):
                     WebEnginePage,
                 )
             ),
+            other_actions=ctx.get_ovr(
+                "{{ out_module }}.{{ r.categories[0] }}.{{ res_p_snake }}.tv.extra-menus",
+                None
+            ),
             ctx=ctx,
             **kwargs
         )
-    
+        if not self.windowTitle():
+            self.setWindowTitle(
+                self.t(
+                    "{{ res_snake }}.tv.title",
+                    "{{ r.text_name }} viewer"
+                ),
+            )
+
     def read_record(
         self,
         session: "Session"
     ) -> Union[None, "{{ ResPascal }}"]:
-        return session.scalar(
+        from {{ util_module }}.{{ r.categories[0] }}.{{ res_snake }} import {{ res_snake }}_label
+
+        result = session.scalar(
             select(self.db_model).where(
                 {%- if res_spl_id %}
                 self.db_model.{{ res_primaries[0] }} == self.record_id,  # type: ignore
@@ -65,7 +83,27 @@ class Qt{{ ResPascal }}Tv(RecordTemplViewer):
                 {%- endif %}
             )
         )
-    
+
+        if result is None:
+            label =self.t(
+                "{{ res_snake }}.tv.title-not-found",
+                f"{{ r.text_name }} - record {self.record_id} not found"
+            )
+            return None
+        else:
+            try:
+                label =self.t(
+                    "{{ res_snake }}.tv.title-found",
+                    "{{ r.text_name }}: view {name}",
+                    name={{ res_snake }}_label(result)
+                )
+            except Exception as e:
+                logger.error("Error getting label: %s", e, exc_info=True)
+                label = "{{ r.text_name }} viewer"
+
+        self.ctx.set_window_title(self, label)
+        return result
+
     def _populate_from_record(self, record: "{{ ResPascal }}"):
         self.model.var_bag.add_fields([
         {%- for field in sorted_fields_for_ui(dset, r, fields) %}
@@ -83,3 +121,14 @@ class Qt{{ ResPascal }}Tv(RecordTemplViewer):
         {%- endif %}
         {%- endfor %}
         ])
+    
+    def get_db_item_id(self, record: "{{ ResPascal }}") -> RecIdType:
+        {%- if res_spl_id %}
+        return record.{{ res_primaries[0] }}
+        {%- else %}
+        return (
+            {%- for prm in res_primaries %}
+            record.{{ prm }},
+            {%- endfor %}
+        )
+        {%- endif %}

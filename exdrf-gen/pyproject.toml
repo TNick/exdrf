@@ -13,7 +13,7 @@ description = "Generate content using DRF."
 dynamic = ["version"]
 name = "exdrf-gen"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.12.10"
 dependencies = [
   "exdrf",
   "click>=8.1.8",

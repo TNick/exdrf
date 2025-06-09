@@ -37,6 +37,11 @@ class QtRelatedItemList(ListDb["RelatedItem"]):
                 parent=self,
             )
         )
+
+        self.setWindowTitle(
+            self.t("related_item.tv.title", "Related item list"),
+        )
+
         # exdrf-keep-start extra_init -----------------------------------------
 
         # exdrf-keep-end extra_init -------------------------------------------

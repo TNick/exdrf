@@ -1,3 +1,4 @@
+import logging
 from typing import TYPE_CHECKING, Union
 
 from exdrf.field_types.api import (
@@ -20,6 +21,8 @@ if TYPE_CHECKING:
     from exdrf_dev.db.api import (
         CompositeKeyModel as CompositeKeyModel,
     )  # noqa: F401
+
+logger = logging.getLogger(__name__)
 
 
 class QtCompositeKeyModelTv(RecordTemplViewer):
@@ -47,16 +50,43 @@ class QtCompositeKeyModelTv(RecordTemplViewer):
             ctx=ctx,
             **kwargs,
         )
+        self.setWindowTitle(
+            self.t(
+                "composite_key_model.tv.title", "Composite key model viewer"
+            ),
+        )
 
     def read_record(
         self, session: "Session"
     ) -> Union[None, "CompositeKeyModel"]:
-        return session.scalar(
+        from .db.composite_key_model import composite_key_model_label
+
+        result = session.scalar(
             select(self.db_model).where(
                 self.db_model.key_part1 == self.record_id[0],  # type: ignore
                 self.db_model.key_part2 == self.record_id[1],  # type: ignore
             )
         )
+
+        if result is None:
+            label = self.t(
+                "composite_key_model.tv.title-not-found",
+                f"Composite key model - record {self.record_id} not found",
+            )
+            return None
+        else:
+            try:
+                label = self.t(
+                    "composite_key_model.tv.title-found",
+                    "Composite key model: view {name}",
+                    name=composite_key_model_label(result),
+                )
+            except Exception as e:
+                logger.error("Error getting label: %s", e, exc_info=True)
+                label = "Composite key model viewer"
+
+        self.ctx.set_window_title(self, label)
+        return result
 
     def _populate_from_record(self, record: "CompositeKeyModel"):
         self.model.var_bag.add_fields(

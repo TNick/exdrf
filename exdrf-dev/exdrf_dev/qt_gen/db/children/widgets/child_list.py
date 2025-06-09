@@ -37,6 +37,11 @@ class QtChildList(ListDb["Child"]):
                 parent=self,
             )
         )
+
+        self.setWindowTitle(
+            self.t("child.tv.title", "Child list"),
+        )
+
         # exdrf-keep-start extra_init -----------------------------------------
 
         # exdrf-keep-end extra_init -------------------------------------------

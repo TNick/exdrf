@@ -11,12 +11,18 @@ from typing import (
     Dict,
     Generic,
     Optional,
+    Tuple,
     Type,
     TypeVar,
     Union,
     cast,
+    List,
 )
-
+from exdrf_qt.controls.crud_actions import (
+    OpenCreateAc,
+    OpenDeleteAc,
+    OpenEditAc,
+)
 import yaml  # type: ignore
 from exdrf.constants import RecIdType
 from exdrf.var_bag import VarBag
@@ -32,8 +38,10 @@ from PyQt5.QtWidgets import (
     QMenu,
     QMessageBox,
     QWidget,
+    QApplication,
 )
 
+from exdrf_qt.controls.crud_actions import AcBase
 from exdrf_qt.context_use import QtUseContext
 from exdrf_qt.controls.templ_viewer.add_var_dlg import NewVariableDialog
 from exdrf_qt.controls.templ_viewer.header import VarHeader
@@ -147,6 +155,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
     ac_save_as_html: "QAction"
     ac_save_as_pdf: "QAction"
     ac_save_as_docx: "QAction"
+    ac_others: List[Union["AcBase", QAction, None]]
     mnu_snippets: "QMenu"
 
     def __init__(
@@ -157,6 +166,9 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
         extra_context: Optional[Dict[str, Any]] = None,
         template_src: Optional[str] = None,
         page_class: Type[WebEnginePage] = WebEnginePage,
+        other_actions: Optional[
+            List[Union[Tuple[str, str, str], "AcBase", QAction, None]]
+        ] = None,
     ):
         """Initialize the template viewer.
 
@@ -189,7 +201,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
         self.c_templ.textChanged.connect(self.on_templ_file_changed)
 
         # Create the actions.
-        self.create_actions()
+        self.create_actions(other_actions)
 
         # Context menu for template editor.
         self.c_editor.setContextMenuPolicy(
@@ -214,6 +226,8 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
         if template_src:
             self.c_templ.setText(template_src)
         self.model.varDataChanged.connect(self.render_template)
+
+        # By default hide the list of variables.
         self.on_toggle_vars(self.ac_toggle_vars.isChecked())
 
     def prepare_viewer(
@@ -221,6 +235,12 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
         page_class: Type[WebEnginePage] = WebEnginePage,
     ):
         """Prepare the viewer."""
+        logger.debug(
+            "Preparing viewer %s with ID %s",
+            self.c_viewer,
+            id(self.c_viewer),
+        )
+        self.c_viewer.show()
 
         # Set the page for the viewer.
         page = page_class(parent=self, ctx=self.ctx)
@@ -243,8 +263,18 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
         page.printRequested.connect(self.on_save_as_pdf)
         page.pdfPrintingFinished.connect(self.on_saved_as_pdf)
 
+        self.c_viewer.raise_()
+        self.c_viewer.setMinimumSize(400, 400)
+        self.c_viewer.show()
+        self.c_viewer.update()
+
     def prepare_vars_list(self):
         """Prepare the variables list."""
+        logger.debug(
+            "Preparing variables list %s with ID %s",
+            self.c_vars,
+            id(self.c_vars),
+        )
 
         # Install the model inside the tree view.
         self.c_vars.setModel(self.model)
@@ -404,7 +434,12 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
             self.model.var_bag[crt_field.name] = None
             self.model.varDataChanged.emit()
 
-    def create_actions(self):
+    def create_actions(
+        self,
+        other_actions: Optional[
+            List[Union[Tuple[str, str, str], "AcBase", QAction, None]]
+        ] = None,
+    ):
         """Create the actions for the template viewer."""
         # The action that refreshes the generated content from the current
         # template and variable bag.
@@ -470,7 +505,9 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
             self.t("templ.vars.toggle", "Toggle Variables"),
         )
         self.ac_toggle_vars.setCheckable(True)
-        self.ac_toggle_vars.setChecked(self.c_splitter.widget(1).isVisible())
+        right_widget = self.c_splitter.widget(1)
+        assert right_widget is not None
+        self.ac_toggle_vars.setChecked(right_widget.isVisible())
         self.ac_toggle_vars.toggled.connect(self.on_toggle_vars)
 
         # Save the (edited) template.
@@ -517,6 +554,29 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
             ac.setData(snippet)
             ac.triggered.connect(self.on_insert_snippet)
 
+        # Create custom actions.
+        self.ac_others = []
+        if other_actions is not None:
+            other_ac: Union["AcBase", QAction, None]
+            for ac_src in other_actions:
+                if isinstance(ac_src, tuple):
+                    label, icon, route = ac_src
+                    other_ac = AcBase(
+                        label=label,
+                        ctx=self.ctx,
+                        route=route,
+                        icon=self.get_icon(icon),
+                        menu_or_parent=self,
+                    )
+                elif isinstance(ac_src, AcBase):
+                    other_ac = ac_src
+                elif ac_src is None:
+                    other_ac = None
+                else:
+                    raise ValueError(f"Invalid action: {ac_src}")
+                self.ac_others.append(other_ac)
+
+        # Create the actions for the template viewer.
         return [
             self.ac_copy_key,
             self.ac_copy_value,
@@ -598,26 +658,27 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
 
         menu.exec_(self.c_vars.mapToGlobal(pos))
 
-    def on_viewer_context_menu(self, pos: QPoint):
-        """Context menu for the template renderer."""
-        # page: "QWebEnginePage" = self.c_viewer.page()  # type: ignore
-        # if page is None:
-        #     return
-        ac_copy_link = self.c_viewer.pageAction(
-            QWebEnginePage.WebAction.CopyLinkToClipboard
-        )
-        assert ac_copy_link is not None
-        ac_copy = self.c_viewer.pageAction(QWebEnginePage.WebAction.Copy)
-        assert ac_copy is not None
-        ac_cut = self.c_viewer.pageAction(QWebEnginePage.WebAction.Cut)
-        assert ac_cut is not None
-        ac_paste = self.c_viewer.pageAction(QWebEnginePage.WebAction.Paste)
-        assert ac_paste is not None
-        ac_inspect = self.c_viewer.pageAction(
-            QWebEnginePage.WebAction.InspectElement
-        )
-        assert ac_inspect is not None
+    def add_other_view_actions(self, menu: QMenu):
+        """Add the other actions to the context menu."""
+        actual_actions = 0
+        for ac in self.ac_others:
+            if ac is not None:
+                menu.addAction(ac)
+                actual_actions += 1
+            else:
+                menu.addSeparator()
+        if actual_actions:
+            menu.addSeparator()
 
+    def construct_menu(
+        self,
+        ac_copy: QAction,
+        ac_copy_link: QAction,
+        ac_cut: QAction,
+        ac_paste: QAction,
+        ac_inspect: QAction,
+    ):
+        """Construct the context menu for the template viewer."""
         menu = QMenu()
 
         menu.addAction(ac_copy)
@@ -625,6 +686,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
         menu.addAction(ac_cut)
         menu.addAction(ac_paste)
         menu.addSeparator()
+        self.add_other_view_actions(menu)
         menu.addAction(self.ac_switch_mode)
         menu.addAction(self.ac_toggle_vars)
         menu.addSeparator()
@@ -635,10 +697,40 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
         menu.addAction(self.ac_refresh)
         menu.addAction(ac_inspect)
 
-        result_ac = menu.exec_(self.c_viewer.mapToGlobal(pos))
-        if result_ac == ac_inspect:
-            # Show devtools view when inspect is triggered
-            self.c_viewer.show_devtools()
+        return menu
+
+    def on_viewer_context_menu(self, pos: QPoint):
+        """Context menu for the template renderer."""
+        try:
+            ac_copy_link = self.c_viewer.pageAction(
+                QWebEnginePage.WebAction.CopyLinkToClipboard
+            )
+            assert ac_copy_link is not None
+            ac_copy = self.c_viewer.pageAction(QWebEnginePage.WebAction.Copy)
+            assert ac_copy is not None
+            ac_cut = self.c_viewer.pageAction(QWebEnginePage.WebAction.Cut)
+            assert ac_cut is not None
+            ac_paste = self.c_viewer.pageAction(QWebEnginePage.WebAction.Paste)
+            assert ac_paste is not None
+            ac_inspect = self.c_viewer.pageAction(
+                QWebEnginePage.WebAction.InspectElement
+            )
+            assert ac_inspect is not None
+
+            menu = self.construct_menu(
+                ac_copy,
+                ac_copy_link,
+                ac_cut,
+                ac_paste,
+                ac_inspect,
+            )
+
+            result_ac = menu.exec_(self.c_viewer.mapToGlobal(pos))
+            if result_ac == ac_inspect:
+                # Show devtools view when inspect is triggered
+                self.c_viewer.show_devtools()
+        except Exception as e:
+            logger.error("Error showing context menu: %s", e, exc_info=True)
 
     def on_editor_context_menu(self, pos: QPoint):
         """Context menu for the template editor."""
@@ -735,12 +827,13 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
             # Check if the template file has been modified
             try:
                 if not self._current_template.is_up_to_date:
-                    # Template file has changed, reload it
+                    logger.debug("Template file has changed, reload it")
                     assert self._current_template.filename is not None
                     self._current_template = self.jinja_env.get_template(
                         self._current_template.filename
                     )
                     loader = self.jinja_env.loader
+                    assert self._current_template is not None
                     assert loader is not None
                     assert self._current_template.filename is not None
                     source, filename, _ = loader.get_source(
@@ -749,6 +842,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
                     self.c_editor.blockSignals(True)
                     self.c_editor.setPlainText(source)
                     self.c_editor.blockSignals(False)
+                    logger.debug("Template file has been reloaded")
             except Exception as e:
                 logger.warning("Error checking template file: %s", e)
 
@@ -791,11 +885,14 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
         If the current view mode is source, the template is not rendered.
         """
         if self.view_mode == ViewMode.SOURCE:
+            logger.debug("Skipping render of template in source mode")
             return
 
         try:
             if self._current_template is not None:
+                logger.debug("Rendering template...")
                 html = self._render_template()
+                logger.debug("The template has been rendered")
             else:
                 html = self.t(
                     "templ.render.none",
@@ -803,6 +900,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext):
                     "No template loaded"
                     "</p>",
                 )
+                logger.debug("No template loaded, using default message")
             self.c_viewer.setHtml(html)
         except Exception as e:
             logger.error("Error rendering template: %s", e, exc_info=True)
@@ -1030,6 +1128,10 @@ class RecordTemplViewer(TemplViewer, Generic[DBM]):
     record_id: RecIdType
     db_model: Type[DBM]
 
+    ac_new: OpenCreateAc
+    ac_rem: OpenDeleteAc
+    ac_edit: OpenEditAc
+
     def __init__(
         self,
         record_id: RecIdType,
@@ -1039,16 +1141,26 @@ class RecordTemplViewer(TemplViewer, Generic[DBM]):
         self.record_id = record_id
         self.db_model = db_model
         super().__init__(var_bag=VarBag(), **kwargs)
+        self.create_crud_actions()
         self.populate()
         self.render_template()
+        self.ctx.set_window_title(self, self.windowTitle())
 
     def populate(self):
         """Populate the variable bag with the fields of the database record."""
         with self.ctx.same_session() as session:
             record = self.read_record(session)
             if record is None:
+                self.ac_edit.id = None
+                self.ac_rem.id = None
                 return
 
+            # Populate the Ids.
+            rec_id = self.get_db_item_id(record)
+            self.ac_edit.id = rec_id
+            self.ac_rem.id = rec_id
+
+            # Populate the variable bag.
             self.model.beginResetModel()
             try:
                 self._populate_from_record(record)
@@ -1105,23 +1217,73 @@ class RecordTemplViewer(TemplViewer, Generic[DBM]):
         """
         raise NotImplementedError("Not implemented")
 
+    def get_db_item_id(self, record: DBM) -> RecIdType:
+        """Get the ID of the database item."""
+        raise NotImplementedError("Not implemented")
 
-if __name__ == "__main__":
-    import sys
+    def construct_menu(
+        self,
+        ac_copy: QAction,
+        ac_copy_link: QAction,
+        ac_cut: QAction,
+        ac_paste: QAction,
+        ac_inspect: QAction,
+    ):
+        """Construct the context menu for the template viewer."""
+        menu = QMenu()
 
-    from PyQt5.QtWidgets import QApplication
+        menu.addAction(ac_copy)
+        menu.addAction(ac_copy_link)
+        menu.addAction(ac_cut)
+        menu.addAction(ac_paste)
+        menu.addSeparator()
+        self.add_other_view_actions(menu)
+        menu.addAction(self.ac_switch_mode)
+        menu.addAction(self.ac_toggle_vars)
+        menu.addSeparator()
+        menu.addAction(self.ac_new)
+        menu.addAction(self.ac_rem)
+        menu.addAction(self.ac_edit)
+        menu.addSeparator()
+        menu.addAction(self.ac_save_as_html)
+        menu.addAction(self.ac_save_as_pdf)
+        menu.addAction(self.ac_save_as_docx)
+        menu.addSeparator()
+        menu.addAction(self.ac_refresh)
+        menu.addAction(ac_inspect)
 
-    from exdrf_qt.context import QtContext as QtCtx
+        return menu
 
-    app = QApplication(sys.argv)
+    @property
+    def base_route(self) -> str:
+        """The base route for the list."""
+        try:
+            m_name = self.db_model.__name__
+        except Exception:
+            m_name = "unknown"
+        return f"exdrf://navigation/resource/{m_name}"
 
-    ctx = QtCtx(
-        "",
-        top_widget=None,  # type: ignore
-        schema="public",
-    )
-    var_bag = VarBag()
-    viewer = TemplViewer(ctx, var_bag, template_src="test.j2")
-    viewer.show()
+    def create_crud_actions(self):
+        """Create the CRUD actions."""
+        base_route = self.base_route
 
-    app.exec_()
+        self.ac_new = OpenCreateAc(
+            label=self.t("sq.common.new", "New"),
+            ctx=self.ctx,
+            route=f"{base_route}/create",
+            menu_or_parent=self,
+        )
+        self.ac_rem = OpenDeleteAc(
+            label=self.t("sq.common.del", "Remove"),
+            ctx=self.ctx,
+            route=base_route,
+            menu_or_parent=self,
+            id=self.record_id,
+        )
+        self.ac_edit = OpenEditAc(
+            label=self.t("sq.common.edit", "Edit"),
+            ctx=self.ctx,
+            route=base_route,
+            menu_or_parent=self,
+            id=self.record_id,
+        )

@@ -37,6 +37,11 @@ class QtProfileList(ListDb["Profile"]):
                 parent=self,
             )
         )
+
+        self.setWindowTitle(
+            self.t("profile.tv.title", "Profile list"),
+        )
+
         # exdrf-keep-start extra_init -----------------------------------------
 
         # exdrf-keep-end extra_init -------------------------------------------

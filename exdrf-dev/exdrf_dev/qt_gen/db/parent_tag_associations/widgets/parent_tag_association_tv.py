@@ -1,3 +1,4 @@
+import logging
 from typing import TYPE_CHECKING, Union
 
 from exdrf.field_types.api import (
@@ -14,6 +15,8 @@ if TYPE_CHECKING:
     from exdrf_dev.db.api import (  # noqa: F401
         ParentTagAssociation as ParentTagAssociation,
     )
+
+logger = logging.getLogger(__name__)
 
 
 class QtParentTagAssociationTv(RecordTemplViewer):
@@ -43,16 +46,44 @@ class QtParentTagAssociationTv(RecordTemplViewer):
             ctx=ctx,
             **kwargs,
         )
+        self.setWindowTitle(
+            self.t(
+                "parent_tag_association.tv.title",
+                "Parent tag association viewer",
+            ),
+        )
 
     def read_record(
         self, session: "Session"
     ) -> Union[None, "ParentTagAssociation"]:
-        return session.scalar(
+        from .db.parent_tag_association import parent_tag_association_label
+
+        result = session.scalar(
             select(self.db_model).where(
                 self.db_model.parent_id == self.record_id[0],  # type: ignore
                 self.db_model.tag_id == self.record_id[1],  # type: ignore
             )
         )
+
+        if result is None:
+            label = self.t(
+                "parent_tag_association.tv.title-not-found",
+                f"Parent tag association - record {self.record_id} not found",
+            )
+            return None
+        else:
+            try:
+                label = self.t(
+                    "parent_tag_association.tv.title-found",
+                    "Parent tag association: view {name}",
+                    name=parent_tag_association_label(result),
+                )
+            except Exception as e:
+                logger.error("Error getting label: %s", e, exc_info=True)
+                label = "Parent tag association viewer"
+
+        self.ctx.set_window_title(self, label)
+        return result
 
     def _populate_from_record(self, record: "ParentTagAssociation"):
         self.model.var_bag.add_fields(

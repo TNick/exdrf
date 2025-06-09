@@ -62,13 +62,16 @@ class WebView(QWebEngineView, QtUseContext):
         elif event.type() == QEvent.Type.ShortcutOverride:
             if event.key() == Qt.Key.Key_F5:
                 if event.modifiers() == Qt.KeyboardModifier.ControlModifier:
+                    logger.debug("Full refresh requested")
                     self.fullRefresh.emit()
                 else:
+                    logger.debug("Simple refresh requested")
                     self.simpleRefresh.emit()
                 event.accept()
                 return True
             elif event.key() == Qt.Key.Key_P:
                 if event.modifiers() == Qt.KeyboardModifier.ControlModifier:
+                    logger.debug("Print requested")
                     self.printRequested.emit()
                 event.accept()
                 return True
@@ -104,13 +107,16 @@ class WebView(QWebEngineView, QtUseContext):
             )
         self.devtools_view.show()
         self.devtools_view.raise_()
+        logger.debug("DevTools view shown")
 
     def closeEvent(self, event):  # type: ignore
         if self.devtools_view:
             self.devtools_view.close()
             self.devtools_view = None
         super().closeEvent(event)
+        logger.debug("Web view closed")
 
     def _on_devtools_close(self, event):  # type: ignore
         self.devtools_view = None
         event.accept()
+        logger.debug("DevTools view closed")

@@ -128,6 +128,21 @@ class QtContext(DbConn):
         w.close()
         w.deleteLater
 
+    def set_window_title(self, w: "QWidget", title: str):
+        """Sets the window title.
+
+        Args:
+            w: The widget to set the title for.
+            title: The title to set.
+        """
+        w.setWindowTitle(title)
+        for subwindow in self.top_widget.mdi_area.subWindowList():
+            s_widget = subwindow.widget()
+            if s_widget == w:
+                subwindow.setWindowTitle(title)
+                self.top_widget.mdi_area.setActiveSubWindow(subwindow)
+                break
+
     def set_db_string(self, c_string: str, schema: str = "public") -> None:
         """Sets the database connection string.
 
@@ -295,6 +310,9 @@ class QtContext(DbConn):
 
         # Apply the configuration
         logging.config.dictConfig(log_stg)
+
+        logger = logging.getLogger(__name__)
+        logger.debug("Logging has been setup")
 
     def get_ovr(self, key: str, default: Any = None) -> Any:
         """Get an override value.

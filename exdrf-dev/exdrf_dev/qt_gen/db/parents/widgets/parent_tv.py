@@ -1,3 +1,4 @@
+import logging
 from typing import TYPE_CHECKING, Union
 
 from exdrf.field_types.api import (
@@ -18,6 +19,8 @@ if TYPE_CHECKING:
     from sqlalchemy.orm import Session  # noqa: F401
 
     from exdrf_dev.db.api import Parent as Parent  # noqa: F401
+
+logger = logging.getLogger(__name__)
 
 
 class QtParentTv(RecordTemplViewer):
@@ -45,13 +48,38 @@ class QtParentTv(RecordTemplViewer):
             ctx=ctx,
             **kwargs,
         )
+        self.setWindowTitle(
+            self.t("parent.tv.title", "Parent viewer"),
+        )
 
     def read_record(self, session: "Session") -> Union[None, "Parent"]:
-        return session.scalar(
+        from .db.parent import parent_label
+
+        result = session.scalar(
             select(self.db_model).where(
                 self.db_model.id == self.record_id,  # type: ignore
             )
         )
+
+        if result is None:
+            label = self.t(
+                "parent.tv.title-not-found",
+                f"Parent - record {self.record_id} not found",
+            )
+            return None
+        else:
+            try:
+                label = self.t(
+                    "parent.tv.title-found",
+                    "Parent: view {name}",
+                    name=parent_label(result),
+                )
+            except Exception as e:
+                logger.error("Error getting label: %s", e, exc_info=True)
+                label = "Parent viewer"
+
+        self.ctx.set_window_title(self, label)
+        return result
 
     def _populate_from_record(self, record: "Parent"):
         self.model.var_bag.add_fields(

@@ -13,15 +13,18 @@ description = "Use Qt5 with Ex-DRF."
 dynamic = ["version"]
 name = "exdrf-qt"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.12.10"
 dependencies = [
   "PyQt5>=5.15.11",
   "python-dateutil>=2.9.0",
   "humanize>=4.12.3",
   "html-for-docx>=1.0.6",
   "PyQtWebEngine>=5.15.7",
+  "PyQtWebEngine-Qt5>=5.15.2",
   "attrs>=24.2.0",
   "parse>=1.20.2",
+  "minify_html>=0.16.4",
+  "PyQtWebEngine==5.15.7",
 ]
 
 [project.optional-dependencies]

@@ -37,6 +37,11 @@ class QtTagList(ListDb["Tag"]):
                 parent=self,
             )
         )
+
+        self.setWindowTitle(
+            self.t("tag.tv.title", "Tag list"),
+        )
+
         # exdrf-keep-start extra_init -----------------------------------------
 
         # exdrf-keep-end extra_init -------------------------------------------

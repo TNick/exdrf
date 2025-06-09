@@ -41,6 +41,11 @@ class QtProfileEditor(EditorDb["Profile"], Ui_QtProfileEditor):
             **kwargs,
         )
         self.verticalLayout.addWidget(self.create_button_box())
+
+        self.setWindowTitle(
+            self.t("profile.ed.title", "Profile editor"),
+        )
+
         # exdrf-keep-start extra_init -----------------------------------------
 
         # exdrf-keep-end extra_init -------------------------------------------

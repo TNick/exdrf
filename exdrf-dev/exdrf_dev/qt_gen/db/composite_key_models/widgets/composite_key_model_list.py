@@ -37,6 +37,11 @@ class QtCompositeKeyModelList(ListDb["CompositeKeyModel"]):
                 parent=self,
             )
         )
+
+        self.setWindowTitle(
+            self.t("composite_key_model.tv.title", "Composite key model list"),
+        )
+
         # exdrf-keep-start extra_init -----------------------------------------
 
         # exdrf-keep-end extra_init -------------------------------------------

@@ -41,6 +41,11 @@ class QtChildEditor(EditorDb["Child"], Ui_QtChildEditor):
             **kwargs,
         )
         self.verticalLayout.addWidget(self.create_button_box())
+
+        self.setWindowTitle(
+            self.t("child.ed.title", "Child editor"),
+        )
+
         # exdrf-keep-start extra_init -----------------------------------------
 
         # exdrf-keep-end extra_init -------------------------------------------
