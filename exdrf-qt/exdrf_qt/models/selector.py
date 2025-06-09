@@ -238,7 +238,13 @@ class Selector(Generic[DBM]):
         base = self.base
         for join in self.joins:
             if isinstance(join, (tuple, list)):
-                base = base.join(*join)
+                if isinstance(join[-1], dict):
+                    join_kwargs = join[-1]
+                    join = join[:-1]
+                else:
+                    join_kwargs = {}
+
+                base = base.join(*join, **join_kwargs)
             else:
                 base = base.join(join)
 

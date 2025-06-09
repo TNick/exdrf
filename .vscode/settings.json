@@ -43,6 +43,7 @@
         "ipynb",
         "ipython",
         "isort",
+        "isouter",
         "joinedload",
         "kwargs",
         "lightgray",

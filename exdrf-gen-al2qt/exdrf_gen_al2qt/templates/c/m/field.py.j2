@@ -12,7 +12,7 @@ from exdrf.constants import RecIdType
 from sqlalchemy.orm import aliased
 {%- endif %}
 from exdrf_qt.models.fi_op import filter_op_registry
-from sqlalchemy import or_
+from sqlalchemy import or_, exists
 
 # exdrf-keep-start other_imports ----------------------------------------------
 {{other_imports}}
@@ -77,11 +77,38 @@ class {{ FldPascal }}Field(Qt{{ fld_bc }}Field["{{ ResPascal }}"]):
     
     def apply_filter(self, item: "FieldFilter", selector: "Selector") -> Any:
         from {{ db_module }}.{{ field.ref.categories[0] }}.api import {{ field.ref.name }} as Db{{ field.ref.name }}
-        
+
+        predicate = filter_op_registry[item.op].predicate
+        related_entity = getattr(self.resource.db_model, self.name)
+        # {{ field }}
+        subq = related_entity.
+        {%- if field.is_many_to_many_type or field.is_one_to_many_type -%}
+            any
+        {%- else -%}
+            has
+        {%- endif -%}
+        (
+        {%- if len(field.ref.get_fields_for_ref_filtering()) == 1 %}
+            predicate(Db{{ field.ref.name }}.{{ field.ref.get_fields_for_ref_filtering()[0].name }}, item.vl),
+        {%- else %}
+            or_(
+                {%- for other_f in field.ref.get_fields_for_ref_filtering() %}
+                predicate(Db{{ field.ref.name }}.{{ other_f.name }}, item.vl),
+                {%- endfor %}
+            )
+        {%- endif %}
+        )
+        return subq
+
+
         with_alias = aliased(Db{{ field.ref.name }})
         predicate = filter_op_registry[item.op].predicate
         selector.joins.append(
-            (with_alias, getattr(self.resource.db_model, self.name))
+            (
+                with_alias,
+                getattr(self.resource.db_model, self.name),
+                { 'isouter': True }
+            )
         )
 
         {% if len(field.ref.get_fields_for_ref_filtering()) == 1 -%}
