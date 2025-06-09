@@ -111,6 +111,7 @@ class ExdrfRouter(QtUseContext):
             else:
                 w.on_begin_edit()
             self.ctx.create_window(w, w.windowTitle())
+            return w
         except Exception as e:
             logger.error("Error opening list", exc_info=True)
             self.ctx.show_error(
@@ -121,7 +122,7 @@ class ExdrfRouter(QtUseContext):
                     e=e,
                 ),
             )
-            return
+            return None
 
     def open_list(self, list_class):
         """Open the list of the model."""
@@ -130,6 +131,7 @@ class ExdrfRouter(QtUseContext):
                 return
             w = list_class(ctx=self.ctx)
             self.ctx.create_window(w, w.windowTitle())
+            return w
         except Exception as e:
             logger.error("Error opening list", exc_info=True)
             self.ctx.show_error(
@@ -140,7 +142,7 @@ class ExdrfRouter(QtUseContext):
                     e=e,
                 ),
             )
-            return
+            return None
 
     def open_viewer(self, viewer_class, id: Any = None):
         """Open the list of the model."""
@@ -152,6 +154,7 @@ class ExdrfRouter(QtUseContext):
                 record_id=id,
             )
             self.ctx.create_window(w, w.windowTitle())
+            return w
         except Exception as e:
             logger.error("Error opening list", exc_info=True)
             self.ctx.show_error(
@@ -162,7 +165,7 @@ class ExdrfRouter(QtUseContext):
                     e=e,
                 ),
             )
-            return
+            return None
 
     def delete_record(
         self,

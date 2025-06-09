@@ -1,8 +1,10 @@
 import logging
+from contextlib import contextmanager
 from typing import (
     TYPE_CHECKING,
     Any,
     Dict,
+    Generator,
     Generic,
     List,
     Literal,
@@ -611,7 +613,10 @@ class QtModel(
         """
         return self.get_primary_columns().in_(id_list)
 
-    def get_one_db_item_by_id(self, rec_id: RecIdType) -> Optional[DBM]:
+    @contextmanager
+    def get_one_db_item_by_id(
+        self, rec_id: RecIdType
+    ) -> Generator[Optional[DBM], None, None]:
         """Return the database item with the given ID.
 
         This is a convenience function that uses the primary key columns to
@@ -658,7 +663,7 @@ class QtModel(
         with self.ctx.same_session() as session:
             selector = select(self.db_model).where(*conditions)
             try:
-                return session.scalar(selector)
+                yield session.scalar(selector)
             except SQLAlchemyError as e:
                 logger.error(
                     "SqlAlchemy error '%s' getting item by ID '%s' in QtModel "

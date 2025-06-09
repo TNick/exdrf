@@ -576,6 +576,12 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
                     other_ac = ac_src
                 elif ac_src is None:
                     other_ac = None
+                elif callable(ac_src):
+                    other_ac = ac_src(
+                        ctx=self.ctx,
+                        menu_or_parent=self,
+                        provider=self,
+                    )
                 else:
                     raise ValueError(f"Invalid action: {ac_src}")
                 self.ac_others.append(other_ac)

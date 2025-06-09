@@ -66,12 +66,12 @@ class DrfSelOneEditor(DropBase, Generic[DBM]):
 
             if not loaded:
                 # If the record is not loaded, we need to load it ourselves.
-                db_item = self.qt_model.get_one_db_item_by_id(new_value)
-                if db_item is None:
-                    self.set_line_null()
-                    return
-                record = self.qt_model.db_item_to_record(db_item)
-                self.setText(self.record_to_text(record))
+                with self.qt_model.get_one_db_item_by_id(new_value) as db_item:
+                    if db_item is None:
+                        self.set_line_null()
+                        return
+                    record = self.qt_model.db_item_to_record(db_item)
+                    self.setText(self.record_to_text(record))
 
             if self.nullable:
                 assert self.ac_clear is not None
