@@ -593,12 +593,15 @@ class ListDbHeader(QHeaderView, QtUseContext, Generic[DBM]):
             size = self.sectionSize(i)
 
             # Save the current visual index and size.
+            hidden = self.isSectionHidden(i)
             settings[field_name] = {
-                "vi": visual_index,
+                "vi": visual_index,  # Will be updated by the incoming settings.
                 "crt-vi": visual_index,
                 "li": i,
                 "size": size,
-                "hidden": self.isSectionHidden(i),
+                "crt-size": size,
+                "hidden": hidden,  # Will be updated by the incoming settings.
+                "crt-hidden": hidden,
             }
 
         return settings
@@ -641,9 +644,15 @@ class ListDbHeader(QHeaderView, QtUseContext, Generic[DBM]):
                     self.moveSection(current_visual, target_visual)
 
             # Step 3: Apply visibility and resize
-            for f_values in sections_layout.values():
+            for f_name, f_values in sections_layout.items():
                 logical_index = f_values["li"]
-                self.resizeSection(logical_index, f_values["size"])
+
+                size = f_values["size"]
+                if size == 0:
+                    size = self.ctx.stg.get_setting(f"{prefix}.{f_name}.size")
+                    if size == 0:
+                        size = 20
+                self.resizeSection(logical_index, size)
                 if f_values["hidden"]:
                     self.hideSection(logical_index)
 
@@ -653,7 +662,7 @@ class ListDbHeader(QHeaderView, QtUseContext, Generic[DBM]):
                         f"{prefix}.{f_name}.vi", f_values["vi"]
                     )
 
-                    size = max(f_values["size"], 10)
+                    size = max(size, 20)
                     logger.debug(f"saving {f_name}.size = {size}")
                     self.ctx.stg.set_setting(f"{prefix}.{f_name}.size", size)
 
