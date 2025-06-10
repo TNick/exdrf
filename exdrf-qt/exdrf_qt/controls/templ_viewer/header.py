@@ -1,20 +1,24 @@
 from typing import TYPE_CHECKING
 
-from exdrf_qt.controls.tree_header import HeaderViewWithMenu
+from exdrf_qt.controls.tree_header import ListDbHeader
 
 if TYPE_CHECKING:
-    from PyQt5.QtWidgets import QMenu, QTreeView
+    from PyQt5.QtWidgets import QTreeView
 
     from exdrf_qt.controls.templ_viewer.templ_viewer import TemplViewer
 
 
-class VarHeader(HeaderViewWithMenu):
+class VarHeader(ListDbHeader):
     """The header for a variable table."""
 
     viewer: "TemplViewer"
 
-    def __init__(self, viewer: "TemplViewer", *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(
+        self,
+        viewer: "TemplViewer",
+        **kwargs,
+    ):
+        super().__init__(save_settings=False, **kwargs)  # type: ignore
         self.viewer = viewer
 
     @property
@@ -25,7 +29,7 @@ class VarHeader(HeaderViewWithMenu):
     def treeview(self) -> "QTreeView":
         return self.viewer.c_vars
 
-    def create_show_columns_action(self, menu: "QMenu", section: int):
+    def create_show_columns_action(self, section: int):
         return None
 
     def _load_current_filter(self, section: int):

@@ -1,9 +1,16 @@
 import re
+from datetime import date, datetime
 from typing import Any, Dict, Iterator, List, Tuple
 
 from attrs import define, field
 
 from exdrf.field import ExField
+from exdrf.field_types.api import (
+    FIELD_TYPE_STRING,
+    DateTimeField,
+    StrField,
+    field_type_to_class,
+)
 
 
 @define
@@ -56,6 +63,12 @@ class VarBag:
                 self.fields.append(fld)
             self.values[fld.name] = value
 
+    def __contains__(self, key: str) -> bool:
+        for fld in self.fields:
+            if fld.name == key:
+                return True
+        return False
+
     def __getitem__(self, key: str) -> Any:
         for fld in self.fields:
             if fld.name == key:
@@ -99,7 +112,85 @@ class VarBag:
                 result.values[fld.name] = self[fld.name]
         return result
 
+    def add_now(self):
+        """Add the current date and time to the variable bag."""
+        self.add_field(DateTimeField(name="now"), datetime.now())
+
     @property
     def as_dict(self) -> Dict[str, Any]:
         """Return a dictionary of the variables in the bag and their values."""
         return {fld.name: self[fld.name] for fld in self.fields}
+
+    def simplify_value(self, value: Any) -> Any:
+        """Convert a value to a simple value.
+
+        The simple values are:
+        - int
+        - float
+        - bool
+        - str
+        - list
+        - dict
+
+        Classes that are not one of those will be converted to a string
+        with the class name.
+        """
+        if isinstance(value, (list, tuple)):
+            return [self.simplify_value(v) for v in value]
+        elif isinstance(value, dict):
+            return {k: self.simplify_value(v) for k, v in value.items()}
+        elif isinstance(value, (str, int, float, bool)):
+            return value
+        elif isinstance(value, datetime):
+            return value.strftime("%Y-%m-%dT%H:%M:%S")
+        elif isinstance(value, date):
+            return value.strftime("%Y-%m-%d")
+        else:
+            return f"<{value.__class__.__name__}>"
+
+    def to_simple_data(self) -> List[Dict[str, Any]]:
+        """Convert the variable bag to a simple data structure.
+
+        The result is a list of dictionaries, each containing the name,
+        type, and value of a variable.
+
+        The simple values are:
+        - int
+        - float
+        - bool
+        - str
+        - list
+        - dict
+
+        Classes that are not one of those will be converted to a string
+        with the class name.
+        """
+        result = []
+        for fld in self.fields:
+            result.append(
+                {
+                    "name": fld.name,
+                    "type": fld.type_name,
+                    "value": self.simplify_value(self[fld.name]),
+                }
+            )
+        return result
+
+    def from_simple_data(self, data: Any):
+        """Populate the variable bag from a simple data structure.
+
+        The simple data structure is a list of dictionaries, each
+        containing the name, type, and value of a variable.
+        """
+        for item in data:
+            type_name = item.get("type", FIELD_TYPE_STRING)
+            cls_for_type = field_type_to_class.get(type_name, StrField)
+            name = item.get("name", "")
+            if not name:
+                continue
+            if name not in self:
+                inst = cls_for_type(name=name)
+                self.add_field(inst)
+            else:
+                inst = self.fields[self.var_names.index(name)]
+            self[name] = inst.value_from_str(item.get("value", ""))

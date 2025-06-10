@@ -1,8 +1,10 @@
-from typing import TYPE_CHECKING, Generic, Optional, Set, TypeVar, cast
+import logging
+from contextlib import contextmanager
+from typing import TYPE_CHECKING, Generic, Optional, Set, TypeVar, Union, cast
 
 from exdrf.filter import FieldFilter, FilterVisitor, insert_quick_search
-from PyQt5.QtCore import QEvent, QRect, Qt
-from PyQt5.QtGui import QCursor, QMouseEvent, QPainter, QPen
+from PyQt5.QtCore import QRect, Qt
+from PyQt5.QtGui import QCursor, QPainter, QPen
 from PyQt5.QtWidgets import (
     QAction,
     QDialog,
@@ -11,7 +13,6 @@ from PyQt5.QtWidgets import (
     QStyle,
     QStyleOptionHeader,
     QTreeView,
-    QWidget,
 )
 
 from exdrf_qt.context_use import QtUseContext
@@ -21,11 +22,13 @@ from exdrf_qt.models import QtModel
 
 if TYPE_CHECKING:
     from exdrf_qt.context import QtContext  # noqa: F401
+    from exdrf_qt.controls.table_list import TreeViewDb  # noqa: F401
 
 DBM = TypeVar("DBM")
+logger = logging.getLogger(__name__)
 
 
-class HeaderViewWithMenu(QHeaderView, QtUseContext, Generic[DBM]):
+class ListDbHeader(QHeaderView, QtUseContext, Generic[DBM]):
     """A header view with sorting, filtering, and dynamic filter icon
     capabilities.
 
@@ -45,14 +48,105 @@ class HeaderViewWithMenu(QHeaderView, QtUseContext, Generic[DBM]):
     search_line: Optional[SearchLine[DBM]]
     search_section: Optional[int]
     filtered_sections: Set[int]
+    save_settings: bool
+    _no_stg_write: bool
 
-    def __init__(self, parent: "QWidget", ctx: "QtContext"):
+    def __init__(
+        self, parent: "TreeViewDb", ctx: "QtContext", save_settings: bool = True
+    ):
         super().__init__(Qt.Orientation.Horizontal, parent)
+        self._no_stg_write = True
+        self.save_settings = save_settings
         self.ctx = ctx
         self.search_line = None
         self.search_section = None
         self.filtered_sections = set()
         self.setMouseTracking(True)
+        self.setSectionsMovable(True)
+        self.setFirstSectionMovable(True)
+        if save_settings:
+            self.sectionMoved.connect(self.on_section_moved)
+            self.sectionResized.connect(self.on_section_resized)
+            self.geometriesChanged.connect(self.on_geometries_changed)
+            self.sectionCountChanged.connect(self.on_section_count_changed)
+            self.sectionClicked.connect(self.on_section_clicked)
+            self.sectionDoubleClicked.connect(self.on_section_double_clicked)
+            self.sectionEntered.connect(self.on_section_entered)
+            self.sectionHandleDoubleClicked.connect(
+                self.on_section_handle_double_clicked
+            )
+            self.sectionPressed.connect(self.on_section_pressed)
+            self.sortIndicatorChanged.connect(self.on_sort_indicator_changed)
+        self._no_stg_write = False
+
+    @contextmanager
+    def no_stg_write(self):
+        if self._no_stg_write:
+            yield True
+            return
+
+        self._no_stg_write = True
+        try:
+            yield False
+        finally:
+            self._no_stg_write = False
+
+    def on_geometries_changed(self):
+        logger.debug("geometriesChanged")
+        self.setFirstSectionMovable(True)
+
+    def on_section_moved(
+        self, logical_index: int, old_visual_index: int, new_visual_index: int
+    ):
+        logger.debug(
+            "sectionMoved: %s, %s, %s",
+            logical_index,
+            old_visual_index,
+            new_visual_index,
+        )
+        self.hide_search_line()
+        with self.no_stg_write() as write_blocked:
+            if not write_blocked:
+                for i in range(self.count()):
+                    key = self.stg_key_name(i, "vi")
+                    self.ctx.stg.set_setting(key, self.visualIndex(i))
+
+    def on_section_resized(
+        self, logical_index: int, old_size: int, new_size: int
+    ):
+        logger.debug(
+            "sectionResized: %s, %s, %s", logical_index, old_size, new_size
+        )
+        if new_size < 1:
+            return
+        with self.no_stg_write() as write_blocked:
+            if not write_blocked:
+                key = self.stg_key_name(logical_index, "size")
+                self.ctx.stg.set_setting(key, new_size)
+
+    def on_section_count_changed(self, old_count: int, new_count: int):
+        logger.debug("sectionCountChanged: %s, %s", old_count, new_count)
+
+    def on_section_clicked(self, logical_index: int):
+        logger.debug("sectionClicked: %s", logical_index)
+
+    def on_section_double_clicked(self, logical_index: int):
+        logger.debug("sectionDoubleClicked: %s", logical_index)
+        self.show_search_line(logical_index)
+
+    def on_section_entered(self, logical_index: int):
+        logger.debug("sectionEntered: %s", logical_index)
+
+    def on_section_handle_double_clicked(self, logical_index: int):
+        logger.debug("sectionHandleDoubleClicked: %s", logical_index)
+
+    def on_section_pressed(self, logical_index: int):
+        logger.debug("sectionPressed: %s", logical_index)
+
+    def on_sort_indicator_changed(
+        self, logical_index: int, order: Qt.SortOrder
+    ):
+        logger.debug("sortIndicatorChanged: %s, %s", logical_index, order)
 
     @property
     def qt_model(self) -> "QtModel[DBM]":
@@ -69,52 +163,54 @@ class HeaderViewWithMenu(QHeaderView, QtUseContext, Generic[DBM]):
         assert isinstance(parent, QTreeView), "Parent should be a QTreeView"
         return parent
 
-    def mouseMoveEvent(self, e: Optional[QMouseEvent]):
-        assert e is not None
-        section = self.logicalIndexAt(e.pos())
-        if section >= 0:
-            # Compute the location of the activation area.
-            w = self.sectionSize(section)
-            h = self.height()
-            x = self.sectionPosition(section) + w - h
-            full_size = QRect(x, 0, w, h)
+    # def mouseMoveEvent(self, e: Optional[QMouseEvent]):
+    #     """Works but seems to be annoying."""
+    #     assert e is not None
+    #     section = self.logicalIndexAt(e.pos())
+    #     if section >= 0:
+    #         # Compute the location of the activation area.
+    #         w = self.sectionSize(section)
+    #         h = self.height()
+    #         x = self.sectionPosition(section) + w - h
+    #         full_size = QRect(x, 0, w, h)
 
-            # Adjust for horizontal scroll position
-            h_scroll = self.treeview.horizontalScrollBar()
-            assert h_scroll is not None
-            scroll_offset = h_scroll.value()
-            full_size.moveLeft(x - scroll_offset)
+    #         # Adjust for horizontal scroll position
+    #         h_scroll = self.treeview.horizontalScrollBar()
+    #         assert h_scroll is not None
+    #         scroll_offset = h_scroll.value()
+    #         full_size.moveLeft(x - scroll_offset)
 
-            # Check if the mouse is inside the activation area.
-            if full_size.contains(e.pos()):
-                self.show_search_line(section)
-                if self.search_line is not None:
-                    self.search_line.permanent = False
-        elif (
-            self.search_line is not None
-            and not self.search_line.permanent
-            and self.search_line.geometry().contains(e.pos())
-        ):
-            self.hide_search_line()
-        super().mouseMoveEvent(e)
+    #         # Check if the mouse is inside the activation area.
+    #         if full_size.contains(e.pos()):
+    #             self.show_search_line(section)
+    #             if self.search_line is not None:
+    #                 self.search_line.permanent = False
+    #     elif (
+    #         self.search_line is not None
+    #         and not self.search_line.permanent
+    #         and self.search_line.geometry().contains(e.pos())
+    #     ):
+    #         self.hide_search_line()
+    #     super().mouseMoveEvent(e)
 
-    def leaveEvent(self, e: Optional[QEvent]) -> None:  # type: ignore
-        """Handle mouse leaving the header widget.
+    # def leaveEvent(self, e: Optional[QEvent]) -> None:  # type: ignore
+    #     """Handle mouse leaving the header widget.
 
-        This ensures we hide the search line when mouse moves outside the
-        header, since mouseMoveEvent won't fire once outside the widget bounds.
-        """
-        if (
-            self.search_line is not None
-            and not self.search_line.permanent
-            and not self.rect().contains(
-                self.mapFromGlobal(self.cursor().pos())
-            )
-        ):
-            self.hide_search_line()
-        super().leaveEvent(e)
+    #     This ensures we hide the search line when mouse moves outside the
+    #     header, since mouseMoveEvent won't fire once outside the widget
+    #     bounds.
+    #     """
+    #     if (
+    #         self.search_line is not None
+    #         and not self.search_line.permanent
+    #         and not self.rect().contains(
+    #             self.mapFromGlobal(self.cursor().pos())
+    #         )
+    #     ):
+    #         self.hide_search_line()
+    #     super().leaveEvent(e)
 
-    def create_sort_actions(self, menu: QMenu, section: int):
+    def create_sort_actions(self, section: int):
         # Sort ascending
         ac_sort_asc = QAction(
             self.get_icon("sort_asc_az"),
@@ -141,7 +237,7 @@ class HeaderViewWithMenu(QHeaderView, QtUseContext, Generic[DBM]):
 
         return ac_sort_asc, ac_sort_desc
 
-    def create_filter_action(self, menu: QMenu, section: int):
+    def create_filter_action(self, section: int):
         ac_filter = QAction(
             self.get_icon("filter"),
             self.t("cmn.filter.title", "Filter..."),
@@ -150,7 +246,7 @@ class HeaderViewWithMenu(QHeaderView, QtUseContext, Generic[DBM]):
         ac_filter.triggered.connect(lambda: self.show_search_line(section))
         return ac_filter
 
-    def create_show_columns_action(self, menu: QMenu, section: int):
+    def create_show_columns_action(self, section: int) -> Union[QAction, None]:
         ac_show = QAction(
             self.get_icon("column_double"),
             self.t("cmn.columns", "Columns"),
@@ -171,13 +267,13 @@ class HeaderViewWithMenu(QHeaderView, QtUseContext, Generic[DBM]):
 
         menu = QMenu(self)
 
-        ac_sort_asc, ac_sort_desc = self.create_sort_actions(menu, section)
+        ac_sort_asc, ac_sort_desc = self.create_sort_actions(section)
 
         # Filter
-        ac_filter = self.create_filter_action(menu, section)
+        ac_filter = self.create_filter_action(section)
 
         # Choose column visibility.
-        ac_show = self.create_show_columns_action(menu, section)
+        ac_show = self.create_show_columns_action(section)
 
         sort_order = self.sortIndicatorOrder()
         current_sort_col = self.sortIndicatorSection()
@@ -312,6 +408,7 @@ class HeaderViewWithMenu(QHeaderView, QtUseContext, Generic[DBM]):
         self.search_line.show()
         if self.search_line is not None:
             self.search_line.setFocus()
+        self.search_line.permanent = True
 
     def hide_search_line(self):
         """Hide the search line if we have one."""
@@ -478,3 +575,120 @@ class HeaderViewWithMenu(QHeaderView, QtUseContext, Generic[DBM]):
             opt.rect = prev_rect
 
         painter.restore()
+
+    def read_sections_layout(self) -> dict[str, dict[str, int]]:
+        """Read the sections layout from the settings."""
+        qt_model = self.qt_model
+
+        # Go through all sections and save their current visual index and size.
+        settings = {}
+        for i in range(self.count()):
+            # Get the name of this field.
+            field_name = qt_model.column_fields[i].name
+
+            # Get the current visual index and size.
+            visual_index = self.visualIndex(i)
+
+            # Get the current size.
+            size = self.sectionSize(i)
+
+            # Save the current visual index and size.
+            settings[field_name] = {
+                "vi": visual_index,
+                "crt-vi": visual_index,
+                "li": i,
+                "size": size,
+                "hidden": self.isSectionHidden(i),
+            }
+
+        return settings
+
+    def stg_key_name(self, field_li: int, key: str) -> str:
+        # Underlying model.
+        qt_model = self.qt_model
+
+        # Common prefix for this model.
+        prefix = qt_model.__module__ + "." + qt_model.__class__.__name__
+
+        # Get the name of this field.
+        field_name = qt_model.column_fields[field_li].name
+        return f"{prefix}.{field_name}.{key}"
+
+    def apply_sections_layout(
+        self,
+        sections_layout: dict[str, dict[str, int]],
+        save_to_settings: bool = False,
+    ):
+        qt_model = self.qt_model
+        prefix = qt_model.__module__ + "." + qt_model.__class__.__name__
+        self._no_stg_write = True
+
+        self.setUpdatesEnabled(False)
+        try:
+            # Step 1: Show all sections to make sure movement is possible
+            for f_values in sections_layout.values():
+                self.showSection(f_values["li"])
+
+            # Step 2: Reorder sections based on saved visual indices
+            for f_name in sorted(
+                sections_layout.keys(), key=lambda x: sections_layout[x]["vi"]
+            ):
+                f_values = sections_layout[f_name]
+                logical_index = f_values["li"]
+                current_visual = self.visualIndex(logical_index)
+                target_visual = f_values["vi"]
+                if current_visual != target_visual:
+                    self.moveSection(current_visual, target_visual)
+
+            # Step 3: Apply visibility and resize
+            for f_values in sections_layout.values():
+                logical_index = f_values["li"]
+                self.resizeSection(logical_index, f_values["size"])
+                if f_values["hidden"]:
+                    self.hideSection(logical_index)
+
+                if save_to_settings:
+                    logger.debug(f"saving {f_name}.vi = {f_values['vi']}")
+                    self.ctx.stg.set_setting(
+                        f"{prefix}.{f_name}.vi", f_values["vi"]
+                    )
+
+                    size = max(f_values["size"], 10)
+                    logger.debug(f"saving {f_name}.size = {size}")
+                    self.ctx.stg.set_setting(f"{prefix}.{f_name}.size", size)
+
+                    logger.debug(
+                        f"saving {f_name}.hidden = {f_values['hidden']}"
+                    )
+                    self.ctx.stg.set_setting(
+                        f"{prefix}.{f_name}.hidden", f_values["hidden"]
+                    )
+
+        finally:
+            self.setUpdatesEnabled(True)
+            self._no_stg_write = False
+
+    def load_sections_from_settings(self):
+        """Load the visible sections and their length from the settings."""
+        qt_model = self.qt_model
+        prefix = qt_model.__module__ + "." + qt_model.__class__.__name__
+
+        # Read settings from the current layout.
+        crt_settings = self.read_sections_layout()
+
+        # Apply changes from the settings.
+        for f_name, f_values in crt_settings.items():
+            key = f"{prefix}.{f_name}"
+            new_values = self.ctx.stg.get_setting(key)
+            if new_values is not None:
+                f_values["hidden"] = new_values.get(
+                    "hidden", f_values["hidden"]
+                )
+                prev_size = f_values["size"]
+                f_values["size"] = new_values.get("size", prev_size)
+                if f_values["size"] < 1:
+                    f_values["size"] = max(prev_size, 10)
+                f_values["vi"] = new_values.get("vi", f_values["vi"])
+
+        # Apply changes from the settings.
+        self.apply_sections_layout(crt_settings)

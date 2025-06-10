@@ -26,6 +26,7 @@ dependencies = [
   "minify_html>=0.16.4",
   "PyQtWebEngine==5.15.7",
   "pluggy>=1.6.0",
+  "pyrsistent>=0.20.0",
 ]
 
 [project.optional-dependencies]

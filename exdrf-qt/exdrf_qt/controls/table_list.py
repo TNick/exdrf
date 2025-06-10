@@ -31,7 +31,7 @@ from exdrf_qt.controls.crud_actions import (
 )
 from exdrf_qt.controls.filter_dlg.filter_dlg import FilterDlg
 from exdrf_qt.controls.search_line import SearchLine
-from exdrf_qt.controls.tree_header import HeaderViewWithMenu
+from exdrf_qt.controls.tree_header import ListDbHeader
 
 if TYPE_CHECKING:
     from PyQt5.QtCore import QItemSelection, QItemSelectionModel  # noqa: F401
@@ -263,7 +263,7 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
         self.create_actions()
 
         # Use custom header
-        header: HeaderViewWithMenu = HeaderViewWithMenu(parent=self, ctx=ctx)
+        header: ListDbHeader = ListDbHeader(parent=self, ctx=ctx)
         self.setHeader(header)
 
     @property
@@ -314,6 +314,10 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
             self.ac_filter.setEnabled(not empty_model)
         if self.ac_new is not None:
             self.ac_new.setEnabled(True)
+
+        header = self.header()
+        if isinstance(header, ListDbHeader):
+            header.load_sections_from_settings()
 
     def create_actions(self):
         """Create the actions.

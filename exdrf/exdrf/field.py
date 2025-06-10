@@ -1,13 +1,23 @@
+from datetime import datetime
 from typing import TYPE_CHECKING, Any, List, Optional
 
 from attrs import define, field
 from pydantic import BaseModel
 
 from exdrf.constants import (
+    FIELD_TYPE_BOOL,
+    FIELD_TYPE_DATE,
+    FIELD_TYPE_DT,
+    FIELD_TYPE_FLOAT,
+    FIELD_TYPE_FLOAT_LIST,
+    FIELD_TYPE_INT_LIST,
+    FIELD_TYPE_INTEGER,
     FIELD_TYPE_REF_MANY_TO_MANY,
     FIELD_TYPE_REF_MANY_TO_ONE,
     FIELD_TYPE_REF_ONE_TO_MANY,
     FIELD_TYPE_REF_ONE_TO_ONE,
+    FIELD_TYPE_STRING,
+    FIELD_TYPE_STRING_LIST,
 )
 from exdrf.utils import doc_lines, inflect_e
 
@@ -242,6 +252,33 @@ class ExField:
             return ", ".join(f"{k}: {v}" for k, v in value.items())
         else:
             return str(value)
+
+    def value_from_str(self, value: str) -> Any:
+        """Convert a string to a value of this type."""
+        if self.type_name == FIELD_TYPE_STRING:
+            return value
+        elif self.type_name == FIELD_TYPE_INTEGER:
+            return int(value)
+        elif self.type_name == FIELD_TYPE_FLOAT:
+            return float(value)
+        elif self.type_name == FIELD_TYPE_BOOL:
+            return bool(value)
+        elif self.type_name == FIELD_TYPE_DATE:
+            return datetime.strptime(value, "%Y-%m-%d").date()
+        elif self.type_name == FIELD_TYPE_DT:
+            return datetime.strptime(value, "%Y-%m-%dT%H:%M:%S")
+        elif self.type_name == FIELD_TYPE_REF_ONE_TO_MANY:
+            return value.split(",")
+        elif self.type_name == FIELD_TYPE_REF_MANY_TO_MANY:
+            return value.split(",")
+        elif self.type_name == FIELD_TYPE_INT_LIST:
+            return [int(v) for v in value.split(",")]
+        elif self.type_name == FIELD_TYPE_FLOAT_LIST:
+            return [float(v) for v in value.split(",")]
+        elif self.type_name == FIELD_TYPE_STRING_LIST:
+            return value.split(",")
+        else:
+            return value
 
 
 class FieldInfo(BaseModel):

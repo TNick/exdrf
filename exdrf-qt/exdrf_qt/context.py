@@ -6,8 +6,10 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, cast
 
 from attrs import define, field
 from exdrf_al.connection import DbConn
+from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QMessageBox
+from pyrsistent import thaw
 
 from exdrf_qt.controls.seldb.sel_db import SelectDatabaseDlg
 from exdrf_qt.local_settings import LocalSettings
@@ -119,6 +121,7 @@ class QtContext(DbConn):
         if not w:
             return
         result = self.top_widget.mdi_area.addSubWindow(w)
+        w.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
         w.show()
         w.setWindowTitle(title)
         return result
@@ -320,7 +323,7 @@ class QtContext(DbConn):
             self.stg.set_setting("logging", log_stg)
 
         # Apply the configuration
-        logging.config.dictConfig(log_stg)
+        logging.config.dictConfig(thaw(log_stg))
 
         logger = logging.getLogger(__name__)
         logger.debug("Logging has been setup")

@@ -944,7 +944,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
         if self._auto_save_to is not None:
             try:
                 with open(self._auto_save_to, "w", encoding="utf-8") as f:
-                    f.write(self.c_editor.toPlainText())
+                    f.write(self.get_template_content_for_save())
             except Exception as e:
                 logger.error("Error auto-saving template: %s", e, exc_info=True)
         else:
@@ -958,7 +958,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
 
             # Save the backup file.
             with open(self._backup_file, "w", encoding="utf-8") as f:
-                f.write(self.c_editor.toPlainText())
+                f.write(self.get_template_content_for_save())
 
             # Delete old backups.
             self.delete_old_backups()
@@ -992,6 +992,10 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
                     os.remove(file_path)
                     logger.info("Deleted old backup file: %s", file_path)
 
+    def get_template_content_for_save(self) -> str:
+        """Get the template content for saving."""
+        return self.c_editor.toPlainText()
+
     def on_save_as_templ(self):
         """Save the template."""
         try:
@@ -1006,7 +1010,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
             )
             if file_name:
                 with open(file_name, "w", encoding="utf-8") as f:
-                    f.write(self.c_editor.toPlainText())
+                    f.write(self.get_template_content_for_save())
                 self._auto_save_to = None
                 self._auto_save_timer.stop()
         except Exception as e:
@@ -1127,6 +1131,10 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
         if file_name:
             converter = HtmlToDocxConverter(self.c_viewer)
             converter.export_to_docx(file_name)
+
+    def show_variables_widget(self, visible: bool = True):
+        """Show or hide the variables widget."""
+        self.ac_toggle_vars.setChecked(visible)
 
 
 DBM = TypeVar("DBM")
