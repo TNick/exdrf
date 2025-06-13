@@ -2,6 +2,7 @@ from typing import TYPE_CHECKING, Any, Generic, Set, TypeVar
 
 from exdrf.constants import RecIdType
 from PyQt5.QtCore import Qt
+from sqlalchemy import inspect
 
 from exdrf_qt.controls.search_list import SearchList
 from exdrf_qt.field_ed.base_drop import DropBase
@@ -140,12 +141,23 @@ class DrfSelMultiEditor(DropBase, Generic[DBM]):
         """
         if not self._name:
             raise ValueError("Field name is not set.")
+        crt_val = getattr(db_item, self._name, None)
         if self.field_value is None:
-            setattr(db_item, self._name, None)
+            if crt_val is not None:
+                crt_val.clear()
+            else:
+                setattr(db_item, self._name, None)
             return
         db_lst = [
             d
             for d in self.qt_model.get_db_items_by_id(self.field_value)
             if d is not None
         ]
-        setattr(db_item, self._name, db_lst)
+        # As the value may be either a list or a set, let the class decide
+        # what to do.
+        if crt_val is not None:
+            setattr(db_item, self._name, crt_val.__class__(db_lst))
+        else:
+            mapper = inspect(db_item.__class__)
+            relationship = mapper.relationships[self._name]
+            setattr(db_item, self._name, relationship.collection_class(db_lst))

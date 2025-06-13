@@ -207,11 +207,19 @@ class NumberBase(LineBase, Generic[T]):
                 self.change_by_delta(-1)
         event.accept()
 
-    def is_valid(self) -> ValidationResult:
+    def validate_control(self) -> ValidationResult:
         """Check if the field value is valid."""
-        if self._field_value is None and not self.nullable:
+        if self._field_value is None:
+            if not self.nullable:
+                return ValidationResult(
+                    reason="NULL",
+                    error=self.null_error(),
+                )
             return ValidationResult(
-                reason="NULL",
-                error=self.null_error(),
+                value=self._field_value,
             )
         return self._check_value(self.text())
+
+    def is_valid(self) -> bool:
+        """Check if the field value is valid."""
+        return self.validate_control().is_valid

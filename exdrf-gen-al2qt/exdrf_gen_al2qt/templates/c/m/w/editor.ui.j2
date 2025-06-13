@@ -43,12 +43,26 @@
         </widget>
        </item>
        <item row="{{ f_i }}" column="1">
-        {%- if field.primary %}
+        {%-
+            set read_only_data = read_only_fields.get(
+              r.name + "." + field.name, 
+              read_only_fields.get(
+                field.name, 
+                None
+              )
+            )
+        %}
+        {%- if read_only_data is not none %}
+        {%- if read_only_data.get("ui_xml", None) %}
+        {{ read_only_data["ui_xml"] }}
+        {%- else %}
         <widget class="QLineEdit" name="c_{{ field.name }}">
          <property name="readOnly">
           <bool>true</bool>
          </property>
-        {% else %}
+        </widget>
+        {%- endif %}
+        {%- else %}
         <widget class="{{ base_ui_class(field) }}" name="c_{{ field.name }}">
          <property name="name" stdset="0">
           {%- if field.fk_from %}
@@ -72,8 +86,8 @@
           <bool>false</bool>
          </property>
          {%- endif %}
-        {% endif %}
         </widget>
+        {% endif %}
        </item>
      {% endif %}
      {% endfor %}

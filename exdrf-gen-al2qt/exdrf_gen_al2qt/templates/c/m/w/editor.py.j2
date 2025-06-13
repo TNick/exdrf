@@ -80,12 +80,27 @@ class Qt{{ ResPascal }}Editor(
         )
 
     def populate(self, record: Union["{{ ResPascal }}", None]):
-        {%- for prm in res_primaries %}
-        self.c_{{ prm }}.setText(str(record.{{ prm }}) if record else "")
+        {#- Enumerate read-only fields #}
+        {%- for ro_field, ro_data in read_only_fields.items() %}
+        {#- the field may be indicated by name or by resource.field #}
+        {%- if ro_field.startswith(r.name + ".") or ro_field in r %}
+        {#- the structure may provide an override #}
+        {%- set rec_to_str = ro_data.get("rec_to_str", None) %}
+        {%- if rec_to_str %}
+        {{ rec_to_str.format(field=ro_field) }}
+        {%- else %}
+        self.c_{{ ro_field }}.setText(str(record.{{ ro_field }}) if record else "")
+        {%- endif%}
+        {%- endif %}
         {%- endfor %}
         self._populate(record, [
-        {%- for prm in res_primaries %}
+        {#- exclude read-only fields #}
+        {%- for prm in read_only_fields %}
+            {%- if prm.startswith(r.name + ".") %}
+            '{{ prm.split(".")[1] }}',
+            {%- else %}
             '{{ prm }}',
+            {%- endif %}
         {%- endfor %}
         ])
 

@@ -1,3 +1,4 @@
+import logging
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -23,6 +24,7 @@ if TYPE_CHECKING:
 
 
 DBM = TypeVar("DBM")
+logger = logging.getLogger(__name__)
 
 
 @define
@@ -214,9 +216,12 @@ class Selector(Generic[DBM]):
         for definition_item in subset:
             # definition_item can be a FieldFilter (dict/instance) or a list
             # like ["AND", [...]]
-            processed_item = self._single_def(definition_item)
-            if processed_item is not None:
-                components.append(processed_item)
+            try:
+                processed_item = self._single_def(definition_item)
+                if processed_item is not None:
+                    components.append(processed_item)
+            except Exception as e:
+                logger.error("Error applying filter %s: %s", definition_item, e)
 
         return components
 

@@ -149,6 +149,8 @@ def jinja_contains(target_list, key, value):
 
 
 def jinja_format_date(date, format_string="%d-%m-%Y"):
+    if date is None:
+        return "-"
     return date.strftime(format_string)
 
 

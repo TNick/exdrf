@@ -169,15 +169,37 @@ def generate_qt_from_alchemy(
     ] = d_sf_for_ui,
     base_ui_class: Callable[["ExField"], str] = d_base_ui_class,
     set_fld_category: Callable[["ExField"], str] = d_fld_category,
+    read_only_fields: Dict[str, Any] = {},
     **kwargs: Any,
 ):
     """Generate Qt widgets and models from SqlAlchemy models.
 
-    Arguments:
-        DATASET: The base class for the SQLAlchemy models as a module.name:path.
-        OUT-PATH: The directory path to write the generated files to.
-        OUT-MODULE: The module name to use for the generated files.
-        DB-MODULE: The module name for the SQLAlchemy models.
+    Args:
+        d_set: The dataset to generate the code for.
+        out_path: The path to write the generated files to.
+        out_module: The module name to use for the generated files.
+        db_module: The module name for the SQLAlchemy models.
+        env: The Jinja environment to use for the generated code.
+        sr_for_ui: The function to use to sort the resources for the UI.
+        sf_for_ui: The function to use to sort the fields for the UI.
+        base_ui_class: The function to use to get the base UI class for a field.
+        set_fld_category: The function to use to set the category for a field.
+        read_only_fields: The keys indicates which field names are read-only.
+            The name may include a single dot, with first part representing the
+            resource name and the second part representing the field name. If
+            the dot is not present, the field is matched by name across all
+            resources.
+            The value is a dictionary that indicate how to deal with the field:
+                * rec_to_str: this is a string that should accept a dingle
+                  format argument called `field`; it is used to generate the
+                  code that populates the editor. The default is to generate
+                  `self.c_{{ field }}.setText(
+                      str(record.{{ field }}) if record else ""
+                  )`
+                * ui_xml: this is a string that contains the XML for the field
+                  in the .ui file of the editor; by default a line edit is
+                  created with readOnly set to true.
+        **kwargs: Additional keyword arguments to pass to the generator.
     """
     click.echo("Generating Qt from exdrf...")
 
@@ -320,5 +342,6 @@ def generate_qt_from_alchemy(
         db_module=db_module,
         sorted_resources_for_ui=sr_for_ui,
         sorted_fields_for_ui=sf_for_ui,
+        read_only_fields=read_only_fields,
         **kwargs,
     )

@@ -175,7 +175,12 @@ class EditorDb(QWidget, QtUseContext, Generic[DBM]):
         Returns:
             True if the editor is valid.
         """
-        return all(ed.is_valid().is_valid for ed in self.edit_fields)
+        valid = True
+        for ed in self.edit_fields:
+            if not ed.is_valid():
+                valid = False
+                logger.debug("Field %s is not valid", ed.name)
+        return valid
 
     @property
     def is_editing(self) -> bool:
@@ -191,7 +196,7 @@ class EditorDb(QWidget, QtUseContext, Generic[DBM]):
     def editing_changed(self, value: bool):
         """Reimplement this method to handle edit/view state changes."""
         for ed_fld in self.edit_fields:
-            ed_fld.change_edit_mode(value)  # type: ignore[union-attr]
+            ed_fld.change_edit_mode(value)  # type: ignore
 
     def read_record(self, session: "Session", record_id: RecIdType) -> DBM:
         """Read a record from the database.
@@ -206,10 +211,8 @@ class EditorDb(QWidget, QtUseContext, Generic[DBM]):
         Returns:
             The record read from the database.
         """
-        return session.scalar(
-            self.selection.where(
-                self.db_model.id == record_id  # type: ignore[operator]
-            )
+        return session.scalar(  # type: ignore
+            self.selection.where(self.db_model.id == record_id)  # type: ignore
         )
 
     def _clear_editor(self):
@@ -262,7 +265,7 @@ class EditorDb(QWidget, QtUseContext, Generic[DBM]):
             logger.exception("Exception in EditorDb.set_record")
 
         # Clear the dirty flag.
-        self.is_dirty = False
+        self.is_dirty = False  # type: ignore
 
         return self
 
@@ -381,7 +384,7 @@ class EditorDb(QWidget, QtUseContext, Generic[DBM]):
         Returns:
             The record ID.
         """
-        return record.id  # type: ignore[union-attr]
+        return record.id  # type: ignore
 
     def on_save(self):
         """The user asks us to save the record.

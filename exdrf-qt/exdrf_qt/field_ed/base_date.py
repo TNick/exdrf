@@ -146,7 +146,7 @@ class DateBase(LineBase):
             return
         text = self.text()
         if len(text) == 0:
-            self.set_line_empty()
+            self.set_line_null()
             return
 
         result = self.formatter.validate(text, self.t)
@@ -168,14 +168,22 @@ class DateBase(LineBase):
             assert self.ac_clear is not None
             self.ac_clear.setEnabled(False)
 
-    def is_valid(self) -> ValidationResult:
+    def validate_control(self) -> ValidationResult:
         """Check if the field value is valid."""
-        if self._field_value is None and not self.nullable:
+        if self._field_value is None:
+            if not self.nullable:
+                return ValidationResult(
+                    reason="NULL",
+                    error=self.null_error(),
+                )
             return ValidationResult(
-                reason="NULL",
-                error=self.null_error(),
+                value=self._field_value,
             )
         return self.formatter.validate(self.text(), self.t)
+
+    def is_valid(self) -> bool:
+        """Check if the field value is valid."""
+        return self.validate_control().is_valid
 
     def change_read_only(self, value: bool) -> None:
         if value:

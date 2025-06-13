@@ -129,19 +129,25 @@ class DrfFieldEd(QtUseContext):
             "change_field_value() must be implemented in subclasses."
         )
 
-    def is_valid(self) -> ValidationResult:
+    def validate_control(self) -> ValidationResult:
         """Check if the field value is valid.
 
         By default we check for NULL when the field is not nullable.
         """
-        if self._field_value is not None or self.nullable:
-            return ValidationResult(
-                value=self._field_value,
-            )
-        return ValidationResult(
-            reason="NULL",
-            error=self.null_error(),
-        )
+        if self._field_value is None:
+            if not self.nullable:
+                return ValidationResult(
+                    reason="NULL",
+                    error=self.null_error(),
+                )
+        return ValidationResult(value=self._field_value)
+
+    def is_valid(self) -> bool:
+        """Check if the field value is valid.
+
+        By default we check for NULL when the field is not nullable.
+        """
+        return self.validate_control().is_valid
 
     def null_error(self):
         """Create the error message for NULL when the field is not nullable."""
