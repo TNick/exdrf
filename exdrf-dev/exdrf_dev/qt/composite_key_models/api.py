@@ -14,7 +14,3 @@ from .widgets.composite_key_models_editor import (  # noqa: F401
 from .widgets.composite_key_models_full_list import (  # noqa: F401
     QtCompositeKeyModelList,
 )
-from .widgets.composite_key_models_selector import (  # noqa: F401
-    QtCompositeKeyModelMuSe,
-    QtCompositeKeyModelSiSe,
-)

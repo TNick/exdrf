@@ -14,7 +14,3 @@ from .widgets.parent_tag_associations_editor import (  # noqa: F401
 from .widgets.parent_tag_associations_full_list import (  # noqa: F401
     QtParentTagAssociationList,
 )
-from .widgets.parent_tag_associations_selector import (  # noqa: F401
-    QtParentTagAssociationMuSe,
-    QtParentTagAssociationSiSe,
-)
