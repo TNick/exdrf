@@ -21,7 +21,7 @@ import sqlparse
 from exdrf.constants import RecIdType
 from exdrf.filter import FieldFilter, FilterType, validate_filter
 from PyQt5.QtCore import QAbstractItemModel, QModelIndex, Qt, QTimer, pyqtSignal
-from sqlalchemy import func, select, tuple_
+from sqlalchemy import case, func, select, tuple_
 from sqlalchemy.exc import SQLAlchemyError
 
 from exdrf_qt.context_use import QtUseContext
@@ -84,6 +84,7 @@ class QtModel(
             Filters and sorting are applied to this selection to create the
             selection attribute.
         sort_by: A list of tuples with the field name and order (asc or desc).
+        prioritized_ids: A list of IDs to prioritize in sorting.
         filters: The filters to apply.
         cache: the list of items that have been loaded from the database.
         batch_size: The number of items to load at once. The model issues
@@ -117,6 +118,7 @@ class QtModel(
     selection: "Select"
     base_selection: "Select"
     sort_by: List[Tuple[str, Literal["asc", "desc"]]]
+    prioritized_ids: Optional[List[RecIdType]]
     _filters: FilterType
     cache: SparseList["QtRecord"]
     batch_size: int
@@ -172,6 +174,7 @@ class QtModel(
         )
         self.base_selection = self.selection
         self.sort_by = []
+        self.prioritized_ids = None
         self._filters = []
         self.batch_size = batch_size
         self.cache = SparseList(lambda: QtRecord(model=self, db_id=-1))
@@ -297,35 +300,47 @@ class QtModel(
 
         The function does not change the internal `selection` attribute.
         """
+        order_by_clauses = []
+
+        if self.prioritized_ids:
+            primary_cols = self.get_primary_columns()
+            order_by_expression = case(
+                (primary_cols.in_(self.prioritized_ids), 0), else_=1
+            )
+            order_by_clauses.append(order_by_expression)
+
         if not self.sort_by:
-            return self.filtered_selection
+            if not order_by_clauses:
+                return self.filtered_selection
+        else:
+            try:
+                for field_key, order in self.sort_by:
+                    fld = self.get_field(field_key)
+                    if fld is None:
+                        logger.warning(
+                            "Sorting field %s not found in model %s",
+                            field_key,
+                            self.name,
+                        )
+                        continue
+                    if not fld.sortable:
+                        logger.warning(
+                            "Sorting field %s not sortable in model %s",
+                            field_key,
+                            self.name,
+                        )
+                        continue
+                    tmp = fld.apply_sorting(order == "asc")
+                    if tmp is not None:
+                        order_by_clauses.append(tmp)
 
-        try:
-            result = []
-            for field_key, order in self.sort_by:
-                fld = self.get_field(field_key)
-                if fld is None:
-                    logger.warning(
-                        "Sorting field %s not found in model %s",
-                        field_key,
-                        self.name,
-                    )
-                    continue
-                if not fld.sortable:
-                    logger.warning(
-                        "Sorting field %s not sortable in model %s",
-                        field_key,
-                        self.name,
-                    )
-                    continue
-                tmp = fld.apply_sorting(order == "asc")
-                if tmp is not None:
-                    result.append(tmp)
+            except Exception:
+                logger.error("Error applying sorting", exc_info=True)
+                return self.filtered_selection
 
-            return self.filtered_selection.order_by(*result)
-        except Exception:
-            logger.error("Error applying sorting", exc_info=True)
-            return self.filtered_selection
+        if order_by_clauses:
+            return self.filtered_selection.order_by(*order_by_clauses)
+        return self.filtered_selection
 
     @property
     def is_fully_loaded(self) -> bool:
@@ -678,7 +693,7 @@ class QtModel(
                 raise e
 
     def get_db_items_by_id(
-        self, rec_ids: List[RecIdType]
+        self, id_list: List[RecIdType]
     ) -> List[Union[None, DBM]]:
         """Return the database items with the given IDs.
 
@@ -686,28 +701,24 @@ class QtModel(
         load the item from the database. The model does not use this directly.
 
         Args:
-            rec_ids: The list of IDs to return.
+            id_list: The list of IDs to retrieve. If the model has a single
+                primary key, the list should consist of single values. If the
+                model has a composite primary key, the list should consist
+                of tuples of values (the order of the items in the tuple
+                should be the same as the order of the primary columns in
+                the `self.fields` array).
 
         Returns:
-            The database items with the given ID or None if not found.
+            The database items with the given ID or None if not found. The
+            order of the items is the same as the order of the IDs in the
+            `id_list` list. None is returned for IDs that are not found.
         """
-
-        primary_cols = []
-        for f in self.fields:
-            if f.primary:
-                primary_cols.append(getattr(self.db_model, f.name))
-        assert len(primary_cols) > 0, "No primary columns found"
-
-        if len(primary_cols) == 1:
-            condition = primary_cols[0].in_(rec_ids)
-        else:
-            condition = tuple_(*primary_cols).in_(rec_ids)
-
         with self.ctx.same_session() as session:
-            results = session.scalars(self.selection.where(condition))
+            results = session.scalars(
+                self.selection.where(self.get_id_filter(id_list))
+            )
             r_map = {self.get_db_item_id(a): a for a in results}
-
-            return [r_map.get(cast(Any, i)) for i in rec_ids]
+            return [r_map.get(cast(Any, i)) for i in id_list]
 
     def clone_me(self):
         """Clone the model.
@@ -942,3 +953,10 @@ class QtModel(
         if self._checked is None:
             return None
         return [self._db_to_row[db_id] for db_id in self._checked]
+
+    def set_prioritized_ids(self, ids: Optional[List[RecIdType]]) -> None:
+        """Set the prioritized IDs and reset the model."""
+        if self.prioritized_ids == ids:
+            return
+        self.prioritized_ids = ids
+        self.reset_model()

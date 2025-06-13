@@ -1,3 +1,4 @@
+import logging
 from typing import TYPE_CHECKING, Any, Generic, Set, TypeVar
 
 from exdrf.constants import RecIdType
@@ -13,6 +14,7 @@ if TYPE_CHECKING:
     from exdrf_qt.models.record import QtRecord
 
 DBM = TypeVar("DBM")
+logger = logging.getLogger(__name__)
 
 
 class DrfSelMultiEditor(DropBase, Generic[DBM]):
@@ -64,44 +66,57 @@ class DrfSelMultiEditor(DropBase, Generic[DBM]):
         """
         if new_value is None:
             self.set_line_null()
-        else:
-            self.field_value = []
-            content = []
-            not_set = {}
-            for itr in new_value:
-                if hasattr(itr.__class__, "metadata"):
-                    itr = self.qt_model.get_db_item_id(itr)
-                self.field_value.append(itr)
+            return
 
-                row = self.qt_model._db_to_row.get(
-                    itr, None  # type: ignore[assignment]
-                )
-                loaded = False
-                if row is not None:
-                    record = self.qt_model.cache[row]
-                    if record.loaded:
-                        content.append(record)
-                        loaded = True
-                if not loaded:
-                    not_set[itr] = len(content)
-                    content.append("")
+        self.field_value = []
+        content = []
+        not_set = {}
+        for itr in new_value:
+            if hasattr(itr.__class__, "metadata"):
+                itr = self.qt_model.get_db_item_id(itr)
+            self.field_value.append(itr)
 
-            if len(not_set) > 0:
-                for db_item in self.qt_model.get_db_items_by_id(
-                    list(not_set.keys())
-                ):
-                    if db_item is not None:
-                        record = self.qt_model.db_item_to_record(db_item)
-                        rec_id = self.qt_model.get_db_item_id(db_item)
-                        loc = not_set[rec_id]
-                        content[loc] = self.record_to_text(record)
+            # Get the row number of the item in the model.
+            row = self.qt_model._db_to_row.get(
+                itr, None  # type: ignore[assignment]
+            )
 
-            self.checked_ids = set(self.field_value)
-            self.set_line_normal()
-            self.on_checked_ids_changed()
-            if self.nullable:
-                assert self.ac_clear is not None
-                self.ac_clear.setEnabled(True)
+            # If the model has loaded the item, add it to the content.
+            loaded = False
+            if row is not None:
+                record = self.qt_model.cache[row]
+                if record.loaded:
+                    content.append(record)
+                    loaded = True
+
+            # If the model has not loaded the item, save the location
+            # and add a placeholder.
+            if not loaded:
+                not_set[itr] = len(content)
+                content.append("")  # type: ignore
+
+        # If there are items that are not loaded, load them and add them to
+        # the content.
+        if len(not_set) > 0:
+            ids_to_load = list(not_set.keys())
+            for db_item, rec_id in zip(
+                self.qt_model.get_db_items_by_id(ids_to_load),
+                ids_to_load,
+            ):
+                if db_item is not None:
+                    # Use the model to convert the database item to a record.
+                    record = self.qt_model.db_item_to_record(db_item)
+                    content[not_set[rec_id]] = self.record_to_text(record)
+                else:
+                    logger.debug("No record found for %s", rec_id)
+
+        self.qt_model.set_prioritized_ids(self.field_value)
+        self.checked_ids = set(self.field_value)
+        self.set_line_normal()
+        self.on_checked_ids_changed()
+        if self.nullable:
+            assert self.ac_clear is not None
+            self.ac_clear.setEnabled(True)
 
     def _show_dropdown(self):
         """Show the dropdown with filtered choices."""
@@ -117,7 +132,7 @@ class DrfSelMultiEditor(DropBase, Generic[DBM]):
             self.t(
                 "cmn.sel_count",
                 "{cnt} selected",
-                cnt=len(self._dropdown.qt_model.checked_ids),
+                cnt=len(self._dropdown.qt_model.checked_ids),  # type: ignore
             )
         )
         self.field_value = self._dropdown.qt_model.checked_ids

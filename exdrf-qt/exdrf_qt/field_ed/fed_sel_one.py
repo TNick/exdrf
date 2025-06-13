@@ -51,31 +51,34 @@ class DrfSelOneEditor(DropBase, Generic[DBM]):
         """
         if new_value is None:
             self.set_line_null()
-        else:
-            self.field_value = new_value
-            self.set_line_normal()
+            return
 
-            # Attempt to locate the record in the model.
-            loaded = False
-            row = self.qt_model._db_to_row.get(new_value, None)
-            if row is not None:
-                record = self.qt_model.cache[row]
-                if record.loaded:
-                    self.setText(self.record_to_text(record))
-                    loaded = True
+        self.field_value = new_value
+        self.set_line_normal()
 
-            if not loaded:
-                # If the record is not loaded, we need to load it ourselves.
-                with self.qt_model.get_one_db_item_by_id(new_value) as db_item:
-                    if db_item is None:
-                        self.set_line_null()
-                        return
-                    record = self.qt_model.db_item_to_record(db_item)
-                    self.setText(self.record_to_text(record))
+        # Attempt to locate the record in the model.
+        loaded = False
+        row = self.qt_model._db_to_row.get(new_value, None)
+        if row is not None:
+            record = self.qt_model.cache[row]
+            if record.loaded:
+                self.setText(self.record_to_text(record))
+                loaded = True
 
-            if self.nullable:
-                assert self.ac_clear is not None
-                self.ac_clear.setEnabled(True)
+        if not loaded:
+            # If the record is not loaded, we need to load it ourselves.
+            with self.qt_model.get_one_db_item_by_id(new_value) as db_item:
+                if db_item is None:
+                    self.set_line_null()
+                    return
+                record = self.qt_model.db_item_to_record(db_item)
+                self.setText(self.record_to_text(record))
+
+        self.qt_model.set_prioritized_ids([new_value])
+        self.set_line_normal()
+        if self.nullable:
+            assert self.ac_clear is not None
+            self.ac_clear.setEnabled(True)
 
     def _show_dropdown(self):
         """Show the dropdown with filtered choices."""
@@ -94,6 +97,7 @@ class DrfSelOneEditor(DropBase, Generic[DBM]):
         record = self._dropdown.qt_model.cache[row]
         if not record.loaded:
             return
+
         self.setText(self.record_to_text(record))
         self._dropdown.hide()
         self.field_value = record.db_id
