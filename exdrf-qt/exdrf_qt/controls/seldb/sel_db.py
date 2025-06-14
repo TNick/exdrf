@@ -145,8 +145,7 @@ class SelectDatabaseDlg(QDialog, Ui_SelectDatabase, QtUseContext):
             Qt.ContextMenuPolicy.ActionsContextMenu
         )
 
-        existing = self.get_stg("exdrf.db.c_strings", [])
-        for item in existing:
+        for item in self.ctx.stg.get_db_configs():
             tree_item = QTreeWidgetItem(
                 [
                     item["name"],
@@ -183,14 +182,13 @@ class SelectDatabaseDlg(QDialog, Ui_SelectDatabase, QtUseContext):
         item_c_string = item.text(COL_C_STRING)
 
         # Update the settings
-        stg_list = self.get_stg("exdrf.db.c_strings", [])
-        for stg in stg_list:
-            if stg["id"] == item_id:
-                stg["name"] = item_name
-                stg["schema"] = item_schema
-                stg["c_string"] = item_c_string
-                break
-        self.set_stg("exdrf.db.c_strings", stg_list)
+        self.ctx.stg.update_db_config(
+            id=item_id,
+            name=item_name,
+            kind=item.text(COL_TYPE),
+            c_string=item_c_string,
+            schema=item_schema,
+        )
 
     def on_mng_current_changed(self):
         """Handle the current item changed event.
@@ -248,9 +246,7 @@ class SelectDatabaseDlg(QDialog, Ui_SelectDatabase, QtUseContext):
             self.c_list.takeTopLevelItem(self.c_list.indexOfTopLevelItem(item))
 
             # Remove the item from the settings
-            stg_list = self.get_stg("exdrf.db.c_strings", [])
-            stg_list = [c for c in stg_list if c["id"] != item_id]
-            self.set_stg("exdrf.db.c_strings", stg_list)
+            self.ctx.stg.remove_db_config(item_id)
 
     def save_crt(self):
         """Save the current connection to the database."""
@@ -273,25 +269,23 @@ class SelectDatabaseDlg(QDialog, Ui_SelectDatabase, QtUseContext):
             else self.t("cmn.db.remote", "Remote")
         )
         schema = self.c_schema.text().strip()
-        setting = {
-            "id": str(uuid4()),
-            "name": name,
-            "type": kind,
-            "c_string": c_string,
-            "schema": schema,
-        }
+        config_id = str(uuid4())
 
         # Create a new tree item.
         item = QTreeWidgetItem([name, kind, schema, c_string])
         item.setFlags(item.flags() | Qt.ItemFlag.ItemIsEditable)
-        item.setData(COL_NAME, Qt.ItemDataRole.UserRole, setting["id"])
+        item.setData(COL_NAME, Qt.ItemDataRole.UserRole, config_id)
         item.setData(COL_TYPE, Qt.ItemDataRole.UserRole, local)
         self.c_list.addTopLevelItem(item)
 
         # Update the settings.
-        stg_list = self.get_stg("exdrf.db.c_strings", [])
-        stg_list.append(setting)
-        self.set_stg("exdrf.db.c_strings", stg_list)
+        self.ctx.stg.add_db_config(
+            id=config_id,
+            name=name,
+            kind=kind,
+            c_string=c_string,
+            schema=schema,
+        )
 
         # Make the management tab the current tab.
         self.main_tab.setCurrentWidget(self.tab_manage)
@@ -427,18 +421,6 @@ class SelectDatabaseDlg(QDialog, Ui_SelectDatabase, QtUseContext):
         if filename:
             self.c_file_path.setText(filename)
 
-    @classmethod
-    def change_connection_str(cls, ctx: "QtContext") -> Tuple[str, str]:
-        """Ask the user for the connection string.."""
-        dlg = cls(parent=ctx.top_widget, ctx=ctx)
-        if ctx.c_string:
-            dlg.set_con_str(ctx.c_string)
-        if ctx.schema:
-            dlg.schema = ctx.schema
-        if dlg.exec_() == dlg.Accepted:
-            ctx.set_db_string(dlg.con_str, dlg.schema)
-        return ctx.c_string, ctx.schema
-
     def bootstrap(self):
         """Bootstrap the database."""
         local_ctx = self.ctx.__class__(
@@ -486,3 +468,15 @@ class SelectDatabaseDlg(QDialog, Ui_SelectDatabase, QtUseContext):
             self.ctx.t("cmn.info", "Info"),
             self.ctx.t("cmn.db.bootstrap-success", "Bootstrap successful!"),
         )
+
+    @classmethod
+    def change_connection_str(cls, ctx: "QtContext") -> Tuple[str, str]:
+        """Ask the user for the connection string.."""
+        dlg = cls(parent=ctx.top_widget, ctx=ctx)
+        if ctx.c_string:
+            dlg.set_con_str(ctx.c_string)
+        if ctx.schema:
+            dlg.schema = ctx.schema
+        if dlg.exec_() == dlg.Accepted:
+            ctx.set_db_string(dlg.con_str, dlg.schema)
+        return ctx.c_string, ctx.schema

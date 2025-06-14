@@ -181,6 +181,10 @@ class QtContext(DbConn):
         self.c_string = c_string
         self.schema = schema
 
+    def db_config_id(self) -> str:
+        """Get the ID of the current database configuration."""
+        return self.stg.get_db_configs()[0]["id"]
+
     def push_work(
         self,
         statement: "Select",
