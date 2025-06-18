@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Union
 
 if TYPE_CHECKING:
     from PyQt5.QtWidgets import QWidget  # noqa: F401
@@ -93,3 +93,16 @@ class QtUseContext:
             value: The value to set the setting to.
         """
         self.ctx.stg[key] = value
+
+    def current_db_setting_id(self) -> Union[str, None]:
+        """Get the ID of the current database configuration.
+
+        The function locates the connection string and schema and returns
+        the ID of the configuration. If the configuration is not found,
+        a new one is created and its ID is returned.
+
+        Returns:
+            The ID of the current database configuration or None if no
+            connection string is set in the context.
+        """
+        return self.ctx.current_db_setting_id()

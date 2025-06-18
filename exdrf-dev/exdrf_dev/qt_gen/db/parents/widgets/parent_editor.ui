@@ -43,8 +43,8 @@
          <property name="clearable" stdset="0">
           <bool>true</bool>
          </property>
-        
         </widget>
+        
        </item>
      
      
@@ -63,8 +63,8 @@
          <property name="name" stdset="0">
           <string notr="true">created_at</string>
          </property>
-        
         </widget>
+        
        </item>
      
      
@@ -83,8 +83,8 @@
          <property name="name" stdset="0">
           <string notr="true">is_active</string>
          </property>
-        
         </widget>
+        
        </item>
      
      
@@ -103,8 +103,8 @@
          <property name="name" stdset="0">
           <string notr="true">name</string>
          </property>
-        
         </widget>
+        
        </item>
      
      
@@ -126,8 +126,8 @@
          <property name="clearable" stdset="0">
           <bool>true</bool>
          </property>
-        
         </widget>
+        
        </item>
      
      
@@ -149,8 +149,8 @@
          <property name="clearable" stdset="0">
           <bool>true</bool>
          </property>
-        
         </widget>
+        
        </item>
      
      
@@ -173,12 +173,12 @@
         </widget>
        </item>
        <item row="0" column="1">
-        <widget class="QLineEdit" name="c_id">
-         <property name="readOnly">
-          <bool>true</bool>
+        <widget class="DrfIntEditor" name="c_id">
+         <property name="name" stdset="0">
+          <string notr="true">id</string>
          </property>
-        
         </widget>
+        
        </item>
      
      

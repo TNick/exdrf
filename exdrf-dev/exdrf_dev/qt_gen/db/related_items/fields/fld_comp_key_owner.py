@@ -52,10 +52,22 @@ class CompKeyOwnerField(QtRefManyToOneField["RelatedItem"]):
     def apply_filter(self, item: "FieldFilter", selector: "Selector") -> Any:
         from exdrf_dev.db.api import CompositeKeyModel as DbCompositeKeyModel
 
+        predicate = filter_op_registry[item.op].predicate
+        related_entity = getattr(self.resource.db_model, self.name)
+        # M2O(CompositeKeyModel)
+        subq = related_entity.has(
+            predicate(DbCompositeKeyModel.description, item.vl),
+        )
+        return subq
+
         with_alias = aliased(DbCompositeKeyModel)
         predicate = filter_op_registry[item.op].predicate
         selector.joins.append(
-            (with_alias, getattr(self.resource.db_model, self.name))
+            (
+                with_alias,
+                getattr(self.resource.db_model, self.name),
+                {"isouter": True},
+            )
         )
 
         return predicate(

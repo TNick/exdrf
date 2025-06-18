@@ -30,6 +30,7 @@ class Work:
     req_id: Any
     result: List[Any] = field(factory=list)
     error: Any = field(default=None)
+    use_unique: bool = False
 
 
 class Relay(QObject):
@@ -77,6 +78,7 @@ class Relay(QObject):
         statement: "Select",
         callback: Callable[["Work"], None],
         req_id: Optional[Any] = None,
+        use_unique: bool = False,
     ) -> "Work":
         """Add work to be done by the worker thread.
 
@@ -94,6 +96,7 @@ class Relay(QObject):
             statement=statement,
             callback=callback,
             req_id=req_id or uuid4().int,
+            use_unique=use_unique,
         )
 
         # Save it locally.
@@ -134,18 +137,23 @@ class Worker(QThread):
         self.cn = cn
         self.setObjectName("ExdrfWorkerThread")
 
-    def run(self):
+    def run(self) -> None:
         """The main function of the worker thread."""
         threading.current_thread().name = "ExdrfWorkerThread"
         while not self.should_stop:
             try:
-                work = self.queue.get(timeout=0.5)
+                work: "Work" = self.queue.get(timeout=0.5)
             except Empty:
                 continue
 
             try:
                 with self.cn.session() as session:
-                    work.result = list(session.scalars(work.statement))
+                    if work.use_unique:
+                        work.result = list(
+                            session.scalars(work.statement).unique().all()
+                        )
+                    else:
+                        work.result = list(session.scalars(work.statement))
                     session.expunge_all()
                 logger.debug("Work with ID %s completed", work.req_id)
             except Exception as e:

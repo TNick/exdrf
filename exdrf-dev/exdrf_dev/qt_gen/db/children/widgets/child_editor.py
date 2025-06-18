@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Union
 
 from exdrf.constants import RecIdType
 from exdrf_qt.controls import EditorDb
+from exdrf_qt.plugins import exdrf_qt_pm, safe_hook_call
 
 from exdrf_dev.qt_gen.db.children.widgets.child_editor_ui import (
     Ui_QtChildEditor,
@@ -46,6 +47,9 @@ class QtChildEditor(EditorDb["Child"], Ui_QtChildEditor):
             self.t("child.ed.title", "Child editor"),
         )
 
+        # Inform plugins that the editor has been created.
+        safe_hook_call(exdrf_qt_pm.hook.child_editor_created, widget=self)
+
         # exdrf-keep-start extra_init -----------------------------------------
 
         # exdrf-keep-end extra_init -------------------------------------------
@@ -61,13 +65,7 @@ class QtChildEditor(EditorDb["Child"], Ui_QtChildEditor):
         )
 
     def populate(self, record: Union["Child", None]):
-        self.c_id.setText(str(record.id) if record else "")
-        self._populate(
-            record,
-            [
-                "id",
-            ],
-        )
+        self._populate(record, [])
 
     def get_id_of_record(self, record: "Child") -> RecIdType:
         return record.id

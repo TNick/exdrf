@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any, Union, cast
 
 from exdrf.constants import RecIdType
 from exdrf_qt.controls import EditorDb
+from exdrf_qt.plugins import exdrf_qt_pm, safe_hook_call
 
 from exdrf_dev.qt_gen.db.composite_key_models.widgets.composite_key_model_editor_ui import (
     Ui_QtCompositeKeyModelEditor,
@@ -51,6 +52,11 @@ class QtCompositeKeyModelEditor(
             ),
         )
 
+        # Inform plugins that the editor has been created.
+        safe_hook_call(
+            exdrf_qt_pm.hook.composite_key_model_editor_created, widget=self
+        )
+
         # exdrf-keep-start extra_init -----------------------------------------
 
         # exdrf-keep-end extra_init -------------------------------------------
@@ -69,15 +75,7 @@ class QtCompositeKeyModelEditor(
         )
 
     def populate(self, record: Union["CompositeKeyModel", None]):
-        self.c_key_part1.setText(str(record.key_part1) if record else "")
-        self.c_key_part2.setText(str(record.key_part2) if record else "")
-        self._populate(
-            record,
-            [
-                "key_part1",
-                "key_part2",
-            ],
-        )
+        self._populate(record, [])
 
     def get_id_of_record(self, record: "CompositeKeyModel") -> RecIdType:
         return cast(

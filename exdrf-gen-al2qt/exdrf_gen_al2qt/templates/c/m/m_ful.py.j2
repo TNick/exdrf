@@ -5,6 +5,7 @@
 from typing import TYPE_CHECKING, Union
 
 from exdrf_qt.models import QtModel
+from exdrf_qt.plugins import exdrf_qt_pm, safe_hook_call
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload, selectinload, load_only
 
@@ -76,6 +77,12 @@ class Qt{{ ResPascal }}FuMo(QtModel["{{ ResPascal }}"]):
                 {%- endfor %}
             ],
             **kwargs
+        )
+
+        # Inform plugins that the model has been created.
+        safe_hook_call(
+            exdrf_qt_pm.hook.{{ res_snake }}_fumo_created,
+            model=self
         )
 
         # exdrf-keep-start extra_init -----------------------------------------

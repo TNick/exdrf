@@ -5,6 +5,7 @@
 from typing import TYPE_CHECKING, Union
 
 from exdrf_qt.models import QtModel
+from exdrf_qt.plugins import exdrf_qt_pm, safe_hook_call
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload
 
@@ -74,6 +75,9 @@ class QtProfileFuMo(QtModel["Profile"]):
             ),
             **kwargs,
         )
+
+        # Inform plugins that the model has been created.
+        safe_hook_call(exdrf_qt_pm.hook.profile_fumo_created, model=self)
 
         # exdrf-keep-start extra_init -----------------------------------------
 

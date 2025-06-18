@@ -2,7 +2,16 @@ import logging
 import logging.config
 import os
 from importlib import resources
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Union,
+    cast,
+)
 
 from attrs import define, field
 from exdrf_al.connection import DbConn
@@ -178,8 +187,13 @@ class QtContext(DbConn):
                 parent=self.top_widget,
             )
 
-        self.c_string = c_string
-        self.schema = schema
+        self.c_string = c_string  # type: ignore
+        self.schema = schema  # type: ignore
+        logging.getLogger(__name__).debug(
+            "Database connection string set to %s with schema %s",
+            self.c_string,
+            self.schema,
+        )
 
     def db_config_id(self) -> str:
         """Get the ID of the current database configuration."""
@@ -190,6 +204,7 @@ class QtContext(DbConn):
         statement: "Select",
         callback: Callable[["Work"], None],
         req_id: Optional[Any] = None,
+        use_unique: bool = False,
     ) -> "Work":
         """Pushes work to the worker thread.
 
@@ -214,7 +229,10 @@ class QtContext(DbConn):
                     "string was provided"
                 )
         return self.work_relay.push_work(
-            statement=statement, callback=callback, req_id=req_id
+            statement=statement,
+            callback=callback,
+            req_id=req_id,
+            use_unique=use_unique,
         )
 
     def show_error(
@@ -378,6 +396,28 @@ class QtContext(DbConn):
             exception_if_exists: If True, an exception will be raised if the
                 key already exists.
         """
-        if exception_if_exists and key in self._overrides:
-            raise ValueError(f"Override {key} already exists")
+        # if exception_if_exists and key in self._overrides:
+        #     raise ValueError(f"Override {key} already exists")
         self._overrides[key] = value
+
+    def current_db_setting_id(self) -> Union[str, None]:
+        """Get the ID of the current database configuration.
+
+        The function locates the connection string and schema and returns
+        the ID of the configuration. If the configuration is not found,
+        a new one is created and its ID is returned.
+
+        Returns:
+            The ID of the current database configuration or None if no
+            connection string is set in the context.
+        """
+        if not self.c_string:
+            logging.getLogger(__name__).error(
+                "No database connection string set"
+            )
+            return None
+
+        return self.stg.locate_db_config(
+            c_string=self.c_string,
+            schema=self.schema,
+        )

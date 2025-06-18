@@ -50,10 +50,22 @@ class TagsField(QtRefManyToManyField["Parent"]):
     def apply_filter(self, item: "FieldFilter", selector: "Selector") -> Any:
         from exdrf_dev.db.api import Tag as DbTag
 
+        predicate = filter_op_registry[item.op].predicate
+        related_entity = getattr(self.resource.db_model, self.name)
+        # M2M(Tag, ParentTagAssociation)
+        subq = related_entity.any(
+            predicate(DbTag.name, item.vl),
+        )
+        return subq
+
         with_alias = aliased(DbTag)
         predicate = filter_op_registry[item.op].predicate
         selector.joins.append(
-            (with_alias, getattr(self.resource.db_model, self.name))
+            (
+                with_alias,
+                getattr(self.resource.db_model, self.name),
+                {"isouter": True},
+            )
         )
 
         return predicate(

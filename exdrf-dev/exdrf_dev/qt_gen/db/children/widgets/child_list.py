@@ -5,6 +5,7 @@
 from typing import TYPE_CHECKING
 
 from exdrf_qt.controls.table_list import ListDb
+from exdrf_qt.plugins import exdrf_qt_pm, safe_hook_call
 
 # exdrf-keep-start other_imports ----------------------------------------------
 
@@ -41,6 +42,9 @@ class QtChildList(ListDb["Child"]):
         self.setWindowTitle(
             self.t("child.tv.title", "Child list"),
         )
+
+        # Inform plugins that the list has been created.
+        safe_hook_call(exdrf_qt_pm.hook.child_list_created, widget=self)
 
         # exdrf-keep-start extra_init -----------------------------------------
 

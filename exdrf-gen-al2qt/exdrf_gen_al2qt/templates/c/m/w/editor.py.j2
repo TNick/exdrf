@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Union, cast, Any
 
 from exdrf.constants import RecIdType
 from exdrf_qt.controls import EditorDb
+from exdrf_qt.plugins import exdrf_qt_pm, safe_hook_call
 
 from {{ out_module }}.{{ categories[0] }}.{{ res_p_snake }}.widgets.{{ res_snake }}_editor_ui import (
     Ui_Qt{{ ResPascal }}Editor
@@ -53,6 +54,12 @@ class Qt{{ ResPascal }}Editor(
                 "{{ res_snake }}.ed.title", 
                 "{{ r.text_name }} editor"
             ),
+        )
+
+        # Inform plugins that the editor has been created.
+        safe_hook_call(
+            exdrf_qt_pm.hook.{{ res_snake }}_editor_created,
+            widget=self
         )
 
         # exdrf-keep-start extra_init -----------------------------------------

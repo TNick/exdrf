@@ -1,0 +1,109 @@
+# This file was automatically generated using the exdrf_gen package.
+# Source: {{ source_module }} -> {{ source_templ }}
+# Don't change it manually.
+import logging
+from typing import TYPE_CHECKING
+
+from exdrf_qt.plugins import hook_spec
+
+# exdrf-keep-start other_imports ----------------------------------------------
+{{other_imports}}
+# exdrf-keep-end other_imports ------------------------------------------------
+
+if TYPE_CHECKING:
+{%- for name, c_res in categ_map.items() %}
+{%- for res_name in sorted(c_res) -%}
+{%- set mdl = dset[res_name] %}
+    from {{ out_module }}.{{ mdl.categories[0] }}.{{ mdl.snake_case_name_plural }}.api import (
+        Qt{{ mdl.pascal_case_name }}FuMo,  # noqa: F401
+        Qt{{ mdl.pascal_case_name }}NaMo,  # noqa: F401
+        Qt{{ mdl.pascal_case_name }}Editor,  # noqa: F401
+        Qt{{ mdl.pascal_case_name }}List,  # noqa: F401
+        Qt{{ mdl.pascal_case_name }}SiSe,  # noqa: F401
+        Qt{{ mdl.pascal_case_name }}MuSe,  # noqa: F401
+        Qt{{ mdl.pascal_case_name }}Tv,  # noqa: F401
+    )
+{%-  endfor %}
+{%-  endfor %}
+
+logger = logging.getLogger(__name__)
+# exdrf-keep-start other_globals ----------------------------------------------
+{{other_globals}}
+# exdrf-keep-end other_globals ------------------------------------------------
+
+
+{%  for name, c_res in categ_map.items() %}
+{%- for res_name in sorted(c_res) -%}
+{%- set mdl = dset[res_name] %}
+class {{ mdl.pascal_case_name }}Hooks:
+    """Hooks related to the {{ mdl.pascal_case_name }} resource."""
+    @hook_spec
+    def {{ mdl.snake_case_name }}_fumo_created(
+        self,
+        model: "Qt{{ mdl.pascal_case_name }}FuMo"
+    ) -> None:
+        """Called when a full model is created."""
+        raise NotImplementedError
+
+    @hook_spec
+    def {{ mdl.snake_case_name }}_namo_created(
+        self,
+        model: "Qt{{ mdl.pascal_case_name }}NaMo"
+    ) -> None:
+        """Called when a name model is created."""
+        raise NotImplementedError
+
+    @hook_spec
+    def {{ mdl.snake_case_name }}_editor_created(
+        self,
+        widget: "Qt{{ mdl.pascal_case_name }}Editor"
+    ) -> None:
+        """Called when an editor of an item is created."""
+        raise NotImplementedError
+
+    @hook_spec
+    def {{ mdl.snake_case_name }}_list_created(
+        self,
+        widget: "Qt{{ mdl.pascal_case_name }}List"
+    ) -> None:
+        """Called when a list of items is created."""
+        raise NotImplementedError
+
+    @hook_spec
+    def {{ mdl.snake_case_name }}_sise_created(
+        self,
+        widget: "Qt{{ mdl.pascal_case_name }}SiSe"
+    ) -> None:
+        """Called when a single-select widget is created."""
+        raise NotImplementedError
+
+    @hook_spec
+    def {{ mdl.snake_case_name }}_muse_created(
+        self,
+        widget: "Qt{{ mdl.pascal_case_name }}MuSe"
+    ) -> None:
+        """Called when a multi-select widget is created."""
+        raise NotImplementedError
+
+    @hook_spec
+    def {{ mdl.snake_case_name }}_tv_created(
+        self,
+        widget: "Qt{{ mdl.pascal_case_name }}Tv"
+    ) -> None:
+        """Called when a template-based viewer is created."""
+        raise NotImplementedError
+
+{%  endfor %}
+{%  endfor %}
+def register_all_hooks():
+    """Registers all hooks across all resources."""
+    from exdrf_qt.plugins import exdrf_qt_pm
+{%- for name, c_res in categ_map.items() %}
+    # ------------------------------------------------------------
+    # {{ name }}
+    # ------------------------------------------------------------
+{%-  for res_name in sorted(c_res) -%}
+{%- set mdl = dset[res_name] %}
+    exdrf_qt_pm.add_hookspecs({{ mdl.pascal_case_name }}Hooks)
+{%- endfor %}
+{%  endfor %}

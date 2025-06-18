@@ -43,8 +43,8 @@
          <property name="clearable" stdset="0">
           <bool>true</bool>
          </property>
-        
         </widget>
+        
        </item>
      
      
@@ -66,8 +66,8 @@
          <property name="clearable" stdset="0">
           <bool>true</bool>
          </property>
-        
         </widget>
+        
        </item>
      
      
@@ -89,8 +89,8 @@
          <property name="clearable" stdset="0">
           <bool>true</bool>
          </property>
-        
         </widget>
+        
        </item>
      
      
@@ -112,8 +112,8 @@
          <property name="clearable" stdset="0">
           <bool>true</bool>
          </property>
-        
         </widget>
+        
        </item>
      
      
@@ -139,8 +139,8 @@
          <property name="clearable" stdset="0">
           <bool>true</bool>
          </property>
-        
         </widget>
+        
        </item>
      
      
@@ -162,8 +162,8 @@
          <property name="clearable" stdset="0">
           <bool>true</bool>
          </property>
-        
         </widget>
+        
        </item>
      
      
@@ -185,8 +185,8 @@
          <property name="clearable" stdset="0">
           <bool>true</bool>
          </property>
-        
         </widget>
+        
        </item>
      
      
@@ -208,8 +208,8 @@
          <property name="clearable" stdset="0">
           <bool>true</bool>
          </property>
-        
         </widget>
+        
        </item>
      
      
@@ -232,12 +232,12 @@
         </widget>
        </item>
        <item row="0" column="1">
-        <widget class="QLineEdit" name="c_key_part1">
-         <property name="readOnly">
-          <bool>true</bool>
+        <widget class="DrfLineEditor" name="c_key_part1">
+         <property name="name" stdset="0">
+          <string notr="true">key_part1</string>
          </property>
-        
         </widget>
+        
        </item>
      
      
@@ -252,12 +252,12 @@
         </widget>
        </item>
        <item row="1" column="1">
-        <widget class="QLineEdit" name="c_key_part2">
-         <property name="readOnly">
-          <bool>true</bool>
+        <widget class="DrfIntEditor" name="c_key_part2">
+         <property name="name" stdset="0">
+          <string notr="true">key_part2</string>
          </property>
-        
         </widget>
+        
        </item>
      
      

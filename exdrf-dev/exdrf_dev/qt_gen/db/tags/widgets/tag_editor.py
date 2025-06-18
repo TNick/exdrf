@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Union
 
 from exdrf.constants import RecIdType
 from exdrf_qt.controls import EditorDb
+from exdrf_qt.plugins import exdrf_qt_pm, safe_hook_call
 
 from exdrf_dev.qt_gen.db.tags.widgets.tag_editor_ui import Ui_QtTagEditor
 
@@ -44,6 +45,9 @@ class QtTagEditor(EditorDb["Tag"], Ui_QtTagEditor):
             self.t("tag.ed.title", "Tag editor"),
         )
 
+        # Inform plugins that the editor has been created.
+        safe_hook_call(exdrf_qt_pm.hook.tag_editor_created, widget=self)
+
         # exdrf-keep-start extra_init -----------------------------------------
 
         # exdrf-keep-end extra_init -------------------------------------------
@@ -59,13 +63,7 @@ class QtTagEditor(EditorDb["Tag"], Ui_QtTagEditor):
         )
 
     def populate(self, record: Union["Tag", None]):
-        self.c_id.setText(str(record.id) if record else "")
-        self._populate(
-            record,
-            [
-                "id",
-            ],
-        )
+        self._populate(record, [])
 
     def get_id_of_record(self, record: "Tag") -> RecIdType:
         return record.id

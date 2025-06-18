@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 from exdrf_qt.field_ed.fed_sel_multi import DrfSelMultiEditor
 from exdrf_qt.field_ed.fed_sel_one import DrfSelOneEditor
+from exdrf_qt.plugins import exdrf_qt_pm, safe_hook_call
 
 # exdrf-keep-start other_imports ----------------------------------------------
 
@@ -39,6 +40,12 @@ class QtParentTagAssociationSiSe(DrfSelOneEditor):
             **kwargs,
         )
         self.qt_model.setParent(self)
+
+        # Inform plugins that the widget has been created.
+        safe_hook_call(
+            exdrf_qt_pm.hook.parent_tag_association_sise_created, widget=self
+        )
+
         # exdrf-keep-start extra_sise_init -----------------------------------
 
         # exdrf-keep-end extra_sise_init -------------------------------------
@@ -66,6 +73,12 @@ class QtParentTagAssociationMuSe(DrfSelMultiEditor):
             qt_model=QtParentTagAssociationNaMo(ctx=ctx), ctx=ctx, **kwargs
         )
         self.qt_model.setParent(self)
+
+        # Inform plugins that the widget has been created.
+        safe_hook_call(
+            exdrf_qt_pm.hook.parent_tag_association_muse_created, widget=self
+        )
+
         # exdrf-keep-start extra_muse_init -----------------------------------
 
         # exdrf-keep-end extra_muse_init -------------------------------------

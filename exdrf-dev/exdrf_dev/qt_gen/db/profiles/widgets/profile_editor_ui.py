@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 from PyQt5 import QtCore, QtWidgets
 
 if TYPE_CHECKING:
-    from exdrf_qt.field_ed.api import DrfLineEditor
+    from exdrf_qt.field_ed.api import DrfIntEditor, DrfLineEditor
 
     from exdrf_dev.qt_gen.db.parents.api import QtParentSiSe
 
@@ -35,10 +35,10 @@ class Ui_QtProfileEditor:
     tab_keys: "QtWidgets.QWidget"
     formLayout1: "QtWidgets.QFormLayout"
     lbl_id: "QtWidgets.QLabel"
-    c_id: "QtWidgets.QLineEdit"
+    c_id: "DrfIntEditor"
 
     def setup_ui(self, QtProfileEditor):
-        from exdrf_qt.field_ed.api import DrfLineEditor
+        from exdrf_qt.field_ed.api import DrfIntEditor, DrfLineEditor
 
         from exdrf_dev.qt_gen.db.parents.api import QtParentSiSe
 
@@ -86,8 +86,8 @@ class Ui_QtProfileEditor:
         self.formLayout1.setWidget(
             0, QtWidgets.QFormLayout.LabelRole, self.lbl_id
         )
-        self.c_id = QtWidgets.QLineEdit(self.tab_keys)
-        self.c_id.setReadOnly(True)
+        self.c_id = DrfIntEditor(parent=self.tab_keys, ctx=self.ctx)
+        self.c_id.setProperty("name", "id")
         self.c_id.setObjectName("c_id")
         self.formLayout1.setWidget(
             0, QtWidgets.QFormLayout.FieldRole, self.c_id

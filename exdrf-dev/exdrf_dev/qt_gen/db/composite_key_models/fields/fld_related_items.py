@@ -50,10 +50,22 @@ class RelatedItemsField(QtRefOneToManyField["CompositeKeyModel"]):
     def apply_filter(self, item: "FieldFilter", selector: "Selector") -> Any:
         from exdrf_dev.db.api import RelatedItem as DbRelatedItem
 
+        predicate = filter_op_registry[item.op].predicate
+        related_entity = getattr(self.resource.db_model, self.name)
+        # O2M(RelatedItem)
+        subq = related_entity.any(
+            predicate(DbRelatedItem.id, item.vl),
+        )
+        return subq
+
         with_alias = aliased(DbRelatedItem)
         predicate = filter_op_registry[item.op].predicate
         selector.joins.append(
-            (with_alias, getattr(self.resource.db_model, self.name))
+            (
+                with_alias,
+                getattr(self.resource.db_model, self.name),
+                {"isouter": True},
+            )
         )
 
         return predicate(

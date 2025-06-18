@@ -13,6 +13,7 @@ from exdrf.field_types.api import (
 )
 from exdrf_qt.controls.templ_viewer.templ_viewer import RecordTemplViewer
 from exdrf_qt.controls.templ_viewer.view_page import WebEnginePage
+from exdrf_qt.plugins import exdrf_qt_pm, safe_hook_call
 from sqlalchemy import Select, select
 
 if TYPE_CHECKING:
@@ -60,6 +61,11 @@ class QtCompositeKeyModelTv(RecordTemplViewer):
                     "composite_key_model.tv.title", "Composite key model viewer"
                 ),
             )
+
+        # Inform plugins that the viewer has been created.
+        safe_hook_call(
+            exdrf_qt_pm.hook.composite_key_model_tv_created, widget=self
+        )
 
     def read_record(
         self, session: "Session"

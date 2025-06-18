@@ -49,10 +49,22 @@ class ProfileField(QtRefOneToOneField["Parent"]):
     def apply_filter(self, item: "FieldFilter", selector: "Selector") -> Any:
         from exdrf_dev.db.api import Profile as DbProfile
 
+        predicate = filter_op_registry[item.op].predicate
+        related_entity = getattr(self.resource.db_model, self.name)
+        # O2O(Profile)
+        subq = related_entity.has(
+            predicate(DbProfile.bio, item.vl),
+        )
+        return subq
+
         with_alias = aliased(DbProfile)
         predicate = filter_op_registry[item.op].predicate
         selector.joins.append(
-            (with_alias, getattr(self.resource.db_model, self.name))
+            (
+                with_alias,
+                getattr(self.resource.db_model, self.name),
+                {"isouter": True},
+            )
         )
 
         return predicate(

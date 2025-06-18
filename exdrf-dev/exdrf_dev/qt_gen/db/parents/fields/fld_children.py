@@ -57,10 +57,22 @@ class ChildrenField(QtRefOneToManyField["Parent"]):
     def apply_filter(self, item: "FieldFilter", selector: "Selector") -> Any:
         from exdrf_dev.db.api import Child as DbChild
 
+        predicate = filter_op_registry[item.op].predicate
+        related_entity = getattr(self.resource.db_model, self.name)
+        # O2M(Child)
+        subq = related_entity.any(
+            predicate(DbChild.data, item.vl),
+        )
+        return subq
+
         with_alias = aliased(DbChild)
         predicate = filter_op_registry[item.op].predicate
         selector.joins.append(
-            (with_alias, getattr(self.resource.db_model, self.name))
+            (
+                with_alias,
+                getattr(self.resource.db_model, self.name),
+                {"isouter": True},
+            )
         )
 
         return predicate(

@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Union
 
 from exdrf.constants import RecIdType
 from exdrf_qt.controls import EditorDb
+from exdrf_qt.plugins import exdrf_qt_pm, safe_hook_call
 
 from exdrf_dev.qt_gen.db.profiles.widgets.profile_editor_ui import (
     Ui_QtProfileEditor,
@@ -46,6 +47,9 @@ class QtProfileEditor(EditorDb["Profile"], Ui_QtProfileEditor):
             self.t("profile.ed.title", "Profile editor"),
         )
 
+        # Inform plugins that the editor has been created.
+        safe_hook_call(exdrf_qt_pm.hook.profile_editor_created, widget=self)
+
         # exdrf-keep-start extra_init -----------------------------------------
 
         # exdrf-keep-end extra_init -------------------------------------------
@@ -63,13 +67,7 @@ class QtProfileEditor(EditorDb["Profile"], Ui_QtProfileEditor):
         )
 
     def populate(self, record: Union["Profile", None]):
-        self.c_id.setText(str(record.id) if record else "")
-        self._populate(
-            record,
-            [
-                "id",
-            ],
-        )
+        self._populate(record, [])
 
     def get_id_of_record(self, record: "Profile") -> RecIdType:
         return record.id

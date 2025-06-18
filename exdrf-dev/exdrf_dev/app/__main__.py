@@ -84,8 +84,10 @@ def main():
     import PyQt5.QtWebEngineWidgets  # noqa: F401
 
     from exdrf_dev.db.models import Base  # noqa: F401, F403
+    from exdrf_dev.qt_gen.plugins import register_all_hooks
 
     init_qt_info()
+    register_all_hooks()
 
     app = QApplication(sys.argv)
     args = list(app.arguments())

@@ -5,6 +5,7 @@
 from typing import TYPE_CHECKING, Union
 
 from exdrf_qt.models import QtModel
+from exdrf_qt.plugins import exdrf_qt_pm, safe_hook_call
 from sqlalchemy import select
 
 from exdrf_dev.qt_gen.db.parent_tag_associations.fields.fld_parent_id import (
@@ -69,6 +70,11 @@ class QtParentTagAssociationFuMo(QtModel["ParentTagAssociation"]):
                 ]
             ),
             **kwargs,
+        )
+
+        # Inform plugins that the model has been created.
+        safe_hook_call(
+            exdrf_qt_pm.hook.parent_tag_association_fumo_created, model=self
         )
 
         # exdrf-keep-start extra_init -----------------------------------------

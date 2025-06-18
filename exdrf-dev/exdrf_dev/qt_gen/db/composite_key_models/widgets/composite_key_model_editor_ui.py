@@ -7,6 +7,8 @@ if TYPE_CHECKING:
         DrfBlobEditor,
         DrfDateEditor,
         DrfEnumEditor,
+        DrfIntEditor,
+        DrfLineEditor,
         DrfRealEditor,
         DrfTextEditor,
         DrfTimeEditor,
@@ -61,15 +63,17 @@ class Ui_QtCompositeKeyModelEditor:
     tab_keys: "QtWidgets.QWidget"
     formLayout1: "QtWidgets.QFormLayout"
     lbl_key_part1: "QtWidgets.QLabel"
-    c_key_part1: "QtWidgets.QLineEdit"
+    c_key_part1: "DrfLineEditor"
     lbl_key_part2: "QtWidgets.QLabel"
-    c_key_part2: "QtWidgets.QLineEdit"
+    c_key_part2: "DrfIntEditor"
 
     def setup_ui(self, QtCompositeKeyModelEditor):
         from exdrf_qt.field_ed.api import (
             DrfBlobEditor,
             DrfDateEditor,
             DrfEnumEditor,
+            DrfIntEditor,
+            DrfLineEditor,
             DrfRealEditor,
             DrfTextEditor,
             DrfTimeEditor,
@@ -203,8 +207,8 @@ class Ui_QtCompositeKeyModelEditor:
         self.formLayout1.setWidget(
             0, QtWidgets.QFormLayout.LabelRole, self.lbl_key_part1
         )
-        self.c_key_part1 = QtWidgets.QLineEdit(self.tab_keys)
-        self.c_key_part1.setReadOnly(True)
+        self.c_key_part1 = DrfLineEditor(parent=self.tab_keys, ctx=self.ctx)
+        self.c_key_part1.setProperty("name", "key_part1")
         self.c_key_part1.setObjectName("c_key_part1")
         self.formLayout1.setWidget(
             0, QtWidgets.QFormLayout.FieldRole, self.c_key_part1
@@ -214,8 +218,8 @@ class Ui_QtCompositeKeyModelEditor:
         self.formLayout1.setWidget(
             1, QtWidgets.QFormLayout.LabelRole, self.lbl_key_part2
         )
-        self.c_key_part2 = QtWidgets.QLineEdit(self.tab_keys)
-        self.c_key_part2.setReadOnly(True)
+        self.c_key_part2 = DrfIntEditor(parent=self.tab_keys, ctx=self.ctx)
+        self.c_key_part2.setProperty("name", "key_part2")
         self.c_key_part2.setObjectName("c_key_part2")
         self.formLayout1.setWidget(
             1, QtWidgets.QFormLayout.FieldRole, self.c_key_part2
