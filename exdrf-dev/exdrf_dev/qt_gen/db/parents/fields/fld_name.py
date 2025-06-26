@@ -14,6 +14,10 @@ from exdrf_qt.models.fields import QtStringField
 if TYPE_CHECKING:
     from exdrf_dev.db.api import Parent  # noqa: F401
 
+# exdrf-keep-start other_globals ----------------------------------------------
+
+# exdrf-keep-end other_globals ------------------------------------------------
+
 
 @define
 class NameField(QtStringField["Parent"]):

@@ -16,6 +16,10 @@ if TYPE_CHECKING:
 
     from exdrf_dev.db.api import ParentTagAssociation  # noqa: F401
 
+# exdrf-keep-start other_globals ----------------------------------------------
+
+# exdrf-keep-end other_globals ------------------------------------------------
+
 
 class QtParentTagAssociationList(ListDb["ParentTagAssociation"]):
     """Presents a list of records from the database."""
@@ -29,7 +33,18 @@ class QtParentTagAssociationList(ListDb["ParentTagAssociation"]):
             QtParentTagAssociationFuMo,
         )
 
-        super().__init__(ctx=ctx, *args, **kwargs)
+        super().__init__(
+            ctx=ctx,
+            *args,
+            other_actions=kwargs.pop(
+                "other_actions",
+                ctx.get_ovr(
+                    "exdrf_dev.qt_gen.db.parent_tag_associations.list.extra-menus",
+                    None,
+                ),
+            ),
+            **kwargs,
+        )
         self.setModel(
             ctx.get_c_ovr(
                 "exdrf_dev.qt_gen.db.parent_tag_associations.list.model",
@@ -41,7 +56,8 @@ class QtParentTagAssociationList(ListDb["ParentTagAssociation"]):
 
         self.setWindowTitle(
             self.t(
-                "parent_tag_association.tv.title", "Parent tag association list"
+                "parent_tag_association.list.title",
+                "Parent tag association list",
             ),
         )
 

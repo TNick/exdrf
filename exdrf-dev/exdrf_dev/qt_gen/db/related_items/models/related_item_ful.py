@@ -2,7 +2,7 @@
 # Source: exdrf_gen_al2qt.creator -> c/m/m_ful.py.j2
 # Don't change it manually.
 
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 from exdrf_qt.models import QtModel
 from exdrf_qt.plugins import exdrf_qt_pm, safe_hook_call
@@ -27,10 +27,15 @@ from exdrf_dev.qt_gen.db.related_items.fields.fld_some_int import SomeIntField
 # exdrf-keep-end other_imports ------------------------------------------------
 
 if TYPE_CHECKING:
+    from exdrf.filter import FilterType  # noqa: F401
     from exdrf_qt.context import QtContext  # noqa: F401
     from sqlalchemy import Select  # noqa: F401
 
     from exdrf_dev.db.api import RelatedItem  # noqa: F401
+
+# exdrf-keep-start other_globals ----------------------------------------------
+
+# exdrf-keep-end other_globals ------------------------------------------------
 
 
 def default_related_item_list_selection():
@@ -89,6 +94,21 @@ class QtRelatedItemFuMo(QtModel["RelatedItem"]):
 
         # Inform plugins that the model has been created.
         safe_hook_call(exdrf_qt_pm.hook.related_item_fumo_created, model=self)
+
+    def text_to_filter(
+        self,
+        text: str,
+        exact: Optional[bool] = False,
+        limit: Optional[str] = None,
+    ) -> "FilterType":
+        """Convert a text to a filter.
+
+        The function converts a text to a filter. The text is converted to a
+        filter using the `simple_search_fields` property.
+        """
+        filters = super().text_to_filter(text, exact, limit)
+        safe_hook_call(exdrf_qt_pm.hook.related_item_fumo_ttf, model=self)
+        return filters
 
         # exdrf-keep-start extra_init -----------------------------------------
 

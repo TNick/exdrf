@@ -22,6 +22,10 @@ if TYPE_CHECKING:
 
     from exdrf_dev.db.api import Profile  # noqa: F401
 
+# exdrf-keep-start other_globals ----------------------------------------------
+
+# exdrf-keep-end other_globals ------------------------------------------------
+
 
 class QtProfileEditor(EditorDb["Profile"], Ui_QtProfileEditor):
     """A widget that allows the user to edit a Profile record."""

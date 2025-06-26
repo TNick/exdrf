@@ -16,6 +16,10 @@ if TYPE_CHECKING:
 
     from exdrf_dev.db.api import Tag  # noqa: F401
 
+# exdrf-keep-start other_globals ----------------------------------------------
+
+# exdrf-keep-end other_globals ------------------------------------------------
+
 
 class QtTagList(ListDb["Tag"]):
     """Presents a list of records from the database."""
@@ -29,7 +33,15 @@ class QtTagList(ListDb["Tag"]):
             QtTagFuMo,
         )
 
-        super().__init__(ctx=ctx, *args, **kwargs)
+        super().__init__(
+            ctx=ctx,
+            *args,
+            other_actions=kwargs.pop(
+                "other_actions",
+                ctx.get_ovr("exdrf_dev.qt_gen.db.tags.list.extra-menus", None),
+            ),
+            **kwargs,
+        )
         self.setModel(
             ctx.get_c_ovr(
                 "exdrf_dev.qt_gen.db.tags.list.model",
@@ -40,7 +52,7 @@ class QtTagList(ListDb["Tag"]):
         )
 
         self.setWindowTitle(
-            self.t("tag.tv.title", "Tag list"),
+            self.t("tag.list.title", "Tag list"),
         )
 
         # Inform plugins that the list has been created.

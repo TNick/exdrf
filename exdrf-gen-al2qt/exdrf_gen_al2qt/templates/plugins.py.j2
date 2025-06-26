@@ -2,7 +2,7 @@
 # Source: {{ source_module }} -> {{ source_templ }}
 # Don't change it manually.
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from exdrf_qt.plugins import hook_spec
 
@@ -11,6 +11,7 @@ from exdrf_qt.plugins import hook_spec
 # exdrf-keep-end other_imports ------------------------------------------------
 
 if TYPE_CHECKING:
+    from exdrf.filter import FilterType  # noqa: F401
 {%- for name, c_res in categ_map.items() %}
 {%- for res_name in sorted(c_res) -%}
 {%- set mdl = dset[res_name] %}
@@ -41,6 +42,18 @@ class {{ mdl.pascal_case_name }}Hooks:
     def {{ mdl.snake_case_name }}_fumo_created(
         self,
         model: "Qt{{ mdl.pascal_case_name }}FuMo"
+    ) -> None:
+        """Called when a full model is created."""
+        raise NotImplementedError
+    
+    @hook_spec
+    def {{ mdl.snake_case_name }}_fumo_ttf(
+        self,
+        model: "Qt{{ mdl.pascal_case_name }}FuMo",
+        text: str,
+        exact: Optional[bool],
+        limit: Optional[str],
+        filters: "FilterType",
     ) -> None:
         """Called when a full model is created."""
         raise NotImplementedError

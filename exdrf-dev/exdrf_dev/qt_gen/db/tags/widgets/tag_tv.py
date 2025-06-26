@@ -12,6 +12,10 @@ from exdrf_qt.controls.templ_viewer.view_page import WebEnginePage
 from exdrf_qt.plugins import exdrf_qt_pm, safe_hook_call
 from sqlalchemy import Select, select
 
+# exdrf-keep-start other_imports -----------------------------------------------
+
+# exdrf-keep-end other_imports -------------------------------------------------
+
 if TYPE_CHECKING:
     from exdrf_qt.context import QtContext  # noqa: F401
     from sqlalchemy.orm import Session  # noqa: F401
@@ -20,21 +24,35 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# exdrf-keep-start other_globals -----------------------------------------------
+
+# exdrf-keep-end other_globals -------------------------------------------------
+
 
 class QtTagTv(RecordTemplViewer):
     """Template viewer for a Tag database record."""
+
+    # exdrf-keep-start other_attributes ----------------------------------------
+
+    # exdrf-keep-end other_attributes ------------------------------------------
 
     def __init__(self, ctx: "QtContext", **kwargs):
         from exdrf_dev.db.api import Tag as DbTag
 
         super().__init__(
-            db_model=ctx.get_ovr(
-                "exdrf_dev.qt_gen.db.tags.tv.model",
-                DbTag,
+            db_model=kwargs.pop(
+                "db_model",
+                ctx.get_ovr(
+                    "exdrf_dev.qt_gen.db.tags.tv.model",
+                    DbTag,
+                ),
             ),
-            template_src=ctx.get_ovr(
-                "exdrf_dev.qt_gen.db.tags.tv.template",
-                "exdrf_dev.qt_gen/db/tags/widgets/tag_tv.html",
+            template_src=kwargs.pop(
+                "template_src",
+                ctx.get_ovr(
+                    "exdrf_dev.qt_gen.db.tags.tv.template",
+                    "exdrf_dev.qt_gen/db/tags/widgets/tag_tv.html",
+                ),
             ),
             page_class=ctx.get_ovr(
                 "exdrf_dev.qt_gen.db.tags.tv.page_class",
@@ -43,8 +61,9 @@ class QtTagTv(RecordTemplViewer):
                     WebEnginePage,
                 ),
             ),
-            other_actions=ctx.get_ovr(
-                "exdrf_dev.qt_gen.db.tags.tv.extra-menus", None
+            other_actions=kwargs.pop(
+                "other_actions",
+                ctx.get_ovr("exdrf_dev.qt_gen.db.tags.tv.extra-menus", None),
             ),
             ctx=ctx,
             **kwargs,
@@ -53,6 +72,10 @@ class QtTagTv(RecordTemplViewer):
             self.setWindowTitle(
                 self.t("tag.tv.title", "Tag viewer"),
             )
+
+        # exdrf-keep-start extra_viewer_init -----------------------------------
+
+        # exdrf-keep-end extra_viewer_init -------------------------------------
 
         # Inform plugins that the viewer has been created.
         safe_hook_call(exdrf_qt_pm.hook.tag_tv_created, widget=self)
@@ -131,3 +154,12 @@ class QtTagTv(RecordTemplViewer):
         from exdrf_qt.utils.router import session_del_record
 
         return session_del_record
+
+    # exdrf-keep-start extra_viewer_content ------------------------------------
+
+    # exdrf-keep-end extra_viewer_content --------------------------------------
+
+
+# exdrf-keep-start more_content ------------------------------------------------
+
+# exdrf-keep-end more_content --------------------------------------------------

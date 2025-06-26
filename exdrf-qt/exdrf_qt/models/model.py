@@ -287,7 +287,10 @@ class QtModel(
                 .run(self._filters)
             )
         except Exception:
-            logger.error("Error applying filters", exc_info=True)
+            logger.error(
+                "Error while computing the filtered selection",
+                exc_info=True,
+            )
             return self.selection
 
     @property
@@ -900,6 +903,41 @@ class QtModel(
         logger.debug("Changing filters from %s to %s", previous, self._filters)
         self.reset_model()
 
+    def text_to_filter(
+        self,
+        text: str,
+        exact: Optional[bool] = False,
+        limit: Optional[str] = None,
+    ) -> FilterType:
+        """Convert a text to a filter.
+
+        The function converts a text to a filter. The text is converted to a
+        filter using the `simple_search_fields` property.
+        """
+        if len(text) == 0:
+            filters = []
+        else:
+            if not exact:
+                text = text.replace(" ", "%")
+                if "*" not in text:
+                    if "%" not in text:
+                        text = f"%{text}%"
+                else:
+                    text = text.replace("*", "%")
+            filters = [  # type: ignore
+                "OR",  # type: ignore
+                [  # type: ignore
+                    {  # type: ignore
+                        "fld": f.name,  # type: ignore
+                        "op": "ilike",  # type: ignore
+                        "vl": text,  # type: ignore
+                    }  # type: ignore
+                    for f in self.simple_search_fields  # type: ignore
+                    if limit is None or f.name == limit
+                ],
+            ]  # type: ignore
+        return filters
+
     def apply_simple_search(
         self,
         text: str,
@@ -924,28 +962,7 @@ class QtModel(
             exact: If True, the search will be exact.
             limit: If present, the search will be limited to the given field.
         """
-        if len(text) == 0:
-            filters = []
-        else:
-            if not exact:
-                text = text.replace(" ", "%")
-                if "*" not in text:
-                    if "%" not in text:
-                        text = f"%{text}%"
-                else:
-                    text = text.replace("*", "%")
-            filters = [  # type: ignore
-                "OR",  # type: ignore
-                [  # type: ignore
-                    {  # type: ignore
-                        "fld": f.name,  # type: ignore
-                        "op": "ilike",  # type: ignore
-                        "vl": text,  # type: ignore
-                    }  # type: ignore
-                    for f in self.simple_search_fields  # type: ignore
-                    if limit is None or f.name == limit
-                ],
-            ]  # type: ignore
+        filters = self.text_to_filter(text, exact, limit)
         self.apply_filter(filters)  # type: ignore
 
     def checked_rows(self) -> Optional[List[RecIdType]]:

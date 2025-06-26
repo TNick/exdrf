@@ -25,6 +25,10 @@ from exdrf_dev.qt_gen.db.parents.models.parent_ful import QtParentFuMo
 if TYPE_CHECKING:
     from sqlalchemy import Select  # noqa: F401
 
+# exdrf-keep-start other_globals ----------------------------------------------
+
+# exdrf-keep-end other_globals ------------------------------------------------
+
 
 def default_parent_ocm_selection():
     from exdrf_dev.db.api import Parent as DbParent

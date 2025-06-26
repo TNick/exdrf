@@ -22,6 +22,10 @@ if TYPE_CHECKING:
 
     from exdrf_dev.db.api import CompositeKeyModel  # noqa: F401
 
+# exdrf-keep-start other_globals ----------------------------------------------
+
+# exdrf-keep-end other_globals ------------------------------------------------
+
 
 class QtCompositeKeyModelEditor(
     EditorDb["CompositeKeyModel"], Ui_QtCompositeKeyModelEditor

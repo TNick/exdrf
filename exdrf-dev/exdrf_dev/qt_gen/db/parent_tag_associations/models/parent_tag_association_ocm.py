@@ -28,6 +28,10 @@ from exdrf_dev.qt_gen.db.parent_tag_associations.models.parent_tag_association_f
 if TYPE_CHECKING:
     from sqlalchemy import Select  # noqa: F401
 
+# exdrf-keep-start other_globals ----------------------------------------------
+
+# exdrf-keep-end other_globals ------------------------------------------------
+
 
 def default_parent_tag_association_ocm_selection():
     from exdrf_dev.db.api import ParentTagAssociation as DbParentTagAssociation

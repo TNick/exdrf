@@ -15,6 +15,10 @@ from exdrf_qt.plugins import exdrf_qt_pm, safe_hook_call
 if TYPE_CHECKING:
     from exdrf_qt.context import QtContext  # noqa: F401
 
+# exdrf-keep-start other_globals ----------------------------------------------
+
+# exdrf-keep-end other_globals ------------------------------------------------
+
 
 class QtParentTagAssociationSiSe(DrfSelOneEditor):
     """Reads the list of records from the database and allows the user to
@@ -26,8 +30,11 @@ class QtParentTagAssociationSiSe(DrfSelOneEditor):
     # exdrf-keep-end other_sise_attributes ------------------------------------
 
     def __init__(self, ctx: "QtContext", **kwargs):
-        from exdrf_dev.qt_gen.db.parent_tag_associations.models.parent_tag_association_ocm import (  # noqa: E501
+        from exdrf_dev.qt_gen.db.parent_tag_associations.models.parent_tag_association_ocm import (
             QtParentTagAssociationNaMo,
+        )
+        from exdrf_dev.qt_gen.db.parent_tag_associations.widgets.parent_tag_association_editor import (
+            QtParentTagAssociationEditor,
         )
 
         super().__init__(
@@ -35,6 +42,10 @@ class QtParentTagAssociationSiSe(DrfSelOneEditor):
                 "exdrf_dev.qt_gen.db.parent_tag_associations.selector.model",
                 QtParentTagAssociationNaMo,
                 ctx=ctx,
+            ),
+            editor_class=ctx.get_ovr(
+                "exdrf_dev.qt_gen.db.parent_tag_associations.selector.editor",
+                QtParentTagAssociationEditor,
             ),
             ctx=ctx,
             **kwargs,
@@ -65,12 +76,25 @@ class QtParentTagAssociationMuSe(DrfSelMultiEditor):
     # exdrf-keep-end other_muse_attributes ------------------------------------
 
     def __init__(self, ctx: "QtContext", **kwargs):
-        from exdrf_dev.qt_gen.db.parent_tag_associations.models.parent_tag_association_ocm import (  # noqa: E501
+        from exdrf_dev.qt_gen.db.parent_tag_associations.models.parent_tag_association_ocm import (
             QtParentTagAssociationNaMo,
+        )
+        from exdrf_dev.qt_gen.db.parent_tag_associations.widgets.parent_tag_association_editor import (
+            QtParentTagAssociationEditor,
         )
 
         super().__init__(
-            qt_model=QtParentTagAssociationNaMo(ctx=ctx), ctx=ctx, **kwargs
+            qt_model=ctx.get_c_ovr(
+                "exdrf_dev.qt_gen.db.parent_tag_associations.selector.model",
+                QtParentTagAssociationNaMo,
+                ctx=ctx,
+            ),
+            editor_class=ctx.get_ovr(
+                "exdrf_dev.qt_gen.db.parent_tag_associations.selector.editor",
+                QtParentTagAssociationEditor,
+            ),
+            ctx=ctx,
+            **kwargs,
         )
         self.qt_model.setParent(self)
 

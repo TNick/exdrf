@@ -15,6 +15,10 @@ from PyQt5.QtCore import Qt
 if TYPE_CHECKING:
     from exdrf_dev.db.api import ParentTagAssociation  # noqa: F401
 
+# exdrf-keep-start other_globals ----------------------------------------------
+
+# exdrf-keep-end other_globals ------------------------------------------------
+
 
 @define
 class LabelField(QtStringField["ParentTagAssociation"]):

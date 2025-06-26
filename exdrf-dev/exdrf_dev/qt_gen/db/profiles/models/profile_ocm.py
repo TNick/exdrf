@@ -22,6 +22,10 @@ from exdrf_dev.qt_gen.db.profiles.models.profile_ful import QtProfileFuMo
 if TYPE_CHECKING:
     from sqlalchemy import Select  # noqa: F401
 
+# exdrf-keep-start other_globals ----------------------------------------------
+
+# exdrf-keep-end other_globals ------------------------------------------------
+
 
 def default_profile_ocm_selection():
     from exdrf_dev.db.api import Profile as DbProfile

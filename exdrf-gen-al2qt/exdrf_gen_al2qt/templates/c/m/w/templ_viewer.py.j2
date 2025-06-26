@@ -21,6 +21,10 @@ from exdrf_qt.controls.templ_viewer.view_page import WebEnginePage
 from exdrf_qt.plugins import exdrf_qt_pm, safe_hook_call
 from sqlalchemy import Select, select
 
+# exdrf-keep-start other_imports -----------------------------------------------
+{{other_imports}}
+# exdrf-keep-end other_imports -------------------------------------------------
+
 if TYPE_CHECKING:
     from exdrf_qt.context import QtContext  # noqa: F401
     from {{ db_module }}.{{ r.categories[0] }}.api import {{ r.name }} as {{ r.name }}  # noqa: F401
@@ -28,23 +32,30 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# exdrf-keep-start other_globals -----------------------------------------------
+{{other_globals}}
+# exdrf-keep-end other_globals -------------------------------------------------
+
 
 class Qt{{ ResPascal }}Tv(RecordTemplViewer):
     """Template viewer for a {{ ResPascal }} database record.
     """
+    # exdrf-keep-start other_attributes ----------------------------------------
+{{other_attributes}}
+    # exdrf-keep-end other_attributes ------------------------------------------
 
     def __init__(self, ctx: "QtContext", **kwargs):
         from {{ db_module }}.{{ r.categories[0] }}.api import {{ r.name }} as Db{{ r.name }}
 
         super().__init__(
-            db_model=ctx.get_ovr(
+            db_model=kwargs.pop("db_model", ctx.get_ovr(
                 "{{ out_module }}.{{ r.categories[0] }}.{{ res_p_snake }}.tv.model",
                 Db{{ ResPascal }},
-            ),
-            template_src=ctx.get_ovr(
+            )),
+            template_src=kwargs.pop("template_src", ctx.get_ovr(
                 "{{ out_module }}.{{ r.categories[0] }}.{{ res_p_snake }}.tv.template",
                 "{{ out_module }}/{{ r.categories[0] }}/{{ res_p_snake }}/widgets/{{ res_snake }}_tv.html"
-            ),
+            )),
             page_class=ctx.get_ovr(
                 "{{ out_module }}.{{ r.categories[0] }}.{{ res_p_snake }}.tv.page_class",
                 ctx.get_ovr(
@@ -52,10 +63,10 @@ class Qt{{ ResPascal }}Tv(RecordTemplViewer):
                     WebEnginePage,
                 )
             ),
-            other_actions=ctx.get_ovr(
+            other_actions=kwargs.pop("other_actions", ctx.get_ovr(
                 "{{ out_module }}.{{ r.categories[0] }}.{{ res_p_snake }}.tv.extra-menus",
                 None
-            ),
+            )),
             ctx=ctx,
             **kwargs
         )
@@ -66,6 +77,10 @@ class Qt{{ ResPascal }}Tv(RecordTemplViewer):
                     "{{ r.text_name }} viewer"
                 ),
             )
+
+        # exdrf-keep-start extra_viewer_init -----------------------------------
+{{extra_viewer_init}}
+        # exdrf-keep-end extra_viewer_init -------------------------------------
 
         # Inform plugins that the viewer has been created.
         safe_hook_call(
@@ -167,4 +182,13 @@ class Qt{{ ResPascal }}Tv(RecordTemplViewer):
 
         return session_del_record
         {%- endif %}
-{{- '\n' -}}
+    
+    # exdrf-keep-start extra_viewer_content ------------------------------------
+{{extra_viewer_content}}
+    # exdrf-keep-end extra_viewer_content --------------------------------------
+
+
+# exdrf-keep-start more_content ------------------------------------------------
+{{more_content}}
+# exdrf-keep-end more_content --------------------------------------------------
+{{- "\n" -}}

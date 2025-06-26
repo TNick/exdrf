@@ -16,6 +16,10 @@ if TYPE_CHECKING:
 
     from exdrf_dev.db.api import RelatedItem  # noqa: F401
 
+# exdrf-keep-start other_globals ----------------------------------------------
+
+# exdrf-keep-end other_globals ------------------------------------------------
+
 
 class QtRelatedItemList(ListDb["RelatedItem"]):
     """Presents a list of records from the database."""
@@ -29,7 +33,17 @@ class QtRelatedItemList(ListDb["RelatedItem"]):
             QtRelatedItemFuMo,
         )
 
-        super().__init__(ctx=ctx, *args, **kwargs)
+        super().__init__(
+            ctx=ctx,
+            *args,
+            other_actions=kwargs.pop(
+                "other_actions",
+                ctx.get_ovr(
+                    "exdrf_dev.qt_gen.db.related_items.list.extra-menus", None
+                ),
+            ),
+            **kwargs,
+        )
         self.setModel(
             ctx.get_c_ovr(
                 "exdrf_dev.qt_gen.db.related_items.list.model",
@@ -40,7 +54,7 @@ class QtRelatedItemList(ListDb["RelatedItem"]):
         )
 
         self.setWindowTitle(
-            self.t("related_item.tv.title", "Related item list"),
+            self.t("related_item.list.title", "Related item list"),
         )
 
         # Inform plugins that the list has been created.

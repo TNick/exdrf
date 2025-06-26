@@ -1,7 +1,7 @@
 import logging
 import os
 import re
-from typing import TYPE_CHECKING, Tuple
+from typing import TYPE_CHECKING, Any, Tuple, Union
 from uuid import uuid4
 
 from PyQt5.QtCore import Qt
@@ -58,6 +58,7 @@ class SelectDatabaseDlg(QDialog, Ui_SelectDatabase, QtUseContext):
     ac_rename: QAction
     ac_remove: QAction
     save_btn: QPushButton
+    ok_btn: QPushButton
 
     def __init__(self, ctx: "QtContext", **kwargs):
         """Initialize the editor widget."""
@@ -66,6 +67,11 @@ class SelectDatabaseDlg(QDialog, Ui_SelectDatabase, QtUseContext):
         self.setup_ui(self)
         self._setup_backend_combo()
         self._setup_manager()
+
+        ok_btn = self.bbox.button(QDialogButtonBox.StandardButton.Ok)
+        assert ok_btn is not None
+        self.ok_btn = ok_btn
+        self.ok_btn.setEnabled(False)
 
         begin = os.environ.get("EXDRF_DB_CONN_STRING", None)
         if begin:
@@ -83,7 +89,7 @@ class SelectDatabaseDlg(QDialog, Ui_SelectDatabase, QtUseContext):
         )
         assert self.btn_bootstrap is not None
         self.btn_bootstrap.setIcon(self.get_icon("sitemap_application_blue"))
-        self.btn_bootstrap.clicked.connect(self.bootstrap)
+        self.btn_bootstrap.clicked.connect(self.bootstrap)  # type: ignore
 
         # Notice changes by the user.
         self.c_db_name.textChanged.connect(self.content_changed)
@@ -95,6 +101,7 @@ class SelectDatabaseDlg(QDialog, Ui_SelectDatabase, QtUseContext):
         self.c_username.textChanged.connect(self.content_changed)
         self.main_tab.currentChanged.connect(self.content_changed)
         self.c_backend.currentIndexChanged.connect(self.content_changed)
+        self.c_list.currentItemChanged.connect(self.content_changed)
 
     def _setup_backend_combo(self):
         self.c_backend.addItem(
@@ -249,14 +256,14 @@ class SelectDatabaseDlg(QDialog, Ui_SelectDatabase, QtUseContext):
             self.ctx.stg.remove_db_config(item_id)
 
     def save_crt(self):
-        """Save the current connection to the database."""
+        """Save the current connection to the settings."""
         if self.is_local:
             self._save_crt(local=True, c_string=self.local_con_str)
         elif self.is_remote:
             self._save_crt(local=False, c_string=self.remote_con_str)
 
     def _save_crt(self, local: bool, c_string: str):
-        """Save the current connection to the database.
+        """Save the current connection to the settings.
 
         Args:
             local: Whether the connection is local.
@@ -294,23 +301,27 @@ class SelectDatabaseDlg(QDialog, Ui_SelectDatabase, QtUseContext):
         self.c_list.editItem(item, COL_NAME)
 
     def content_changed(self):
+        """Handle the content changed event from all controls."""
         if self.is_local:
-            self.btn_bootstrap.setEnabled(
-                len(self.c_file_path.text().strip()) > 0
-            )
-            self.save_btn.setEnabled(len(self.c_file_path.text().strip()) > 0)
+            valid = len(self.c_file_path.text().strip()) > 0
+            self.btn_bootstrap.setEnabled(valid)
+            self.save_btn.setEnabled(valid)
+            self.ok_btn.setEnabled(valid)
         elif self.is_remote:
-            have_data = (
+            valid = (
                 len(self.c_db_name.text().strip()) > 0
                 and len(self.c_host.text().strip()) > 0
                 and len(self.c_port.text().strip()) > 0
                 and len(self.c_username.text().strip()) > 0
             )
-            self.btn_bootstrap.setEnabled(have_data)
-            self.save_btn.setEnabled(have_data)
+            self.btn_bootstrap.setEnabled(valid)
+            self.save_btn.setEnabled(valid)
+            self.ok_btn.setEnabled(valid)
         elif self.is_manager:
-            self.btn_bootstrap.setEnabled(False)
-            self.save_btn.setEnabled(False)
+            valid = self.selected_config is not None
+            self.btn_bootstrap.setEnabled(valid)
+            self.save_btn.setEnabled(valid)
+            self.ok_btn.setEnabled(valid)
         else:
             raise ValueError("Invalid tab")
 
@@ -331,6 +342,25 @@ class SelectDatabaseDlg(QDialog, Ui_SelectDatabase, QtUseContext):
         return f'sqlite:///{self.c_file_path.text().replace("\\", "/")}'
 
     @property
+    def selected_id(self) -> str:
+        if self.is_manager:
+            item = self.c_list.currentItem()
+            if item:
+                return item.data(COL_NAME, Qt.ItemDataRole.UserRole)
+        return ""
+
+    @property
+    def selected_config(self) -> Union[None, dict[str, Any]]:
+        configs = self.ctx.stg.get_db_configs()
+        selected_id = self.selected_id
+        if selected_id:
+            for config in configs:
+                if config["id"] == selected_id:
+                    return config
+
+        return None
+
+    @property
     def remote_con_str(self) -> str:
         backend = self.c_backend.currentData()
         host = self.c_host.text().strip()
@@ -341,12 +371,24 @@ class SelectDatabaseDlg(QDialog, Ui_SelectDatabase, QtUseContext):
         return f"{backend}://{user}:{password}@{host}:{port}/{db_name}"
 
     @property
+    def saved_con_str(self) -> str:
+        config = self.selected_config
+        if config:
+            return config["c_string"]
+        else:
+            return ""
+
+    @property
     def con_str(self) -> str:
         """Return the connection string."""
         if self.is_local:
             return self.local_con_str
-        else:
+        elif self.is_remote:
             return self.remote_con_str
+        elif self.is_manager:
+            return self.saved_con_str
+        else:
+            raise ValueError("Invalid tab")
 
     @con_str.setter
     def con_str(self, con_str: str):
@@ -356,11 +398,18 @@ class SelectDatabaseDlg(QDialog, Ui_SelectDatabase, QtUseContext):
     @property
     def schema(self) -> str:
         """Return the schema name."""
-        schema = self.c_schema.text().strip()
-        if schema:
-            return schema
+        if self.is_manager:
+            config = self.selected_config
+            if config:
+                return config["schema"]
+            else:
+                return "public"
         else:
-            return "public"
+            schema = self.c_schema.text().strip()
+            if schema:
+                return schema
+            else:
+                return "public"
 
     @schema.setter
     def schema(self, schema: str):
@@ -421,9 +470,9 @@ class SelectDatabaseDlg(QDialog, Ui_SelectDatabase, QtUseContext):
         if filename:
             self.c_file_path.setText(filename)
 
-    def bootstrap(self):
+    def bootstrap(self, suppress_success_message: bool = False) -> bool:
         """Bootstrap the database."""
-        local_ctx = self.ctx.__class__(
+        local_ctx = self.ctx.__class__(  # type: ignore
             c_string=self.con_str,
             schema=self.schema,
             top_widget=self.ctx.top_widget,
@@ -445,10 +494,11 @@ class SelectDatabaseDlg(QDialog, Ui_SelectDatabase, QtUseContext):
             logger.error(
                 "Failed to connect to the database: %s", str(e), exc_info=True
             )
-            return
+            return False
 
         try:
-            local_ctx.bootstrap()
+            if not local_ctx.bootstrap():
+                return False
         except Exception as e:
             self.ctx.show_error(
                 title=self.ctx.t("cmn.error", "Error"),
@@ -461,17 +511,19 @@ class SelectDatabaseDlg(QDialog, Ui_SelectDatabase, QtUseContext):
             logger.error(
                 "Failed to bootstrap the database: %s", str(e), exc_info=True
             )
-            return
+            return False
 
-        QMessageBox.information(
-            self,
-            self.ctx.t("cmn.info", "Info"),
-            self.ctx.t("cmn.db.bootstrap-success", "Bootstrap successful!"),
-        )
+        if not suppress_success_message:
+            QMessageBox.information(
+                self,
+                self.ctx.t("cmn.info", "Info"),
+                self.ctx.t("cmn.db.bootstrap-success", "Bootstrap successful!"),
+            )
+        return True
 
     @classmethod
     def change_connection_str(cls, ctx: "QtContext") -> Tuple[str, str]:
-        """Ask the user for the connection string.."""
+        """Ask the user for the connection string."""
         dlg = cls(parent=ctx.top_widget, ctx=ctx)
         if ctx.c_string:
             dlg.set_con_str(ctx.c_string)

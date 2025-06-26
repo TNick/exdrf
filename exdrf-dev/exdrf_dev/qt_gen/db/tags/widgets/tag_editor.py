@@ -20,6 +20,10 @@ if TYPE_CHECKING:
 
     from exdrf_dev.db.api import Tag  # noqa: F401
 
+# exdrf-keep-start other_globals ----------------------------------------------
+
+# exdrf-keep-end other_globals ------------------------------------------------
+
 
 class QtTagEditor(EditorDb["Tag"], Ui_QtTagEditor):
     """A widget that allows the user to edit a Tag record."""

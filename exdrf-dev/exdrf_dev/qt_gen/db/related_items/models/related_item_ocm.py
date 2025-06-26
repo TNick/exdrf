@@ -32,6 +32,10 @@ from exdrf_dev.qt_gen.db.related_items.models.related_item_ful import (
 if TYPE_CHECKING:
     from sqlalchemy import Select  # noqa: F401
 
+# exdrf-keep-start other_globals ----------------------------------------------
+
+# exdrf-keep-end other_globals ------------------------------------------------
+
 
 def default_related_item_ocm_selection():
     from exdrf_dev.db.api import RelatedItem as DbRelatedItem

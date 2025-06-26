@@ -22,6 +22,10 @@ if TYPE_CHECKING:
     from exdrf_dev.db.api import CompositeKeyModel  # noqa: F401
     from exdrf_dev.db.api import RelatedItem  # noqa: F401
 
+# exdrf-keep-start other_globals ----------------------------------------------
+
+# exdrf-keep-end other_globals ------------------------------------------------
+
 
 @define
 class RelatedItemsField(QtRefOneToManyField["CompositeKeyModel"]):

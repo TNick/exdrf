@@ -221,7 +221,12 @@ class Selector(Generic[DBM]):
                 if processed_item is not None:
                     components.append(processed_item)
             except Exception as e:
-                logger.error("Error applying filter %s: %s", definition_item, e)
+                logger.error(
+                    "Error applying filter subset %s: %s",
+                    definition_item,
+                    e,
+                    exc_info=True,
+                )
 
         return components
 

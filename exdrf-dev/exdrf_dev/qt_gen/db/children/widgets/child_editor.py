@@ -22,6 +22,10 @@ if TYPE_CHECKING:
 
     from exdrf_dev.db.api import Child  # noqa: F401
 
+# exdrf-keep-start other_globals ----------------------------------------------
+
+# exdrf-keep-end other_globals ------------------------------------------------
+
 
 class QtChildEditor(EditorDb["Child"], Ui_QtChildEditor):
     """A widget that allows the user to edit a Child record."""

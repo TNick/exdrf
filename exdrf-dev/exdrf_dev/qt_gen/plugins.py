@@ -2,7 +2,7 @@
 # Source: exdrf_gen_al2qt.creator -> plugins.py.j2
 # Don't change it manually.
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from exdrf_qt.plugins import hook_spec
 
@@ -11,6 +11,8 @@ from exdrf_qt.plugins import hook_spec
 # exdrf-keep-end other_imports ------------------------------------------------
 
 if TYPE_CHECKING:
+    from exdrf.filter import FilterType  # noqa: F401
+
     from exdrf_dev.qt_gen.db.children.api import QtChildEditor  # noqa: F401
     from exdrf_dev.qt_gen.db.children.api import QtChildFuMo  # noqa: F401
     from exdrf_dev.qt_gen.db.children.api import QtChildList  # noqa: F401
@@ -118,6 +120,18 @@ class ChildHooks:
         raise NotImplementedError
 
     @hook_spec
+    def child_fumo_ttf(
+        self,
+        model: "QtChildFuMo",
+        text: str,
+        exact: Optional[bool],
+        limit: Optional[str],
+        filters: "FilterType",
+    ) -> None:
+        """Called when a full model is created."""
+        raise NotImplementedError
+
+    @hook_spec
     def child_namo_created(self, model: "QtChildNaMo") -> None:
         """Called when a name model is created."""
         raise NotImplementedError
@@ -154,6 +168,18 @@ class CompositeKeyModelHooks:
     @hook_spec
     def composite_key_model_fumo_created(
         self, model: "QtCompositeKeyModelFuMo"
+    ) -> None:
+        """Called when a full model is created."""
+        raise NotImplementedError
+
+    @hook_spec
+    def composite_key_model_fumo_ttf(
+        self,
+        model: "QtCompositeKeyModelFuMo",
+        text: str,
+        exact: Optional[bool],
+        limit: Optional[str],
+        filters: "FilterType",
     ) -> None:
         """Called when a full model is created."""
         raise NotImplementedError
@@ -210,6 +236,18 @@ class ParentHooks:
         raise NotImplementedError
 
     @hook_spec
+    def parent_fumo_ttf(
+        self,
+        model: "QtParentFuMo",
+        text: str,
+        exact: Optional[bool],
+        limit: Optional[str],
+        filters: "FilterType",
+    ) -> None:
+        """Called when a full model is created."""
+        raise NotImplementedError
+
+    @hook_spec
     def parent_namo_created(self, model: "QtParentNaMo") -> None:
         """Called when a name model is created."""
         raise NotImplementedError
@@ -246,6 +284,18 @@ class ParentTagAssociationHooks:
     @hook_spec
     def parent_tag_association_fumo_created(
         self, model: "QtParentTagAssociationFuMo"
+    ) -> None:
+        """Called when a full model is created."""
+        raise NotImplementedError
+
+    @hook_spec
+    def parent_tag_association_fumo_ttf(
+        self,
+        model: "QtParentTagAssociationFuMo",
+        text: str,
+        exact: Optional[bool],
+        limit: Optional[str],
+        filters: "FilterType",
     ) -> None:
         """Called when a full model is created."""
         raise NotImplementedError
@@ -302,6 +352,18 @@ class ProfileHooks:
         raise NotImplementedError
 
     @hook_spec
+    def profile_fumo_ttf(
+        self,
+        model: "QtProfileFuMo",
+        text: str,
+        exact: Optional[bool],
+        limit: Optional[str],
+        filters: "FilterType",
+    ) -> None:
+        """Called when a full model is created."""
+        raise NotImplementedError
+
+    @hook_spec
     def profile_namo_created(self, model: "QtProfileNaMo") -> None:
         """Called when a name model is created."""
         raise NotImplementedError
@@ -337,6 +399,18 @@ class RelatedItemHooks:
 
     @hook_spec
     def related_item_fumo_created(self, model: "QtRelatedItemFuMo") -> None:
+        """Called when a full model is created."""
+        raise NotImplementedError
+
+    @hook_spec
+    def related_item_fumo_ttf(
+        self,
+        model: "QtRelatedItemFuMo",
+        text: str,
+        exact: Optional[bool],
+        limit: Optional[str],
+        filters: "FilterType",
+    ) -> None:
         """Called when a full model is created."""
         raise NotImplementedError
 
@@ -378,6 +452,18 @@ class TagHooks:
 
     @hook_spec
     def tag_fumo_created(self, model: "QtTagFuMo") -> None:
+        """Called when a full model is created."""
+        raise NotImplementedError
+
+    @hook_spec
+    def tag_fumo_ttf(
+        self,
+        model: "QtTagFuMo",
+        text: str,
+        exact: Optional[bool],
+        limit: Optional[str],
+        filters: "FilterType",
+    ) -> None:
         """Called when a full model is created."""
         raise NotImplementedError
 

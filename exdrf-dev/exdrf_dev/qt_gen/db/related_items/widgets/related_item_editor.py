@@ -22,6 +22,10 @@ if TYPE_CHECKING:
 
     from exdrf_dev.db.api import RelatedItem  # noqa: F401
 
+# exdrf-keep-start other_globals ----------------------------------------------
+
+# exdrf-keep-end other_globals ------------------------------------------------
+
 
 class QtRelatedItemEditor(EditorDb["RelatedItem"], Ui_QtRelatedItemEditor):
     """A widget that allows the user to edit a RelatedItem record."""

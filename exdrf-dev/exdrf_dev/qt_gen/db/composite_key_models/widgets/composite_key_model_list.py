@@ -16,6 +16,10 @@ if TYPE_CHECKING:
 
     from exdrf_dev.db.api import CompositeKeyModel  # noqa: F401
 
+# exdrf-keep-start other_globals ----------------------------------------------
+
+# exdrf-keep-end other_globals ------------------------------------------------
+
 
 class QtCompositeKeyModelList(ListDb["CompositeKeyModel"]):
     """Presents a list of records from the database."""
@@ -29,7 +33,18 @@ class QtCompositeKeyModelList(ListDb["CompositeKeyModel"]):
             QtCompositeKeyModelFuMo,
         )
 
-        super().__init__(ctx=ctx, *args, **kwargs)
+        super().__init__(
+            ctx=ctx,
+            *args,
+            other_actions=kwargs.pop(
+                "other_actions",
+                ctx.get_ovr(
+                    "exdrf_dev.qt_gen.db.composite_key_models.list.extra-menus",
+                    None,
+                ),
+            ),
+            **kwargs,
+        )
         self.setModel(
             ctx.get_c_ovr(
                 "exdrf_dev.qt_gen.db.composite_key_models.list.model",
@@ -40,7 +55,9 @@ class QtCompositeKeyModelList(ListDb["CompositeKeyModel"]):
         )
 
         self.setWindowTitle(
-            self.t("composite_key_model.tv.title", "Composite key model list"),
+            self.t(
+                "composite_key_model.list.title", "Composite key model list"
+            ),
         )
 
         # Inform plugins that the list has been created.

@@ -3,7 +3,9 @@ from typing import (
     TYPE_CHECKING,
     Callable,
     Generic,
+    List,
     Optional,
+    Tuple,
     TypeVar,
     Union,
     cast,
@@ -24,6 +26,7 @@ from PyQt5.QtWidgets import (
 
 from exdrf_qt.context_use import QtUseContext
 from exdrf_qt.controls.crud_actions import (
+    AcBase,
     OpenCreateAc,
     OpenDeleteAc,
     OpenEditAc,
@@ -49,10 +52,12 @@ class ListDb(QWidget, QtUseContext, Generic[DBM]):
 
     Attributes:
         ly: The layout of the list.
-        tree: The tree view that presents the content of the list.
         h_ly: The horizontal layout of the list.
+        tree: The tree view that presents the content of the list.
+        c_search_box: The search box that allows the user to search for items.
         lbl_total: The label that displays the total number of items.
         lbl_loaded: The label that displays the number of loaded items.
+        lbl_in_prog: The label that displays the number of items in progress.
     """
 
     ly: QVBoxLayout
@@ -68,6 +73,9 @@ class ListDb(QWidget, QtUseContext, Generic[DBM]):
         ctx: "QtContext",
         parent: Optional["QWidget"] = None,
         menu_handler: Optional[Callable] = None,
+        other_actions: Optional[
+            List[Union[Tuple[str, str, str], "AcBase", QAction, None]]
+        ] = None,
     ):
         super().__init__(parent=parent)
         self.ctx = ctx
@@ -80,6 +88,7 @@ class ListDb(QWidget, QtUseContext, Generic[DBM]):
             ctx=ctx,
             parent=self,
             menu_handler=menu_handler,
+            other_actions=other_actions,
         )
         self.ly.addWidget(self.tree)
 
@@ -233,12 +242,16 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
     ac_set_null: QAction
     ac_reload: QAction
     ac_filter: QAction
+    ac_others: List[Union["AcBase", QAction, None]]
 
     def __init__(
         self,
         ctx: "QtContext",
         parent: Optional["QWidget"] = None,
         menu_handler: Optional[Callable] = None,
+        other_actions: Optional[
+            List[Union[Tuple[str, str, str], "AcBase", QAction, None]]
+        ] = None,
     ):
         super().__init__(parent=parent)
         self.ctx = ctx
@@ -260,7 +273,7 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
         self.setUniformRowHeights(True)
 
         # Prepare the actions.
-        self.create_actions()
+        self.create_actions(other_actions)
 
         # Use custom header
         header: ListDbHeader = ListDbHeader(parent=self, ctx=ctx)
@@ -319,7 +332,12 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
         if isinstance(header, ListDbHeader):
             header.load_sections_from_settings()
 
-    def create_actions(self):
+    def create_actions(
+        self,
+        other_actions: Optional[
+            List[Union[Tuple[str, str, str], "AcBase", QAction, None]]
+        ] = None,
+    ):
         """Create the actions.
 
         Note that we do not take a model as parameter in the constructor,
@@ -397,6 +415,34 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
         )
         self.ac_filter.triggered.connect(self.on_filter)
 
+        # Create custom actions.
+        self.ac_others = []
+        if other_actions is not None:
+            other_ac: Union["AcBase", QAction, None]
+            for ac_src in other_actions:
+                if isinstance(ac_src, tuple):
+                    label, icon, route = ac_src
+                    other_ac = AcBase(
+                        label=label,
+                        ctx=self.ctx,
+                        route=route,
+                        icon=self.get_icon(icon),
+                        menu_or_parent=self,
+                    )
+                elif isinstance(ac_src, AcBase):
+                    other_ac = ac_src
+                elif ac_src is None:
+                    other_ac = None
+                elif callable(ac_src):
+                    other_ac = ac_src(
+                        ctx=self.ctx,
+                        menu_or_parent=self,
+                        provider=self,
+                    )
+                else:
+                    raise ValueError(f"Invalid action: {ac_src}")
+                self.ac_others.append(other_ac)
+
         self.addActions(
             [
                 self.ac_new,
@@ -409,6 +455,7 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
                 self.ac_set_null,
                 self.ac_reload,
                 self.ac_filter,
+                *[ac for ac in self.ac_others if ac is not None],
             ]
         )
         self.ac_new.setEnabled(True)
@@ -438,6 +485,18 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
 
         return item.db_id
 
+    def add_other_view_actions(self, menu: QMenu):
+        """Add the other actions to the context menu."""
+        actual_actions = 0
+        for ac in self.ac_others:
+            if ac is not None:
+                menu.addAction(ac)
+                actual_actions += 1
+            else:
+                menu.addSeparator()
+        if actual_actions:
+            menu.addSeparator()
+
     def show_context_menu(self, point: "QPoint") -> None:
         """Show the context menu."""
         menu = QMenu(self)
@@ -460,6 +519,8 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
             if self.ac_rem is None:
                 menu.addSeparator()
             menu.addAction(self.ac_rem_all)
+
+        self.add_other_view_actions(menu)
 
         if self.ac_view is not None:
             menu.addAction(self.ac_view)

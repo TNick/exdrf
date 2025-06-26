@@ -1,5 +1,5 @@
 import logging
-from typing import TYPE_CHECKING, Any, Generic, Set, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, Optional, Set, Type, TypeVar
 
 from exdrf.constants import RecIdType
 from PyQt5.QtCore import Qt
@@ -10,6 +10,7 @@ from exdrf_qt.field_ed.base_drop import DropBase
 
 if TYPE_CHECKING:
     from exdrf_qt.context import QtContext
+    from exdrf_qt.controls.base_editor import EditorDb
     from exdrf_qt.models import QtModel
     from exdrf_qt.models.record import QtRecord
 
@@ -26,7 +27,11 @@ class DrfSelMultiEditor(DropBase, Generic[DBM]):
     _dropdown: SearchList
 
     def __init__(
-        self, ctx: "QtContext", qt_model: "QtModel[DBM]", **kwargs
+        self,
+        ctx: "QtContext",
+        qt_model: "QtModel[DBM]",
+        editor_class: Optional[Type["EditorDb"]] = None,
+        **kwargs,
     ) -> None:
         super().__init__(ctx=ctx, **kwargs)
         self.setReadOnly(True)
@@ -35,6 +40,7 @@ class DrfSelMultiEditor(DropBase, Generic[DBM]):
             ctx=ctx,
             qt_model=qt_model,
             popup=True,
+            editor_class=editor_class,
         )
         qt_model.checkedChanged.connect(self.on_checked_ids_changed)
 

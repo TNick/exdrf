@@ -21,6 +21,10 @@ from exdrf_dev.qt_gen.db.tags.models.tag_ful import QtTagFuMo
 if TYPE_CHECKING:
     from sqlalchemy import Select  # noqa: F401
 
+# exdrf-keep-start other_globals ----------------------------------------------
+
+# exdrf-keep-end other_globals ------------------------------------------------
+
 
 def default_tag_ocm_selection():
     from exdrf_dev.db.api import Tag as DbTag

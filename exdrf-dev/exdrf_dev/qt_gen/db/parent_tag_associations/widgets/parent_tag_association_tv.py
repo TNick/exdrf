@@ -10,6 +10,10 @@ from exdrf_qt.controls.templ_viewer.view_page import WebEnginePage
 from exdrf_qt.plugins import exdrf_qt_pm, safe_hook_call
 from sqlalchemy import Select, select
 
+# exdrf-keep-start other_imports -----------------------------------------------
+
+# exdrf-keep-end other_imports -------------------------------------------------
+
 if TYPE_CHECKING:
     from exdrf_qt.context import QtContext  # noqa: F401
     from sqlalchemy.orm import Session  # noqa: F401
@@ -20,9 +24,17 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# exdrf-keep-start other_globals -----------------------------------------------
+
+# exdrf-keep-end other_globals -------------------------------------------------
+
 
 class QtParentTagAssociationTv(RecordTemplViewer):
     """Template viewer for a ParentTagAssociation database record."""
+
+    # exdrf-keep-start other_attributes ----------------------------------------
+
+    # exdrf-keep-end other_attributes ------------------------------------------
 
     def __init__(self, ctx: "QtContext", **kwargs):
         from exdrf_dev.db.api import (
@@ -30,13 +42,19 @@ class QtParentTagAssociationTv(RecordTemplViewer):
         )
 
         super().__init__(
-            db_model=ctx.get_ovr(
-                "exdrf_dev.qt_gen.db.parent_tag_associations.tv.model",
-                DbParentTagAssociation,
+            db_model=kwargs.pop(
+                "db_model",
+                ctx.get_ovr(
+                    "exdrf_dev.qt_gen.db.parent_tag_associations.tv.model",
+                    DbParentTagAssociation,
+                ),
             ),
-            template_src=ctx.get_ovr(
-                "exdrf_dev.qt_gen.db.parent_tag_associations.tv.template",
-                "exdrf_dev.qt_gen/db/parent_tag_associations/widgets/parent_tag_association_tv.html",
+            template_src=kwargs.pop(
+                "template_src",
+                ctx.get_ovr(
+                    "exdrf_dev.qt_gen.db.parent_tag_associations.tv.template",
+                    "exdrf_dev.qt_gen/db/parent_tag_associations/widgets/parent_tag_association_tv.html",
+                ),
             ),
             page_class=ctx.get_ovr(
                 "exdrf_dev.qt_gen.db.parent_tag_associations.tv.page_class",
@@ -45,9 +63,12 @@ class QtParentTagAssociationTv(RecordTemplViewer):
                     WebEnginePage,
                 ),
             ),
-            other_actions=ctx.get_ovr(
-                "exdrf_dev.qt_gen.db.parent_tag_associations.tv.extra-menus",
-                None,
+            other_actions=kwargs.pop(
+                "other_actions",
+                ctx.get_ovr(
+                    "exdrf_dev.qt_gen.db.parent_tag_associations.tv.extra-menus",
+                    None,
+                ),
             ),
             ctx=ctx,
             **kwargs,
@@ -59,6 +80,10 @@ class QtParentTagAssociationTv(RecordTemplViewer):
                     "Parent tag association viewer",
                 ),
             )
+
+        # exdrf-keep-start extra_viewer_init -----------------------------------
+
+        # exdrf-keep-end extra_viewer_init -------------------------------------
 
         # Inform plugins that the viewer has been created.
         safe_hook_call(
@@ -139,3 +164,12 @@ class QtParentTagAssociationTv(RecordTemplViewer):
         from exdrf_qt.utils.router import session_del_record
 
         return session_del_record
+
+    # exdrf-keep-start extra_viewer_content ------------------------------------
+
+    # exdrf-keep-end extra_viewer_content --------------------------------------
+
+
+# exdrf-keep-start more_content ------------------------------------------------
+
+# exdrf-keep-end more_content --------------------------------------------------

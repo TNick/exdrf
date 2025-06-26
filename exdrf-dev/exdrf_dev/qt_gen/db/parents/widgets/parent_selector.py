@@ -15,6 +15,10 @@ from exdrf_qt.plugins import exdrf_qt_pm, safe_hook_call
 if TYPE_CHECKING:
     from exdrf_qt.context import QtContext  # noqa: F401
 
+# exdrf-keep-start other_globals ----------------------------------------------
+
+# exdrf-keep-end other_globals ------------------------------------------------
+
 
 class QtParentSiSe(DrfSelOneEditor):
     """Reads the list of records from the database and allows the user to
@@ -26,8 +30,9 @@ class QtParentSiSe(DrfSelOneEditor):
     # exdrf-keep-end other_sise_attributes ------------------------------------
 
     def __init__(self, ctx: "QtContext", **kwargs):
-        from exdrf_dev.qt_gen.db.parents.models.parent_ocm import (  # noqa: E501
-            QtParentNaMo,
+        from exdrf_dev.qt_gen.db.parents.models.parent_ocm import QtParentNaMo
+        from exdrf_dev.qt_gen.db.parents.widgets.parent_editor import (
+            QtParentEditor,
         )
 
         super().__init__(
@@ -35,6 +40,9 @@ class QtParentSiSe(DrfSelOneEditor):
                 "exdrf_dev.qt_gen.db.parents.selector.model",
                 QtParentNaMo,
                 ctx=ctx,
+            ),
+            editor_class=ctx.get_ovr(
+                "exdrf_dev.qt_gen.db.parents.selector.editor", QtParentEditor
             ),
             ctx=ctx,
             **kwargs,
@@ -63,11 +71,23 @@ class QtParentMuSe(DrfSelMultiEditor):
     # exdrf-keep-end other_muse_attributes ------------------------------------
 
     def __init__(self, ctx: "QtContext", **kwargs):
-        from exdrf_dev.qt_gen.db.parents.models.parent_ocm import (  # noqa: E501
-            QtParentNaMo,
+        from exdrf_dev.qt_gen.db.parents.models.parent_ocm import QtParentNaMo
+        from exdrf_dev.qt_gen.db.parents.widgets.parent_editor import (
+            QtParentEditor,
         )
 
-        super().__init__(qt_model=QtParentNaMo(ctx=ctx), ctx=ctx, **kwargs)
+        super().__init__(
+            qt_model=ctx.get_c_ovr(
+                "exdrf_dev.qt_gen.db.parents.selector.model",
+                QtParentNaMo,
+                ctx=ctx,
+            ),
+            editor_class=ctx.get_ovr(
+                "exdrf_dev.qt_gen.db.parents.selector.editor", QtParentEditor
+            ),
+            ctx=ctx,
+            **kwargs,
+        )
         self.qt_model.setParent(self)
 
         # Inform plugins that the widget has been created.

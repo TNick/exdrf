@@ -1,17 +1,22 @@
-from typing import TYPE_CHECKING, Generic, TypeVar, cast
+from typing import TYPE_CHECKING, Generic, Optional, Type, TypeVar, cast
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QFrame, QTreeView, QVBoxLayout
+from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtWidgets import (
+    QAction,
+    QDialog,
+    QFrame,
+    QLineEdit,
+    QTreeView,
+    QVBoxLayout,
+)
 
 from exdrf_qt.context_use import QtUseContext
+from exdrf_qt.controls.search_line import SearchLine
 
 if TYPE_CHECKING:
     from exdrf_qt.context import QtContext
+    from exdrf_qt.controls.base_editor import EditorDb
     from exdrf_qt.models import QtModel
-
-from PyQt5.QtCore import pyqtSignal
-
-from exdrf_qt.controls.search_line import SearchLine
 
 DBM = TypeVar("DBM")
 
@@ -50,6 +55,8 @@ class SearchList(QFrame, QtUseContext, Generic[DBM]):
     ly: QVBoxLayout
     src_line: SearchLine
     tree: TreeView
+    editor_class: Optional[Type["EditorDb"]]
+    ac_create: Optional[QAction]
 
     def __init__(
         self,
@@ -57,9 +64,12 @@ class SearchList(QFrame, QtUseContext, Generic[DBM]):
         qt_model: "QtModel[DBM]",
         parent=None,
         popup: bool = False,
+        editor_class: Optional[Type["EditorDb"]] = None,
     ):
         super().__init__(parent)
         self.ctx = ctx
+        self.editor_class = editor_class
+        self.ac_create = None
 
         if popup:
             # Set up the frame
@@ -74,11 +84,7 @@ class SearchList(QFrame, QtUseContext, Generic[DBM]):
         self.ly = QVBoxLayout()
 
         # Initialize the search line.
-        self.src_line = SearchLine(
-            parent=self,
-            callback=qt_model.apply_simple_search,
-            ctx=self.ctx,
-        )
+        self.prepare_search_line(qt_model)
         self.ly.addWidget(self.src_line)
 
         # Initialize the tree.
@@ -100,3 +106,58 @@ class SearchList(QFrame, QtUseContext, Generic[DBM]):
     def qt_model(self) -> "QtModel[DBM]":
         """Get the model of the tree view."""
         return self.tree.model()  # type: ignore[return-value]
+
+    def prepare_search_line(self, qt_model: "QtModel[DBM]"):
+        self.src_line = SearchLine(
+            parent=self,
+            callback=qt_model.apply_simple_search,
+            ctx=self.ctx,
+        )
+
+        if self.editor_class is not None:
+            self.ac_create = QAction(
+                self.ctx.get_icon("plus"),
+                self.ctx.t("cmn.create.title", "Create"),
+                self,
+            )
+            self.ac_create.triggered.connect(self._on_create)
+            self.src_line.addAction(
+                self.ac_create, QLineEdit.ActionPosition.TrailingPosition
+            )
+
+    def _on_create(self):
+        """Create a new item."""
+        if self.editor_class is None:
+            raise ValueError("editor_class is not set")
+
+        dlg = QDialog(self)
+        ly = QVBoxLayout()
+        dlg.setLayout(ly)
+
+        # Create the editor.
+        editor = self.editor_class(
+            ctx=self.ctx,
+            db_model=self.qt_model.db_model,
+            parent=dlg,
+        )
+        editor.recordSaved.connect(dlg.accept)
+
+        ly.addWidget(editor)
+
+        dlg.setWindowTitle(self.t("cmn.create.title", "Create"))
+        dlg.setModal(True)
+        dlg.setMinimumSize(400, 300)
+        dlg.setMaximumSize(600, 400)
+        dlg.setWindowModality(Qt.WindowModality.ApplicationModal)
+        dlg.setWindowFlags(Qt.WindowType.Dialog)
+        dlg.setWindowFlags(Qt.WindowType.WindowTitleHint)
+
+        if dlg.exec_() == QDialog.Accepted:
+            checked = self.qt_model.checked_ids or []
+            assert editor.db_id is not None
+            self.qt_model.checked_ids = set(
+                [
+                    *checked,
+                    editor.db_id,
+                ]
+            )

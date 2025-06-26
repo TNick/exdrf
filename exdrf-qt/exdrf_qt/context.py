@@ -328,11 +328,12 @@ class QtContext(DbConn):
         """
         return d.format(**kwargs)
 
-    def bootstrap(self):
+    def bootstrap(self) -> bool:
         """Prepare the database for use."""
         from exdrf_al.base import Base
 
         self.create_all_tables(Base)
+        return True
 
     def setup_logging(self):
         """Setup logging."""

@@ -16,6 +16,10 @@ if TYPE_CHECKING:
 
     from exdrf_dev.db.api import Child  # noqa: F401
 
+# exdrf-keep-start other_globals ----------------------------------------------
+
+# exdrf-keep-end other_globals ------------------------------------------------
+
 
 class QtChildList(ListDb["Child"]):
     """Presents a list of records from the database."""
@@ -29,7 +33,17 @@ class QtChildList(ListDb["Child"]):
             QtChildFuMo,
         )
 
-        super().__init__(ctx=ctx, *args, **kwargs)
+        super().__init__(
+            ctx=ctx,
+            *args,
+            other_actions=kwargs.pop(
+                "other_actions",
+                ctx.get_ovr(
+                    "exdrf_dev.qt_gen.db.children.list.extra-menus", None
+                ),
+            ),
+            **kwargs,
+        )
         self.setModel(
             ctx.get_c_ovr(
                 "exdrf_dev.qt_gen.db.children.list.model",
@@ -40,7 +54,7 @@ class QtChildList(ListDb["Child"]):
         )
 
         self.setWindowTitle(
-            self.t("child.tv.title", "Child list"),
+            self.t("child.list.title", "Child list"),
         )
 
         # Inform plugins that the list has been created.

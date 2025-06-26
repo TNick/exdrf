@@ -50,6 +50,10 @@ from exdrf_dev.qt_gen.db.composite_key_models.models.composite_key_model_ful imp
 if TYPE_CHECKING:
     from sqlalchemy import Select  # noqa: F401
 
+# exdrf-keep-start other_globals ----------------------------------------------
+
+# exdrf-keep-end other_globals ------------------------------------------------
+
 
 def default_composite_key_model_ocm_selection():
     from exdrf_dev.db.api import CompositeKeyModel as DbCompositeKeyModel

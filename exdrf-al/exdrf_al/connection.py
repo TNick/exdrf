@@ -2,7 +2,7 @@ from contextlib import contextmanager
 from typing import List, Optional
 
 from attrs import define, field
-from sqlalchemy import Engine, create_engine, event, text
+from sqlalchemy import Engine, create_engine, event
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.session import Session
 
@@ -75,7 +75,7 @@ class DbConn:
             s.close()
         self.s_stack = []
 
-    def new_session(self):
+    def new_session(self, add_to_stack: bool = True):
         """Create a new session."""
         self.connect()
         Session = sessionmaker(
@@ -87,15 +87,17 @@ class DbConn:
         )
         s = Session()
 
-        # Indicate that a session is being prepared.
-        self.s_stack.append(None)  # type: ignore
+        if add_to_stack:
+            # Indicate that a session is being prepared.
+            self.s_stack.append(None)  # type: ignore
 
         assert self.engine is not None, "Engine not set"
-        if self.schema and self.engine.dialect.name in dialects_with_schema:
-            # s.execute(text("SHOW search_path;"))
-            s.execute(text("SELECT 1"))
+        # if self.schema and self.engine.dialect.name in dialects_with_schema:
+        #     # s.execute(text("SHOW search_path;"))
+        #     s.execute(text("SELECT 1"))
 
-        self.s_stack[-1] = s
+        if add_to_stack:
+            self.s_stack[-1] = s
         return s
 
     @contextmanager

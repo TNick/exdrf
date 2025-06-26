@@ -16,6 +16,10 @@ if TYPE_CHECKING:
 
     from exdrf_dev.db.api import Profile  # noqa: F401
 
+# exdrf-keep-start other_globals ----------------------------------------------
+
+# exdrf-keep-end other_globals ------------------------------------------------
+
 
 class QtProfileList(ListDb["Profile"]):
     """Presents a list of records from the database."""
@@ -29,7 +33,17 @@ class QtProfileList(ListDb["Profile"]):
             QtProfileFuMo,
         )
 
-        super().__init__(ctx=ctx, *args, **kwargs)
+        super().__init__(
+            ctx=ctx,
+            *args,
+            other_actions=kwargs.pop(
+                "other_actions",
+                ctx.get_ovr(
+                    "exdrf_dev.qt_gen.db.profiles.list.extra-menus", None
+                ),
+            ),
+            **kwargs,
+        )
         self.setModel(
             ctx.get_c_ovr(
                 "exdrf_dev.qt_gen.db.profiles.list.model",
@@ -40,7 +54,7 @@ class QtProfileList(ListDb["Profile"]):
         )
 
         self.setWindowTitle(
-            self.t("profile.tv.title", "Profile list"),
+            self.t("profile.list.title", "Profile list"),
         )
 
         # Inform plugins that the list has been created.
