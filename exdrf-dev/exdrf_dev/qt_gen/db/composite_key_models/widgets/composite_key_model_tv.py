@@ -132,7 +132,7 @@ class QtCompositeKeyModelTv(RecordTemplViewer):
                     StrField(
                         name="description",
                         title="Description",
-                        description="A description for this record.",
+                        description=("A description for this record."),
                     ),
                     record.description,
                 ),
@@ -147,7 +147,7 @@ class QtCompositeKeyModelTv(RecordTemplViewer):
                     DateField(
                         name="some_date",
                         title="Some Date",
-                        description="A date value.",
+                        description=("A date value."),
                     ),
                     record.some_date,
                 ),
@@ -155,7 +155,7 @@ class QtCompositeKeyModelTv(RecordTemplViewer):
                     EnumField(
                         name="some_enum",
                         title="Some Enum",
-                        description="An enum value representing status.",
+                        description=("An enum value representing status."),
                     ),
                     record.some_enum,
                 ),
@@ -163,7 +163,7 @@ class QtCompositeKeyModelTv(RecordTemplViewer):
                     FloatField(
                         name="some_float",
                         title="Some Float",
-                        description="A floating-point number.",
+                        description=("A floating-point number."),
                     ),
                     record.some_float,
                 ),
@@ -171,7 +171,7 @@ class QtCompositeKeyModelTv(RecordTemplViewer):
                     TimeField(
                         name="some_time",
                         title="Some Time",
-                        description="A time value.",
+                        description=("A time value."),
                     ),
                     record.some_time,
                 ),
@@ -179,7 +179,9 @@ class QtCompositeKeyModelTv(RecordTemplViewer):
                     StrField(
                         name="key_part1",
                         title="Key Part1",
-                        description="First part of the composite primary key (string).",
+                        description=(
+                            "First part of the composite primary key (string)."
+                        ),
                     ),
                     record.key_part1,
                 ),
@@ -187,7 +189,9 @@ class QtCompositeKeyModelTv(RecordTemplViewer):
                     IntField(
                         name="key_part2",
                         title="Key Part2",
-                        description="Second part of the composite primary key (integer).",
+                        description=(
+                            "Second part of the composite primary key (integer)."
+                        ),
                     ),
                     record.key_part2,
                 ),

@@ -40,8 +40,11 @@ class QtParentEditor(EditorDb["Parent"], Ui_QtParentEditor):
 
         super().__init__(
             ctx=ctx,
-            db_model=ctx.get_ovr(
-                "exdrf_dev.qt_gen.db.parents.editor.model", DbParent
+            db_model=kwargs.pop(
+                "db_model",
+                ctx.get_ovr(
+                    "exdrf_dev.qt_gen.db.parents.editor.model", DbParent
+                ),
             ),
             **kwargs,
         )

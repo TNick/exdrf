@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from exdrf_qt.context import QtContext  # noqa: F401
     from sqlalchemy.orm import Session  # noqa: F401
 
-    from {{ db_module }}.{{ r.categories[0] }}.api import {{ ResPascal }}  # noqa: F401
+    from {{ db_module }}.{{ categories[0] }}.api import {{ ResPascal }}  # noqa: F401
 
 # exdrf-keep-start other_globals ----------------------------------------------
 {{other_globals}}
@@ -38,16 +38,16 @@ class Qt{{ ResPascal }}Editor(
 
     def __init__(self, ctx: "QtContext", **kwargs):
         """Initialize the editor widget."""
-        from {{ db_module }}.{{ r.categories[0] }}.api import (
+        from {{ db_module }}.{{ categories[0] }}.api import (
             {{ ResPascal }} as Db{{ ResPascal }}
         )
 
         super().__init__(
             ctx=ctx,
-            db_model=ctx.get_ovr(
-                "{{ out_module }}.{{ r.categories[0] }}.{{ res_p_snake }}.editor.model",
+            db_model=kwargs.pop("db_model", ctx.get_ovr(
+                "{{ out_module }}.{{ categories[0] }}.{{ res_p_snake }}.editor.model",
                 Db{{ ResPascal }}
-            ),
+            )),
             **kwargs
         )
         self.verticalLayout.addWidget(self.create_button_box())

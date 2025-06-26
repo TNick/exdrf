@@ -116,7 +116,7 @@ class QtTagTv(RecordTemplViewer):
                     StrField(
                         name="name",
                         title="Name",
-                        description="Unique name of the tag.",
+                        description=("Unique name of the tag."),
                     ),
                     record.name,
                 ),
@@ -131,7 +131,7 @@ class QtTagTv(RecordTemplViewer):
                     IntField(
                         name="id",
                         title="Id",
-                        description="Primary key for the tag.",
+                        description=("Primary key for the tag."),
                     ),
                     record.id,
                 ),

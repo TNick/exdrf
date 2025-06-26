@@ -130,7 +130,7 @@ class SearchList(QFrame, QtUseContext, Generic[DBM]):
         if self.editor_class is None:
             raise ValueError("editor_class is not set")
 
-        dlg = QDialog(self)
+        dlg = QDialog()
         ly = QVBoxLayout()
         dlg.setLayout(ly)
 
@@ -143,6 +143,7 @@ class SearchList(QFrame, QtUseContext, Generic[DBM]):
         editor.recordSaved.connect(dlg.accept)
 
         ly.addWidget(editor)
+        editor.on_create_new()
 
         dlg.setWindowTitle(self.t("cmn.create.title", "Create"))
         dlg.setModal(True)
@@ -161,3 +162,5 @@ class SearchList(QFrame, QtUseContext, Generic[DBM]):
                     editor.db_id,
                 ]
             )
+        dlg.deleteLater()
+        editor.deleteLater()

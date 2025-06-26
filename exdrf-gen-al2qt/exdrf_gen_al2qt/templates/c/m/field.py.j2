@@ -34,7 +34,9 @@ if TYPE_CHECKING:
 
 @define
 class {{ FldPascal }}Field(Qt{{ fld_bc }}Field["{{ ResPascal }}"]):
-    """{%- if field.description -%}{{ field.description }}{% endif %}
+    """{%- if field.description -%}{%- for line in field.doc_lines %}{{ line }}
+    {% endfor -%}
+    {% endif %}
     """
     name: str = field(default="{{ field.name }}", init=False)
     title: str = field(default="{{ field.title }}")

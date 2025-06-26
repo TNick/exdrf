@@ -36,13 +36,20 @@ class QtTagSiSe(DrfSelOneEditor):
         )
 
         super().__init__(
-            qt_model=ctx.get_c_ovr(
-                "exdrf_dev.qt_gen.db.tags.selector.model",
-                QtTagNaMo,
-                ctx=ctx,
+            qt_model=kwargs.pop(
+                "qt_model",
+                ctx.get_c_ovr(
+                    "exdrf_dev.qt_gen.db.tags.selector.model",
+                    QtTagNaMo,
+                    ctx=ctx,
+                ),
             ),
-            editor_class=ctx.get_ovr(
-                "exdrf_dev.qt_gen.db.tags.selector.editor", QtTagEditor
+            editor_class=kwargs.pop(
+                "editor_class",
+                ctx.get_ovr(
+                    "exdrf_dev.qt_gen.db.tags.selector.editor",
+                    QtTagEditor,
+                ),
             ),
             ctx=ctx,
             **kwargs,
@@ -77,13 +84,20 @@ class QtTagMuSe(DrfSelMultiEditor):
         )
 
         super().__init__(
-            qt_model=ctx.get_c_ovr(
-                "exdrf_dev.qt_gen.db.tags.selector.model",
-                QtTagNaMo,
-                ctx=ctx,
+            qt_model=kwargs.pop(
+                "qt_model",
+                ctx.get_c_ovr(
+                    "exdrf_dev.qt_gen.db.tags.selector.model",
+                    QtTagNaMo,
+                    ctx=ctx,
+                ),
             ),
-            editor_class=ctx.get_ovr(
-                "exdrf_dev.qt_gen.db.tags.selector.editor", QtTagEditor
+            editor_class=kwargs.pop(
+                "editor_class",
+                ctx.get_ovr(
+                    "exdrf_dev.qt_gen.db.tags.selector.editor",
+                    QtTagEditor,
+                ),
             ),
             ctx=ctx,
             **kwargs,

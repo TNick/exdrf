@@ -381,15 +381,16 @@ class QtModel(
                 self._checked = value
                 for db_id in changed:
                     row = self._db_to_row.get(db_id, None)
-                    if row is not None:
+                    if row is None:
+                        reset_model = True
+                    else:
                         self.dataChanged.emit(
                             self.createIndex(row, 0),
                             self.createIndex(row, len(self.column_fields) - 1),
                         )
 
         if reset_model:
-            self.beginResetModel()
-            self.endResetModel()
+            self.reset_model()
 
     def ensure_stubs(self, new_total: int) -> None:
         """We populate the cache with stubs so that the model can be used."""

@@ -127,7 +127,7 @@ class QtParentTv(RecordTemplViewer):
                     DateTimeField(
                         name="created_at",
                         title="Created At",
-                        description="Timestamp when the parent was created.",
+                        description=("Timestamp when the parent was created."),
                     ),
                     record.created_at,
                 ),
@@ -135,7 +135,9 @@ class QtParentTv(RecordTemplViewer):
                     BoolField(
                         name="is_active",
                         title="Is Active",
-                        description="Flag indicating if the parent is active.",
+                        description=(
+                            "Flag indicating if the parent is active."
+                        ),
                     ),
                     record.is_active,
                 ),
@@ -143,7 +145,7 @@ class QtParentTv(RecordTemplViewer):
                     StrField(
                         name="name",
                         title="Name",
-                        description="Name of the parent.",
+                        description=("Name of the parent."),
                     ),
                     record.name,
                 ),
@@ -165,7 +167,7 @@ class QtParentTv(RecordTemplViewer):
                     IntField(
                         name="id",
                         title="Id",
-                        description="Primary key for the parent.",
+                        description=("Primary key for the parent."),
                     ),
                     record.id,
                 ),

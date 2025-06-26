@@ -118,7 +118,7 @@ class QtProfileTv(RecordTemplViewer):
                     StrField(
                         name="bio",
                         title="Bio",
-                        description="Biography text for the profile.",
+                        description=("Biography text for the profile."),
                     ),
                     record.bio,
                 ),
@@ -133,7 +133,9 @@ class QtProfileTv(RecordTemplViewer):
                     IntField(
                         name="parent_id",
                         title="Parent Id",
-                        description="Foreign key linking to the parent (must be unique).",
+                        description=(
+                            "Foreign key linking to the parent (must be unique)."
+                        ),
                     ),
                     record.parent_id,
                 ),
@@ -141,7 +143,7 @@ class QtProfileTv(RecordTemplViewer):
                     IntField(
                         name="id",
                         title="Id",
-                        description="Primary key for the profile.",
+                        description=("Primary key for the profile."),
                     ),
                     record.id,
                 ),

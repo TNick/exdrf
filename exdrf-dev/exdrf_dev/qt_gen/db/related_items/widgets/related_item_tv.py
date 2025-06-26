@@ -125,7 +125,9 @@ class QtRelatedItemTv(RecordTemplViewer):
                     StrField(
                         name="comp_key_part1",
                         title="Comp Key Part1",
-                        description="Foreign key part 1 referencing CompositeKeyModel.",
+                        description=(
+                            "Foreign key part 1 referencing CompositeKeyModel."
+                        ),
                     ),
                     record.comp_key_part1,
                 ),
@@ -133,7 +135,9 @@ class QtRelatedItemTv(RecordTemplViewer):
                     IntField(
                         name="comp_key_part2",
                         title="Comp Key Part2",
-                        description="Foreign key part 2 referencing CompositeKeyModel.",
+                        description=(
+                            "Foreign key part 2 referencing CompositeKeyModel."
+                        ),
                     ),
                     record.comp_key_part2,
                 ),
@@ -141,7 +145,7 @@ class QtRelatedItemTv(RecordTemplViewer):
                     StrField(
                         name="item_data",
                         title="Item Data",
-                        description="Data specific to the related item.",
+                        description=("Data specific to the related item."),
                     ),
                     record.item_data,
                 ),
@@ -149,7 +153,9 @@ class QtRelatedItemTv(RecordTemplViewer):
                     IntField(
                         name="some_int",
                         title="Some Int",
-                        description="An integer value associated with the related item.",
+                        description=(
+                            "An integer value associated with the related item."
+                        ),
                     ),
                     record.some_int,
                 ),
@@ -157,7 +163,7 @@ class QtRelatedItemTv(RecordTemplViewer):
                     IntField(
                         name="id",
                         title="Id",
-                        description="Primary key for the related item.",
+                        description=("Primary key for the related item."),
                     ),
                     record.id,
                 ),

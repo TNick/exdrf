@@ -40,8 +40,12 @@ class QtRelatedItemEditor(EditorDb["RelatedItem"], Ui_QtRelatedItemEditor):
 
         super().__init__(
             ctx=ctx,
-            db_model=ctx.get_ovr(
-                "exdrf_dev.qt_gen.db.related_items.editor.model", DbRelatedItem
+            db_model=kwargs.pop(
+                "db_model",
+                ctx.get_ovr(
+                    "exdrf_dev.qt_gen.db.related_items.editor.model",
+                    DbRelatedItem,
+                ),
             ),
             **kwargs,
         )

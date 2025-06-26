@@ -38,8 +38,9 @@ class QtTagEditor(EditorDb["Tag"], Ui_QtTagEditor):
 
         super().__init__(
             ctx=ctx,
-            db_model=ctx.get_ovr(
-                "exdrf_dev.qt_gen.db.tags.editor.model", DbTag
+            db_model=kwargs.pop(
+                "db_model",
+                ctx.get_ovr("exdrf_dev.qt_gen.db.tags.editor.model", DbTag),
             ),
             **kwargs,
         )

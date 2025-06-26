@@ -36,13 +36,20 @@ class QtChildSiSe(DrfSelOneEditor):
         )
 
         super().__init__(
-            qt_model=ctx.get_c_ovr(
-                "exdrf_dev.qt_gen.db.children.selector.model",
-                QtChildNaMo,
-                ctx=ctx,
+            qt_model=kwargs.pop(
+                "qt_model",
+                ctx.get_c_ovr(
+                    "exdrf_dev.qt_gen.db.children.selector.model",
+                    QtChildNaMo,
+                    ctx=ctx,
+                ),
             ),
-            editor_class=ctx.get_ovr(
-                "exdrf_dev.qt_gen.db.children.selector.editor", QtChildEditor
+            editor_class=kwargs.pop(
+                "editor_class",
+                ctx.get_ovr(
+                    "exdrf_dev.qt_gen.db.children.selector.editor",
+                    QtChildEditor,
+                ),
             ),
             ctx=ctx,
             **kwargs,
@@ -77,13 +84,20 @@ class QtChildMuSe(DrfSelMultiEditor):
         )
 
         super().__init__(
-            qt_model=ctx.get_c_ovr(
-                "exdrf_dev.qt_gen.db.children.selector.model",
-                QtChildNaMo,
-                ctx=ctx,
+            qt_model=kwargs.pop(
+                "qt_model",
+                ctx.get_c_ovr(
+                    "exdrf_dev.qt_gen.db.children.selector.model",
+                    QtChildNaMo,
+                    ctx=ctx,
+                ),
             ),
-            editor_class=ctx.get_ovr(
-                "exdrf_dev.qt_gen.db.children.selector.editor", QtChildEditor
+            editor_class=kwargs.pop(
+                "editor_class",
+                ctx.get_ovr(
+                    "exdrf_dev.qt_gen.db.children.selector.editor",
+                    QtChildEditor,
+                ),
             ),
             ctx=ctx,
             **kwargs,

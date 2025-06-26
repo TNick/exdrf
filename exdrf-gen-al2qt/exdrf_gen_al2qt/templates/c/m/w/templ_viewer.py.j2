@@ -135,7 +135,11 @@ class Qt{{ ResPascal }}Tv(RecordTemplViewer):
                     name="{{ field.name }}",
                     title="{{ field.title }}",
                     {%- if field.description %}
-                    description="{{ field.description }}",
+                    description=(
+                        {%- for line in field.doc_lines %}
+                        "{{ line }}"
+                        {%- endfor %}
+                    ),
                     {%- endif %}
                 ),
                 record.{{ field.name }},

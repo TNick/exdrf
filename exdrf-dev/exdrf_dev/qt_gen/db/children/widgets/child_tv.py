@@ -118,7 +118,7 @@ class QtChildTv(RecordTemplViewer):
                     StrField(
                         name="data",
                         title="Data",
-                        description="Some data associated with the child.",
+                        description=("Some data associated with the child."),
                     ),
                     record.data,
                 ),
@@ -133,7 +133,7 @@ class QtChildTv(RecordTemplViewer):
                     IntField(
                         name="parent_id",
                         title="Parent Id",
-                        description="Foreign key linking to the parent.",
+                        description=("Foreign key linking to the parent."),
                     ),
                     record.parent_id,
                 ),
@@ -141,7 +141,7 @@ class QtChildTv(RecordTemplViewer):
                     IntField(
                         name="id",
                         title="Id",
-                        description="Primary key for the child.",
+                        description=("Primary key for the child."),
                     ),
                     record.id,
                 ),

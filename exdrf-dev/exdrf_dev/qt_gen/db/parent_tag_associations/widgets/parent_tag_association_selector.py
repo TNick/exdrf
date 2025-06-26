@@ -38,14 +38,20 @@ class QtParentTagAssociationSiSe(DrfSelOneEditor):
         )
 
         super().__init__(
-            qt_model=ctx.get_c_ovr(
-                "exdrf_dev.qt_gen.db.parent_tag_associations.selector.model",
-                QtParentTagAssociationNaMo,
-                ctx=ctx,
+            qt_model=kwargs.pop(
+                "qt_model",
+                ctx.get_c_ovr(
+                    "exdrf_dev.qt_gen.db.parent_tag_associations.selector.model",
+                    QtParentTagAssociationNaMo,
+                    ctx=ctx,
+                ),
             ),
-            editor_class=ctx.get_ovr(
-                "exdrf_dev.qt_gen.db.parent_tag_associations.selector.editor",
-                QtParentTagAssociationEditor,
+            editor_class=kwargs.pop(
+                "editor_class",
+                ctx.get_ovr(
+                    "exdrf_dev.qt_gen.db.parent_tag_associations.selector.editor",
+                    QtParentTagAssociationEditor,
+                ),
             ),
             ctx=ctx,
             **kwargs,
@@ -84,14 +90,20 @@ class QtParentTagAssociationMuSe(DrfSelMultiEditor):
         )
 
         super().__init__(
-            qt_model=ctx.get_c_ovr(
-                "exdrf_dev.qt_gen.db.parent_tag_associations.selector.model",
-                QtParentTagAssociationNaMo,
-                ctx=ctx,
+            qt_model=kwargs.pop(
+                "qt_model",
+                ctx.get_c_ovr(
+                    "exdrf_dev.qt_gen.db.parent_tag_associations.selector.model",
+                    QtParentTagAssociationNaMo,
+                    ctx=ctx,
+                ),
             ),
-            editor_class=ctx.get_ovr(
-                "exdrf_dev.qt_gen.db.parent_tag_associations.selector.editor",
-                QtParentTagAssociationEditor,
+            editor_class=kwargs.pop(
+                "editor_class",
+                ctx.get_ovr(
+                    "exdrf_dev.qt_gen.db.parent_tag_associations.selector.editor",
+                    QtParentTagAssociationEditor,
+                ),
             ),
             ctx=ctx,
             **kwargs,

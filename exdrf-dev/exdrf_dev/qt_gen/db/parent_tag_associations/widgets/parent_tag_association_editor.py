@@ -44,9 +44,12 @@ class QtParentTagAssociationEditor(
 
         super().__init__(
             ctx=ctx,
-            db_model=ctx.get_ovr(
-                "exdrf_dev.qt_gen.db.parent_tag_associations.editor.model",
-                DbParentTagAssociation,
+            db_model=kwargs.pop(
+                "db_model",
+                ctx.get_ovr(
+                    "exdrf_dev.qt_gen.db.parent_tag_associations.editor.model",
+                    DbParentTagAssociation,
+                ),
             ),
             **kwargs,
         )

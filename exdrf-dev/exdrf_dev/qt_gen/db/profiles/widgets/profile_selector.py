@@ -38,13 +38,20 @@ class QtProfileSiSe(DrfSelOneEditor):
         )
 
         super().__init__(
-            qt_model=ctx.get_c_ovr(
-                "exdrf_dev.qt_gen.db.profiles.selector.model",
-                QtProfileNaMo,
-                ctx=ctx,
+            qt_model=kwargs.pop(
+                "qt_model",
+                ctx.get_c_ovr(
+                    "exdrf_dev.qt_gen.db.profiles.selector.model",
+                    QtProfileNaMo,
+                    ctx=ctx,
+                ),
             ),
-            editor_class=ctx.get_ovr(
-                "exdrf_dev.qt_gen.db.profiles.selector.editor", QtProfileEditor
+            editor_class=kwargs.pop(
+                "editor_class",
+                ctx.get_ovr(
+                    "exdrf_dev.qt_gen.db.profiles.selector.editor",
+                    QtProfileEditor,
+                ),
             ),
             ctx=ctx,
             **kwargs,
@@ -81,13 +88,20 @@ class QtProfileMuSe(DrfSelMultiEditor):
         )
 
         super().__init__(
-            qt_model=ctx.get_c_ovr(
-                "exdrf_dev.qt_gen.db.profiles.selector.model",
-                QtProfileNaMo,
-                ctx=ctx,
+            qt_model=kwargs.pop(
+                "qt_model",
+                ctx.get_c_ovr(
+                    "exdrf_dev.qt_gen.db.profiles.selector.model",
+                    QtProfileNaMo,
+                    ctx=ctx,
+                ),
             ),
-            editor_class=ctx.get_ovr(
-                "exdrf_dev.qt_gen.db.profiles.selector.editor", QtProfileEditor
+            editor_class=kwargs.pop(
+                "editor_class",
+                ctx.get_ovr(
+                    "exdrf_dev.qt_gen.db.profiles.selector.editor",
+                    QtProfileEditor,
+                ),
             ),
             ctx=ctx,
             **kwargs,

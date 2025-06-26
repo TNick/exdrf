@@ -42,9 +42,12 @@ class QtCompositeKeyModelEditor(
 
         super().__init__(
             ctx=ctx,
-            db_model=ctx.get_ovr(
-                "exdrf_dev.qt_gen.db.composite_key_models.editor.model",
-                DbCompositeKeyModel,
+            db_model=kwargs.pop(
+                "db_model",
+                ctx.get_ovr(
+                    "exdrf_dev.qt_gen.db.composite_key_models.editor.model",
+                    DbCompositeKeyModel,
+                ),
             ),
             **kwargs,
         )

@@ -129,7 +129,7 @@ class QtParentTagAssociationTv(RecordTemplViewer):
                     IntField(
                         name="parent_id",
                         title="Parent Id",
-                        description="Foreign key to the parents table.",
+                        description=("Foreign key to the parents table."),
                     ),
                     record.parent_id,
                 ),
@@ -137,7 +137,7 @@ class QtParentTagAssociationTv(RecordTemplViewer):
                     IntField(
                         name="tag_id",
                         title="Tag Id",
-                        description="Foreign key to the tags table.",
+                        description=("Foreign key to the tags table."),
                     ),
                     record.tag_id,
                 ),
