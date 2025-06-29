@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Any, Optional
 
 from attrs import define, field
 
@@ -24,6 +24,16 @@ class StrField(ExField):
 
     def __repr__(self) -> str:
         return f"StrF(" f"{self.resource.name}.{self.name})"
+
+    def field_properties(self, explicit: bool = False) -> dict[str, Any]:
+        result = super().field_properties(explicit)
+        if self.multiline or explicit:
+            result["multiline"] = self.multiline
+        if self.min_length is not None or explicit:
+            result["min_length"] = self.min_length
+        if self.max_length is not None or explicit:
+            result["max_length"] = self.max_length
+        return result
 
 
 class StrInfo(FieldInfo):

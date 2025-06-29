@@ -1,4 +1,4 @@
-from typing import Literal, Optional
+from typing import Any, Literal, Optional
 
 from attrs import define, field
 
@@ -21,6 +21,12 @@ class FormattedField(StrField):
 
     def __repr__(self) -> str:
         return f"StrF(" f"{self.resource.name}.{self.name})"
+
+    def field_properties(self, explicit: bool = False) -> dict[str, Any]:
+        result = super().field_properties(explicit)
+        if self.format or explicit:
+            result["format"] = self.format
+        return result
 
 
 class FormattedInfo(FieldInfo):

@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import Any, Optional
 
 from attrs import define, field
 
@@ -25,6 +25,16 @@ class DateTimeField(ExField):
 
     def __repr__(self) -> str:
         return f"DaTiF(" f"{self.resource.name}.{self.name})"
+
+    def field_properties(self, explicit: bool = False) -> dict[str, Any]:
+        result = super().field_properties(explicit)
+        if self.min or explicit:
+            result["min"] = self.min
+        if self.max or explicit:
+            result["max"] = self.max
+        if self.format or explicit:
+            result["format"] = self.format
+        return result
 
 
 class DateTimeInfo(FieldInfo):

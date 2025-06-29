@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Any, Optional
 
 from attrs import define, field
 
@@ -26,6 +26,12 @@ class BlobField(ExField):
 
     def __repr__(self) -> str:
         return f"BlobF(" f"{self.resource.name}.{self.name})"
+
+    def field_properties(self, explicit: bool = False) -> dict[str, Any]:
+        result = super().field_properties(explicit)
+        if self.mime_type or explicit:
+            result["mime_type"] = self.mime_type
+        return result
 
 
 class BlobInfo(FieldInfo):

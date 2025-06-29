@@ -12,7 +12,7 @@ classifiers = [
 dependencies = [
   "pydantic>=2.10.6",
 ]
-description = "Generate content using DRF."
+description = "Generate pydantic models content using DRF from sqlalchemy models."
 dynamic = ["version"]
 name = "exdrf-gen-al2pd"
 readme = "README.md"

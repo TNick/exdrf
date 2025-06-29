@@ -220,8 +220,10 @@ def field_from_sql_rel(
     Ctor: Optional[type["ExField"]] = None
     if in_dir == "OneToMany":
         Ctor = RefOneToManyField
+        extra["subordinate"] = parsed_info.subordinate
     elif in_dir == "OneToOne":
         Ctor = RefOneToOneField
+        extra["subordinate"] = parsed_info.subordinate
     elif in_dir == "ManyToMany":
         Ctor = RefManyToManyField
         extra["ref_intermediate"] = res_by_table_name(
@@ -253,7 +255,7 @@ def field_from_sql_rel(
     result = Ctor(
         ref=resource.dataset[relation.mapper.class_.__name__],
         is_list=is_list,
-        **extra,
+        **extra,  # type: ignore
         **kwargs,
     )
 

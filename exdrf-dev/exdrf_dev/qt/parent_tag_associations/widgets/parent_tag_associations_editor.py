@@ -5,7 +5,7 @@
 from typing import TYPE_CHECKING, Union
 
 from exdrf.constants import RecIdType
-from exdrf_qt.controls.base_editor import EditorDb
+from exdrf_qt.controls.base_editor import ExdrfEditor
 
 from exdrf_dev.qt.parent_tag_associations.widgets.parent_tag_associations_editor_ui import (
     Ui_QtParentTagAssociationEditor,
@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 
 
 class QtParentTagAssociationEditor(
-    EditorDb["ParentTagAssociation"], Ui_QtParentTagAssociationEditor
+    ExdrfEditor["ParentTagAssociation"], Ui_QtParentTagAssociationEditor
 ):
     """A widget that allows the user to edit a ParentTagAssociation record."""
 

@@ -4,6 +4,7 @@ from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import (
     QAction,
     QDialog,
+    QDialogButtonBox,
     QFrame,
     QLineEdit,
     QTreeView,
@@ -15,7 +16,7 @@ from exdrf_qt.controls.search_line import SearchLine
 
 if TYPE_CHECKING:
     from exdrf_qt.context import QtContext
-    from exdrf_qt.controls.base_editor import EditorDb
+    from exdrf_qt.controls.base_editor import ExdrfEditor
     from exdrf_qt.models import QtModel
 
 DBM = TypeVar("DBM")
@@ -55,7 +56,7 @@ class SearchList(QFrame, QtUseContext, Generic[DBM]):
     ly: QVBoxLayout
     src_line: SearchLine
     tree: TreeView
-    editor_class: Optional[Type["EditorDb"]]
+    editor_class: Optional[Type["ExdrfEditor"]]
     ac_create: Optional[QAction]
 
     def __init__(
@@ -64,7 +65,7 @@ class SearchList(QFrame, QtUseContext, Generic[DBM]):
         qt_model: "QtModel[DBM]",
         parent=None,
         popup: bool = False,
-        editor_class: Optional[Type["EditorDb"]] = None,
+        editor_class: Optional[Type["ExdrfEditor"]] = None,
     ):
         super().__init__(parent)
         self.ctx = ctx
@@ -140,7 +141,15 @@ class SearchList(QFrame, QtUseContext, Generic[DBM]):
             db_model=self.qt_model.db_model,
             parent=dlg,
         )
-        editor.recordSaved.connect(dlg.accept)
+
+        # Disconnect the save button from the base implementation and connect
+        # it to our own.
+        save_btn = editor.button_box.button(
+            QDialogButtonBox.StandardButton.Save
+        )
+        assert save_btn is not None
+        save_btn.clicked.disconnect(save_btn.on_save)
+        save_btn.clicked.connect(dlg.accept)
 
         ly.addWidget(editor)
         editor.on_create_new()
@@ -154,13 +163,18 @@ class SearchList(QFrame, QtUseContext, Generic[DBM]):
         dlg.setWindowFlags(Qt.WindowType.WindowTitleHint)
 
         if dlg.exec_() == QDialog.Accepted:
-            checked = self.qt_model.checked_ids or []
-            assert editor.db_id is not None
-            self.qt_model.checked_ids = set(
-                [
-                    *checked,
-                    editor.db_id,
-                ]
-            )
+            record = editor.db_record()
+            with self.ctx.same_session() as session:
+                editor.save_to_record(record, True, session)
+                session.expunge_all()
+            # checked = self.qt_model.checked_ids or []
+            # assert editor.db_id is not None
+            # self.qt_model.checked_ids = set(
+            #     [
+            #         *checked,
+            #         editor.db_id,
+            #     ]
+            # )
+        dlg.close()
         dlg.deleteLater()
         editor.deleteLater()

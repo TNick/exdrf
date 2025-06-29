@@ -5,7 +5,7 @@
 from typing import TYPE_CHECKING, Union
 
 from exdrf.constants import RecIdType
-from exdrf_qt.controls import EditorDb
+from exdrf_qt.controls import ExdrfEditor
 from exdrf_qt.plugins import exdrf_qt_pm, safe_hook_call
 
 from exdrf_dev.qt_gen.db.profiles.widgets.profile_editor_ui import (
@@ -27,7 +27,7 @@ if TYPE_CHECKING:
 # exdrf-keep-end other_globals ------------------------------------------------
 
 
-class QtProfileEditor(EditorDb["Profile"], Ui_QtProfileEditor):
+class QtProfileEditor(ExdrfEditor["Profile"], Ui_QtProfileEditor):
     """A widget that allows the user to edit a Profile record."""
 
     # exdrf-keep-start other_attributes ---------------------------------------

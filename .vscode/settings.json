@@ -114,6 +114,7 @@
         "${workspaceFolder}/exdrf-gen",
         "${workspaceFolder}/exdrf-gen-al2pd",
         "${workspaceFolder}/exdrf-gen-al2qt",
+        "${workspaceFolder}/exdrf-gen-al2at",
         "${workspaceFolder}/exdrf-pd",
         "${workspaceFolder}/exdrf-qt"
     ]

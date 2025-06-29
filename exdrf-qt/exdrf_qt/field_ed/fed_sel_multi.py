@@ -10,7 +10,7 @@ from exdrf_qt.field_ed.base_drop import DropBase
 
 if TYPE_CHECKING:
     from exdrf_qt.context import QtContext
-    from exdrf_qt.controls.base_editor import EditorDb
+    from exdrf_qt.controls.base_editor import ExdrfEditor
     from exdrf_qt.models import QtModel
     from exdrf_qt.models.record import QtRecord
 
@@ -30,7 +30,7 @@ class DrfSelMultiEditor(DropBase, Generic[DBM]):
         self,
         ctx: "QtContext",
         qt_model: "QtModel[DBM]",
-        editor_class: Optional[Type["EditorDb"]] = None,
+        editor_class: Optional[Type["ExdrfEditor"]] = None,
         **kwargs,
     ) -> None:
         super().__init__(ctx=ctx, **kwargs)
@@ -154,20 +154,20 @@ class DrfSelMultiEditor(DropBase, Generic[DBM]):
         value = ", ".join([str(d) for d in data if d is not None])
         return value
 
-    def save_value_to_db(self, db_item: Any):
-        """Save the field value into the database record.
+    def save_value_to(self, record: Any):
+        """Save the field value into the target record.
 
         Attributes:
-            db_item: The database item to save the field value to.
+            record: The item to save the field value to.
         """
         if not self._name:
             raise ValueError("Field name is not set.")
-        crt_val = getattr(db_item, self._name, None)
+        crt_val = getattr(record, self._name, None)
         if self.field_value is None:
             if crt_val is not None:
                 crt_val.clear()
             else:
-                setattr(db_item, self._name, None)
+                setattr(record, self._name, None)
             return
         db_lst = [
             d
@@ -177,8 +177,8 @@ class DrfSelMultiEditor(DropBase, Generic[DBM]):
         # As the value may be either a list or a set, let the class decide
         # what to do.
         if crt_val is not None:
-            setattr(db_item, self._name, crt_val.__class__(db_lst))
+            setattr(record, self._name, crt_val.__class__(db_lst))
         else:
-            mapper = inspect(db_item.__class__)
+            mapper = inspect(record.__class__)
             relationship = mapper.relationships[self._name]
-            setattr(db_item, self._name, relationship.collection_class(db_lst))
+            setattr(record, self._name, relationship.collection_class(db_lst))

@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Any, Optional
 
 from attrs import define, field
 
@@ -17,6 +17,11 @@ class RefBaseField(ExField):
 
     ref: "ExResource" = field(default=None, repr=False)
 
+    def field_properties(self, explicit: bool = False) -> dict[str, Any]:
+        result = super().field_properties(explicit)
+        result["ref"] = self.ref.name
+        return result
+
 
 class RelExtraInfo(FieldInfo):
     """Parser for information about a related resource.
@@ -24,6 +29,15 @@ class RelExtraInfo(FieldInfo):
     Attributes:
         direction: The direction of the relationship. Can be "OneToMany",
             "ManyToOne", "OneToOne", or "ManyToMany".
+        subordinate: If true it indicates that the child resource is parented
+            into current resource through this relation. Child resources get
+            deleted when the parent is deleted and they should not be
+            independently managed at the top level. Instead, the widget for
+            this relation in the parent resource will be adapted to show an
+            editable list of children where the children are added and removed.
+            This is only valid when the parent side is 'one' (one-to-many or
+            one-to-one relations from the parent's point of view).
     """
 
     direction: Optional[RelType] = None
+    subordinate: Optional[bool] = None

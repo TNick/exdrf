@@ -15,12 +15,14 @@ class DrfFieldEd(QtUseContext):
 
     Attributes:
         name: the member of the database model that this field editor is for.
-            This is used by the `save_value_to_db()` method to save the current
-            value to the database. `EditorDb` uses that method to provide a
+            This is used by the `save_value_to()` method to save the current
+            value to the database. `ExdrfEditor` uses that method to provide a
             default way of transferring the data from the editor to the
             database model.
-        field_value: The value of the field.
+        field_value: The value of the field. This is a property that, when set,
+            will emit the `controlChanged` signal.
         nullable: Indicates if the field can be null.
+        read_only: Indicates if the field is read only.
         description: A description of the field shown as tooltip and
             in the status bar.
 
@@ -45,7 +47,7 @@ class DrfFieldEd(QtUseContext):
     enteredErrorState = pyqtSignal(str)
 
     def __init__(  # type: ignore
-        self: QWidget,  # type: ignore
+        self,
         ctx: "QtContext",
         name: Optional[str] = None,
         description: Optional[str] = None,
@@ -59,7 +61,7 @@ class DrfFieldEd(QtUseContext):
         self._name = name or ""
         self.nullable = nullable
 
-        self.apply_description()
+        self.apply_description()  # type: ignore
 
     @property
     def field_value(self) -> Any:
@@ -78,25 +80,25 @@ class DrfFieldEd(QtUseContext):
             self._field_value = value
             self.controlChanged.emit()  # type: ignore
 
-    def save_value_to_db(self, db_item: Any):
-        """Save the field value into the database record.
+    def save_value_to(self, record: Any):
+        """Save the field value into the target record.
 
         Attributes:
-            db_item: The database item to save the field value to.
+            record: The item to save the field value to.
         """
         if not self._name:
             raise ValueError("Field name is not set.")
-        setattr(db_item, self._name, self.field_value)
+        setattr(record, self._name, self.field_value)
 
-    def load_value_from_db(self, db_item: Any):
+    def load_value_from(self, record: Any):
         """Load the field value from the database record.
 
         Attributes:
-            db_item: The database item to load the field value from.
+            record: The item to load the field value from.
         """
         if not self._name:
             raise ValueError("Field name is not set.")
-        self.change_field_value(getattr(db_item, self._name, None))
+        self.change_field_value(getattr(record, self._name, None))
 
     def apply_description(self: QWidget):  # type: ignore
         """Apply the description to the widget."""
@@ -160,25 +162,34 @@ class DrfFieldEd(QtUseContext):
 
     @nullable.setter
     def nullable(self, value: bool) -> None:
-        """Set the nullable property."""
+        """Set the nullable property.
+
+        The default implementation looks for an attribute called ac_clear
+        in itself and, if found, assumes it is a QAction.
+        """
         self._nullable = value
-        if hasattr(self, "ac_clear") and self.ac_clear is not None:
+        if (
+            hasattr(self, "ac_clear")
+            and self.ac_clear is not None  # type: ignore
+        ):
             # We have an action to clear the field...
             if value:
                 # ... and so we should.
-                self.ac_clear.setEnabled(self._field_value is not None)
+                self.ac_clear.setEnabled(  # type: ignore
+                    self._field_value is not None
+                )
             else:
                 # ... but we should not.
-                self.ac_clear.deleteLater()
+                self.ac_clear.deleteLater()  # type: ignore
                 self.ac_clear = None
         else:
             # We don't have an action to clear the field...
             if value:
                 # ... but we should have one.
                 self.add_clear_to_null_action()
-            else:
-                # ... and we should not so all is well in the world.
-                pass
+            # else:
+            #    ... and we should not so all is well in the world.
+            #    pass
 
     def add_clear_to_null_action(self) -> None:
         """Adds a clear to null action to the control.

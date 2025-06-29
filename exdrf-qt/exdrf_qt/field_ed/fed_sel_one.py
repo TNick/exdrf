@@ -7,7 +7,7 @@ from exdrf_qt.field_ed.base_drop import DropBase
 
 if TYPE_CHECKING:
     from exdrf_qt.context import QtContext
-    from exdrf_qt.controls.base_editor import EditorDb
+    from exdrf_qt.controls.base_editor import ExdrfEditor
     from exdrf_qt.models import QtModel
     from exdrf_qt.models.record import QtRecord
 
@@ -26,7 +26,7 @@ class DrfSelOneEditor(DropBase, Generic[DBM]):
         self,
         ctx: "QtContext",
         qt_model: "QtModel[DBM]",
-        editor_class: Optional[Type["EditorDb"]] = None,
+        editor_class: Optional[Type["ExdrfEditor"]] = None,
         **kwargs,
     ) -> None:
         super().__init__(ctx=ctx, **kwargs)

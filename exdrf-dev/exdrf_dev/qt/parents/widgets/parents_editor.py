@@ -5,7 +5,7 @@
 from typing import TYPE_CHECKING, Union
 
 from exdrf.constants import RecIdType
-from exdrf_qt.controls.base_editor import EditorDb
+from exdrf_qt.controls.base_editor import ExdrfEditor
 
 from exdrf_dev.qt.parents.widgets.parents_editor_ui import Ui_QtParentEditor
 
@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from exdrf_dev.db.models import Parent  # noqa: F401
 
 
-class QtParentEditor(EditorDb["Parent"], Ui_QtParentEditor):
+class QtParentEditor(ExdrfEditor["Parent"], Ui_QtParentEditor):
     """A widget that allows the user to edit a Parent record."""
 
     def __init__(self, ctx: "QtContext", **kwargs):

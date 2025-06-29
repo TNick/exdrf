@@ -86,6 +86,70 @@ class ExField:
     fk_to: Optional["ExField"] = field(default=None)
     fk_from: Optional["ExField"] = field(default=None)
 
+    def field_properties(self, explicit: bool = False) -> dict[str, Any]:
+        """Get the properties of the field.
+
+        Args:
+            explicit: Whether to include explicit properties.
+        """
+        if explicit:
+            return {
+                "name": self.name,
+                "resource": self.resource.name,
+                "title": self.title,
+                "description": self.description,
+                "category": self.category,
+                "type_name": self.type_name,
+                "is_list": self.is_list,
+                "primary": self.primary,
+                "visible": self.visible,
+                "read_only": self.read_only,
+                "nullable": self.nullable,
+                "sortable": self.sortable,
+                "filterable": self.filterable,
+                "exportable": self.exportable,
+                "qsearch": self.qsearch,
+                "resizable": self.resizable,
+                "fk_to": self.fk_to.name if self.fk_to else None,
+                "fk_from": self.fk_from.name if self.fk_from else None,
+            }
+        else:
+            result: dict[str, Any] = {
+                "name": self.name,
+                "resource": self.resource.name,
+                "type_name": self.type_name,
+                "nullable": self.nullable,
+            }
+            if self.title:
+                result["title"] = self.title
+            if self.description:
+                result["description"] = self.description
+            if self.category:
+                result["category"] = self.category
+            if self.is_list:
+                result["is_list"] = self.is_list
+            if self.primary:
+                result["primary"] = self.primary
+            if not self.visible:
+                result["visible"] = self.visible
+            if not self.read_only:
+                result["read_only"] = self.read_only
+            if not self.sortable:
+                result["sortable"] = self.sortable
+            if not self.filterable:
+                result["filterable"] = self.filterable
+            if not self.exportable:
+                result["exportable"] = self.exportable
+            if not self.qsearch:
+                result["qsearch"] = self.qsearch
+            if not self.resizable:
+                result["resizable"] = self.resizable
+            if self.fk_to:
+                result["fk_to"] = self.fk_to.name
+            if self.fk_from:
+                result["fk_from"] = self.fk_from.name
+            return result
+
     def __hash__(self):
         return hash(f"{self.resource.name}.{self.name}")
 

@@ -1,4 +1,5 @@
 import importlib
+import json
 import logging
 import math
 import os
@@ -245,6 +246,62 @@ def escape_character(value: str, char: str, mode: str = "html") -> str:
     return "".join(result)
 
 
+def to_json(
+    value: Any,
+    padding: int = 0,
+    indent: int = 2,
+    space: str = " ",
+    exclude: set = set(),
+) -> str:
+    """Convert a value to a JSON string.
+
+    Args:
+        value: The value to convert.
+        padding: The number of spaces to prepend to each line.
+        indent: The number of additional spaces to add for each level of
+            nesting.
+        space: The space character to use for indentation. Padding and
+            indent are expressed in terms of this character.
+        exclude: A set of attribute names to exclude from the JSON string.
+            It uses the dot notation to specify nested attributes.
+    """
+
+    def _filter_value(data: Any, exclude_set: set, parent_key: str = "") -> Any:
+        if isinstance(data, dict):
+            res = {}
+            for key, val in data.items():
+                current_key = f"{parent_key}.{key}" if parent_key else key
+                if current_key in exclude_set:
+                    continue
+                res[key] = _filter_value(val, exclude_set, current_key)
+            return res
+        if isinstance(data, list):
+            return [
+                _filter_value(item, exclude_set, parent_key) for item in data
+            ]
+        return data
+
+    if exclude:
+        value = _filter_value(value, exclude)
+
+    indent_str = space * indent if indent > 0 else None
+
+    result = json.dumps(
+        value,
+        indent=indent_str,
+        ensure_ascii=False,
+        default=str,
+    )
+
+    if padding > 0:
+        padding_str = space * padding
+        lines = result.splitlines()
+        padded_lines = [f"{padding_str}{line}" for line in lines]
+        result = "\n".join(padded_lines)
+
+    return result
+
+
 def create_jinja_env(auto_reload=False):
     """Creates a base Jinja2 environment for rendering templates."""
     jinja_env = Environment(
@@ -370,7 +427,7 @@ def create_jinja_env(auto_reload=False):
     jinja_env.filters["snake"] = lambda x: re.sub(
         r"(?<!^)(?=[A-Z])", "_", x
     ).lower()
-
+    jinja_env.filters["to_json"] = to_json
     return jinja_env
 
 

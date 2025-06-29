@@ -5,7 +5,7 @@
 from typing import TYPE_CHECKING, Union
 
 from exdrf.constants import RecIdType
-from exdrf_qt.controls import EditorDb
+from exdrf_qt.controls import ExdrfEditor
 from exdrf_qt.plugins import exdrf_qt_pm, safe_hook_call
 
 from exdrf_dev.qt_gen.db.tags.widgets.tag_editor_ui import Ui_QtTagEditor
@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 # exdrf-keep-end other_globals ------------------------------------------------
 
 
-class QtTagEditor(EditorDb["Tag"], Ui_QtTagEditor):
+class QtTagEditor(ExdrfEditor["Tag"], Ui_QtTagEditor):
     """A widget that allows the user to edit a Tag record."""
 
     # exdrf-keep-start other_attributes ---------------------------------------

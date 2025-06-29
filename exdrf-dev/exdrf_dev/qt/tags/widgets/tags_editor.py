@@ -5,7 +5,7 @@
 from typing import TYPE_CHECKING, Union
 
 from exdrf.constants import RecIdType
-from exdrf_qt.controls.base_editor import EditorDb
+from exdrf_qt.controls.base_editor import ExdrfEditor
 
 from exdrf_dev.qt.tags.widgets.tags_editor_ui import Ui_QtTagEditor
 
@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from exdrf_dev.db.models import Tag  # noqa: F401
 
 
-class QtTagEditor(EditorDb["Tag"], Ui_QtTagEditor):
+class QtTagEditor(ExdrfEditor["Tag"], Ui_QtTagEditor):
     """A widget that allows the user to edit a Tag record."""
 
     def __init__(self, ctx: "QtContext", **kwargs):

@@ -5,7 +5,7 @@
 from typing import TYPE_CHECKING, Union
 
 from exdrf.constants import RecIdType
-from exdrf_qt.controls.base_editor import EditorDb
+from exdrf_qt.controls.base_editor import ExdrfEditor
 
 from exdrf_dev.qt.profiles.widgets.profiles_editor_ui import Ui_QtProfileEditor
 
@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from exdrf_dev.db.models import Profile  # noqa: F401
 
 
-class QtProfileEditor(EditorDb["Profile"], Ui_QtProfileEditor):
+class QtProfileEditor(ExdrfEditor["Profile"], Ui_QtProfileEditor):
     """A widget that allows the user to edit a Profile record."""
 
     def __init__(self, ctx: "QtContext", **kwargs):

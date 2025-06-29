@@ -22,44 +22,20 @@ if TYPE_CHECKING:
     from exdrf_dev.qt_gen.db.children.api import QtChildTv  # noqa: F401
     from exdrf_dev.qt_gen.db.composite_key_models.api import (  # noqa: F401
         QtCompositeKeyModelEditor,
-    )
-    from exdrf_dev.qt_gen.db.composite_key_models.api import (  # noqa: F401
         QtCompositeKeyModelFuMo,
-    )
-    from exdrf_dev.qt_gen.db.composite_key_models.api import (  # noqa: F401
         QtCompositeKeyModelList,
-    )
-    from exdrf_dev.qt_gen.db.composite_key_models.api import (  # noqa: F401
         QtCompositeKeyModelMuSe,
-    )
-    from exdrf_dev.qt_gen.db.composite_key_models.api import (  # noqa: F401
         QtCompositeKeyModelNaMo,
-    )
-    from exdrf_dev.qt_gen.db.composite_key_models.api import (  # noqa: F401
         QtCompositeKeyModelSiSe,
-    )
-    from exdrf_dev.qt_gen.db.composite_key_models.api import (  # noqa: F401
         QtCompositeKeyModelTv,
     )
     from exdrf_dev.qt_gen.db.parent_tag_associations.api import (  # noqa: F401
         QtParentTagAssociationEditor,
-    )
-    from exdrf_dev.qt_gen.db.parent_tag_associations.api import (  # noqa: F401
         QtParentTagAssociationFuMo,
-    )
-    from exdrf_dev.qt_gen.db.parent_tag_associations.api import (  # noqa: F401
         QtParentTagAssociationList,
-    )
-    from exdrf_dev.qt_gen.db.parent_tag_associations.api import (  # noqa: F401
         QtParentTagAssociationMuSe,
-    )
-    from exdrf_dev.qt_gen.db.parent_tag_associations.api import (  # noqa: F401
         QtParentTagAssociationNaMo,
-    )
-    from exdrf_dev.qt_gen.db.parent_tag_associations.api import (  # noqa: F401
         QtParentTagAssociationSiSe,
-    )
-    from exdrf_dev.qt_gen.db.parent_tag_associations.api import (  # noqa: F401
         QtParentTagAssociationTv,
     )
     from exdrf_dev.qt_gen.db.parents.api import QtParentEditor  # noqa: F401
@@ -76,27 +52,15 @@ if TYPE_CHECKING:
     from exdrf_dev.qt_gen.db.profiles.api import QtProfileNaMo  # noqa: F401
     from exdrf_dev.qt_gen.db.profiles.api import QtProfileSiSe  # noqa: F401
     from exdrf_dev.qt_gen.db.profiles.api import QtProfileTv  # noqa: F401
-    from exdrf_dev.qt_gen.db.related_items.api import (
+    from exdrf_dev.qt_gen.db.related_items.api import (  # noqa: F401
         QtRelatedItemEditor,
-    )  # noqa: F401
-    from exdrf_dev.qt_gen.db.related_items.api import (
         QtRelatedItemFuMo,
-    )  # noqa: F401
-    from exdrf_dev.qt_gen.db.related_items.api import (
         QtRelatedItemList,
-    )  # noqa: F401
-    from exdrf_dev.qt_gen.db.related_items.api import (
         QtRelatedItemMuSe,
-    )  # noqa: F401
-    from exdrf_dev.qt_gen.db.related_items.api import (
         QtRelatedItemNaMo,
-    )  # noqa: F401
-    from exdrf_dev.qt_gen.db.related_items.api import (
         QtRelatedItemSiSe,
-    )  # noqa: F401
-    from exdrf_dev.qt_gen.db.related_items.api import (
         QtRelatedItemTv,
-    )  # noqa: F401
+    )
     from exdrf_dev.qt_gen.db.tags.api import QtTagEditor  # noqa: F401
     from exdrf_dev.qt_gen.db.tags.api import QtTagFuMo  # noqa: F401
     from exdrf_dev.qt_gen.db.tags.api import QtTagList  # noqa: F401

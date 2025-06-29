@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from attrs import define, field
 
@@ -29,6 +29,11 @@ class RefManyToManyField(RefBaseField):
     is_list: bool = field(default=True)
 
     ref_intermediate: "ExResource" = field(default=None, repr=False)
+
+    def field_properties(self, explicit: bool = False) -> dict[str, Any]:
+        result = super().field_properties(explicit)
+        result["ref_intermediate"] = self.ref_intermediate.name
+        return result
 
     def __repr__(self) -> str:
         return f"M2M({self.ref.name}, {self.ref_intermediate.name})"

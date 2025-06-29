@@ -26,7 +26,14 @@
       </attribute>
       <layout class="QFormLayout" name="formLayout">
      {%- for f_i, field in enumerate(sorted_fields_for_ui(dset, r, c_fields)) %}
+     {# Exclude fields that are foreign keys to other resources because
+      # there is a relation that uses that foreign key and that will be
+      # used to edit the items.
+      #}
      {%- if not field.fk_to %}
+       {#
+        # This is the label for the field.
+        #}
        <item row="{{ f_i }}" column="0">
         <widget class="QLabel" name="lbl_{{ field.name }}">
          <property name="text">
@@ -39,10 +46,25 @@
          <property name="enabled" stdset="0">
           <bool>false</bool>
          </property>
-         {%- endif %}
+         {%- endif %}{# if field.read_only #}
         </widget>
        </item>
+       {#
+        # This is the widget for the field.
+        #}
        <item row="{{ f_i }}" column="1">
+        {#
+         # The keys of read_only_fields indicates which field names are read-only.
+         # The name may include a single dot, with first part representing the
+         # resource name and the second part representing the field name. If
+         # the dot is not present, the field is matched by name across all
+         # resources.
+         #
+         # The value is a dictionary that indicate how to deal with the field.
+         # We use ui_xml here, which contains the XML for the field in the .ui
+         # file of the editor; by default a line edit is created with readOnly
+         # set to true.
+         #}
         {%-
             set read_only_data = read_only_fields.get(
               r.name + "." + field.name, 
@@ -55,41 +77,46 @@
         {%- if read_only_data is not none %}
         {%- if read_only_data.get("ui_xml", None) %}
         {{ read_only_data["ui_xml"] }}
-        {%- else %}
+        {%- else %}{# if read_only_data.get("ui_xml", None) #}
         <widget class="QLineEdit" name="c_{{ field.name }}">
          <property name="readOnly">
           <bool>true</bool>
          </property>
         </widget>
-        {%- endif %}
-        {%- else %}
+        {%- endif %}{# if read_only_data.get("ui_xml", None) #}
+        {%- else %}{#  not a read-only field  #}
+        {#
+         # base_ui_class is a function that retrieves the base UI class for a
+         # field. The default function is defined in
+         # exdrf_gen_al2qt.creator.d_base_ui_class
+         #}
         <widget class="{{ base_ui_class(field) }}" name="c_{{ field.name }}">
          <property name="name" stdset="0">
           {%- if field.fk_from %}
           <string notr="true">{{ field.fk_from.name }}</string>
-          {%- else %}
+          {%- else %}{# if field.fk_from #}
           <string notr="true">{{ field.name }}</string>
-          {%- endif %}
+          {%- endif %}{# if field.fk_from #}
          </property>
          {%- if field.type_name == 'enum' %}
          <property name="choices" stdset="0">
           <string notr="true">{{ enum_v2p(field.enum_values) }}</string>
          </property>
-         {% endif %}
+         {%- endif %}{# if field.type_name == 'enum' #}
          {%- if field.nullable %}
          <property name="clearable" stdset="0">
           <bool>true</bool>
          </property>
-         {%- endif %}
+         {%- endif %}{# if field.nullable #}
          {%- if field.read_only %}
          <property name="modifiable" stdset="0">
           <bool>false</bool>
          </property>
-         {%- endif %}
+         {%- endif %}{# if field.read_only #}
         </widget>
-        {% endif %}
+        {%- endif %}{# if read_only_data is not none #}
        </item>
-     {% endif %}
+     {%- endif %}{# if not field.fk_to #}
      {% endfor %}
       </layout>
      </widget>

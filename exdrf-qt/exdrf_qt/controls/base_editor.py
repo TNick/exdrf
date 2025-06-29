@@ -13,7 +13,13 @@ from typing import (
 
 from exdrf.constants import RecIdType
 from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtWidgets import QDialogButtonBox, QMessageBox, QStyle, QWidget
+from PyQt5.QtWidgets import (
+    QDialogButtonBox,
+    QMessageBox,
+    QPushButton,
+    QStyle,
+    QWidget,
+)
 from sqlalchemy import select
 
 from exdrf_qt.context_use import QtUseContext
@@ -29,8 +35,8 @@ DBM = TypeVar("DBM")
 logger = logging.getLogger(__name__)
 
 
-class EditorDb(QWidget, QtUseContext, Generic[DBM]):
-    """A widget that allows the user to edit a database record.
+class ExdrfEditor(QWidget, QtUseContext, Generic[DBM]):
+    """A widget that allows the user to edit a record.
 
     Attributes:
         edit_fields: A list of field editors used to edit the record. The
@@ -144,7 +150,7 @@ class EditorDb(QWidget, QtUseContext, Generic[DBM]):
         """Set the dirty flag to True."""
         self.is_dirty = True
 
-    @is_dirty.setter
+    @is_dirty.setter  # type: ignore
     def is_dirty(self, value: bool):
         prev_val = self._is_dirty
         if not self._is_editing:
@@ -216,7 +222,11 @@ class EditorDb(QWidget, QtUseContext, Generic[DBM]):
         )
 
     def _clear_editor(self):
-        """Clear the editor."""
+        """Clear the editor.
+
+        Do not use this function directly. Use the `on_create_new` method
+        instead.
+        """
         self.db_id = None
         self.populate(None)
         self.is_dirty = False
@@ -262,7 +272,7 @@ class EditorDb(QWidget, QtUseContext, Generic[DBM]):
                     e=str_e,
                 ),
             )
-            logger.exception("Exception in EditorDb.set_record")
+            logger.exception("Exception in ExdrfEditor.set_record")
 
         # Clear the dirty flag.
         self.is_dirty = False  # type: ignore
@@ -346,7 +356,7 @@ class EditorDb(QWidget, QtUseContext, Generic[DBM]):
         for ed_fld in self.edit_fields:
             if ed_fld.name in ignore_s:
                 continue
-            ed_fld.load_value_from_db(record)
+            ed_fld.load_value_from(record)
 
     def populate(self, record: Union[DBM, None]):
         """Populate the widget with the record data.
@@ -373,7 +383,7 @@ class EditorDb(QWidget, QtUseContext, Generic[DBM]):
             session: The database session to use for saving the record.
         """
         for ed_fld in self.edit_fields:
-            ed_fld.save_value_to_db(record)
+            ed_fld.save_value_to(record)
 
     def get_id_of_record(self, record: DBM) -> RecIdType:
         """Get the ID of a record.
@@ -426,7 +436,7 @@ class EditorDb(QWidget, QtUseContext, Generic[DBM]):
                     e=str_e,
                 ),
             )
-            logger.exception("Exception in EditorDb.on_save")
+            logger.exception("Exception in ExdrfEditor.on_save")
             return
 
     def post_save(self, session: "Session", db_record: DBM):
@@ -449,9 +459,7 @@ class EditorDb(QWidget, QtUseContext, Generic[DBM]):
         if self.db_id is None:
             return
         assert not self.is_dirty
-        self._is_editing = False
-        self.editing_changed(False)
-        self.editingChanged.emit(False)
+        self.is_editing = False
 
     def on_begin_edit(self):
         """Begin editing the record.
@@ -461,9 +469,7 @@ class EditorDb(QWidget, QtUseContext, Generic[DBM]):
         if self.db_id is None:
             return
         assert not self.is_dirty
-        self._is_editing = True
-        self.editing_changed(True)
-        self.editingChanged.emit(True)
+        self.is_editing = True
 
     def on_create_new(self):
         """Create a new record.
@@ -476,11 +482,7 @@ class EditorDb(QWidget, QtUseContext, Generic[DBM]):
         self._clear_editor()
 
     def create_button_box(self) -> QDialogButtonBox:
-        """Create a button box for the editor.
-
-        The default implementation returns None. Reimplement this method to
-        create a button box for the editor.
-        """
+        """Create a button box for the editor."""
         result = QDialogButtonBox(
             cast(
                 QDialogButtonBox.StandardButtons,
@@ -567,12 +569,41 @@ class EditorDb(QWidget, QtUseContext, Generic[DBM]):
         self.btn_box = result
         return result
 
+    def style_as_save(self, save_btn: "QPushButton"):
+        """Style the button box as a save button.
+
+        Args:
+            save_btn: The save button to style.
+        """
+        style = self.style()
+        assert style is not None
+
+        save_btn.setText(
+            self.t("cmn.save", "Save")
+            if self.is_dirty
+            else self.t("cmn.saved", "Saved")
+        )
+        save_btn.setIcon(
+            style.standardIcon(QStyle.StandardPixmap.SP_DialogSaveButton)
+        )
+        save_btn.setEnabled(self.is_valid() and self.is_dirty)
+
+    def style_as_edit(self, save_btn: "QPushButton"):
+        """Style the button box as an edit button.
+
+        Args:
+            save_btn: The save button to style.
+        """
+        style = self.style()
+        assert style is not None
+        save_btn.setText(self.t("cmn.edit", "Edit"))
+        save_btn.setIcon(self.get_icon("edit_button"))
+        save_btn.setEnabled(True)
+
     def bbox_react_to_changes(self):
         """Update the state of the button box."""
         if self.btn_box is None:
             return
-
-        is_valid = self.is_valid()
 
         style = self.style()
         assert style is not None
@@ -588,25 +619,15 @@ class EditorDb(QWidget, QtUseContext, Generic[DBM]):
         )
         assert discard_btn is not None
 
-        if self.is_editing:
+        if self._is_editing:
             # Plays the role of a save button.
-            save_btn.setText(
-                self.t("cmn.save", "Save")
-                if self.is_dirty
-                else self.t("cmn.saved", "Saved")
-            )
-            save_btn.setIcon(
-                style.standardIcon(QStyle.StandardPixmap.SP_DialogSaveButton)
-            )
-            save_btn.setEnabled(is_valid and self.is_dirty)
+            self.style_as_save(save_btn)
 
-            reset_btn.setEnabled(self.is_dirty)
-            discard_btn.setEnabled(self.is_dirty)
+            reset_btn.setEnabled(self._is_dirty)
+            discard_btn.setEnabled(self._is_dirty)
         else:
             # Plays the role of a start-edit button.
-            save_btn.setText(self.t("cmn.edit", "Edit"))
-            save_btn.setIcon(self.get_icon("edit_button"))
-            save_btn.setEnabled(True)
+            self.style_as_edit(save_btn)
 
             reset_btn.setEnabled(False)
             discard_btn.setEnabled(False)

@@ -182,6 +182,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
             parent: The parent of the template viewer.
         """
         self.ctx = ctx
+        self._current_template_file = None
         self._backup_file = None
         self.extra_context = extra_context or {}
         self._current_template = None

@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Any, Optional
 
 from attrs import define, field
 
@@ -25,6 +25,14 @@ class BoolField(ExField):
 
     def __repr__(self) -> str:
         return f"BoolF(" f"{self.resource.name}.{self.name})"
+
+    def field_properties(self, explicit: bool = False) -> dict[str, Any]:
+        result = super().field_properties(explicit)
+        if self.true_str or explicit:
+            result["true_str"] = self.true_str
+        if self.false_str or explicit:
+            result["false_str"] = self.false_str
+        return result
 
 
 class BoolInfo(FieldInfo):

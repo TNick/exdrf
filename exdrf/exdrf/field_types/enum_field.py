@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import Any, List, Tuple
 
 from attrs import define, field
 
@@ -20,6 +20,12 @@ class EnumField(ExField):
 
     def __repr__(self) -> str:
         return f"EnumF(" f"{self.resource.name}.{self.name})"
+
+    def field_properties(self, explicit: bool = False) -> dict[str, Any]:
+        result = super().field_properties(explicit)
+        if self.enum_values or explicit:
+            result["enum_values"] = self.enum_values
+        return result
 
 
 class EnumInfo(FieldInfo):

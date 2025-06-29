@@ -10,9 +10,9 @@ classifiers = [
   "Typing :: Typed",
 ]
 dependencies = [
-  "pydantic>=2.10.6",
+  "PyQt5>=5.15.11",
 ]
-description = "Generate content using DRF."
+description = "Generate Qt-related classes content using DRF from sqlalchemy models."
 dynamic = ["version"]
 name = "exdrf-gen-al2qt"
 readme = "README.md"

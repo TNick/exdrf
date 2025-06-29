@@ -5,7 +5,7 @@
 from typing import TYPE_CHECKING, Union
 
 from exdrf.constants import RecIdType
-from exdrf_qt.controls.base_editor import EditorDb
+from exdrf_qt.controls.base_editor import ExdrfEditor
 
 from exdrf_dev.qt.composite_key_models.widgets.composite_key_models_editor_ui import (
     Ui_QtCompositeKeyModelEditor,
@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 
 
 class QtCompositeKeyModelEditor(
-    EditorDb["CompositeKeyModel"], Ui_QtCompositeKeyModelEditor
+    ExdrfEditor["CompositeKeyModel"], Ui_QtCompositeKeyModelEditor
 ):
     """A widget that allows the user to edit a CompositeKeyModel record."""
 

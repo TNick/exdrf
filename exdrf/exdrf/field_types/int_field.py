@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Any, Optional
 
 from attrs import define, field
 
@@ -26,6 +26,18 @@ class IntField(ExField):
 
     def __repr__(self) -> str:
         return f"IntF(" f"{self.resource.name}.{self.name})"
+
+    def field_properties(self, explicit: bool = False) -> dict[str, Any]:
+        result = super().field_properties(explicit)
+        if self.min is not None or explicit:
+            result["min"] = self.min
+        if self.max is not None or explicit:
+            result["max"] = self.max
+        if self.unit or explicit:
+            result["unit"] = self.unit
+        if self.unit_symbol or explicit:
+            result["unit_symbol"] = self.unit_symbol
+        return result
 
 
 class IntInfo(FieldInfo):

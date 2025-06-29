@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Any, Optional
 
 from attrs import define, field
 
@@ -30,6 +30,22 @@ class FloatField(ExField):
 
     def __repr__(self) -> str:
         return f"FloatF(" f"{self.resource.name}.{self.name})"
+
+    def field_properties(self, explicit: bool = False) -> dict[str, Any]:
+        result = super().field_properties(explicit)
+        if self.min is not None or explicit:
+            result["min"] = self.min
+        if self.max is not None or explicit:
+            result["max"] = self.max
+        if self.precision is not None or explicit:
+            result["precision"] = self.precision
+        if self.scale is not None or explicit:
+            result["scale"] = self.scale
+        if self.unit or explicit:
+            result["unit"] = self.unit
+        if self.unit_symbol or explicit:
+            result["unit_symbol"] = self.unit_symbol
+        return result
 
 
 class FloatInfo(FieldInfo):

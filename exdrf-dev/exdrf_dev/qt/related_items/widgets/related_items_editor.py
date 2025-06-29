@@ -5,7 +5,7 @@
 from typing import TYPE_CHECKING, Union
 
 from exdrf.constants import RecIdType
-from exdrf_qt.controls.base_editor import EditorDb
+from exdrf_qt.controls.base_editor import ExdrfEditor
 
 from exdrf_dev.qt.related_items.widgets.related_items_editor_ui import (
     Ui_QtRelatedItemEditor,
@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from exdrf_dev.db.models import RelatedItem  # noqa: F401
 
 
-class QtRelatedItemEditor(EditorDb["RelatedItem"], Ui_QtRelatedItemEditor):
+class QtRelatedItemEditor(ExdrfEditor["RelatedItem"], Ui_QtRelatedItemEditor):
     """A widget that allows the user to edit a RelatedItem record."""
 
     def __init__(self, ctx: "QtContext", **kwargs):

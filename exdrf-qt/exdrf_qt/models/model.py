@@ -86,7 +86,12 @@ class QtModel(
         sort_by: A list of tuples with the field name and order (asc or desc).
         prioritized_ids: A list of IDs to prioritize in sorting.
         filters: The filters to apply.
-        cache: the list of items that have been loaded from the database.
+        top_cache: A list of items that are independently managed from the
+            bulk of the cache. These are not subject to normal insertion and
+            deletion.
+        cache: the list of items that have been loaded from the database. The
+            items are indexed by their 0-based position in the result of the
+            selection (so ignoring top_cache items).
         batch_size: The number of items to load at once. The model issues
             requests for items from the database when the total count is
             computed (if the cache is empty) and each time a request
@@ -97,6 +102,10 @@ class QtModel(
         _loaded_count: The number of items loaded from the database.
         _checked: A list of database IDs that are checked. If this list is None
             (default) the model shows no checkboxes.
+        _db_to_row: A dictionary that maps database IDs to row indices in the
+            cache (does not include top_cache items).
+        _wait_before_request: The number of milliseconds to wait before issuing
+            a request for items.
 
     Signals:
         totalCountChanged: Emitted when a change iin the total count is
@@ -120,6 +129,7 @@ class QtModel(
     sort_by: List[Tuple[str, Literal["asc", "desc"]]]
     prioritized_ids: Optional[List[RecIdType]]
     _filters: FilterType
+    top_cache: List["QtRecord"]
     cache: SparseList["QtRecord"]
     batch_size: int
     _total_count: int
@@ -165,6 +175,7 @@ class QtModel(
         QtUseContext.__init__(self)
 
         self.ctx = ctx
+        self.top_cache = []
         self._wait_before_request = wait_before_request
         self._db_to_row = {}
         self.db_model = db_model
@@ -220,12 +231,19 @@ class QtModel(
 
     @property
     def total_count(self) -> int:
-        """Return the total number of items in the selection."""
-        return self._total_count
+        """Return the total number of items in the model.
+
+        This value includes the number of items computed from the database table
+        and the number of items in the top cache.
+        """
+        return self._total_count + len(self.top_cache)
 
     @total_count.setter
     def total_count(self, value: int) -> None:
-        """Set the total count of items in the selection."""
+        """Set the total count of items in the selection.
+
+        The argument should not include the number of items in the top cache.
+        """
         if value != self._total_count:
             self.ensure_stubs(value)
             self._total_count = value
@@ -384,6 +402,9 @@ class QtModel(
                     if row is None:
                         reset_model = True
                     else:
+                        # The row is the index of the item in the cache
+                        # without the top cache.
+                        row = row + len(self.top_cache)
                         self.dataChanged.emit(
                             self.createIndex(row, 0),
                             self.createIndex(row, len(self.column_fields) - 1),
@@ -394,16 +415,6 @@ class QtModel(
 
     def ensure_stubs(self, new_total: int) -> None:
         """We populate the cache with stubs so that the model can be used."""
-        # crt_total = 0 if self._total_count <= 0 else self._total_count
-        # if crt_total >= new_total:
-        #     self.cache = self.cache[:new_total]
-        #     return
-        # if crt_total == new_total:
-        #     return
-
-        # # We need to add stubs to the cache.
-        # for i in range(crt_total, new_total):
-        #     self.cache.append(QtRecord(model=self, db_id=-1))  # type: ignore
         self.cache.set_size(new_total)
 
         # If the cache is empty, we post a request for items.
@@ -420,8 +431,8 @@ class QtModel(
             start: The starting index of the items to load.
             count: The number of items to load.
         """
-        if start + count > self.total_count:
-            count = self.total_count - start
+        if start + count > self._total_count:
+            count = self._total_count - start
         if count <= 0:
             return
         req = self.new_request(start, count)
@@ -498,14 +509,12 @@ class QtModel(
                         "Error converting item %d to record: %s",
                         i - req.start,
                         e,
+                        exc_info=e,
                     )
-
-                    import traceback
-
-                    logger.error(traceback.format_exc())
-
                     record.error = True
 
+                # The row is the index of the item in the cache
+                # without the top cache.
                 self._db_to_row[record.db_id] = i
             self.requestCompleted.emit(
                 req.uniq_id,
@@ -738,6 +747,7 @@ class QtModel(
         )
         result.filters = self._filters
         result.sort_by = self.sort_by
+        result.top_cache = self.top_cache
         result.total_count = self.recalculate_total_count()
         result.loaded_count = -1
         return result
@@ -777,7 +787,12 @@ class QtModel(
             return None
 
         row = index.row()
-        item: "QtRecord" = self.cache[row]
+        if row < len(self.top_cache):
+            item: "QtRecord" = self.top_cache[row]
+            return item.data(index.column(), cast(Qt.ItemDataRole, role))
+        row = row - len(self.top_cache)
+
+        item = self.cache[row]
         if role == Qt.ItemDataRole.DisplayRole and not item.loaded:
             self.request_items(row, self.batch_size)
 
@@ -833,6 +848,11 @@ class QtModel(
 
         # Get the item. If it is not loaded, we cannot set the data.
         row = index.row()
+        if row < len(self.top_cache):
+            # We do not allow editing of top cache items.
+            return False
+
+        row = row - len(self.top_cache)
         record: "QtRecord" = self.cache[row]
         if not record.loaded:
             return False
@@ -937,7 +957,7 @@ class QtModel(
                     if limit is None or f.name == limit
                 ],
             ]  # type: ignore
-        return filters
+        return filters  # type: ignore
 
     def apply_simple_search(
         self,
@@ -970,7 +990,10 @@ class QtModel(
         """Return the list of checked items."""
         if self._checked is None:
             return None
-        return [self._db_to_row[db_id] for db_id in self._checked]
+        return [
+            self._db_to_row[db_id] + len(self.top_cache)
+            for db_id in self._checked
+        ]
 
     def set_prioritized_ids(self, ids: Optional[List[RecIdType]]) -> None:
         """Set the prioritized IDs and reset the model."""

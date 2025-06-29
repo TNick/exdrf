@@ -1,0 +1,110 @@
+# This file was automatically generated using the exdrf_gen package.
+# Source: {{ source_module }} -> {{ source_templ }}
+# Don't change it manually.
+
+from attrs import define, field
+from typing import Optional, TYPE_CHECKING
+from datetime import date, datetime, time, timedelta
+from enum import StrEnum
+
+{%- set ns = namespace(have_if=False) %}
+{% for field in fields %}
+{%- if field.is_ref_type %}
+{%- if not ns.have_if %}
+{%- set ns.have_if = True %}
+if TYPE_CHECKING:
+{%- endif %}
+    from {{ out_module }}.{{ field.ref.categories[0] }}.{{ field.ref.snake_case_name }} import {{ field.ref.pascal_case_name }}  # noqa: F401
+    {%- if field.type_name == 'many-to-many' %}
+    from {{ out_module }}.{{ field.ref_intermediate.categories[0] }}.{{ field.ref_intermediate.snake_case_name }} import {{ field.ref_intermediate.pascal_case_name }}  # noqa: F401
+    {%- endif %}
+{%- endif %}
+{%- endfor %}
+
+
+# exdrf-keep-start other_imports ----------------------------------------------
+{{other_imports}}
+# exdrf-keep-end other_imports ------------------------------------------------
+
+# exdrf-keep-start other_globals ----------------------------------------------
+{{other_globals}}
+# exdrf-keep-end other_globals ------------------------------------------------
+
+{% for field in fields %}
+{%- if field.type_name == "enum" %}
+class {{ field.pascal_case_name }}(StrEnum):
+    {%- for value in field.enum_values %}
+    {{ value[1] }} = "{{ value[0] }}"
+    {%- endfor %}
+
+{% endif %}
+{%- endfor %}
+
+@define(slots=True, kw_only=True)
+class {{ ResPascal }}:{%- if r.description %}
+    """{%- for line in r.description.split('\n') -%}
+    {%- if loop.first -%}
+    {{ line + '\n' }}
+    {%- else -%}
+    {{ '    ' + line + '\n' }}
+    {%- endif -%}
+    {%- endfor %}
+    """{%- endif %}
+
+    # exdrf-keep-start other_attributes ---------------------------------------
+{{other_attributes}}
+    # exdrf-keep-end other_attributes -----------------------------------------
+
+    {%- for field in fields %}
+    {%- if field.type_name == "enum" %}
+    {{ field.name }}: Optional[{{ field.pascal_case_name }}] = field(
+    {%- elif field.type_name == 'one-to-many' %}
+    {{ field.name }}: Optional[list[{{ field.ref.pascal_case_name }}]] = field(
+    {%- elif field.type_name == 'many-to-many' %}
+    {{ field.name }}_i: Optional[list[{{ field.ref_intermediate.pascal_case_name }}]] = field(
+        default=None,
+    )
+    {{ field.name }}: Optional[list[{{ field.ref.pascal_case_name }}]] = field(
+    {%- elif field.type_name == 'many-to-one' %}
+    {{ field.name }}: Optional[{{ field.ref.pascal_case_name }}] = field(
+    {%- elif field.type_name == 'one-to-one' %}
+    {{ field.name }}: Optional[{{ field.ref.pascal_case_name }}] = field(
+    {%- else %}
+    {{ field.name }}: Optional[{{ type_to_attrs(field.type_name) }}] = field(
+    {%- endif %}
+        default=None,
+        metadata={
+            {%- if field.doc_lines %}
+            "doc": (
+                {%- for line in field.doc_lines %}
+                "{{ line }}"
+                {%- endfor %}
+            ),
+            {%- endif %}
+            {{ 
+                (field.field_properties(explicit=False) | to_json(
+                    padding=8, indent=4, space=" ", exclude=set([
+                        "name", "description"
+                    ])
+                )).replace(
+                    '": true', '": True'
+                ).replace(
+                    '": false', '": False'
+                ).replace(
+                    '": null', '": None'
+                )[22:-10]
+            }}
+        }
+    )
+    {% endfor %}
+
+
+    # exdrf-keep-start extra_class_content -------------------------------------
+{{extra_fumo_content}}
+    # exdrf-keep-end extra_class_content ---------------------------------------
+
+
+# exdrf-keep-start more_content -----------------------------------------------
+{{more_content}}
+# exdrf-keep-end more_content -------------------------------------------------
+{{- "\n" -}}

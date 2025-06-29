@@ -82,6 +82,21 @@
             "justMyCode": false
         },
         {
+            "name": "[Gen] Attrs from SqlAlchemy",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "exdrf_gen.__main__",
+            "args": [
+                "--debug",
+                "al2at",
+                "exdrf_dev.db.models:Base",
+                "${workspaceFolder}/exdrf-dev/exdrf_dev/attr_gen",
+                "exdrf_dev.qt_gen",
+                "exdrf_dev"
+            ],
+            "justMyCode": false
+        },
+        {
             "name": "[DB] Auto DB Migration",
             "type": "debugpy",
             "request": "launch",
