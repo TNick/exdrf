@@ -91,6 +91,12 @@ class ExdrfRouter(QtUseContext):
                     route.handler(self, *result.fixed, **params)
                     return None
                 except (ValueError, TypeError) as e:
+                    logger.error(
+                        "Error routing %s: %s",
+                        path,
+                        e,
+                        exc_info=True,
+                    )
                     return e
         return ValueError("No matching route found.")
 

@@ -342,13 +342,17 @@ def create_jinja_env(auto_reload=False):
     ).lower()
 
     # Number utilities.
-    jinja_env.globals["int"] = lambda x: int(x) if x is not None else None
-    jinja_env.globals["format_int"] = lambda x: (
-        f"{x:,.0f}" if x is not None else "-"
+    jinja_env.globals["int"] = lambda x: (
+        int(x) if (x is not None and x is not Undefined) else None
     )
-    jinja_env.globals["float"] = lambda x: float(x) if x is not None else None
+    jinja_env.globals["format_int"] = lambda x: (
+        f"{x:,.0f}" if (x is not None and x is not Undefined) else "-"
+    )
+    jinja_env.globals["float"] = lambda x: (
+        float(x) if (x is not None and x is not Undefined) else None
+    )
     jinja_env.globals["format_float"] = lambda x, y: (
-        f"{x:.{y}f}" if x is not None else "-"
+        f"{x:.{y}f}" if (x is not None and x is not Undefined) else "-"
     )
 
     # Date utilities.
@@ -382,16 +386,20 @@ def create_jinja_env(auto_reload=False):
 
     # Jinja filters.
     jinja_env.filters["format_int"] = lambda x: (
-        f"{x:,.0f}" if x is not None else "-"
+        f"{x:,.0f}" if (x is not None and x is not Undefined) else "-"
     )
     jinja_env.filters["format_float"] = lambda x, y: (
-        f"{x:.{y}f}" if x is not None else "-"
+        f"{x:.{y}f}" if (x is not None and x is not Undefined) else "-"
     )
     jinja_env.filters["format_date"] = lambda x: (
-        x.strftime("%d-%m-%Y") if x is not None else "-"
+        x.strftime("%d-%m-%Y")
+        if (x is not None and x is not Undefined)
+        else "-"
     )
     jinja_env.filters["format_datetime"] = lambda x: (
-        x.strftime("%d-%m-%Y %H:%M:%S") if x is not None else "-"
+        x.strftime("%d-%m-%Y %H:%M:%S")
+        if (x is not None and x is not Undefined)
+        else "-"
     )
     jinja_env.filters["proper"] = lambda x: " ".join(
         word.capitalize() for word in str(x).split()

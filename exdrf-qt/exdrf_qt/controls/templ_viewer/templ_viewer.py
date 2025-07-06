@@ -3,6 +3,7 @@ import os
 import re
 import tempfile
 import traceback
+from contextlib import contextmanager
 from datetime import datetime, timedelta
 from enum import IntEnum
 from typing import (
@@ -21,8 +22,11 @@ from typing import (
 )
 
 import yaml  # type: ignore
-from exdrf.constants import RecIdType
+from attrs import define
+from exdrf.constants import FIELD_TYPE_INTEGER, RecIdType
+from exdrf.field import ExField
 from exdrf.var_bag import VarBag
+from exdrf_al.tools import count_relationship
 from exdrf_gen.jinja_support import jinja_env, recreate_global_env
 from jinja2 import Environment, Template
 from PyQt5.QtCore import QPoint, Qt, QTimer, QUrl
@@ -37,6 +41,7 @@ from PyQt5.QtWidgets import (
     QMessageBox,
     QWidget,
 )
+from sqlalchemy.orm.collections import InstrumentedList, InstrumentedSet
 
 from exdrf_qt.context_use import QtUseContext
 from exdrf_qt.controls.crud_actions import (
@@ -56,11 +61,17 @@ from exdrf_qt.controls.templ_viewer.view_page import (  # noqa: F401
 )
 
 if TYPE_CHECKING:
-    from exdrf.field import ExField  # noqa: F401
     from sqlalchemy import Select  # noqa: F401
     from sqlalchemy.orm import Session  # noqa: F401
 
     from exdrf_qt.context import QtContext  # noqa: F401
+
+
+@define
+class CountField(ExField):
+    """A field that contains the count of a relationship."""
+
+    type_name: str = FIELD_TYPE_INTEGER
 
 
 logger = logging.getLogger(__name__)
@@ -161,6 +172,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
     ac_save_as_docx: "QAction"
     ac_others: List[Union["AcBase", QAction, None]]
     mnu_snippets: "QMenu"
+    _prevent_render: bool
 
     def __init__(
         self,
@@ -173,6 +185,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
         other_actions: Optional[
             List[Union[Tuple[str, str, str], "AcBase", QAction, None]]
         ] = None,
+        prevent_render: bool = False,
     ):
         """Initialize the template viewer.
 
@@ -181,6 +194,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
             var_bag: The variable bag of the template viewer.
             parent: The parent of the template viewer.
         """
+        self._prevent_render = prevent_render
         self.ctx = ctx
         self._current_template_file = None
         self._backup_file = None
@@ -319,6 +333,14 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
         # When an item is double-clicked, we may want to insert it into the
         # template editor.
         self.c_vars.doubleClicked.connect(self.on_vars_double_clicked)
+
+    @contextmanager
+    def prevent_render(self):
+        """Prevent the template from being rendered."""
+        self._prevent_render = True
+        yield
+        self._prevent_render = False
+        self.render_template()
 
     @property
     def var_bag(self) -> "VarBag":
@@ -898,10 +920,13 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
         if self.view_mode == ViewMode.SOURCE:
             logger.debug("Skipping render of template in source mode")
             return
+        if self._prevent_render:
+            logger.debug("Skipping render of template in prevent_render mode")
+            return
 
         try:
             if self._current_template is not None:
-                logger.debug("Rendering template...")
+                logger.debug("Rendering template %s...", self._current_template)
                 html = self._render_template()
                 logger.debug("The template has been rendered")
             else:
@@ -1159,11 +1184,14 @@ class RecordTemplViewer(TemplViewer, Generic[DBM]):
     ):
         self.record_id = record_id
         self.db_model = db_model
-        super().__init__(var_bag=VarBag(), **kwargs)
+        super().__init__(var_bag=VarBag(), prevent_render=True, **kwargs)
         self.create_crud_actions()
         self.populate()
-        self.render_template()
         self.ctx.set_window_title(self, self.windowTitle())
+
+        # Unblock the rendering.
+        self._prevent_render = False
+        self.render_template()
 
     def populate(self):
         """Populate the variable bag with the fields of the database record."""
@@ -1215,8 +1243,40 @@ class RecordTemplViewer(TemplViewer, Generic[DBM]):
             for fld in self.model.var_bag.fields:
                 if fld.name == "record":
                     self.model.var_bag[fld.name] = record
+                elif isinstance(fld, CountField):
+                    continue
                 else:
-                    self.model.var_bag[fld.name] = getattr(record, fld.name)
+                    attr_value = getattr(record, fld.name)
+                    self.model.var_bag[fld.name] = attr_value
+                    logger.debug(
+                        "fld.name: %s, type: %s",
+                        fld.name,
+                        type(getattr(record, fld.name)),
+                    )
+                    if isinstance(
+                        attr_value, (InstrumentedList, InstrumentedSet)
+                    ):
+                        try:
+                            count = count_relationship(
+                                session, record, fld.name
+                            )
+                        except Exception as e:
+                            logger.error(
+                                "Error counting relation %s in model %s: %s",
+                                fld.name,
+                                record.__class__.__name__,
+                                e,
+                                exc_info=True,
+                            )
+                            count = 0
+                        count_name = f"{fld.name}_count"
+                        if count_name not in self.model.var_bag:
+                            self.model.var_bag.add_field(
+                                CountField(name=count_name),
+                                count,
+                            )
+                        else:
+                            self.model.var_bag[count_name] = count
 
             # Render the template.
             return self._current_template.render(
@@ -1224,6 +1284,11 @@ class RecordTemplViewer(TemplViewer, Generic[DBM]):
                 **self.extra_context,
                 record=record,
                 api_point=self.ctx.data,  # type: ignore
+                list_route=self.get_list_route(),
+                create_route=self.get_create_route(),
+                edit_route=self.get_edit_route(),
+                view_route=self.get_view_route(),
+                delete_route=self.get_delete_route(),
             )
 
     def read_record(self, session: "Session") -> Union[None, DBM]:

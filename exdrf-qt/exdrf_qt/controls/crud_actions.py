@@ -21,7 +21,8 @@ def follow_del_route(ctx: "QtContext", route: Union[None, str], **kwargs):
             title=ctx.t("router.open-delete.title", "Error opening delete"),
             message=ctx.t(
                 "router.open-delete.message",
-                "An error occurred while opening the delete at {route}: {e}",
+                "An error occurred while opening the delete link at "
+                "{route}: {e}",
                 route=route,
                 e=e,
             ),
@@ -400,5 +401,5 @@ class OpenDeletePac(AcProviderBase):
         return follow_del_route(
             ctx=self.ctx,
             route=self.provider.get_delete_route(),
-            selectors=self.provider.get_current_record_selector(),
+            id=self.provider.record_id,  # type: ignore
         )
