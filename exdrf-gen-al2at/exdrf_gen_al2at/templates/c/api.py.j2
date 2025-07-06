@@ -3,7 +3,9 @@
 # Don't change it manually.
 
 {%- for res in resources %}
-from {{ out_module }}.{{category_snake }}.{{ res.snake_case_name }} import {{ res.pascal_case_name }}  # noqa: F401
+from {{ out_module }}.{{category_snake }}.{{ res.snake_case_name }} import (  # noqa: F401
+    {{ res.pascal_case_name }},
+)
 {%- endfor %}
 
 # exdrf-keep-start more_content ------------------------------------------------
