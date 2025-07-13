@@ -310,6 +310,12 @@ class ExResource:
         return len(self.primary_fields()) == 1
 
     @property
+    def is_primary_simple_id(self) -> bool:
+        """Check if the resource has a single primary key called `id`."""
+        pf = self.primary_fields()
+        return len(pf) == 1 and pf[0] == "id"
+
+    @property
     def is_connection_resource(self) -> bool:
         """Check if the resource is a connection resource.
 

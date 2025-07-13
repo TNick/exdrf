@@ -99,6 +99,9 @@ class NumberBase(LineBase, Generic[T]):
         if len(text) == 0:
             return text
 
+        # If the text is a choice, replace it with the true value.
+        text = self.get_choices_value(text)
+
         if self.prefix:
             prefix = self.prefix.strip()
             if text.startswith(prefix):
@@ -117,7 +120,6 @@ class NumberBase(LineBase, Generic[T]):
         if len(text) == 0:
             self.set_line_empty()
             return
-
         result = self.check_value(text)
         if final:
             self.field_value = result
@@ -170,6 +172,7 @@ class NumberBase(LineBase, Generic[T]):
             else:
                 self.change_field_value(self.minimum)
         else:
+            step: float
             if self.step is None:
                 step = 1
             else:

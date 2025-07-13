@@ -26,7 +26,7 @@ from exdrf_qt.utils.router import Route
       )
       | replace("integer", "d")
       | replace("boolean", "d")
-      | replace("string", "s")
+      | replace(":string", "")
       | replace("float", "f")
     }}
 {%- endmacro -%}

@@ -66,6 +66,7 @@ class ExdrfEditor(QWidget, QtUseContext, Generic[DBM]):
     selection: "Select"
     record_id: Union[RecIdType, None]
     btn_box: Optional[QDialogButtonBox] = None
+    parent_form: Optional["ExdrfEditor"] = None
 
     _is_dirty: bool = False
     _is_editing: bool = False
@@ -113,33 +114,36 @@ class ExdrfEditor(QWidget, QtUseContext, Generic[DBM]):
             if isinstance(w, DrfFieldEd):
                 self.install_editor(w)
 
-    def install_editor(self, editor: "DrfFieldEd"):
-        """Install a field editor into the widget.
+    def install_editor(self, fld_editor: "DrfFieldEd"):
+        """Install a field editor into the form.
 
         Args:
-            editor: The field editor to install.
+            fld_editor: The field editor to install.
         """
         # Connect the change signal from each field editor.
-        controlChanged = getattr(editor, "controlChanged", None)
+        controlChanged = getattr(fld_editor, "controlChanged", None)
         if controlChanged is not None:
             controlChanged.connect(self.set_dirty)
             controlChanged.connect(lambda: self.controlChanged.emit())
         else:
             logger.warning(
                 "Control %s does not have a controlChanged signal",
-                editor.__class__.__name__,
+                fld_editor.__class__.__name__,
             )
 
         # The error state signal is connected to the editor's own error state
         # signal.
-        enteredErrorState = getattr(editor, "enteredErrorState", None)
+        enteredErrorState = getattr(fld_editor, "enteredErrorState", None)
         if enteredErrorState is not None:
             enteredErrorState.connect(lambda x: self.enteredErrorState.emit(x))
         else:
             logger.warning(
                 "Control %s does not have an enteredErrorState signal",
-                editor.__class__.__name__,
+                fld_editor.__class__.__name__,
             )
+
+        # Inform the field editor that it is part of this form.
+        fld_editor.set_form(self)
 
     @property
     def is_dirty(self) -> bool:
@@ -161,12 +165,14 @@ class ExdrfEditor(QWidget, QtUseContext, Generic[DBM]):
         # Allow subclasses to handle dirty state changes.
         self.dirty_changed(self._is_dirty)
 
-        # inform interested parties about the dirty state change.
+        # Inform interested parties about the dirty state change.
         if prev_val != self._is_dirty:
             self.dirtyChanged.emit(self._is_dirty)
 
     def dirty_changed(self, value: bool):
         """Reimplement this method to handle dirty state changes.
+
+        The default implementation does nothing.
 
         Args:
             value: The new dirty state.
@@ -199,8 +205,33 @@ class ExdrfEditor(QWidget, QtUseContext, Generic[DBM]):
         self.editing_changed(value)
         self.editingChanged.emit(value)
 
+    @property
+    def is_top_editor(self) -> bool:
+        """True if the widget is the top-level editor.
+
+        The top editor is the one that is expected to create a new record into
+        the database or to save the changes to the records in the database.
+        A dependent editor is one that is requested to create a new record
+        from a relational field. The record that it creates is not saved
+        into the database by the editor; it will be associated with the
+        parent record and saved to the database by sqlalchemy implicitly.
+
+        A dependent editor also hides the field or fields that point to the
+        parent record, as that association is implicit.
+        """
+        return self.parent_form is None
+
     def editing_changed(self, value: bool):
-        """Reimplement this method to handle edit/view state changes."""
+        """Reimplement this method to handle edit/view state changes.
+
+        The default implementation goes through all the field editors and
+        calls their `change_edit_mode` method to change the edit mode of the
+        field editors.
+
+        Args:
+            value: True if the editor is in editing mode, False if it is
+                in view mode.
+        """
         for ed_fld in self.edit_fields:
             ed_fld.change_edit_mode(value)  # type: ignore
 
@@ -352,6 +383,17 @@ class ExdrfEditor(QWidget, QtUseContext, Generic[DBM]):
         return True
 
     def _populate(self, record: Union[DBM, None], ignore: List[str]):
+        """Populate the editor with the record data.
+
+        The default implementation goes through all the field editors and
+        calls their `load_value_from` method to populate the editor with the
+        record data. The `ignore` parameter is used to ignore certain fields.
+
+        Args:
+            record: The record to populate the editor with. If None, the
+                editor should be cleared.
+            ignore: A list of field names to ignore.
+        """
         ignore_s = set(ignore)
         for ed_fld in self.edit_fields:
             if ed_fld.name in ignore_s:
@@ -397,10 +439,18 @@ class ExdrfEditor(QWidget, QtUseContext, Generic[DBM]):
         return record.id  # type: ignore
 
     def on_save(self):
-        """The user asks us to save the record.
+        """The user asks us to save the current record.
 
-        This can be a new record being created or an existing record being
-        edited.
+        Current record can be a new record being created or an existing record
+        being edited.
+
+        If the editor is not in editing mode, in order to support a toggle
+        button functionality, the editor is switched to editing mode and
+        the function returns.
+
+        The function uses the "same session" functionality, meaning that
+        a new session is created only if there is no current session. At the end
+        of it, if no error occurs, the session is committed.
         """
         if not self.is_editing:
             self.is_editing = True
@@ -422,10 +472,6 @@ class ExdrfEditor(QWidget, QtUseContext, Generic[DBM]):
 
                 # Post-process the record.
                 self.post_save(session, db_record)
-
-                # Change to view mode.
-                self.is_editing = False
-                return
         except Exception as e:
             str_e = str(e) or e.__class__.__name__
             self.show_error(
@@ -437,10 +483,21 @@ class ExdrfEditor(QWidget, QtUseContext, Generic[DBM]):
                 ),
             )
             logger.exception("Exception in ExdrfEditor.on_save")
-            return
 
     def post_save(self, session: "Session", db_record: DBM):
-        """Called after the record has been saved."""
+        """Called after the record has been populated with the data from the
+        editor.
+
+        The default implementation adds the record to the session and commits
+        the session. The editor is moved to the view mode and the record ID is
+        updated.
+
+        Emits the `recordSaved` signal.
+
+        Args:
+            session: The database session.
+            db_record: The record that has been saved.
+        """
         session.add(db_record)
         if hasattr(db_record, "updated_on"):
             db_record.updated_on = datetime.now(  # type: ignore[union-attr]
@@ -480,6 +537,13 @@ class ExdrfEditor(QWidget, QtUseContext, Generic[DBM]):
             return
         self.is_editing = True
         self._clear_editor()
+
+    def on_create_new_dependent(self, parent_form: "ExdrfEditor"):
+        """Prepare the editor to create a new record that will be attached
+        to another record.
+        """
+        self.parent_form = parent_form
+        self.on_create_new()
 
     def create_button_box(self) -> QDialogButtonBox:
         """Create a button box for the editor."""

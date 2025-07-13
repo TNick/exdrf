@@ -55,7 +55,7 @@ class MainWindow(QMainWindow):
 
         self.plain_list = SearchList(
             ctx=self.ctx,
-            model=self.model1,
+            qt_model=self.model1,
             parent=self,
         )
         self.ly.addWidget(self.plain_list)
@@ -63,7 +63,7 @@ class MainWindow(QMainWindow):
         self.model2 = QtParentNaMo(ctx=self.ctx)
         self.single_select = DrfSelOneEditor(
             ctx=self.ctx,
-            model=self.model2,
+            qt_model=self.model2,
             parent=self,
             nullable=True,
         )
@@ -72,7 +72,7 @@ class MainWindow(QMainWindow):
         self.model3 = QtParentNaMo(ctx=self.ctx)
         self.multi_select = DrfSelMultiEditor(
             ctx=self.ctx,
-            model=self.model3,
+            qt_model=self.model3,
             parent=self,
             nullable=True,
         )

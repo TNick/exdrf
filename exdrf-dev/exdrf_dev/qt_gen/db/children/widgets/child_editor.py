@@ -72,7 +72,12 @@ class QtChildEditor(ExdrfEditor["Child"], Ui_QtChildEditor):
         )
 
     def populate(self, record: Union["Child", None]):
-        self._populate(record, [])
+        self._populate(
+            record,
+            [
+                "parent_id",
+            ],
+        )
 
     def get_id_of_record(self, record: "Child") -> RecIdType:
         return record.id

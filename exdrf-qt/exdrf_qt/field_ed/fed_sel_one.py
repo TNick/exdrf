@@ -120,3 +120,17 @@ class DrfSelOneEditor(DropBase, Generic[DBM]):
         data = record.get_row_data(role=Qt.ItemDataRole.DisplayRole)
         value = ", ".join([str(d) for d in data if d is not None])
         return value
+
+    def load_value_from(self, record: Any):
+        """Load the field value from the database record.
+
+        Attributes:
+            record: The item to load the field value from.
+        """
+        if not self._name:
+            raise ValueError("Field name is not set.")
+        related = getattr(record, self._name, None)
+        if related is not None:
+            related = self.qt_model.get_db_item_id(related)
+
+        self.change_field_value(related)

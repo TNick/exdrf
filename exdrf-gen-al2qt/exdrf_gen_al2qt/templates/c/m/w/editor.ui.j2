@@ -92,13 +92,9 @@
          #}
         <widget class="{{ base_ui_class(field) }}" name="c_{{ field.name }}">
          <property name="name" stdset="0">
-          {%- if field.fk_from %}
-          <string notr="true">{{ field.fk_from.name }}</string>
-          {%- else %}{# if field.fk_from #}
           <string notr="true">{{ field.name }}</string>
-          {%- endif %}{# if field.fk_from #}
          </property>
-         {%- if field.type_name == 'enum' %}
+         {%- if field.type_name == 'enum' or field.enum_values %}
          <property name="choices" stdset="0">
           <string notr="true">{{ enum_v2p(field.enum_values) }}</string>
          </property>

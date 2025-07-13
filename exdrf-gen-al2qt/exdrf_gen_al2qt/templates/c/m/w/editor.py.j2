@@ -92,14 +92,18 @@ class Qt{{ ResPascal }}Editor(
     def populate(self, record: Union["{{ ResPascal }}", None]):
         {#- Enumerate read-only fields #}
         {%- for ro_field, ro_data in read_only_fields.items() %}
+        {%- set f_clean_name = ro_field.replace(r.name + ".", "") %}
         {#- the field may be indicated by name or by resource.field #}
         {%- if ro_field.startswith(r.name + ".") or ro_field in r %}
         {#- the structure may provide an override #}
         {%- set rec_to_str = ro_data.get("rec_to_str", None) %}
         {%- if rec_to_str %}
-        {{ rec_to_str.format(field=ro_field) }}
-        {%- else %}
-        self.c_{{ ro_field }}.setText(str(record.{{ ro_field }}) if record else "")
+        {{ rec_to_str.format(field=f_clean_name) }}
+        {%- elif r[f_clean_name].primary or not r[f_clean_name].fk_to %}
+        if hasattr(record, "c_{{ f_clean_name }}") and self.c_{{ f_clean_name }}:
+            self.c_{{ f_clean_name }}.setText(
+                str(record.{{ f_clean_name }}) if record else ""
+            )
         {%- endif%}
         {%- endif %}
         {%- endfor %}
@@ -108,7 +112,7 @@ class Qt{{ ResPascal }}Editor(
         {%- for prm in read_only_fields %}
             {%- if prm.startswith(r.name + ".") %}
             '{{ prm.split(".")[1] }}',
-            {%- else %}
+            {%- elif prm in r %}
             '{{ prm }}',
             {%- endif %}
         {%- endfor %}

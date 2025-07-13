@@ -35,6 +35,7 @@ class RelatedItemsField(QtRefOneToManyField["CompositeKeyModel"]):
     title: str = field(default="Related Items")
     category: str = field(default="general")
     preferred_width: int = field(default=100)
+    subordinate: bool = field(default=False)
     show_n_labels: int = field(default=4)
 
     # exdrf-keep-start other_attributes ---------------------------------------

@@ -1,9 +1,10 @@
 from typing import Any, Optional
 
 from exdrf_qt.field_ed.base_line import LineBase
+from exdrf_qt.field_ed.choices_mixin import EditorWithChoices
 
 
-class DrfLineEditor(LineBase):
+class DrfLineEditor(LineBase, EditorWithChoices):
     """Editor for short strings."""
 
     min_len: Optional[int] = None
@@ -34,8 +35,11 @@ class DrfLineEditor(LineBase):
         if new_value is None:
             self.set_line_null()
         else:
-            self.field_value = str(new_value)
-            self.setText(str(new_value))
+            # If the text is a choice, replace it with the true value.
+            new_label = self.get_choices_label(str(new_value))
+
+            self.field_value = new_value
+            self.setText(new_label)
 
     def check_value(self, text: Any) -> Optional[str]:
         """Check the value of the text.
@@ -46,6 +50,9 @@ class DrfLineEditor(LineBase):
         Returns:
             The validated text or None if invalid.
         """
+        # If the text is a choice, replace it with the true value.
+        text = self.get_choices_value(text)
+
         if self.min_len is not None and len(text) < self.min_len:
             self.set_line_error(
                 self.t(

@@ -1,5 +1,14 @@
 import logging
-from typing import TYPE_CHECKING, Any, Generic, Optional, Set, Type, TypeVar
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Generic,
+    List,
+    Optional,
+    Set,
+    Type,
+    TypeVar,
+)
 
 from exdrf.constants import RecIdType
 from PyQt5.QtCore import Qt
@@ -182,3 +191,22 @@ class DrfSelMultiEditor(DropBase, Generic[DBM]):
             mapper = inspect(record.__class__)
             relationship = mapper.relationships[self._name]
             setattr(record, self._name, relationship.collection_class(db_lst))
+
+    def load_value_from(self, record: Any):
+        """Load the field value from the database record.
+
+        Attributes:
+            record: The item to load the field value from.
+        """
+        if not self._name:
+            raise ValueError("Field name is not set.")
+        related_list = getattr(record, self._name, None)
+        related: List[RecIdType]
+        if related_list is None:
+            related = []
+        else:
+            related = []
+            for r in related_list:
+                related.append(self.qt_model.get_db_item_id(r))
+
+        self.change_field_value(related)

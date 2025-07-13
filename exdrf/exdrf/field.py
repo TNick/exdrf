@@ -1,5 +1,6 @@
+import enum
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, List, Optional
+from typing import TYPE_CHECKING, Any, List, Optional, Tuple
 
 from attrs import define, field
 from pydantic import BaseModel
@@ -394,3 +395,40 @@ class FieldInfo(BaseModel):
     exportable: Optional[bool] = None
     qsearch: Optional[bool] = None
     resizable: Optional[bool] = None
+
+    @staticmethod
+    def validate_enum_with_type(v, value_type: type) -> List[Tuple[Any, str]]:
+        """Validate the enum values.
+
+        Accepts either a list of (value_type, str) tuples or an Enum class.
+        """
+        if isinstance(v, type) and issubclass(v, enum.Enum):
+            # Convert Enum class to list of (value, name) tuples
+            return [
+                (
+                    value_type(member.value),
+                    member.name.replace("_", " ").title(),
+                )
+                for member in v
+            ]
+        elif isinstance(v, list):
+            # Ensure all elements are (value_type, str) tuples
+            for item in v:
+                if (
+                    not isinstance(item, tuple)
+                    or len(item) != 2
+                    or not isinstance(item[0], value_type)
+                    or not isinstance(item[1], str)
+                ):
+                    raise TypeError(
+                        "Each item in enum_values must be a tuple of "
+                        f"({value_type}, str)"
+                    )
+            return v
+        elif v is None:
+            return []
+        else:
+            raise TypeError(
+                f"enum_values must be a list of ({value_type}, str) "
+                "tuples or an Enum class"
+            )

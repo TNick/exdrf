@@ -61,6 +61,13 @@ class ExDataset:
             f"Valid names are: {[m.name for m in self.resources]}"
         )
 
+    def __contains__(self, key: str) -> bool:
+        """Check if a resource is in the dataset."""
+        for m in self.resources:
+            if m.name == key:
+                return True
+        return False
+
     def add_resource(self, resource: "ExResource") -> None:
         """Add a resource to the dataset.
 

@@ -8,6 +8,7 @@ from exdrf_qt.context_use import QtUseContext
 
 if TYPE_CHECKING:
     from exdrf_qt.context import QtContext
+    from exdrf_qt.controls.base_editor import ExdrfEditor
 
 
 class DrfFieldEd(QtUseContext):
@@ -42,6 +43,7 @@ class DrfFieldEd(QtUseContext):
     _nullable: bool = False
     _read_only: bool = False
     description: Optional[str]
+    form: Optional["ExdrfEditor"] = None
 
     controlChanged = pyqtSignal()
     enteredErrorState = pyqtSignal(str)
@@ -60,8 +62,12 @@ class DrfFieldEd(QtUseContext):
         self.description = description or ""
         self._name = name or ""
         self.nullable = nullable
-
+        self.form = None
         self.apply_description()  # type: ignore
+
+    def set_form(self, form: "ExdrfEditor"):
+        """Set the form that this field editor is part of."""
+        self.form = form
 
     @property
     def field_value(self) -> Any:
@@ -264,3 +270,16 @@ class DrfFieldEd(QtUseContext):
     def change_read_only(self, value: bool) -> None:
         """React to the read_only property being changed."""
         self.setEnabled(not value)  # type: ignore
+
+    def starting_new_dependent(self, editor: "ExdrfEditor") -> None:
+        """React to the starting of a new editor for creating a new resource
+        that will be related to current resource.
+
+        Default implementation sets the parent form of the editor to the form
+        that this field editor is part of.
+
+        Args:
+            editor: The editor that is starting.
+        """
+        if self.form is not None:
+            editor.on_create_new_dependent(self.form)

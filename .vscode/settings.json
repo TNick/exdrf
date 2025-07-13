@@ -36,6 +36,7 @@
         "Frameless",
         "fumo",
         "getattr",
+        "hasattr",
         "hookimpls",
         "horstretch",
         "hsizetype",

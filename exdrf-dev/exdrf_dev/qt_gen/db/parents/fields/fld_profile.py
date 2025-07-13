@@ -35,6 +35,7 @@ class ProfileField(QtRefOneToOneField["Parent"]):
     title: str = field(default="Profile")
     category: str = field(default="general")
     preferred_width: int = field(default=100)
+    subordinate: bool = field(default=False)
 
     # exdrf-keep-start other_attributes ---------------------------------------
 

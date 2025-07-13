@@ -1,9 +1,10 @@
 from typing import Optional
 
 from exdrf_qt.field_ed.base_number import NumberBase
+from exdrf_qt.field_ed.choices_mixin import EditorWithChoices
 
 
-class DrfIntEditor(NumberBase[int]):
+class DrfIntEditor(NumberBase[int], EditorWithChoices):
     """Editor for integer numbers."""
 
     def validate(self, text: str) -> Optional[int]:

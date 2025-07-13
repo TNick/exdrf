@@ -1,9 +1,10 @@
 from typing import Optional
 
 from exdrf_qt.field_ed.base_number import NumberBase
+from exdrf_qt.field_ed.choices_mixin import EditorWithChoices
 
 
-class DrfRealEditor(NumberBase[float]):
+class DrfRealEditor(NumberBase[float], EditorWithChoices):
     """Editor for real numbers."""
 
     decimals: int

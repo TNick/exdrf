@@ -40,7 +40,7 @@ class ExdrfRouter(BaseRouter):
                 handler=ExdrfRouter.delete_child,
             ),
             Route(
-                "exdrf://navigation/resource/CompositeKeyModel/{key_part1:s},{key_part2:d}",
+                "exdrf://navigation/resource/CompositeKeyModel/{key_part1},{key_part2:d}",
                 handler=ExdrfRouter.view_composite_key_model,
             ),
             Route(
@@ -48,7 +48,7 @@ class ExdrfRouter(BaseRouter):
                 handler=ExdrfRouter.list_composite_key_model,
             ),
             Route(
-                "exdrf://navigation/resource/CompositeKeyModel/{key_part1:s},{key_part2:d}/edit",
+                "exdrf://navigation/resource/CompositeKeyModel/{key_part1},{key_part2:d}/edit",
                 handler=ExdrfRouter.edit_composite_key_model,
             ),
             Route(
@@ -56,7 +56,7 @@ class ExdrfRouter(BaseRouter):
                 handler=ExdrfRouter.create_composite_key_model,
             ),
             Route(
-                "exdrf://navigation/resource/CompositeKeyModel/{key_part1:s},{key_part2:d}/delete",
+                "exdrf://navigation/resource/CompositeKeyModel/{key_part1},{key_part2:d}/delete",
                 handler=ExdrfRouter.delete_composite_key_model,
             ),
             Route(

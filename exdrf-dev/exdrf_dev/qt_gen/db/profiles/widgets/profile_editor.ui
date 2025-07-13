@@ -25,6 +25,8 @@
        <string>General</string>
       </attribute>
       <layout class="QFormLayout" name="formLayout">
+     
+       
        <item row="0" column="0">
         <widget class="QLabel" name="lbl_bio">
          <property name="text">
@@ -35,7 +37,10 @@
          </property>
         </widget>
        </item>
+       
        <item row="0" column="1">
+        
+        
         <widget class="DrfLineEditor" name="c_bio">
          <property name="name" stdset="0">
           <string notr="true">bio</string>
@@ -44,10 +49,10 @@
           <bool>true</bool>
          </property>
         </widget>
-        
        </item>
      
      
+       
        <item row="1" column="0">
         <widget class="QLabel" name="lbl_parent">
          <property name="text">
@@ -58,7 +63,10 @@
          </property>
         </widget>
        </item>
+       
        <item row="1" column="1">
+        
+        
         <widget class="QtParentSiSe" name="c_parent">
          <property name="name" stdset="0">
           <string notr="true">parent_id</string>
@@ -67,7 +75,6 @@
           <bool>true</bool>
          </property>
         </widget>
-        
        </item>
      
      
@@ -80,6 +87,8 @@
        <string>Keys</string>
       </attribute>
       <layout class="QFormLayout" name="formLayout">
+     
+       
        <item row="0" column="0">
         <widget class="QLabel" name="lbl_id">
          <property name="text">
@@ -90,15 +99,16 @@
          </property>
         </widget>
        </item>
+       
        <item row="0" column="1">
+        
+        
         <widget class="DrfIntEditor" name="c_id">
          <property name="name" stdset="0">
           <string notr="true">id</string>
          </property>
         </widget>
-        
        </item>
-     
      
       </layout>
      </widget>

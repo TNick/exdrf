@@ -263,7 +263,8 @@ def field_from_sql_rel(
     fk_candidates = [
         resource[a.key]  # type: ignore
         for a in relation.local_columns
-        if not resource[a.key].primary  # type: ignore
+        if a.key != "id"
+        # if not resource[a.key].primary  # type: ignore
     ]
     if len(fk_candidates) == 1:
         result.fk_from = fk_candidates[0]

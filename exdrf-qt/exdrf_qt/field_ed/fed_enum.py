@@ -1,7 +1,6 @@
 from contextlib import contextmanager
 from typing import TYPE_CHECKING, Any, List, Tuple, Union, cast
 
-from PyQt5.QtCore import pyqtProperty  # type: ignore[import]
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal
 from PyQt5.QtWidgets import (
     QFrame,
@@ -13,6 +12,7 @@ from PyQt5.QtWidgets import (
 
 from exdrf_qt.context_use import QtUseContext
 from exdrf_qt.field_ed.base_drop import DropBase
+from exdrf_qt.field_ed.choices_mixin import EditorWithChoices
 
 if TYPE_CHECKING:
     from exdrf_qt.context import QtContext
@@ -154,10 +154,9 @@ class DropdownList(QFrame, QtUseContext):
             ed.set_line_normal()
 
 
-class DrfEnumEditor(DropBase):
+class DrfEnumEditor(DropBase, EditorWithChoices):
     """Line edit with combo box-like behavior."""
 
-    _choices: List[Tuple[str, str]]
     _internal_change: List[bool]
 
     def __init__(self, *args, choices=None, **kwargs):
@@ -185,30 +184,6 @@ class DrfEnumEditor(DropBase):
             yield
         finally:
             self._internal_change.pop()
-
-    def getChoices(self) -> str:
-        """Get the valid choices.
-
-        This is a support function for implementing the choices property.
-        """
-        return ",".join([f"{key}:{label}" for key, label in self._choices])
-
-    def setChoices(self, value: str) -> None:
-        """Set the name of the field in the database record.
-
-        This is a support function for implementing the name property.
-        """
-        if isinstance(value, str):
-            self.set_choices(
-                [
-                    a.split(":", maxsplit=1)  # type: ignore[arg-type]
-                    for a in value.split(",")
-                ]
-            )
-        else:
-            self.set_choices(value)
-
-    choices = pyqtProperty(str, fget=getChoices, fset=setChoices)
 
     def _show_dropdown(self):
         """Show the dropdown with filtered choices."""
@@ -326,6 +301,7 @@ class DrfEnumEditor(DropBase):
     def set_choices(self, choices: List[Tuple[str, str]]):
         """Set the available choices."""
         self._choices = choices
+
         # Clear the current selection if it's no longer in the choices
         if self.field_value:
             if not any(key == self.field_value for key, _ in choices):

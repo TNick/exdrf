@@ -1,6 +1,7 @@
-from typing import Any, Optional
+from typing import Any, List, Optional, Tuple
 
 from attrs import define, field
+from pydantic import Field, field_validator
 
 from exdrf.constants import FIELD_TYPE_FLOAT
 from exdrf.field import ExField, FieldInfo
@@ -17,6 +18,9 @@ class FloatField(ExField):
         scale: The number of digits to the right of the decimal point.
         unit: The unit of measurement for the field.
         unit_symbol: The symbol for the unit of measurement.
+        enum_values: The list of predefined (named) values for the field. The
+        first element of the tuple is the value, the second element is the
+        display name.
     """
 
     type_name: str = field(default=FIELD_TYPE_FLOAT)
@@ -27,6 +31,7 @@ class FloatField(ExField):
     scale: int = field(default=1)
     unit: str = field(default=None)
     unit_symbol: str = field(default=None)
+    enum_values: List[Tuple[float, str]] = field(factory=list)
 
     def __repr__(self) -> str:
         return f"FloatF(" f"{self.resource.name}.{self.name})"
@@ -45,6 +50,8 @@ class FloatField(ExField):
             result["unit"] = self.unit
         if self.unit_symbol or explicit:
             result["unit_symbol"] = self.unit_symbol
+        if self.enum_values or explicit:
+            result["enum_values"] = self.enum_values
         return result
 
 
@@ -66,3 +73,13 @@ class FloatInfo(FieldInfo):
     scale: Optional[int] = None
     unit: Optional[str] = None
     unit_symbol: Optional[str] = None
+    enum_values: List[Tuple[float, str]] = Field(default_factory=list)
+
+    @field_validator("enum_values", mode="before")
+    @classmethod
+    def validate_enum_values(cls, v):
+        """Validate the enum values.
+
+        Accepts either a list of (int, str) tuples or an Enum class.
+        """
+        return cls.validate_enum_with_type(v, float)

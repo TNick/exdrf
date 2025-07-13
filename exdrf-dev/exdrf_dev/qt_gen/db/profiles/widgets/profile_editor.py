@@ -74,7 +74,12 @@ class QtProfileEditor(ExdrfEditor["Profile"], Ui_QtProfileEditor):
         )
 
     def populate(self, record: Union["Profile", None]):
-        self._populate(record, [])
+        self._populate(
+            record,
+            [
+                "parent_id",
+            ],
+        )
 
     def get_id_of_record(self, record: "Profile") -> RecIdType:
         return record.id

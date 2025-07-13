@@ -208,6 +208,14 @@ def generate_qt_from_alchemy(
         for fld in res.fields:
             fld.category = set_fld_category(fld)
 
+            # Make sure that the read-only fields include primary keys that
+            # also have a corresponding resource (editing will be done using
+            # the resource).
+            if fld.fk_to:
+                key = res.name + "." + fld.name
+                if key not in read_only_fields:
+                    read_only_fields[key] = {}
+
     def get_changed_parts(
         field: "ExField", fld_attrs: Dict[str, Any], fld_base_class: str
     ) -> Generator[Tuple[str, str, Any], None, None]:

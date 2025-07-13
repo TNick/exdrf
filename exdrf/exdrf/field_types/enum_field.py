@@ -11,7 +11,9 @@ class EnumField(ExField):
     """A field that stores moments in time.
 
     Attributes:
-        values: The list of possible values for the field.
+        enum_values: The list of possible values for the field. The first
+        element of the tuple is the value, the second element is the display
+        name.
     """
 
     type_name: str = field(default=FIELD_TYPE_ENUM)

@@ -13,6 +13,7 @@ from PyQt5.QtWidgets import (
 
 from exdrf_qt.context_use import QtUseContext
 from exdrf_qt.controls.search_line import SearchLine
+from exdrf_qt.field_ed.base import DrfFieldEd
 
 if TYPE_CHECKING:
     from exdrf_qt.context import QtContext
@@ -58,6 +59,7 @@ class SearchList(QFrame, QtUseContext, Generic[DBM]):
     tree: TreeView
     editor_class: Optional[Type["ExdrfEditor"]]
     ac_create: Optional[QAction]
+    field: Optional["DrfFieldEd"] = None
 
     def __init__(
         self,
@@ -66,11 +68,13 @@ class SearchList(QFrame, QtUseContext, Generic[DBM]):
         parent=None,
         popup: bool = False,
         editor_class: Optional[Type["ExdrfEditor"]] = None,
+        field: Optional["DrfFieldEd"] = None,
     ):
         super().__init__(parent)
         self.ctx = ctx
         self.editor_class = editor_class
         self.ac_create = None
+        self.field = field
 
         if popup:
             # Set up the frame
@@ -144,23 +148,26 @@ class SearchList(QFrame, QtUseContext, Generic[DBM]):
 
         # Disconnect the save button from the base implementation and connect
         # it to our own.
-        save_btn = editor.button_box.button(
-            QDialogButtonBox.StandardButton.Save
-        )
+        assert editor.btn_box is not None
+        save_btn = editor.btn_box.button(QDialogButtonBox.StandardButton.Save)
         assert save_btn is not None
-        save_btn.clicked.disconnect(save_btn.on_save)
+        save_btn.clicked.disconnect(editor.on_save)
         save_btn.clicked.connect(dlg.accept)
 
+        cancel_btn = editor.btn_box.button(
+            QDialogButtonBox.StandardButton.Cancel
+        )
+        assert cancel_btn is not None
+        cancel_btn.clicked.disconnect()
+        cancel_btn.clicked.connect(dlg.reject)
+
         ly.addWidget(editor)
-        editor.on_create_new()
+        if self.field is not None:
+            self.field.starting_new_dependent(editor)
 
         dlg.setWindowTitle(self.t("cmn.create.title", "Create"))
         dlg.setModal(True)
         dlg.setMinimumSize(400, 300)
-        dlg.setMaximumSize(600, 400)
-        dlg.setWindowModality(Qt.WindowModality.ApplicationModal)
-        dlg.setWindowFlags(Qt.WindowType.Dialog)
-        dlg.setWindowFlags(Qt.WindowType.WindowTitleHint)
 
         if dlg.exec_() == QDialog.Accepted:
             record = editor.db_record()

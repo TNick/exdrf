@@ -5,7 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "[Qt] Main App",
+            "name": "[Qt] Run ▶",
             "type": "debugpy",
             "request": "launch",
             "module": "exdrf_dev.app.__main__",
@@ -67,7 +67,7 @@
             "justMyCode": false
         },
         {
-            "name": "[Gen] Qt from SqlAlchemy",
+            "name": "[G] Create Qt 🟢",
             "type": "debugpy",
             "request": "launch",
             "module": "exdrf_gen.__main__",
@@ -82,7 +82,7 @@
             "justMyCode": false
         },
         {
-            "name": "[Gen] Attrs from SqlAlchemy",
+            "name": "[G] Create attrs 🦖",
             "type": "debugpy",
             "request": "launch",
             "module": "exdrf_gen.__main__",
