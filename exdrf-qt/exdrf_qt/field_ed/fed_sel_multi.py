@@ -8,6 +8,7 @@ from typing import (
     Set,
     Type,
     TypeVar,
+    cast,
 )
 
 from exdrf.constants import RecIdType
@@ -84,7 +85,7 @@ class DrfSelMultiEditor(DropBase, Generic[DBM]):
             return
 
         self.field_value = []
-        content = []
+        content: List[Any] = []
         not_set = {}
         for itr in new_value:
             if hasattr(itr.__class__, "metadata"):
@@ -121,7 +122,8 @@ class DrfSelMultiEditor(DropBase, Generic[DBM]):
                 if db_item is not None:
                     # Use the model to convert the database item to a record.
                     record = self.qt_model.db_item_to_record(db_item)
-                    content[not_set[rec_id]] = self.record_to_text(record)
+                    idx = cast(int, not_set[rec_id])
+                    content[idx] = self.record_to_text(record)
                 else:
                     logger.debug("No record found for %s", rec_id)
 

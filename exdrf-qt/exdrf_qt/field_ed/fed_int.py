@@ -25,7 +25,7 @@ if __name__ == "__main__":
     # Create the main window
     app = QApplication([])
     main_window = QWidget()
-    main_window.setWindowTitle("DrfBoolEditor Example")
+    main_window.setWindowTitle("DrfIntEditor Example")
 
     ctx = LocalContext(c_string="sqlite:///:memory:")
 

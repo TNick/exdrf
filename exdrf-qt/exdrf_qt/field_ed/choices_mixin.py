@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, List, Tuple, cast
+from typing import TYPE_CHECKING, List, Optional, Tuple, cast
 
 from PyQt5.QtCore import Qt, pyqtProperty  # type: ignore
 from PyQt5.QtWidgets import QCompleter
@@ -9,6 +9,7 @@ if TYPE_CHECKING:
 
 class EditorWithChoices:
     _choices: List[Tuple[str, str]]
+    _completer: Optional[QCompleter] = None
 
     def getChoices(self) -> str:
         """Get the valid choices.
@@ -48,12 +49,21 @@ class EditorWithChoices:
         crt_completer = line.completer()
         if crt_completer is not None:
             crt_completer.deleteLater()
+        if self._completer is not None:
+            self._completer.deleteLater()
+            self._completer = None
 
         labels = [label for _, label in choices]
         completer = QCompleter(labels, line)
         completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
         completer.setFilterMode(Qt.MatchFlag.MatchContains)
         line.setCompleter(completer)
+        self._completer = completer
+        try:
+            line.showChoices.disconnect(self._choices_react_to_focus)
+        except TypeError:
+            pass
+        line.showChoices.connect(self._choices_react_to_focus)
 
     def get_choices_value(self, text: str) -> str:
         """Replace text that is in the choices with the true value."""
@@ -74,3 +84,12 @@ class EditorWithChoices:
             if str(key).lower() == l_text:
                 return label
         return text
+
+    def _choices_react_to_focus(self, got_focus: bool = True):
+        if self._completer is None:
+            return
+        # Determine if the control is visible or hidden (e.g., in another tab)
+        line = cast("LineBase", self)
+        if not line.isVisible():
+            return
+        self._completer.complete()

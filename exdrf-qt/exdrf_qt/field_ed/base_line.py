@@ -1,6 +1,6 @@
 from typing import Optional, cast
 
-from PyQt5.QtCore import QEvent, QPoint, QRect, Qt
+from PyQt5.QtCore import QEvent, QPoint, QRect, Qt, pyqtSignal
 from PyQt5.QtWidgets import QAction, QApplication, QLabel, QLineEdit
 
 from exdrf_qt.field_ed.base import DrfFieldEd
@@ -71,9 +71,10 @@ class InfoLabel(QLabel):
     def update_position(self, other):
         if not self.isVisible():
             return
-        global_pos = other.mapToGlobal(QPoint(0, other.height()))
+        h = self.sizeHint().height()
+        global_pos = other.mapToGlobal(QPoint(0, -h - 2))
         self.move(global_pos)
-        self.resize(other.width(), self.sizeHint().height())
+        self.resize(other.width(), h)
         self.last_label_rect = self.frameGeometry()
 
 
@@ -81,6 +82,7 @@ class LineBase(QLineEdit, DrfFieldEd):
     """Base for classes that are based on line edit controls."""
 
     ac_clear: Optional[QAction] = None  # type: ignore
+    showChoices = pyqtSignal()
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -210,10 +212,17 @@ class LineBase(QLineEdit, DrfFieldEd):
         self.btm_tip.update_position(self)
 
     def keyPressEvent(self, event):  # type: ignore[override]
-        super().keyPressEvent(event)
+        result = super().keyPressEvent(event)
         if event.key() == Qt.Key.Key_Escape:
             self.btm_tip.hide()
             self.clearFocus()
+        if (
+            event.type() == QEvent.Type.KeyPress
+            and event.key() == Qt.Key.Key_Space
+            and (event.modifiers() & Qt.KeyboardModifier.ControlModifier)
+        ):
+            self.showChoices.emit()
+        return result
 
     def eventFilter(self, obj, event):  # type: ignore[override]
         # 1) intercept hover on the label itself

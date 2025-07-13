@@ -134,3 +134,23 @@ class DrfSelOneEditor(DropBase, Generic[DBM]):
             related = self.qt_model.get_db_item_id(related)
 
         self.change_field_value(related)
+
+    def save_value_to(self, record: Any):
+        """Load the field value from the database record.
+
+        Attributes:
+            record: The item to load the field value from. May be the
+                database record or the ID of the record.
+        """
+        if not self._name:
+            raise ValueError("Field name is not set.")
+
+        if self.field_value is None:
+            setattr(record, self._name, None)
+            return
+
+        new_val = self.field_value
+        if not hasattr(self.field_value, "metadata"):
+            new_val = self.qt_model.get_db_items_by_id([new_val])[0]
+
+        setattr(record, self._name, new_val)
