@@ -2,7 +2,7 @@
 # Source: exdrf_gen_al2qt.creator -> c/m/field.py.j2
 # Don't change it manually.
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List, Tuple
 
 from attrs import define, field
 from exdrf_qt.models.fields import QtIntegerField
@@ -34,6 +34,7 @@ class SomeIntField(QtIntegerField["RelatedItem"]):
     max: int = field(default=1000)
     unit: str = field(default="units")
     unit_symbol: str = field(default="u")
+    enum_values: List[Tuple] = field(factory=lambda: [])
 
     # exdrf-keep-start other_attributes ---------------------------------------
 

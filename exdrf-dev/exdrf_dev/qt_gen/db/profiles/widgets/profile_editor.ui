@@ -69,7 +69,7 @@
         
         <widget class="QtParentSiSe" name="c_parent">
          <property name="name" stdset="0">
-          <string notr="true">parent_id</string>
+          <string notr="true">parent</string>
          </property>
          <property name="clearable" stdset="0">
           <bool>true</bool>

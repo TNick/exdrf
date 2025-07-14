@@ -70,7 +70,7 @@ class Ui_QtChildEditor:
             1, QtWidgets.QFormLayout.LabelRole, self.lbl_parent
         )
         self.c_parent = QtParentSiSe(parent=self.tab_general, ctx=self.ctx)
-        self.c_parent.setProperty("name", "parent_id")
+        self.c_parent.setProperty("name", "parent")
         self.c_parent.setProperty("clearable", True)
         self.c_parent.setObjectName("c_parent")
         self.formLayout.setWidget(

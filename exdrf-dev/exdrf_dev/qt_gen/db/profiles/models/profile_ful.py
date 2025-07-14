@@ -2,8 +2,9 @@
 # Source: exdrf_gen_al2qt.creator -> c/m/m_ful.py.j2
 # Don't change it manually.
 
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Union
 
+from exdrf.constants import RecIdType
 from exdrf_qt.models import QtModel
 from exdrf_qt.plugins import exdrf_qt_pm, safe_hook_call
 from sqlalchemy import select
@@ -83,6 +84,20 @@ class QtProfileFuMo(QtModel["Profile"]):
 
         # Inform plugins that the model has been created.
         safe_hook_call(exdrf_qt_pm.hook.profile_fumo_created, model=self)
+
+    def get_primary_columns(self) -> Any:
+        return self.db_model.id
+
+    def get_db_item_id(self, item: "Profile") -> Union[int, Tuple[int, ...]]:
+        return item.id
+
+    def item_by_id_conditions(self, rec_id: RecIdType) -> List[Any]:
+        """Return the conditions that filter by ID.
+
+        Args:
+            rec_id: The ID of the item to filter by.
+        """
+        return [self.db_model.id == rec_id]
 
     def text_to_filter(
         self,

@@ -641,23 +641,12 @@ class QtModel(
         """
         return self.get_primary_columns().in_(id_list)
 
-    @contextmanager
-    def get_one_db_item_by_id(
-        self, rec_id: RecIdType
-    ) -> Generator[Optional[DBM], None, None]:
-        """Return the database item with the given ID.
-
-        This is a convenience function that uses the primary key columns to
-        load the item from the database. The model does not use this directly.
+    def item_by_id_conditions(self, rec_id: RecIdType) -> List[Any]:
+        """Return the conditions that filter by ID.
 
         Args:
-            rec_id: The ID of the item to return.
-
-        Returns:
-            The database item with the given ID or None if not found.
+            rec_id: The ID of the item to filter by.
         """
-        if hasattr(rec_id.__class__, "metadata"):
-            rec_id = cast(RecIdType, self.get_db_item_id(cast(Any, rec_id)))
         primary_cols = []
         for f in self.fields:
             if f.primary:
@@ -688,6 +677,26 @@ class QtModel(
             for col, value in zip(primary_cols, rec_id):
                 conditions.append(col == value)
 
+        return conditions
+
+    @contextmanager
+    def get_one_db_item_by_id(
+        self, rec_id: RecIdType
+    ) -> Generator[Optional[DBM], None, None]:
+        """Return the database item with the given ID.
+
+        This is a convenience function that uses the primary key columns to
+        load the item from the database. The model does not use this directly.
+
+        Args:
+            rec_id: The ID of the item to return.
+
+        Returns:
+            The database item with the given ID or None if not found.
+        """
+        if hasattr(rec_id.__class__, "metadata"):
+            rec_id = cast(RecIdType, self.get_db_item_id(cast(Any, rec_id)))
+        conditions = self.item_by_id_conditions(rec_id)
         with self.ctx.same_session() as session:
             selector = select(self.db_model).where(*conditions)
             try:

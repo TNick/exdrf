@@ -2,8 +2,9 @@
 # Source: exdrf_gen_al2qt.creator -> c/m/m_ful.py.j2
 # Don't change it manually.
 
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Union
 
+from exdrf.constants import RecIdType
 from exdrf_qt.models import QtModel
 from exdrf_qt.plugins import exdrf_qt_pm, safe_hook_call
 from sqlalchemy import select
@@ -117,6 +118,36 @@ class QtCompositeKeyModelFuMo(QtModel["CompositeKeyModel"]):
         safe_hook_call(
             exdrf_qt_pm.hook.composite_key_model_fumo_created, model=self
         )
+
+    def get_primary_columns(self) -> Any:
+        return [
+            self.db_model.key_part1,
+            self.db_model.key_part2,
+        ]
+
+    def get_db_item_id(
+        self, item: "CompositeKeyModel"
+    ) -> Union[int, Tuple[int, ...]]:
+        return [
+            item.key_part1,
+            item.key_part2,
+        ]
+
+    def item_by_id_conditions(self, rec_id: RecIdType) -> List[Any]:
+        """Return the conditions that filter by ID.
+
+        Args:
+            rec_id: The ID of the item to filter by.
+        """
+        assert 2 == len(rec_id), (
+            "ID tuple does not match the number of primary keys. "
+            f"Model: {self.db_model.__name__} "
+            f"ID: {rec_id}/{rec_id.__class__.__name__}"
+        )
+        return [
+            self.db_model.key_part1 == rec_id[0],
+            self.db_model.key_part2 == rec_id[1],
+        ]
 
     def text_to_filter(
         self,

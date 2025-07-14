@@ -2,7 +2,7 @@
 # Source: exdrf_gen_al2qt.creator -> c/m/field.py.j2
 # Don't change it manually.
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List, Tuple
 
 from attrs import define, field
 from exdrf_qt.models.fields import QtStringField
@@ -31,6 +31,7 @@ class NameField(QtStringField["Parent"]):
     preferred_width: int = field(default=100)
     min_length: int = field(default=1)
     max_length: int = field(default=100)
+    enum_values: List[Tuple] = field(factory=lambda: [])
 
     # exdrf-keep-start other_attributes ---------------------------------------
 

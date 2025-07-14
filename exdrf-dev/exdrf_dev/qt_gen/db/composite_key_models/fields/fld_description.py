@@ -2,7 +2,7 @@
 # Source: exdrf_gen_al2qt.creator -> c/m/field.py.j2
 # Don't change it manually.
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List, Tuple
 
 from attrs import define, field
 from exdrf_qt.models.fields import QtStringField
@@ -29,6 +29,7 @@ class DescriptionField(QtStringField["CompositeKeyModel"]):
     category: str = field(default="general")
     preferred_width: int = field(default=100)
     multiline: bool = field(default=True)
+    enum_values: List[Tuple] = field(factory=lambda: [])
 
     # exdrf-keep-start other_attributes ---------------------------------------
 
