@@ -58,7 +58,7 @@ This is how the filter is imagined to show in JSON format:
 ```
 """
 
-from typing import Any, List, Literal, Optional, Tuple, Union, cast
+from typing import Any, List, Literal, Optional, Tuple, TypedDict, Union, cast
 
 from attrs import define
 
@@ -80,10 +80,20 @@ class FieldFilter:
     vl: Any
 
 
+class FieldFilterDict(TypedDict):
+    """A dictionary type that has the same keys as FieldFilter."""
+
+    fld: str  # field name
+    op: str  # operation type (e.g., "eq", "ne", "ilike", etc.)
+    vl: Any  # value to filter by
+
+
 LogicAndType = Tuple[Literal["and"], "FilterType"]
 LogicOrType = Tuple[Literal["or"], "FilterType"]
 LogicNotType = Tuple[Literal["not"], FieldFilter]
-FilterType = List[Union[FieldFilter, LogicAndType, LogicOrType, LogicNotType]]
+FilterType = List[
+    Union[FieldFilter, FieldFilterDict, LogicAndType, LogicOrType, LogicNotType]
+]
 
 
 @define

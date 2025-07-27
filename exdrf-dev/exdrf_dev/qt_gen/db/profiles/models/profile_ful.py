@@ -111,7 +111,14 @@ class QtProfileFuMo(QtModel["Profile"]):
         filter using the `simple_search_fields` property.
         """
         filters = super().text_to_filter(text, exact, limit)
-        safe_hook_call(exdrf_qt_pm.hook.profile_fumo_ttf, model=self)
+        safe_hook_call(
+            exdrf_qt_pm.hook.profile_fumo_ttf,
+            model=self,
+            filters=filters,
+            text=text,
+            exact=exact,
+            limit=limit,
+        )
         return filters
 
         # exdrf-keep-start extra_init -----------------------------------------

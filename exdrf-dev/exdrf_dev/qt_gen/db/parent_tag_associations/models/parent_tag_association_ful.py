@@ -126,7 +126,12 @@ class QtParentTagAssociationFuMo(QtModel["ParentTagAssociation"]):
         """
         filters = super().text_to_filter(text, exact, limit)
         safe_hook_call(
-            exdrf_qt_pm.hook.parent_tag_association_fumo_ttf, model=self
+            exdrf_qt_pm.hook.parent_tag_association_fumo_ttf,
+            model=self,
+            filters=filters,
+            text=text,
+            exact=exact,
+            limit=limit,
         )
         return filters
 

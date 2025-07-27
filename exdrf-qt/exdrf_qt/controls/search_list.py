@@ -170,16 +170,15 @@ class SearchList(QFrame, QtUseContext, Generic[DBM]):
         dlg.setMinimumSize(400, 300)
 
         if dlg.exec_() == QDialog.Accepted:
-            record = editor.db_record()
             with self.ctx.same_session() as session:
-                editor.save_to_record(record, True, session)
+                editor.db_record(save=True)
                 session.expunge_all()
             # checked = self.qt_model.checked_ids or []
-            # assert editor.db_id is not None
+            # assert editor.record_id is not None
             # self.qt_model.checked_ids = set(
             #     [
             #         *checked,
-            #         editor.db_id,
+            #         editor.record_id,
             #     ]
             # )
         dlg.close()

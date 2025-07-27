@@ -162,7 +162,12 @@ class QtCompositeKeyModelFuMo(QtModel["CompositeKeyModel"]):
         """
         filters = super().text_to_filter(text, exact, limit)
         safe_hook_call(
-            exdrf_qt_pm.hook.composite_key_model_fumo_ttf, model=self
+            exdrf_qt_pm.hook.composite_key_model_fumo_ttf,
+            model=self,
+            filters=filters,
+            text=text,
+            exact=exact,
+            limit=limit,
         )
         return filters
 

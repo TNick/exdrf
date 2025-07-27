@@ -23,6 +23,7 @@ from exdrf.filter import FieldFilter, FilterType, validate_filter
 from PyQt5.QtCore import QAbstractItemModel, QModelIndex, Qt, QTimer, pyqtSignal
 from sqlalchemy import case, func, select, tuple_
 from sqlalchemy.exc import SQLAlchemyError
+from unidecode import unidecode
 
 from exdrf_qt.context_use import QtUseContext
 from exdrf_qt.models.cache import SparseList
@@ -639,7 +640,10 @@ class QtModel(
                 should be the same as the order of the primary columns in
                 the `self.fields` array).
         """
-        return self.get_primary_columns().in_(id_list)
+        pks = self.get_primary_columns()
+        if isinstance(pks, (list, tuple)):
+            pks = tuple_(*pks)
+        return pks.in_(id_list)
 
     def item_by_id_conditions(self, rec_id: RecIdType) -> List[Any]:
         """Return the conditions that filter by ID.
@@ -943,30 +947,57 @@ class QtModel(
 
         The function converts a text to a filter. The text is converted to a
         filter using the `simple_search_fields` property.
+
+        Args:
+            text: The text to convert to a filter.
+            exact: If True, the text will not be modified. If false,
+                if the text includes at least a '*', all occurrences of '*'
+                will be replaced by '%'. If the text includes no '%'
+                then the text is surrounded by '%' characters. Spaces are
+                always replaced by '%' characters if exact is False.
+            limit: If False the computed filter is applied to all searchable
+                fields. If True the computed filter is applied to the given
+                field.
+
+        Returns:
+            The filter.
         """
         if len(text) == 0:
-            filters = []
-        else:
-            if not exact:
-                text = text.replace(" ", "%")
-                if "*" not in text:
-                    if "%" not in text:
-                        text = f"%{text}%"
-                else:
-                    text = text.replace("*", "%")
-            filters = [  # type: ignore
-                "OR",  # type: ignore
-                [  # type: ignore
-                    {  # type: ignore
-                        "fld": f.name,  # type: ignore
-                        "op": "ilike",  # type: ignore
-                        "vl": text,  # type: ignore
-                    }  # type: ignore
-                    for f in self.simple_search_fields  # type: ignore
-                    if limit is None or f.name == limit
-                ],
-            ]  # type: ignore
-        return filters  # type: ignore
+            return []
+
+        if not exact:
+            text = text.replace(" ", "%")
+            if "*" not in text:
+                if "%" not in text:
+                    text = f"%{text}%"
+            else:
+                text = text.replace("*", "%")
+
+        ua_text = unidecode(text)
+
+        filters = [  # type: ignore
+            {  # type: ignore
+                "fld": f.name,  # type: ignore
+                "op": "ilike",  # type: ignore
+                "vl": text,  # type: ignore
+            }  # type: ignore
+            for f in self.simple_search_fields  # type: ignore
+            if limit is None or f.name == limit
+        ]  # type: ignore
+        if ua_text != text:
+            filters = filters + [
+                {  # type: ignore
+                    "fld": f.name,  # type: ignore
+                    "op": "ilike",  # type: ignore
+                    "vl": ua_text,  # type: ignore
+                }  # type: ignore
+                for f in self.simple_search_fields  # type: ignore
+                if limit is None or f.name == limit
+            ]
+        return [  # type: ignore
+            "OR",  # type: ignore
+            filters,  # type: ignore
+        ]  # type: ignore
 
     def apply_simple_search(
         self,

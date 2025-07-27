@@ -258,7 +258,7 @@ class ExdrfEditor(QWidget, QtUseContext, Generic[DBM]):
         Do not use this function directly. Use the `on_create_new` method
         instead.
         """
-        self.db_id = None
+        self.record_id = None
         self.populate(None)
         self.is_dirty = False
         self.editorCleared.emit()
@@ -280,7 +280,7 @@ class ExdrfEditor(QWidget, QtUseContext, Generic[DBM]):
                 be cleared (for creating a new record).
         """
         # Save the new record.
-        self.db_id = record_id
+        self.record_id = record_id
 
         # If the record_id is None, we're clearing the editor.
         if record_id is None:
@@ -290,7 +290,7 @@ class ExdrfEditor(QWidget, QtUseContext, Generic[DBM]):
         try:
             with self.ctx.same_session() as session:
                 self.populate(self.read_record(session, record_id))
-                self.recordChanged.emit(self.db_id)
+                self.recordChanged.emit(self.record_id)
         except Exception as e:
             str_e = str(e) or e.__class__.__name__
             self._clear_editor()
@@ -309,6 +309,47 @@ class ExdrfEditor(QWidget, QtUseContext, Generic[DBM]):
         self.is_dirty = False  # type: ignore
 
         return self
+
+    def db_record(self, save: bool = True) -> Optional[DBM]:
+        """Get the record that is currently being edited.
+
+        Args:
+            save: True if the record should be saved to the database.
+                `post_save()` method will be called if save is True.
+
+        Returns:
+            The record that is currently being edited.
+        """
+        try:
+            with self.ctx.same_session() as session:
+                if self.record_id is None:
+                    # We are dealing with a new record.
+                    db_record = self.db_model()
+                    new_record = True
+                else:
+                    # This is an existing record.
+                    db_record = self.read_record(session, self.record_id)
+                    new_record = False
+
+                # Ask the subclass to save the data to the record.
+                self.save_to_record(db_record, new_record, session)
+
+                # Post-process the record.
+                if save:
+                    self.post_save(session, db_record)
+                return db_record
+        except Exception as e:
+            str_e = str(e) or e.__class__.__name__
+            self.show_error(
+                title=self.t("sq.common.error", "Error"),
+                message=self.t(
+                    "cmn.save-err",
+                    "Failed to save the record due to following error: {e}",
+                    e=str_e,
+                ),
+            )
+            logger.exception("Exception in ExdrfEditor.on_save")
+            return None
 
     def validate_cancel(self) -> bool:
         """Cancel the editing.
@@ -363,7 +404,7 @@ class ExdrfEditor(QWidget, QtUseContext, Generic[DBM]):
             return False
 
         self.is_editing = False
-        self.set_record(self.db_id)
+        self.set_record(self.record_id)
         return True
 
     def on_reset_edit(self):
@@ -379,7 +420,7 @@ class ExdrfEditor(QWidget, QtUseContext, Generic[DBM]):
             return False
 
         self.is_editing = True
-        self.set_record(self.db_id)
+        self.set_record(self.record_id)
         return True
 
     def _populate(self, record: Union[DBM, None], ignore: List[str]):
@@ -456,33 +497,7 @@ class ExdrfEditor(QWidget, QtUseContext, Generic[DBM]):
             self.is_editing = True
             return
 
-        try:
-            with self.ctx.same_session() as session:
-                if self.db_id is None:
-                    # We are dealing with a new record.
-                    db_record = self.db_model()
-                    new_record = True
-                else:
-                    # This is an existing record.
-                    db_record = self.read_record(session, self.db_id)
-                    new_record = False
-
-                # Ask the subclass to save the data to the record.
-                self.save_to_record(db_record, new_record, session)
-
-                # Post-process the record.
-                self.post_save(session, db_record)
-        except Exception as e:
-            str_e = str(e) or e.__class__.__name__
-            self.show_error(
-                title=self.t("sq.common.error", "Error"),
-                message=self.t(
-                    "cmn.save-err",
-                    "Failed to save the record due to following error: {e}",
-                    e=str_e,
-                ),
-            )
-            logger.exception("Exception in ExdrfEditor.on_save")
+        self.db_record(save=True)
 
     def post_save(self, session: "Session", db_record: DBM):
         """Called after the record has been populated with the data from the
@@ -505,7 +520,7 @@ class ExdrfEditor(QWidget, QtUseContext, Generic[DBM]):
             )
         session.commit()
         self.is_editing = False
-        self.db_id = self.get_id_of_record(db_record)
+        self.record_id = self.get_id_of_record(db_record)
         self.recordSaved.emit(db_record)
 
     def on_begin_view(self):
@@ -513,7 +528,7 @@ class ExdrfEditor(QWidget, QtUseContext, Generic[DBM]):
 
         The function sets the editor to view mode.
         """
-        if self.db_id is None:
+        if self.record_id is None:
             return
         assert not self.is_dirty
         self.is_editing = False
@@ -523,7 +538,7 @@ class ExdrfEditor(QWidget, QtUseContext, Generic[DBM]):
 
         The function sets the editor to editing mode.
         """
-        if self.db_id is None:
+        if self.record_id is None:
             return
         assert not self.is_dirty
         self.is_editing = True
