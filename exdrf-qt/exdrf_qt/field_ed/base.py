@@ -173,6 +173,14 @@ class DrfFieldEd(QtUseContext):
         The default implementation looks for an attribute called ac_clear
         in itself and, if found, assumes it is a QAction.
         """
+        self.change_nullable(value)
+
+    def change_nullable(self, value: bool) -> None:
+        """Set the nullable property.
+
+        The default implementation looks for an attribute called ac_clear
+        in itself and, if found, assumes it is a QAction.
+        """
         self._nullable = value
         if (
             hasattr(self, "ac_clear")

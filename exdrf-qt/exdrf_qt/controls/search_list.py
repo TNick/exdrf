@@ -39,7 +39,7 @@ class TreeView(QTreeView):
 
 
 class SearchList(QFrame, QtUseContext, Generic[DBM]):
-    """A widget that allows th user to search for items in a list.
+    """A widget that allows the user to search for items in a list.
 
     It consists of a search line and a tree view to display the results. The
     search is applied to all the fields reported by the model through the
@@ -70,7 +70,10 @@ class SearchList(QFrame, QtUseContext, Generic[DBM]):
         editor_class: Optional[Type["ExdrfEditor"]] = None,
         field: Optional["DrfFieldEd"] = None,
     ):
-        super().__init__(parent)
+        if popup:
+            super().__init__(parent, Qt.WindowType.Popup)
+        else:
+            super().__init__(parent)
         self.ctx = ctx
         self.editor_class = editor_class
         self.ac_create = None
@@ -85,6 +88,7 @@ class SearchList(QFrame, QtUseContext, Generic[DBM]):
                     Qt.WindowType.Popup | Qt.WindowType.FramelessWindowHint,
                 )
             )
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
 
         self.ly = QVBoxLayout()
 

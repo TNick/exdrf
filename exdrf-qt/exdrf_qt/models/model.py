@@ -121,7 +121,8 @@ class QtModel(
             loaded, and the number of requests in progress, excluding this one.
         requestError: Emitted when a request for items generates an error. It
             receives the request ID, the starting index, the number of items
-            loaded, the number of requests in progress, and the error message.
+            loaded, the number of requests in progress excluding this one,
+            and the error message.
     """
 
     db_model: Type[DBM]
@@ -469,9 +470,12 @@ class QtModel(
         )
 
         # Inform interested parties that a request has been issued.
-        self.requestIssued.emit(
-            req.uniq_id, req.start, req.count, len(self.requests)
-        )
+        try:
+            self.requestIssued.emit(
+                req.uniq_id, req.start, req.count, len(self.requests)
+            )
+        except RuntimeError:
+            logger.error("RuntimeError in requestIssued signal", exc_info=True)
 
     def _load_items(self, work: "Work") -> None:
         """We are informed that a batch of items has been loaded."""
@@ -794,6 +798,25 @@ class QtModel(
             return QModelIndex()
 
         return self.createIndex(row, column)
+
+    def data_record(self, row: int) -> Optional["QtRecord"]:
+        """Get the data for a particular row.
+
+        Args:
+            row: The row to get the data for. If the index is outside the
+                valid interval, the function returns None.
+
+        Returns:
+            The data for the row.
+        """
+        if row < 0:
+            return None
+        if row < len(self.top_cache):
+            return self.top_cache[row]
+        row = row - len(self.top_cache)
+        if row < len(self.cache):
+            return self.cache[row]
+        return None
 
     def data(self, index: QModelIndex, role: int = Qt.ItemDataRole.DisplayRole):
         if not index.isValid():

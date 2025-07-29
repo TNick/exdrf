@@ -64,7 +64,18 @@ class Relay(QObject):
             work.callback(work)
             logger.debug("Work with ID %s completed successfully", work_id)
         except Exception as e:
-            logger.error("Exception while handling the work result: %s", e)
+            if isinstance(e, RuntimeError) and "has been deleted" in str(e):
+                logger.debug(
+                    "Work with ID %s completed, but the callback receiver "
+                    "has been deleted.",
+                    work_id,
+                )
+            else:
+                logger.error(
+                    "Exception while handling the work result: %s",
+                    e,
+                    exc_info=True,
+                )
 
     def stop(self):
         """Stop the worker thread."""

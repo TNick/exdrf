@@ -1,4 +1,4 @@
-from PyQt5.QtCore import QTimer
+from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtWidgets import (
     QAction,
     QLineEdit,
@@ -16,6 +16,7 @@ class DropBase(LineBase):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
 
         # Add dropdown button.
         self.dropdown_action = self.create_drop_down_action()
@@ -57,7 +58,6 @@ class DropBase(LineBase):
         if self._read_only:
             return
         self.field_value = None
-        self.setText("")
         self.set_line_empty()
         if self.nullable:
             assert self.ac_clear is not None

@@ -82,6 +82,7 @@ class Qt{{ ResPascal }}NaMo(Qt{{ ResPascal }}FuMo):
             **kwargs
         )
         self.column_fields = ['label']
+        self.remove_from_ssf("label")
 
         # Inform plugins that the model has been created.
         safe_hook_call(

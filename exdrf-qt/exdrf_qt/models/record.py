@@ -48,6 +48,21 @@ class QtRecord:
         else:
             self.loaded = True
 
+    def display_text(self) -> str:
+        """Return the display text for the record."""
+        if self.error:
+            return self.model.t("cmn.error", "Error")
+        if not self.loaded:
+            return self.model.t("cmn.loading", "Loading...")
+        return str(
+            self.values.get(
+                Qt.ItemDataRole.DisplayRole,
+                self.values.get(
+                    Qt.ItemDataRole.EditRole, self.model.t("cmn.null", "NULL")
+                ),
+            )
+        )
+
     def data(self, column: int, role: Qt.ItemDataRole) -> Any:
         """Return the data for the given column and role.
 

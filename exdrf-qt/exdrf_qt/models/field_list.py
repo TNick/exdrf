@@ -94,6 +94,11 @@ class FieldsList:
         """
         self._s_s_fields = [self._fields[f] for f in value]
 
+    def remove_from_ssf(self, field: str):
+        """Remove a field from the simple search fields."""
+        self._s_s_fields = [f for f in self._s_s_fields if f.name != field]
+        return self._s_s_fields
+
     @property
     def filter_fields(self) -> List["QtField"]:
         """Return the fields that can be filtered."""
@@ -107,6 +112,11 @@ class FieldsList:
             value: The list of fields.
         """
         self._f_fields = [self._fields[f] for f in value]
+
+    def remove_from_ff(self, field: str):
+        """Remove a field from the filter fields."""
+        self._f_fields = [f for f in self._f_fields if f.name != field]
+        return self._f_fields
 
     @property
     def sortable_fields(self) -> List["QtField"]:
@@ -122,6 +132,11 @@ class FieldsList:
         """
         self._s_fields = [self._fields[f] for f in value]
 
+    def remove_from_sf(self, field: str):
+        """Remove a field from the sortable fields."""
+        self._s_fields = [f for f in self._s_fields if f.name != field]
+        return self._s_fields
+
     @property
     def column_fields(self) -> List["QtField"]:
         """Return the fields that can be displayed in a column."""
@@ -136,6 +151,11 @@ class FieldsList:
         """
         self._c_fields = [self._fields[f] for f in value]
 
+    def remove_from_cf(self, field: str):
+        """Remove a field from the column fields."""
+        self._c_fields = [f for f in self._c_fields if f.name != field]
+        return self._c_fields
+
     @property
     def exportable_fields(self) -> List["QtField"]:
         """Return the fields that can be exported."""
@@ -149,3 +169,8 @@ class FieldsList:
             value: The list of fields.
         """
         self._e_fields = [self._fields[f] for f in value]
+
+    def remove_from_ef(self, field: str):
+        """Remove a field from the exportable fields."""
+        self._e_fields = [f for f in self._e_fields if f.name != field]
+        return self._e_fields
