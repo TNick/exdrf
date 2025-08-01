@@ -54,13 +54,18 @@ class QtRecord:
             return self.model.t("cmn.error", "Error")
         if not self.loaded:
             return self.model.t("cmn.loading", "Loading...")
-        return str(
-            self.values.get(
-                Qt.ItemDataRole.DisplayRole,
-                self.values.get(
-                    Qt.ItemDataRole.EditRole, self.model.t("cmn.null", "NULL")
-                ),
+
+        return ", ".join(
+            str(
+                self.values[i].get(
+                    Qt.ItemDataRole.DisplayRole,
+                    self.values.get(
+                        Qt.ItemDataRole.EditRole,
+                        self.model.t("cmn.null", "NULL"),
+                    ),
+                )
             )
+            for i in range(len(self.model.column_fields))
         )
 
     def data(self, column: int, role: Qt.ItemDataRole) -> Any:

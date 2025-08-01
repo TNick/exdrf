@@ -332,7 +332,8 @@ class ExdrfEditor(QWidget, QtUseContext, Generic[DBM]):
                     new_record = False
 
                 # Ask the subclass to save the data to the record.
-                self.save_to_record(db_record, new_record, session)
+                with session.no_autoflush:
+                    self.save_to_record(db_record, new_record, session)
 
                 # Post-process the record.
                 if save:

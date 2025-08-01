@@ -1,3 +1,4 @@
+import logging
 from typing import TYPE_CHECKING, Any, Optional
 
 from exdrf.validator import ValidationResult
@@ -9,6 +10,9 @@ from exdrf_qt.context_use import QtUseContext
 if TYPE_CHECKING:
     from exdrf_qt.context import QtContext
     from exdrf_qt.controls.base_editor import ExdrfEditor
+
+
+logger = logging.getLogger(__name__)
 
 
 class DrfFieldEd(QtUseContext):
@@ -94,6 +98,13 @@ class DrfFieldEd(QtUseContext):
         """
         if not self._name:
             raise ValueError("Field name is not set.")
+
+        logger.log(
+            10,
+            "Saving field value %s to record: %s",
+            self.field_value,
+            self._name,
+        )
         setattr(record, self._name, self.field_value)
 
     def load_value_from(self, record: Any):
