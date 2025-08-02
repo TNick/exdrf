@@ -1,4 +1,5 @@
 import json
+from typing import Any, Tuple
 
 from PyQt5 import QtWidgets
 
@@ -43,7 +44,7 @@ class JsonEditorDialog(QtWidgets.QDialog):
         read_only_keys=None,
         undeletable_keys=None,
         parent=None,
-    ):
+    ) -> Tuple[bool, Any]:
         dialog = JsonEditorDialog(
             data, nullable, read_only_keys, undeletable_keys, parent
         )
