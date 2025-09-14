@@ -2,7 +2,7 @@ import logging
 import os
 from datetime import datetime, timedelta
 from importlib import resources
-from typing import TYPE_CHECKING, List, Optional, Tuple
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
 from PyQt5.QtCore import QBuffer, QByteArray, QIODevice, QTimer, QUrl
 from PyQt5.QtWebEngineCore import (
@@ -62,11 +62,13 @@ class ExDrfHandler(QWebEngineUrlSchemeHandler, QtUseContext):
 
     _buffers: List[Tuple[datetime, QBuffer]]
     collector_timer: QTimer
+    icon_cache: Dict[str, bytes]
 
     def __init__(self, ctx: "QtContext", parent=None):
         super().__init__(parent)
         self.ctx = ctx
         self._buffers = []
+        self.icon_cache = {}
         self.collector_timer = QTimer()
         self.collector_timer.timeout.connect(self.collect_buffers)
         self.collector_timer.start(1 * 60 * 1000)
@@ -108,6 +110,33 @@ class ExDrfHandler(QWebEngineUrlSchemeHandler, QtUseContext):
             mime = b"application/png"
         return data, mime
 
+    def get_lib_img(self, name: str) -> Tuple[bytes, bytes]:
+        """Get an attachment as an image."""
+        if name.upper().endswith(".PNG"):
+            name = name[:-4]
+        try:
+            if name in self.icon_cache:
+                data = self.icon_cache[name]
+                mime = b"image/png"
+                return data, mime
+            icon = self.get_icon(name)
+            if icon is not None:
+                # Convert QIcon to PNG bytes
+                pixmap = icon.pixmap(32, 32)
+                buffer = QBuffer()
+                buffer.open(QIODevice.OpenModeFlag.ReadWrite)
+                pixmap.save(buffer, "PNG")
+                data = buffer.data().data()
+                mime = b"image/png"
+                self.icon_cache[name] = data
+                return data, mime
+        except Exception:
+            pass
+        logger.error(f"Attachment icon not found: {name}")
+        data = read_local_assets("not-found.png")
+        mime = b"image/png"
+        return data, mime
+
     def get_att_img(self, path: str) -> Tuple[bytes, bytes]:
         """Get an attachment as an image."""
         if os.path.isfile(path):
@@ -143,6 +172,8 @@ class ExDrfHandler(QWebEngineUrlSchemeHandler, QtUseContext):
                 data, mime = self.get_attachment(path)
             elif host == "att-img":
                 data, mime = self.get_att_img(path)
+            elif host == "lib-img":
+                data, mime = self.get_lib_img(path)
             else:
                 raise RuntimeError(f"Unknown host: {host}")
         except Exception as e:

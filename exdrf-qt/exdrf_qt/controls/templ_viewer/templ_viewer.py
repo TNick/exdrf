@@ -177,7 +177,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
     def __init__(
         self,
         ctx: "QtContext",
-        var_bag: "VarBag",
+        var_bag: Optional["VarBag"] = None,
         parent=None,
         extra_context: Optional[Dict[str, Any]] = None,
         template_src: Optional[str] = None,
@@ -186,13 +186,23 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
             List[Union[Tuple[str, str, str], "AcBase", QAction, None]]
         ] = None,
         prevent_render: bool = False,
+        var_model: Optional["VarModel"] = None,
     ):
         """Initialize the template viewer.
 
         Args:
             ctx: The context of the template viewer.
-            var_bag: The variable bag of the template viewer.
+            var_bag: The variable bag of the template viewer. Will only be used
+                to construct a new model if no model is provided.
+            var_model: The model of the template viewer. If not provided, a new
+                model will be constructed using the var_bag.
             parent: The parent of the template viewer.
+            extra_context: Extra variables to be provided to the template.
+                These will not show up in the variable list.
+            template_src: The source of the template.
+            page_class: The class of the page used to render the template.
+            other_actions: The other actions of the template viewer.
+            prevent_render: Whether to prevent the template from being rendered.
         """
         self._prevent_render = prevent_render
         self.ctx = ctx
@@ -207,7 +217,9 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
         super().__init__(parent)
 
         # Prepare the model.
-        self.model = VarModel(ctx=ctx, var_bag=var_bag, parent=self)
+        self.model = var_model or VarModel(
+            ctx=ctx, var_bag=var_bag, parent=self
+        )
 
         # Prepare the UI.
         self.setup_ui(self)
@@ -341,6 +353,11 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
         yield
         self._prevent_render = False
         self.render_template()
+
+    @property
+    def page(self) -> "WebEnginePage":
+        """The page of the template viewer."""
+        return self.c_viewer.page()
 
     @property
     def var_bag(self) -> "VarBag":
@@ -879,14 +896,19 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
             except Exception as e:
                 logger.warning("Error checking template file: %s", e)
 
-    def _render_template(self):
+    def _render_template(self, **kwargs):
         """The actual rendering of the template."""
         assert self._current_template is not None
         self._ensure_fresh_template()
         return self._current_template.render(
-            **self.model.var_bag.as_dict,
-            **self.extra_context,
-            api_point=self.ctx.data,  # type: ignore
+            # Merge all dicts, with later dicts overriding earlier ones in case
+            # of duplicate keys
+            **{
+                **self.model.var_bag.as_dict,
+                **self.extra_context,
+                "api_point": self.ctx.data,
+                **kwargs,
+            },
         )
 
     def full_refresh(self):
@@ -912,7 +934,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
 
         self.render_template()
 
-    def render_template(self):
+    def render_template(self, **kwargs):
         """Render the template.
 
         If the current view mode is source, the template is not rendered.
@@ -927,7 +949,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
         try:
             if self._current_template is not None:
                 logger.debug("Rendering template %s...", self._current_template)
-                html = self._render_template()
+                html = self._render_template(**kwargs)
                 logger.debug("The template has been rendered")
             else:
                 html = self.t(
@@ -1225,7 +1247,7 @@ class RecordTemplViewer(TemplViewer, Generic[DBM]):
         """Populate the variable bag with the fields of the database record."""
         raise NotImplementedError("Not implemented")
 
-    def _render_template(self):
+    def _render_template(self, **kwargs):
         """The actual rendering of the template."""
         assert self._current_template is not None
         self._ensure_fresh_template()
@@ -1289,6 +1311,7 @@ class RecordTemplViewer(TemplViewer, Generic[DBM]):
                 edit_route=self.get_edit_route(),
                 view_route=self.get_view_route(),
                 delete_route=self.get_delete_route(),
+                **kwargs,
             )
 
     def read_record(self, session: "Session") -> Union[None, DBM]:

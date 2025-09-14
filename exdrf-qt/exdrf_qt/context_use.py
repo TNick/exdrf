@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING, Any, Union
 
 if TYPE_CHECKING:
+    from PyQt5.QtGui import QIcon
     from PyQt5.QtWidgets import QWidget  # noqa: F401
 
     from exdrf_qt.context import QtContext
@@ -36,7 +37,7 @@ class QtUseContext:
         """
         return self.ctx.close_window(w)
 
-    def get_icon(self, name: str):
+    def get_icon(self, name: str) -> "QIcon":
         """Returns an icon from the resource file.
 
         Args:

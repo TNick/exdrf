@@ -1,12 +1,34 @@
 from contextlib import contextmanager
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from attrs import define, field
-from sqlalchemy import Engine, create_engine, event
+from sqlalchemy import Engine, Select, create_engine, event
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.session import Session
 
 dialects_with_schema = {"postgresql", "oracle", "mssql"}
+
+
+@define
+class AutoCacheEntry:
+    """An entry in the auto cache.
+
+    If is_multi is False and is_scalar is False, the query is expected to
+    return a single record.
+
+    Attributes:
+        value: The value of the cache entry.
+        query: The query to retrieve the value if it's not in the cache.
+        is_multi: True if the query returns multiple records.
+        is_scalar: True if the query returns a single value.
+        loaded: True if the query was executed and the value is in the cache.
+    """
+
+    value: Any
+    selector: "Select"
+    is_multi: bool
+    is_scalar: bool
+    loaded: bool
 
 
 @define
@@ -17,14 +39,17 @@ class DbConn:
         c_string: The connection string to the database.
         engine: The engine used to connect to the database.
         s_stack: A stack of sessions.
-        cache: A cache for values that are unlikely to change.
+        cache: A general-purpose cache.
+        auto_cache: A cache where the information about how to retrieve
+            them is stored along with the value.
     """
 
     c_string: str
     schema: str = "public"
     engine: Optional[Engine] = None
-    s_stack: List[Session] = field(factory=list)
-    cache: dict = field(factory=dict)
+    s_stack: List[Session] = field(factory=list, repr=False)
+    cache: dict = field(factory=dict, repr=False)
+    auto_cache: Dict[str, AutoCacheEntry] = field(factory=dict, repr=False)
 
     def connect(self) -> Engine:
         """Connect to the database."""
@@ -101,7 +126,7 @@ class DbConn:
         return s
 
     @contextmanager
-    def session(self, auto_commit=False):
+    def session(self, auto_commit=False, add_to_stack: bool = True):
         """Creates a new session which it then closes after use.
 
         The session is added to the internal stack on creation and removed on
@@ -109,7 +134,7 @@ class DbConn:
 
         If the inner code raises an exception, the session is rolled back.
         """
-        session = self.new_session()
+        session = self.new_session(add_to_stack=add_to_stack)
         try:
             yield session
         except Exception:
@@ -120,7 +145,8 @@ class DbConn:
                 session.commit()
         finally:
             session.close()
-            self.s_stack.pop()
+            if add_to_stack:
+                self.s_stack.pop()
 
     @contextmanager
     def same_session(self, auto_commit=False):
@@ -169,3 +195,91 @@ class DbConn:
 
     def bootstrap(self):
         """Prepare the database for use."""
+
+    def set_auto_cache_entry(
+        self,
+        key: str,
+        selector: Optional["Select"] = None,
+        is_scalar: bool = True,
+        is_multi: bool = False,
+        loaded: bool = False,
+        value: Optional[Any] = None,
+    ) -> None:
+        """Saves a cache record inside this context.
+
+        You can set the value directly or provide a query to retrieve the value
+        from the database. If you provide a query, you must also provide the
+        is_scalar and is_multi parameters to indicate how to retrieve the value
+        from the query.
+
+        Args:
+            key: The key to use for the cache.
+            query: The query to use to retrieve the value if it's not in the
+                cache.
+            is_scalar: True if the query returns a single value.
+            is_multi: True if the query returns multiple records.
+            loaded: True if the query was executed and the value is in the
+                cache.
+            value: The value to store in the cache.
+        """
+        if selector is None:
+            self.cache[key] = value
+        else:
+            self.auto_cache[key] = AutoCacheEntry(
+                value=value,
+                selector=selector,
+                is_scalar=is_scalar,
+                is_multi=is_multi,
+                loaded=loaded,
+            )
+
+    def get_cached_value(self, key: str) -> Any:
+        """Retrieves a value from either cache or database.
+
+        Args:
+            key: The key to use for the cache.
+
+        Raises:
+            KeyError: If the information about how to retrieve this value was
+                not previously provided through set_auto_cache_entry().
+
+        Returns:
+            The value of the cache entry.
+        """
+        # Fast retrieval.
+        entry = self.auto_cache.get(key, None)
+        if entry is not None:
+            if entry.loaded:
+                return entry.value
+        else:
+            regular_cache = self.cache.get(key, None)
+            if regular_cache is not None:
+                return regular_cache
+
+            if len(self.auto_cache) == 0:
+                raise KeyError(
+                    f"There are no cache records. Did you forget to call "
+                    f"setup_cache()? Key {key} was the one to trigger the "
+                    f"exception."
+                )
+            else:
+                raise KeyError(
+                    f'No cache record for "{key}"; allowed keys '
+                    f'are: {",".join(list(self.auto_cache.keys()))}'
+                )
+
+        # Retrieve value from the database.
+        with self.same_session() as session:
+            if entry.is_scalar:
+                value = session.scalar(entry.selector)
+            elif entry.is_multi:
+                value = session.scalars(entry.selector)
+            else:
+                value = session.scalar(entry.selector)
+
+        # Save value in cache.
+        entry.value = value
+        entry.loaded = True
+
+        # Return value.
+        return value

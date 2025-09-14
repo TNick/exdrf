@@ -1,9 +1,12 @@
 import json
+import logging
 from typing import cast
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from exdrf_qt.controls.json_editor.item import JsonTreeItem
+
+logger = logging.getLogger(__name__)
 
 
 class JsonModel(QtCore.QAbstractItemModel):
@@ -26,11 +29,14 @@ class JsonModel(QtCore.QAbstractItemModel):
 
     def load(self, data):
         self.beginResetModel()
+
         if isinstance(data, str):
             try:
                 data = json.loads(data)
             except json.JSONDecodeError:
+                logger.error(f"Invalid JSON string: {data}", exc_info=True)
                 data = {}  # Or handle error appropriately
+
         self._root_item = JsonTreeItem("root", data)
         self.endResetModel()
 
