@@ -14,11 +14,13 @@ config = context.config
 
 # Add MetaData object here for 'autogenerate' support
 target_metadata = config.attributes.get("metadata", None)
+# print("TABLES:", list(target_metadata.tables))
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
+schema = config.attributes.get("schema", "public")
 
 
 def run_migrations_offline() -> None:
@@ -33,14 +35,28 @@ def run_migrations_offline() -> None:
     script output.
 
     """
+    # url = config.get_main_option("sqlalchemy.url")
+    # context.configure(
+    #     url=url,
+    #     target_metadata=target_metadata,
+    #     literal_binds=True,
+    #     dialect_opts={"paramstyle": "named"},
+    # )
+
+    # with context.begin_transaction():
+    #     context.run_migrations()
+
     url = config.get_main_option("sqlalchemy.url")
     context.configure(
         url=url,
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        include_schemas=schema is not None,
+        version_table_schema=schema,
+        compare_type=True,
+        compare_server_default=True,
     )
-
     with context.begin_transaction():
         context.run_migrations()
 
@@ -72,11 +88,33 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
-    with get_online_connection() as connection:
-        context.configure(
-            connection=connection, target_metadata=target_metadata
-        )
+    # with get_online_connection() as connection:
+    #     context.configure(
+    #         connection=connection, target_metadata=target_metadata
+    #     )
+    #
+    #     with context.begin_transaction():
+    #         context.run_migrations()
 
+    with get_online_connection() as connection:
+        is_sqlite = connection.dialect.name == "sqlite"
+
+        if is_sqlite:
+            extra = {
+                "render_as_batch": True,
+            }
+        else:
+            extra = {
+                "include_schemas": schema is not None,
+                "version_table_schema": schema,
+            }
+        context.configure(
+            connection=connection,
+            target_metadata=target_metadata,
+            compare_type=True,
+            compare_server_default=True,
+            **extra,  # type: ignore
+        )
         with context.begin_transaction():
             context.run_migrations()
 

@@ -113,6 +113,15 @@ class QtContext(DbConn):
 
         self.setup_logging()
 
+        # Attempt to load the last used connection from settings before
+        # notifying plugins, so they can find an initialized DB context.
+        try:
+            self._load_last_used_db_config()
+        except Exception as e:
+            logging.getLogger(__name__).error(
+                "Failed to load last used DB config: %s", e, exc_info=True
+            )
+
         # Inform plugins that the context has been created.
         safe_hook_call(exdrf_qt_pm.hook.context_created, context=self)
 
@@ -194,6 +203,16 @@ class QtContext(DbConn):
             self.c_string,
             self.schema,
         )
+
+        # Persist the current connection id for next startup.
+        try:
+            current_id = self.current_db_setting_id()
+            if current_id:
+                self.stg.set_setting("exdrf.db.crt_connection", current_id)
+        except Exception as e:
+            logging.getLogger(__name__).error(
+                "Failed to persist current DB config id: %s", e, exc_info=True
+            )
 
     def db_config_id(self) -> str:
         """Get the ID of the current database configuration."""
@@ -421,4 +440,32 @@ class QtContext(DbConn):
         return self.stg.locate_db_config(
             c_string=self.c_string,
             schema=self.schema,
+            create=True,
         )
+
+    # Internal helpers
+    def _load_last_used_db_config(self) -> None:
+        """Load last used DB connection from settings into the context.
+
+        Looks up the id saved under `exdrf.db.crt_connection`, finds the
+        matching entry in `exdrf.db.c_strings`, and if present applies its
+        connection string and schema.
+        """
+        # Read the last used connection id
+        last_id = self.stg.get_setting("exdrf.db.crt_connection")
+        if not last_id:
+            return
+
+        # Search the configured connections
+        try:
+            for item in self.stg.get_db_configs():
+                if item.get("id") == last_id:
+                    c_string = item.get("c_string", "")
+                    schema = item.get("schema", "public")
+                    if c_string:
+                        self.set_db_string(c_string=c_string, schema=schema)
+                    return
+        except Exception as e:
+            logging.getLogger(__name__).error(
+                "Error while loading saved DB config: %s", e, exc_info=True
+            )

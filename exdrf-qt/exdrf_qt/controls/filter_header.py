@@ -8,13 +8,14 @@ from typing import (
     cast,
 )
 
-from exdrf_qt.context_use import QtUseContext
 from PyQt5.QtCore import QSize, Qt
 from PyQt5.QtWidgets import (
     QHeaderView,
     QLineEdit,
     QWidget,
 )
+
+from exdrf_qt.context_use import QtUseContext
 
 if TYPE_CHECKING:
     from exdrf_qt.context import QtContext

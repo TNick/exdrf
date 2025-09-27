@@ -193,8 +193,9 @@ class DbConn:
         engine = self.connect()
         Base.metadata.create_all(bind=engine)
 
-    def bootstrap(self):
+    def bootstrap(self) -> bool:
         """Prepare the database for use."""
+        return True
 
     def set_auto_cache_entry(
         self,

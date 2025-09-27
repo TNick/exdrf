@@ -165,6 +165,17 @@ class DbVer:
         with self.alembic_config() as alembic_cfg:
             command.upgrade(alembic_cfg, target)
 
+    def initial(self, metadata, message: str = "Initial schema"):
+        """Create the initial migration that creates the tables.
+
+        Args:
+            message: The message to be used in the migration.
+        """
+        with self.alembic_config() as alembic_cfg:
+            alembic_cfg.attributes["metadata"] = metadata
+            alembic_cfg.attributes["schema"] = None
+            command.revision(alembic_cfg, message=message, autogenerate=True)
+
     def downgrade(self, target: str = "-1"):
         """Restore previous version.
 

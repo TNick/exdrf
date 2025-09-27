@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING, Optional
 
 import click
+from sqlalchemy import inspect
 
 from exdrf_al.click_support.get_base import GetBase
 from exdrf_al.click_support.get_conn import GetConn
@@ -60,16 +61,24 @@ def auto_db_migration(
     """
     engine = conn.connect()
     assert engine is not None
-    result = (
-        DbVer(engine=engine, migrations=m_dir)
-        .autogenerate(
+
+    inspector = inspect(engine)
+    if not inspector.has_table("alembic_version", schema=schema):
+        DbVer(engine=engine, migrations=m_dir).initial(
+            message=message or "Initial schema",
             metadata=base.metadata,
-            message=message,
         )
-        .strip()
-    )
-    if len(result) > 0:
-        click.echo(result)
+    else:
+        result = (
+            DbVer(engine=engine, migrations=m_dir)
+            .autogenerate(
+                metadata=base.metadata,
+                message=message,
+            )
+            .strip()
+        )
+        if len(result) > 0:
+            click.echo(result)
 
 
 if __name__ == "__main__":

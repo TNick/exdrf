@@ -837,9 +837,9 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
             loader = self.jinja_env.loader
             assert loader is not None
             source, filename, _ = loader.get_source(self.jinja_env, text)
-            self.c_editor.blockSignals(True)
-            self.c_editor.setPlainText(source)
-            self.c_editor.blockSignals(False)
+            # self.c_editor.blockSignals(True)
+            # self.c_editor.setPlainText(source)
+            # self.c_editor.blockSignals(False)
             self._current_template_file = filename
             self._use_edited_text = False
             self.render_template()
