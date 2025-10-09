@@ -10,6 +10,8 @@ from typing import Any, Callable, Dict, Optional
 
 from PyQt5.QtCore import QModelIndex, QRegExp, QSortFilterProxyModel, Qt
 
+SORT_ROLE = Qt.ItemDataRole.UserRole + 5
+
 logger = logging.getLogger(__name__)
 
 
@@ -139,8 +141,12 @@ class ProxyModel(QSortFilterProxyModel):
         if model is None:
             return super().lessThan(left, right)
 
-        lv = model.data(left, Qt.ItemDataRole.DisplayRole)
-        rv = model.data(right, Qt.ItemDataRole.DisplayRole)
+        lv = model.data(left, SORT_ROLE)
+        if lv is None:
+            lv = model.data(left, Qt.ItemDataRole.DisplayRole)
+        rv = model.data(right, SORT_ROLE)
+        if rv is None:
+            rv = model.data(right, Qt.ItemDataRole.DisplayRole)
 
         extractor = self._numeric_sort_extractors.get(col)
         if extractor is not None:

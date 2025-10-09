@@ -6,7 +6,8 @@ from typing import TYPE_CHECKING, Union
 
 from exdrf.constants import RecIdType
 from exdrf_qt.controls import ExdrfEditor
-from exdrf_qt.plugins import exdrf_qt_pm, safe_hook_call
+from exdrf_qt.plugins import exdrf_qt_pm
+from exdrf_qt.utils.plugins import safe_hook_call
 
 from exdrf_dev.qt_gen.db.related_items.widgets.related_item_editor_ui import (
     Ui_QtRelatedItemEditor,

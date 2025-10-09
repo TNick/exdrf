@@ -39,10 +39,13 @@ class LineNumberArea(QWidget):
 class JinjaHtmlHighlighter(QSyntaxHighlighter):
     """Syntax highlighter for Jinja templates with HTML using Pygments."""
 
-    def __init__(self, document):
+    _active: bool
+
+    def __init__(self, document, active: bool = True):
         super().__init__(document)
         # Define formats for different token types
         self.formats = {}
+        self._active = active
         self._init_formats()
         # Use the HTML+Jinja lexer
         try:
@@ -80,6 +83,8 @@ class JinjaHtmlHighlighter(QSyntaxHighlighter):
         self.formats[Token.Error] = make_format("#FF0000", bold=True)
 
     def highlightBlock(self, text):
+        if not self._active:
+            return
         # Pygments lexers work on the whole document, so we need to re-lex the
         # whole text and cache the results for each block. For simplicity,
         # re-lex the whole document here. For large documents, a more efficient
@@ -139,6 +144,16 @@ class CodeTextEdit(QPlainTextEdit, QtUseContext):
         self.highlight_current_line()
         # Attach syntax highlighter
         self.highlighter = JinjaHtmlHighlighter(self.document())
+
+    @property
+    def highlight_code(self) -> bool:
+        """Whether the template code should be highlighted."""
+        return self.highlighter._active
+
+    @highlight_code.setter
+    def highlight_code(self, value: bool):
+        """Set whether the template code should be highlighted."""
+        self.highlighter._active = value
 
     def line_number_area_width(self):
         digits = len(str(max(1, self.blockCount())))

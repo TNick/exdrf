@@ -187,6 +187,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
         ] = None,
         prevent_render: bool = False,
         var_model: Optional["VarModel"] = None,
+        highlight_code: bool = True,
     ):
         """Initialize the template viewer.
 
@@ -217,6 +218,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
         super().__init__(parent)
 
         # Prepare the model.
+        assert var_bag is not None
         self.model = var_model or VarModel(
             ctx=ctx, var_bag=var_bag, parent=self
         )
@@ -241,6 +243,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
         self.c_editor.customContextMenuRequested.connect(
             self.on_editor_context_menu
         )
+        self.c_editor.highlight_code = highlight_code
 
         # Set a flag when the text is edited.
         self.c_editor.textChanged.connect(self.on_editor_text_changed)
@@ -353,6 +356,16 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
         yield
         self._prevent_render = False
         self.render_template()
+
+    @property
+    def highlight_code(self) -> bool:
+        """Whether the template code should be highlighted."""
+        return self.c_editor.highlight_code
+
+    @highlight_code.setter
+    def highlight_code(self, value: bool):
+        """Set whether the template code should be highlighted."""
+        self.c_editor.highlight_code = value
 
     @property
     def page(self) -> "WebEnginePage":
@@ -843,6 +856,10 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
             self._current_template_file = filename
             self._use_edited_text = False
             self.render_template()
+            if self.c_editor.toPlainText() != source:
+                self.c_editor.blockSignals(True)
+                self.c_editor.setPlainText(source)
+                self.c_editor.blockSignals(False)
 
         except Exception as e:
             logger.error("Error loading template: %s", e, exc_info=True)

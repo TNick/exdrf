@@ -6,7 +6,8 @@ from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Union
 
 from exdrf.constants import RecIdType
 from exdrf_qt.models import QtModel
-from exdrf_qt.plugins import exdrf_qt_pm, safe_hook_call
+from exdrf_qt.plugins import exdrf_qt_pm
+from exdrf_qt.utils.plugins import safe_hook_call
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload, selectinload
 

@@ -4,7 +4,8 @@
 
 from typing import TYPE_CHECKING, Union
 
-from exdrf_qt.plugins import exdrf_qt_pm, safe_hook_call
+from exdrf_qt.plugins import exdrf_qt_pm
+from exdrf_qt.utils.plugins import safe_hook_call
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload, load_only
 
