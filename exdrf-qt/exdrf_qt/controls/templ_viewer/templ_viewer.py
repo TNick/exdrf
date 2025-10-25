@@ -156,6 +156,13 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
     model: "VarModel"
     view_mode: "ViewMode"
     extra_context: Dict[str, Any]
+    _render_seq: int
+    _sethtml_timer: "QTimer"
+    _pending_html: Optional[str]
+    _last_render_html: Optional[str]
+    _last_render_len: int
+    _last_render_seq: int
+    _fallback_triggered_for_seq: int
 
     ac_refresh: "QAction"
     ac_copy_key: "QAction"
@@ -233,9 +240,6 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
         self.c_sel_templ.clicked.connect(self.on_browse_templ_file)
         self.c_templ.textChanged.connect(self.on_templ_file_changed)
 
-        # Create the actions.
-        self.create_actions(other_actions)
-
         # Context menu for template editor.
         self.c_editor.setContextMenuPolicy(
             Qt.ContextMenuPolicy.CustomContextMenu
@@ -257,9 +261,27 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
         self._auto_save_timer.setInterval(2000)  # 2 seconds delay
         self._auto_save_timer.timeout.connect(self._perform_auto_save)
 
+        # Initialize render sequence counter for traceability of loads.
+        self._render_seq = 0
+
+        # Coalesce rapid setHtml calls to avoid aborting loads.
+        self._pending_html = None
+        self._sethtml_timer = QTimer(self)
+        self._sethtml_timer.setSingleShot(True)
+        self._sethtml_timer.timeout.connect(self._flush_pending_html)
+
+        # Track last render to enable fallback loading on failures.
+        self._last_render_html = None
+        self._last_render_len = 0
+        self._last_render_seq = 0
+        self._fallback_triggered_for_seq = -1
+
         if template_src:
             self.c_templ.setText(template_src)
         self.model.varDataChanged.connect(self.render_template)
+
+        # Create the actions.
+        self.create_actions(other_actions)
 
         # By default hide the list of variables.
         self.on_toggle_vars(self.ac_toggle_vars.isChecked())
@@ -279,6 +301,19 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
         # Set the page for the viewer.
         page = page_class(parent=self, ctx=self.ctx)
         self.c_viewer.setPage(page)
+
+        # Hook page/view load lifecycle signals for better diagnostics.
+        try:
+            page.loadStarted.connect(self._on_page_load_started)
+            page.loadProgress.connect(self._on_page_load_progress)
+            page.loadFinished.connect(self._on_page_load_finished)
+            page.urlChanged.connect(self._on_page_url_changed)
+            # Render process crashes can result in blank pages.
+            page.renderProcessTerminated.connect(
+                self._on_page_render_terminated
+            )
+        except Exception as e:
+            logger.debug("Failed connecting web signals: %s", e)
 
         # Context menu for the template renderer.
         self.c_viewer.setContextMenuPolicy(
@@ -951,6 +986,66 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
 
         self.render_template()
 
+    def _is_webview_valid(self) -> bool:
+        """Check if the WebView is still valid and not deleted.
+
+        Returns:
+            True if the WebView is valid and can be used, False otherwise.
+        """
+        try:
+            # Try to access a simple property to check if the object is valid
+            _ = self.c_viewer.objectName()
+            return True
+        except RuntimeError as e:
+            if "wrapped C/C++ object" in str(e) and "deleted" in str(e):
+                return False
+            # Re-raise other RuntimeErrors
+            raise
+        except Exception:
+            # For any other exception, assume the object is invalid
+            return False
+
+    # -- WebEngine diagnostics -------------------------------------------------
+
+    def _on_page_load_started(self) -> None:
+        try:
+            url = self.c_viewer.url().toString()  # type: ignore[attr-defined]
+        except Exception:
+            url = "<unknown>"
+        logger.debug("WebEngine loadStarted url=%s", url)
+
+    def _on_page_load_progress(self, p: int) -> None:
+        logger.debug("WebEngine loadProgress=%d", p)
+
+    def _on_page_load_finished(self, ok: bool) -> None:
+        try:
+            url = self.c_viewer.url().toString()  # type: ignore[attr-defined]
+        except Exception:
+            url = "<unknown>"
+        logger.debug("WebEngine loadFinished ok=%s url=%s", ok, url)
+        # Fallback: if load failed after setHtml, try loading via temp file.
+        if not ok and self._last_render_html and self._last_render_len > 0:
+            if self._fallback_triggered_for_seq != self._last_render_seq:
+                self._fallback_triggered_for_seq = self._last_render_seq
+                self._fallback_load_via_file(
+                    self._last_render_html, self._last_render_seq
+                )
+
+    def _on_page_url_changed(self, url: QUrl) -> None:
+        try:
+            s = url.toString()
+        except Exception:
+            s = "<unavailable>"
+        logger.debug("WebEngine urlChanged=%s", s)
+
+    def _on_page_render_terminated(self, status, exit_code: int) -> None:
+        # Status is an enum; print it as-is to avoid import churn.
+        logger.error(
+            "WebEngine render process terminated status=%s exit_code=%s",
+            status,
+            exit_code,
+        )
+
     def render_template(self, **kwargs):
         """Render the template.
 
@@ -963,10 +1058,24 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
             logger.debug("Skipping render of template in prevent_render mode")
             return
 
+        # Check if the WebView is still valid before attempting to render
+        if not self._is_webview_valid():
+            logger.warning(
+                "WebView is no longer valid, skipping template render"
+            )
+            return
+
         try:
             if self._current_template is not None:
                 logger.debug("Rendering template %s...", self._current_template)
                 html = self._render_template(**kwargs)
+                html_len = len(html) if isinstance(html, str) else 0
+                if html_len == 0 or (
+                    isinstance(html, str) and not html.strip()
+                ):
+                    logger.warning("Rendered HTML is empty/blank")
+                else:
+                    logger.debug("Rendered HTML length=%d", html_len)
                 logger.debug("The template has been rendered")
             else:
                 html = self.t(
@@ -976,10 +1085,123 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
                     "</p>",
                 )
                 logger.debug("No template loaded, using default message")
-            self.c_viewer.setHtml(html)
+
+            # Double-check WebView validity before setting HTML
+            if not self._is_webview_valid():
+                logger.warning(
+                    "WebView became invalid during template rendering, "
+                    "skipping setHtml"
+                )
+                return
+
+            # Coalesce setHtml invocations; schedule a single update shortly.
+            self._queue_set_html(html)
+        except RuntimeError as e:
+            if "wrapped C/C++ object" in str(e) and "deleted" in str(e):
+                logger.warning(
+                    "WebView was deleted during template rendering: %s", e
+                )
+                return
+            else:
+                logger.error("Error rendering template: %s", e, exc_info=True)
+                self.show_exception(e, traceback.format_exc())
         except Exception as e:
             logger.error("Error rendering template: %s", e, exc_info=True)
             self.show_exception(e, traceback.format_exc())
+
+    def _snapshot_page_html(self, seq: int) -> None:
+        """Log a small snapshot/length of the current page HTML for seq.
+
+        This helps diagnose cases where setHtml succeeds but nothing is shown.
+        """
+        try:
+            page = self.c_viewer.page()
+        except Exception:
+            page = None
+        if page is None:
+            logger.debug("snapshot(seq=%d): page unavailable", seq)
+            return
+
+        # try:
+        #     page.toHtml(
+        #         lambda html: logger.debug(
+        #             "snapshot(seq=%d): html_len=%s head=%s",
+        #             seq,
+        #             (len(html) if isinstance(html, str) else "<none>"),
+        #             (
+        #                 (html[:120] + "...")
+        #                 if isinstance(html, str) and len(html) > 120
+        #                 else html
+        #             ),
+        #         )
+        #     )
+        # except Exception as e:
+        #     logger.debug("snapshot(seq=%d) failed: %s", seq, e)
+
+    def _queue_set_html(self, html: str) -> None:
+        """Queue a setHtml call; collapse bursts into a single update."""
+        self._pending_html = html
+        # Use a short delay to batch multiple renders in the same loop turn.
+        if not self._sethtml_timer.isActive():
+            self._sethtml_timer.start(10)
+
+    def _flush_pending_html(self) -> None:
+        html = self._pending_html
+        self._pending_html = None
+        if html is None:
+            return
+        # Track the setHtml invocations to correlate with load signals.
+        self._render_seq += 1
+        seq = self._render_seq
+        self._last_render_seq = seq
+        self._last_render_html = html
+        self._last_render_len = len(html) if isinstance(html, str) else 0
+        # Reset fallback guard for this sequence.
+        self._fallback_triggered_for_seq = -1
+        logger.debug("setHtml(seq=%d) start", seq)
+        try:
+            # Provide a baseUrl to avoid data: origin restrictions.
+            self.c_viewer.setHtml(html, QUrl("exdrf://assets/index.html"))
+        except Exception as e:
+            logger.error("setHtml(seq=%d) failed: %s", seq, e, exc_info=True)
+            return
+        try:
+            # Snapshot the page HTML shortly after scheduling setHtml.
+            QTimer.singleShot(200, lambda: self._snapshot_page_html(seq))
+        except Exception:
+            pass
+        logger.debug("setHtml(seq=%d) scheduled", seq)
+
+    def _fallback_load_via_file(self, html: str, seq: int) -> None:
+        """Write HTML to a temp file and load it via setUrl as a fallback."""
+        try:
+            import tempfile as _tf
+
+            fd, path = _tf.mkstemp(suffix=".html", prefix="templ-")
+            try:
+                with os.fdopen(fd, "w", encoding="utf-8") as f:
+                    f.write(html)
+            except Exception:
+                # Ensure the file descriptor is closed on error as well
+                try:
+                    os.close(fd)
+                except Exception:
+                    pass
+                raise
+            qurl = QUrl.fromLocalFile(path)
+            logger.debug("fallback setUrl(seq=%d) path=%s", seq, path)
+            self.c_viewer.setUrl(qurl)
+            try:
+                QTimer.singleShot(300, lambda: self._snapshot_page_html(seq))
+            except Exception:
+                pass
+        except Exception as e:
+            logger.error(
+                "Fallback load via file failed seq=%d: %s",
+                seq,
+                e,
+                exc_info=True,
+            )
 
     def show_exception(self, e: Exception, formatted: str):
         """Show an exception in the viewer.
@@ -988,13 +1210,27 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
             e: The exception to show.
             formatted: The formatted exception.
         """
-        html = self.t(
-            "templ.render.error",
-            "<p style='color: red;'>Error rendering template: {e}</p>",
-            e=e,
-        )
-        html += f"<pre style='color: grey;'>{formatted}</pre>"
-        self.c_viewer.setHtml(html)
+        # Check if the WebView is still valid before showing exception
+        if not self._is_webview_valid():
+            logger.warning("WebView is no longer valid, cannot show exception")
+            return
+
+        try:
+            html = self.t(
+                "templ.render.error",
+                "<p style='color: red;'>Error rendering template: {e}</p>",
+                e=e,
+            )
+            html += f"<pre style='color: grey;'>{formatted}</pre>"
+            self.c_viewer.setHtml(html)
+        except RuntimeError as e:
+            if "wrapped C/C++ object" in str(e) and "deleted" in str(e):
+                logger.warning(
+                    "WebView was deleted while showing exception: %s", e
+                )
+                return
+            else:
+                raise
 
     def on_editor_text_changed(self):
         """Handle the change of the editor text."""

@@ -1,5 +1,5 @@
 # This lists all the packages that are hosted in this mono-repo.
-DIRS = exdrf exdrf-al exdrf-pd exdrf-qt exdrf-dev exdrf-gen exdrf-gen-al2qt exdrf-gen-al2pd exdrf-gen-al2at
+DIRS = exdrf exdrf-al exdrf-pd exdrf-qt exdrf-dev exdrf-gen exdrf-gen-al2qt exdrf-gen-al2pd exdrf-gen-al2at exdrf-util
 
 # These are all python files in all the repository (including venv ones).
 PYTHON_FILES := $(wildcard *.py)

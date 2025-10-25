@@ -247,11 +247,19 @@ class WebEnginePage(QWebEnginePage, QtUseContext):
         scheme = url.scheme()
 
         url_str = url.toString()
+        logger.debug(
+            "acceptNavigationRequest url=%s scheme=%s host=%s main=%s",
+            url_str,
+            scheme,
+            host,
+            isMainFrame,
+        )
         view = self.view()
         if view is None:
             return False
 
-        if scheme == "data":
+        # Allow internal loads needed by setHtml and fallback file loads
+        if not url_str or scheme in ("about", "data", "file"):
             return True
 
         if scheme == "exdrf":

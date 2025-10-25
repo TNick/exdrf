@@ -9,24 +9,13 @@ classifiers = [
   "License :: Other/Proprietary License",
   "Typing :: Typed",
 ]
-description = "Use Qt5 with Ex-DRF."
+description = "Utilities for Ex-DRF."
 dynamic = ["version"]
-name = "exdrf-qt"
+name = "exdrf-util"
 readme = "README.md"
 requires-python = ">=3.12.10"
 dependencies = [
-  "PyQt5>=5.15.11",
-  "python-dateutil>=2.9.0",
-  "humanize>=4.12.3",
-  "html-for-docx>=1.0.6",
-  "PyQtWebEngine>=5.15.7",
-  "PyQtWebEngine-Qt5>=5.15.2",
-  "attrs>=24.2.0",
-  "parse>=1.20.2",
-  "minify_html>=0.16.4",
-  "PyQtWebEngine==5.15.7",
-  "pluggy>=1.6.0",
-  "pyrsistent>=0.20.0",
+
 ]
 
 [project.optional-dependencies]
@@ -44,12 +33,13 @@ dev = [
   "pytest",
   "twine",
   "wheel",
-  "click>=8.1.8,<8.2.0",
+  "openpyxl-stubs",
+  "reportlab-stubs"
 ]
 
 [build-system]
 build-backend = "setuptools.build_meta"
-requires = ["setuptools>=67.0", "setuptools_scm[toml]>=8.3.0"]
+requires = ["setuptools>=67.0", "setuptools_scm[toml]>=8"]
 
 [tool.setuptools]
 include-package-data = true
@@ -59,7 +49,7 @@ exclude = ["venv*", "playground*"]
 
 [tool.setuptools_scm]
 fallback_version = "0.0.1-dev"
-version_file = "exdrf_qt/__version__.py"
+write_to = "exdrf_util/__version__.py"
 
 [tool.isort]
 profile = "black"
@@ -79,7 +69,7 @@ extend-exclude = ["venv", ".venv"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "ANN"]  # E=pycodestyle, F=pyflakes, I=imports
-ignore = ["ANN102", "ANN401", "E501", "E203"]
+ignore = ["ANN102", "ANN401", "E501"]
 
 [tool.ruff.format]
 quote-style = "double"

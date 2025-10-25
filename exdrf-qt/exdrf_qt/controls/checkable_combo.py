@@ -128,7 +128,7 @@ class CheckableComboBox(QComboBox, QtUseContext):
         self.setCurrentText(
             self.t(
                 "checkable_combo.selected",
-                "{len(values)} selected",
+                "{len} selected",
                 len=len(values),
             )
         )
