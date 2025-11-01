@@ -47,7 +47,7 @@ DBM = TypeVar("DBM")
 logger = logging.getLogger(__name__)
 
 
-def compare_filters(f1: FilterType, f2: FilterType) -> bool:
+def compare_filters(f1: "FilterType", f2: "FilterType") -> bool:
     """Compare two filter structures for equality.
 
     Recursively compares filter structures, handling nested lists/tuples
@@ -63,7 +63,10 @@ def compare_filters(f1: FilterType, f2: FilterType) -> bool:
     if isinstance(f1, (list, tuple)) and isinstance(f2, (list, tuple)):
         if len(f1) != len(f2):
             return False
-        return all(compare_filters(i1, i2) for i1, i2 in zip(f1, f2))
+        return all(
+            compare_filters(cast("FilterType", i1), cast("FilterType", i2))
+            for i1, i2 in zip(f1, f2)
+        )
     else:
         if isinstance(f1, dict):
             f1 = FieldFilter(**f1)
@@ -439,7 +442,8 @@ class QtModel(
         self.cache.set_size(new_total)
 
         # If the cache is empty, we post a request for items.
-        # Note: This is called from total_count setter BEFORE _total_count is updated.
+        # Note: This is called from total_count setter BEFORE _total_count
+        # is updated.
         # We temporarily set _total_count so request_items() works correctly.
         if self._loaded_count == 0 and new_total > 0:
             old_total = self._total_count
@@ -509,7 +513,8 @@ class QtModel(
     def _load_items(self, work: "Work") -> None:
         """We are informed that a batch of items has been loaded."""
         # Locate the request in the list of requests.
-        # work.req_id is a tuple (id(self), req), so work.req_id[1] is the request object
+        # work.req_id is a tuple (id(self), req), so work.req_id[1] is the
+        # request object
         if isinstance(work.req_id, tuple) and len(work.req_id) >= 2:
             req = self.requests.pop(work.req_id[1].uniq_id, None)
         else:
@@ -796,7 +801,8 @@ class QtModel(
             selection=self.base_selection,
             prevent_total_count=True,
         )
-        # Set filters and sort - this will trigger reset_model() if filters change
+        # Set filters and sort - this will trigger reset_model() if filters
+        # change
         # But we want to avoid that, so set _filters directly and sort_by
         result._filters = self._filters
         result.sort_by = self.sort_by
@@ -1006,7 +1012,7 @@ class QtModel(
             if in checkable mode). Returns NoItemFlags for invalid indices.
         """
         if not index.isValid():
-            return Qt.ItemFlag.NoItemFlags
+            return cast(Qt.ItemFlags, Qt.ItemFlag.NoItemFlags)
 
         base = Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable
         if self._checked is not None:

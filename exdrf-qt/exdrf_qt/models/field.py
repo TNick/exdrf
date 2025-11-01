@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Dict, Generic, TypeVar
+from typing import TYPE_CHECKING, Any, Dict, Generic, TypeVar, List
 
 from attrs import define, field
 from exdrf.api import ExField
@@ -83,6 +83,12 @@ class QtField(ExField, QtUseContext, Generic[DBM]):
         """
         column = getattr(self.resource.db_model, self.name)
         return column.asc() if ascending else column.desc()
+
+    def apply_sub_filter(
+        self, item: "FieldFilter", selector: "Selector", path: List[str]
+    ) -> Any:
+        """Compute the filtering by this field."""
+        raise NotImplementedError()
 
     def apply_filter(self, item: "FieldFilter", selector: "Selector") -> Any:
         """Compute the filtering by this field.

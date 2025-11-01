@@ -146,19 +146,28 @@ class Selector(Generic[DBM]):
         Returns:
             The SQLAlchemy ColumnElement representing the filter condition.
         """
+        f_item: FieldFilter
         if isinstance(item, dict):
             # This is a dictionary with the field name and the filter.
-            item = FieldFilter(**item)
+            f_item = FieldFilter(**item)
         else:
             assert isinstance(
                 item, FieldFilter
             ), "The field filter must be an instance of FieldFilter."
+            f_item = item
 
-        # Locate this field in our list.
-        field = self.fields[item.fld]
+        parts = f_item.fld.split(".")
+        if len(parts) == 1:
+            # Locate this field in our list.
+            field = self.fields[f_item.fld]
 
-        # Let the field apply the filter.
-        return field.apply_filter(item=item, selector=self)  # type: ignore
+            # Let the field apply the filter.
+            return field.apply_filter(item=item, selector=self)  # type: ignore
+        else:
+            field = self.fields[parts[0]]
+            return field.apply_sub_filter(
+                item=f_item, selector=self, path=parts[1:]
+            )
 
     def apply_subset(self, subset: FilterType) -> List[ColumnElement]:
         """Apply a list of filters.

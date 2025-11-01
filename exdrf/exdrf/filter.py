@@ -59,8 +59,10 @@ This is how the filter is imagined to show in JSON format:
 """
 
 from typing import Any, List, Literal, Optional, Tuple, TypedDict, Union, cast
-
+import logging
 from attrs import define
+
+logger = logging.getLogger(__name__)
 
 
 @define
@@ -234,7 +236,8 @@ def validate_filter(filter: FilterType) -> List[str]:
             # the correct keys.
             try:
                 FieldFilter(**item)
-            except Exception:
+            except Exception as exc:
+                logger.error("Invalid field filter %s: %s", item, exc)
                 return ["invalid_field_filter"]
         elif isinstance(item, list):
             if len(item) == 0:
@@ -304,7 +307,8 @@ def validate_filter(filter: FilterType) -> List[str]:
         # filter item.
         try:
             FieldFilter(**filter)
-        except Exception:
+        except Exception as exc:
+            logger.error("Invalid field filter %s: %s", filter, exc)
             return ["invalid_field_filter"]
     else:
         return ["unknown_filter_type"]
