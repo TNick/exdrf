@@ -160,7 +160,7 @@ class ExDrfHandler(QWebEngineUrlSchemeHandler, QtUseContext):
 
         if path.startswith("/"):
             path = path[1:]
-        logger.debug("Request for host '%s' path '%s'", host, path)
+        logger.log(1, "Request for host '%s' path '%s'", host, path)
 
         data: bytes
         mime: bytes
@@ -247,7 +247,8 @@ class WebEnginePage(QWebEnginePage, QtUseContext):
         scheme = url.scheme()
 
         url_str = url.toString()
-        logger.debug(
+        logger.log(
+            1,
             "acceptNavigationRequest url=%s scheme=%s host=%s main=%s",
             url_str,
             scheme,

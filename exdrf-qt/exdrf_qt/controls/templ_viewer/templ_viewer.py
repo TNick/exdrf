@@ -1012,17 +1012,17 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
             url = self.c_viewer.url().toString()  # type: ignore[attr-defined]
         except Exception:
             url = "<unknown>"
-        logger.debug("WebEngine loadStarted url=%s", url)
+        logger.log(1, "WebEngine loadStarted url=%s", url)
 
     def _on_page_load_progress(self, p: int) -> None:
-        logger.debug("WebEngine loadProgress=%d", p)
+        logger.log(1, "WebEngine loadProgress=%d", p)
 
     def _on_page_load_finished(self, ok: bool) -> None:
         try:
             url = self.c_viewer.url().toString()  # type: ignore[attr-defined]
         except Exception:
             url = "<unknown>"
-        logger.debug("WebEngine loadFinished ok=%s url=%s", ok, url)
+        logger.log(1, "WebEngine loadFinished ok=%s url=%s", ok, url)
         # Fallback: if load failed after setHtml, try loading via temp file.
         if not ok and self._last_render_html and self._last_render_len > 0:
             if self._fallback_triggered_for_seq != self._last_render_seq:
@@ -1036,7 +1036,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
             s = url.toString()
         except Exception:
             s = "<unavailable>"
-        logger.debug("WebEngine urlChanged=%s", s)
+        logger.log(1, "WebEngine urlChanged=%s", s)
 
     def _on_page_render_terminated(self, status, exit_code: int) -> None:
         # Status is an enum; print it as-is to avoid import churn.
@@ -1052,10 +1052,10 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
         If the current view mode is source, the template is not rendered.
         """
         if self.view_mode == ViewMode.SOURCE:
-            logger.debug("Skipping render of template in source mode")
+            logger.log(1, "Skipping render of template in source mode")
             return
         if self._prevent_render:
-            logger.debug("Skipping render of template in prevent_render mode")
+            logger.log(1, "Skipping render of template in prevent_render mode")
             return
 
         # Check if the WebView is still valid before attempting to render
@@ -1067,7 +1067,9 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
 
         try:
             if self._current_template is not None:
-                logger.debug("Rendering template %s...", self._current_template)
+                logger.log(
+                    1, "Rendering template %s...", self._current_template
+                )
                 html = self._render_template(**kwargs)
                 html_len = len(html) if isinstance(html, str) else 0
                 if html_len == 0 or (
@@ -1075,8 +1077,8 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
                 ):
                     logger.warning("Rendered HTML is empty/blank")
                 else:
-                    logger.debug("Rendered HTML length=%d", html_len)
-                logger.debug("The template has been rendered")
+                    logger.log(1, "Rendered HTML length=%d", html_len)
+                logger.log(1, "The template has been rendered")
             else:
                 html = self.t(
                     "templ.render.none",
