@@ -12,7 +12,7 @@ from exdrf.filter import (
 )
 
 
-class TestFilterVisitor(FilterVisitor):
+class FilterVisitorCollector(FilterVisitor):
     """Test visitor that collects visited items for verification."""
 
     def __init__(self, filter: FilterType):
@@ -46,7 +46,7 @@ def test_field_filter_creation():
 def test_simple_field_filter_visitor() -> None:
     """Test visiting a simple field filter."""
     filter: FilterType = [FieldFilter(fld="name", op="eq", vl="test")]
-    visitor = TestFilterVisitor(filter)
+    visitor = FilterVisitorCollector(filter)
     visitor.run(filter)
 
     assert len(visitor.visited_field) == 1
@@ -67,7 +67,7 @@ def test_and_filter_visitor() -> None:
             ],
         ],
     )
-    visitor = TestFilterVisitor(filter)
+    visitor = FilterVisitorCollector(filter)
     visitor.run(filter)
 
     assert len(visitor.visited_and) == 1
@@ -88,7 +88,7 @@ def test_or_filter_visitor() -> None:
             ],
         ],
     )
-    visitor = TestFilterVisitor(filter)
+    visitor = FilterVisitorCollector(filter)
     visitor.run(filter)
 
     assert len(visitor.visited_or) == 1
@@ -102,7 +102,7 @@ def test_not_filter_visitor() -> None:
     filter: FilterType = cast(
         FilterType, ["not", FieldFilter(fld="id", op="eq", vl=1)]
     )
-    visitor = TestFilterVisitor(filter)
+    visitor = FilterVisitorCollector(filter)
     visitor.run(filter)
 
     assert len(visitor.visited_not) == 1
@@ -128,7 +128,7 @@ def test_nested_filter_visitor() -> None:
             ],
         ],
     )
-    visitor = TestFilterVisitor(filter)
+    visitor = FilterVisitorCollector(filter)
     visitor.run(filter)
 
     assert len(visitor.visited_and) == 1

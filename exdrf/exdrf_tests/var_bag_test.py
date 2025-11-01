@@ -232,7 +232,7 @@ class TestVarBagSetFieldValue:
 
     def test_set_field_value_raises_keyerror(self, empty_var_bag):
         """Test set_field_value raises KeyError for non-existing field."""
-        with pytest.raises(KeyError, match="Key nonexistent not found"):
+        with pytest.raises(KeyError, match="Key nonexistent is not a field"):
             empty_var_bag.set_field_value("nonexistent", "value")
 
 
@@ -335,8 +335,10 @@ class TestVarBagFilteredFields:
     def test_filtered_fields(self):
         """Test filtered_fields method."""
         bag = VarBag()
-        bag.values["field1"] = "value1"
-        bag.values["field2"] = "value2"
+        field1 = StrField(name="field1")
+        field2 = StrField(name="field2")
+        bag.add_field(field1, "value1")
+        bag.add_field(field2, "value2")
         result = bag.filtered_fields(True, "field1", True)
         assert "field1" in result
         assert "field2" not in result

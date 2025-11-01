@@ -2,16 +2,42 @@ import re
 from bisect import bisect_right
 from collections import namedtuple
 from enum import StrEnum
-from typing import TYPE_CHECKING, Any, Generic, List, Optional, Union, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Generic,
+    List,
+    Optional,
+    TypeVar,
+    Union,
+    cast,
+)
 
 from attrs import define, field
-from exdrf_qt.context_use import QtUseContext
-from exdrf_qt.models.model import DBM, QtModel  # noqa: F401
 
 from exdrf.filter import FieldFilter, FilterType
 
+try:
+    from exdrf_qt.context_use import QtUseContext
+    from exdrf_qt.models.model import DBM, QtModel  # noqa: F401
+
+    _HAS_EXDRF_QT = True
+except ImportError:
+    # Fallback when exdrf_qt is not available
+    class QtUseContext:  # type: ignore
+        """Fallback base class when exdrf_qt is not available."""
+
+        pass
+
+    DBM = TypeVar("DBM")  # type: ignore
+    QtModel = Any  # type: ignore
+    _HAS_EXDRF_QT = False
+
 if TYPE_CHECKING:
-    from exdrf_qt.context import QtContext  # noqa: F401
+    try:
+        from exdrf_qt.context import QtContext  # noqa: F401
+    except ImportError:
+        QtContext = Any  # type: ignore
 
 
 class FltErrCode(StrEnum):
