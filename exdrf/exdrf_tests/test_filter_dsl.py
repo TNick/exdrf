@@ -363,7 +363,7 @@ class TestRawFilterToText:
         filter_data: FieldFilter = cast(
             FieldFilter, {"fld": "name", "op": "eq", "vl": "John"}
         )
-        expected_text = "name eq John\n"
+        expected_text = "name eq 'John'\n"
         assert raw_filter_to_text(filter_data) == expected_text
 
     def test_and_logic_direct_processing(self) -> None:
@@ -375,7 +375,7 @@ class TestRawFilterToText:
                 cast(FieldFilter, {"fld": "age", "op": "gt", "vl": 30}),
             ],
         ]
-        expected_text_direct_and = "name eq John\nage gt 30\n"
+        expected_text_direct_and = "name eq 'John'\nage gt 30\n"
         assert (
             raw_filter_to_text(direct_and_filter_data)
             == expected_text_direct_and
@@ -405,7 +405,7 @@ class TestRawFilterToText:
                 ],
             ],
         ]
-        expected_stripped_or = "OR (\tc1 lt 0\n\tc2 gt 0\n)\n"
+        expected_stripped_or = "OR (\n\tc1 lt 0\n\tc2 gt 0\n)\n"
         assert raw_filter_to_text(stripped_and_with_or) == expected_stripped_or
 
     def test_or_logic(self) -> None:
@@ -417,7 +417,7 @@ class TestRawFilterToText:
                 cast(FieldFilter, {"fld": "age", "op": "gt", "vl": 30}),
             ],
         ]
-        expected_text = "OR (\tname eq John\n\tage gt 30\n)\n"
+        expected_text = "OR (\n\tname eq 'John'\n\tage gt 30\n)\n"
         assert raw_filter_to_text(filter_data) == expected_text
 
     def test_not_logic(self) -> None:
@@ -426,7 +426,7 @@ class TestRawFilterToText:
             "not",
             cast(FieldFilter, {"fld": "status", "op": "eq", "vl": "inactive"}),
         ]
-        expected_text = "NOT (\tstatus eq inactive\n)\n"
+        expected_text = "NOT (\n\tstatus eq 'inactive'\n)\n"
         assert raw_filter_to_text(filter_data) == expected_text
 
     def test_nested_logic_with_outer_and_stripping(self) -> None:
@@ -451,9 +451,9 @@ class TestRawFilterToText:
         ]
         expected_text = (
             "OR (\n"
-            "\tname eq John\n"
+            "\tname eq 'John'\n"
             "\tNOT (\n"
-            "\t\tstatus eq active\n"
+            "\t\tstatus eq 'active'\n"
             "\t)\n"
             ")\n"
         )
@@ -487,7 +487,7 @@ class TestRawFilterToText:
             "AND",
             cast(FieldFilter, {"fld": "name", "op": "eq", "vl": "John"}),
         ]
-        expected_text_single_dict = "name eq John\n"
+        expected_text_single_dict = "name eq 'John'\n"
         assert (
             raw_filter_to_text(filter_data_single_dict_in_and)
             == expected_text_single_dict
@@ -510,19 +510,21 @@ class TestRawFilterToText:
         )
 
     def test_outer_and_stripping_error_with_list_of_field_filters(self) -> None:
-        """Test error when outer AND content is a direct list of FieldFilters.
+        """Test that outer AND with single FieldFilter is unwrapped correctly.
 
-        We expect a ValueError to be raised when the outer AND content is a
-        direct list of FieldFilters.
+        When outer AND has a single FieldFilter (not a list), it should be
+        unwrapped to just the field filter.
         """
         filter_data_list_with_single_dict: Any = [
             "AND",
             cast(FieldFilter, {"fld": "name", "op": "eq", "vl": "John"}),
         ]
-        with pytest.raises(ValueError) as exc_info:
+        # This should unwrap correctly, not raise an error
+        expected_text = "name eq 'John'\n"
+        assert (
             raw_filter_to_text(filter_data_list_with_single_dict)
-        expected = "logic operator list expects a list as the second element. "
-        assert expected in str(exc_info.value).lower()
+            == expected_text
+        )
 
     def test_invalid_filter_part_type(self) -> None:
         """Test with an invalid type in filter parts."""

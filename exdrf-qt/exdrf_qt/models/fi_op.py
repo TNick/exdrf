@@ -25,6 +25,7 @@ class FiOp:
 
     Attributes:
         uniq: The name of the operator.
+        predicate: The predicate function used by the operator.
     """
 
     uniq: str
@@ -33,7 +34,12 @@ class FiOp:
 
 @define
 class EqFiOp(FiOp):
-    """General equality operator."""
+    """General equality operator.
+
+    Attributes:
+        uniq: The name of the operator, set to "eq".
+        predicate: The equality predicate function.
+    """
 
     uniq: str = field(default="eq", init=False)
     predicate: Any = field(default=eq)
@@ -41,7 +47,12 @@ class EqFiOp(FiOp):
 
 @define
 class NotEqFiOp(FiOp):
-    """General equality operator."""
+    """Not equal operator.
+
+    Attributes:
+        uniq: The name of the operator, set to "not_eq".
+        predicate: The not equal predicate function.
+    """
 
     uniq: str = field(default="not_eq", init=False)
     predicate: Any = field(default=ne)
@@ -49,13 +60,32 @@ class NotEqFiOp(FiOp):
 
 @define
 class ILikeFiOp(FiOp):
-    """The provided text should be found inside the target."""
+    """Case-insensitive pattern matching operator.
+
+    The provided text should be found inside the target.
+
+    Attributes:
+        uniq: The name of the operator, set to "ilike".
+        predicate: The ILIKE predicate function that handles type
+            casting for non-string columns.
+    """
 
     uniq: str = field(default="ilike", init=False)
 
     @staticmethod
     def _predicate(column: Any, value: Any) -> Any:
-        """Return the ILIKE operator."""
+        """Return the ILIKE operator for a column and value.
+
+        Handles type casting for non-string columns to String type.
+        Returns False if the column is not a SQLAlchemy column.
+
+        Args:
+            column: The SQLAlchemy column to apply the operator to.
+            value: The value to match against.
+
+        Returns:
+            The ILIKE operator expression or False if column is invalid.
+        """
         # op = filter_op_registry[item.op]
         if hasattr(column, "type"):
             col_type = column.type.__class__.__name__
@@ -77,7 +107,14 @@ class ILikeFiOp(FiOp):
 
 @define
 class RegexFiOp(FiOp):
-    """The provided text should be found inside the target."""
+    """Regular expression matching operator.
+
+    The provided pattern should match the target using regex.
+
+    Attributes:
+        uniq: The name of the operator, set to "regex".
+        predicate: The regex match predicate function.
+    """
 
     uniq: str = field(default="regex", init=False)
     predicate: Any = field(default=regexp_match_op)
@@ -86,12 +123,26 @@ class RegexFiOp(FiOp):
 @comparison_op
 @_operator_fn
 def is_none(a: Any, b: Any) -> Any:
+    """Check if a SQLAlchemy column expression is None.
+
+    Args:
+        a: The column expression to check.
+        b: Unused parameter (required by operator interface).
+
+    Returns:
+        A SQLAlchemy comparison expression checking if a is None.
+    """
     return a.is_(None)
 
 
 @define
 class IsNoneFiOp(FiOp):
-    """True if the target is None."""
+    """Operator that checks if the target is None.
+
+    Attributes:
+        uniq: The name of the operator, set to "none".
+        predicate: The is None predicate function.
+    """
 
     uniq: str = field(default="none", init=False)
     predicate: Any = field(default=is_none)
@@ -99,7 +150,14 @@ class IsNoneFiOp(FiOp):
 
 @define
 class GreaterFiOp(FiOp):
-    """The target should be larger than the value."""
+    """Greater than operator.
+
+    The target should be larger than the value.
+
+    Attributes:
+        uniq: The name of the operator, set to "gt".
+        predicate: The greater than predicate function.
+    """
 
     uniq: str = field(default="gt", init=False)
     predicate: Any = field(default=gt)
@@ -107,7 +165,14 @@ class GreaterFiOp(FiOp):
 
 @define
 class SmallerFiOp(FiOp):
-    """The target should be smaller than the value."""
+    """Less than operator.
+
+    The target should be smaller than the value.
+
+    Attributes:
+        uniq: The name of the operator, set to "lt".
+        predicate: The less than predicate function.
+    """
 
     uniq: str = field(default="lt", init=False)
     predicate: Any = field(default=lt)
@@ -115,11 +180,17 @@ class SmallerFiOp(FiOp):
 
 @define
 class InFiOp(FiOp):
-    """The target needs to be one of the values.
+    """In operator for membership testing.
 
-    This  an be used when the selector is simple and the `column` method
+    The target needs to be one of the values.
+
+    This can be used when the selector is simple and the `column` method
     can be used to construct the filter. For more complex cases use
     the `InExFiOp` class.
+
+    Attributes:
+        uniq: The name of the operator, set to "in".
+        predicate: The in predicate function.
     """
 
     uniq: str = field(default="in", init=False)
@@ -137,7 +208,11 @@ class FiOpRegistry:
     _registry: dict[str, FiOp] = field(factory=dict, repr=False)
 
     def __attrs_post_init__(self) -> None:
-        """Initialize the registry."""
+        """Initialize the registry with all operator instances and aliases.
+
+        Registers all operator classes and their symbolic aliases (e.g.,
+        "==" for "eq", ">" for "gt").
+        """
         self._registry = {
             "eq": EqFiOp(),
             "not_eq": NotEqFiOp(),

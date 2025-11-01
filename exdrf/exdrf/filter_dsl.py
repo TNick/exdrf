@@ -820,24 +820,32 @@ def raw_filter_to_text(filter: Union[FilterType, FieldFilter]) -> str:
                         f"The logic operator list expects two elements. "
                         f"Got {part}"
                     )
-                if not isinstance(part[1], list):
-                    raise ValueError(
-                        f"The logic operator list expects a list as the second "
-                        f"element. Got {part}"
-                    )
                 op_name = part[0].lower()
                 if op_name == "and":
+                    if not isinstance(part[1], list):
+                        raise ValueError(
+                            f"The logic operator list expects a list as the "
+                            f"second element. Got {part}"
+                        )
                     result += prefix + "AND (\n"
+                    do_part(part[1], indent + 1)
+                    result += prefix + ")\n"
                 elif op_name == "or":
+                    if not isinstance(part[1], list):
+                        raise ValueError(
+                            f"The logic operator list expects a list as the "
+                            f"second element. Got {part}"
+                        )
                     result += prefix + "OR (\n"
+                    do_part(part[1], indent + 1)
+                    result += prefix + ")\n"
                 elif op_name == "not":
+                    # NOT can have dict or FieldFilter directly, not wrapped in list
                     result += prefix + "NOT (\n"
+                    do_part(part[1], indent + 1)
+                    result += prefix + ")\n"
                 else:
                     raise ValueError(f"Invalid logic operator: {op_name}")
-
-                do_part(part[1:], indent + 1)
-
-                result += prefix + ")\n"
                 return
 
             for item in part:
@@ -862,8 +870,8 @@ def raw_filter_to_text(filter: Union[FilterType, FieldFilter]) -> str:
         and len(filter) == 2
         and isinstance(filter[0], str)
         and filter[0].upper() == "AND"
-        and isinstance(filter[1], list)
     ):
+        # Strip outer AND - just process the inner content
         do_part(cast(FilterType, filter)[1])
     else:
         do_part(filter)

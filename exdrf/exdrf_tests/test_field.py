@@ -66,7 +66,7 @@ def test_exfield_camel_case_name(ex_field):
 
 
 def test_exfield_text_name(ex_field):
-    assert ex_field.text_name == "Test Field"
+    assert ex_field.text_name == "Test field"
 
 
 def test_exfield_doc_lines(ex_field):

@@ -99,6 +99,7 @@ def test_exresource_get_dependencies():
     mock_field.is_ref_type = True
     mock_field.ref = Mock()
     mock_field.ref.name = "DependencyResource"
+    mock_field.extra_ref = Mock(return_value=[])
 
     resource = ExResource(name="TestResource")
     resource.add_field(mock_field)

@@ -124,7 +124,8 @@ class ExDataset:
             for k, v in crt_map.items():
                 if isinstance(v, dict):
                     visitor.visit_category(k, level, v)
-                    do_category_map(v)
+                    if not do_category_map(v, level + 1):
+                        return False
                 else:
                     resource = cast("ExResource", v)
                     if not resource.visit(visitor, omit_fields=omit_fields):

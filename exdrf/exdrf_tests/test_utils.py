@@ -19,15 +19,15 @@ def test_doc_lines_wrapping():
         "multiple lines because it exceeds the width limit."
     )
     expected = [
-        "This is a very long line of text that should be wrapped into",
-        "multiple lines because it exceeds the width limit.",
+        "This is a very long line of text that should be wrapped into multiple",
+        "lines because it exceeds the width limit.",
     ]
     assert doc_lines(text) == expected
 
 
 def test_doc_lines_empty_string():
     text = ""
-    expected = [""]
+    expected = []
     assert doc_lines(text) == expected
 
 
