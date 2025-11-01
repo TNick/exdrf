@@ -157,7 +157,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
     view_mode: "ViewMode"
     extra_context: Dict[str, Any]
     _render_seq: int
-    _sethtml_timer: "QTimer"
+    _set_html_timer: "QTimer"
     _pending_html: Optional[str]
     _last_render_html: Optional[str]
     _last_render_len: int
@@ -266,9 +266,9 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
 
         # Coalesce rapid setHtml calls to avoid aborting loads.
         self._pending_html = None
-        self._sethtml_timer = QTimer(self)
-        self._sethtml_timer.setSingleShot(True)
-        self._sethtml_timer.timeout.connect(self._flush_pending_html)
+        self._set_html_timer = QTimer(self)
+        self._set_html_timer.setSingleShot(True)
+        self._set_html_timer.timeout.connect(self._flush_pending_html)
 
         # Track last render to enable fallback loading on failures.
         self._last_render_html = None
@@ -405,7 +405,9 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
     @property
     def page(self) -> "WebEnginePage":
         """The page of the template viewer."""
-        return self.c_viewer.page()
+        page = self.c_viewer.page()
+        assert page is not None
+        return cast("WebEnginePage", page)
 
     @property
     def var_bag(self) -> "VarBag":
@@ -1144,8 +1146,8 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
         """Queue a setHtml call; collapse bursts into a single update."""
         self._pending_html = html
         # Use a short delay to batch multiple renders in the same loop turn.
-        if not self._sethtml_timer.isActive():
-            self._sethtml_timer.start(10)
+        if not self._set_html_timer.isActive():
+            self._set_html_timer.start(10)
 
     def _flush_pending_html(self) -> None:
         html = self._pending_html
@@ -1190,9 +1192,9 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
                 except Exception:
                     pass
                 raise
-            qurl = QUrl.fromLocalFile(path)
+            q_url = QUrl.fromLocalFile(path)
             logger.debug("fallback setUrl(seq=%d) path=%s", seq, path)
-            self.c_viewer.setUrl(qurl)
+            self.c_viewer.setUrl(q_url)
             try:
                 QTimer.singleShot(300, lambda: self._snapshot_page_html(seq))
             except Exception:

@@ -92,6 +92,7 @@ class QtField(ExField, QtUseContext, Generic[DBM]):
 
         Args:
             item: The filter item.
+            selector: The selector context (not used in default implementation).
 
         Returns:
             The SQLAlchemy filtering expression for this field. If you want the
@@ -123,7 +124,7 @@ class QtField(ExField, QtUseContext, Generic[DBM]):
         """Return the values for a field that is not implemented.
 
         Args:
-            item: The database record.
+            value: The value that is not implemented.
 
         Returns:
             A dictionary that maps the role to the data.
@@ -143,10 +144,17 @@ class QtField(ExField, QtUseContext, Generic[DBM]):
 
         Following cases are handled:
 
-        - If the value is None, the display role is set to an empty string.
+        - If the value is None, the display role is set to a translated NULL
+            label with italic font and grey foreground.
 
         Args:
             value: The raw value to set.
+            **kwargs: Optional role overrides. Keys should be role names from
+                ROLE_MAP (e.g., "DisplayRole", "FontRole").
+
+        Returns:
+            A dictionary that maps Qt.ItemDataRole to the appropriate data
+            values for all roles.
         """
         result = {
             Qt.ItemDataRole.DisplayRole: value,

@@ -37,7 +37,11 @@ class QtRecord:
     _error: bool = field(default=False)
 
     def __attrs_post_init__(self) -> None:
-        """Post-initialization method to set the loaded flag."""
+        """Post-initialization method to set the loaded flag.
+
+        Initializes empty value dictionaries for each column and sets the
+        loaded flag based on whether db_id is None or -1.
+        """
         # Create records for each column.
         for i in range(len(self.model.column_fields)):
             self.values[i] = {}
@@ -49,7 +53,13 @@ class QtRecord:
             self.loaded = True
 
     def display_text(self) -> str:
-        """Return the display text for the record."""
+        """Return the display text for the record.
+
+        Returns:
+            A string representation of the record. Returns error message if
+            record has an error, "Loading..." if not loaded, otherwise returns
+            comma-separated values from all columns.
+        """
         if self.error:
             return self.model.t("cmn.error", "Error")
         if not self.loaded:
@@ -103,17 +113,31 @@ class QtRecord:
 
         For computing the row the record is in we search the cache of
         the model for this record.
+
+        Returns:
+            The QModelIndex for the first column of this record's row.
         """
         return self.model.index(self.model.cache.index(self), 0)  # type: ignore
 
     @property
     def loaded(self) -> bool:
-        """Return if the record has been loaded from the database."""
+        """Return if the record has been loaded from the database.
+
+        Returns:
+            True if the record has been loaded from the database, False
+            otherwise.
+        """
         return self._loaded
 
     @loaded.setter
     def loaded(self, value: bool) -> None:
-        """Set the loaded flag."""
+        """Set the loaded flag.
+
+        Args:
+            value: True if the record is loaded, False if it's a stub.
+                When set to False, sets the background brush to LOADING_BRUSH
+                for all columns.
+        """
         self._loaded = value
         if not value:
             # Indicate that this is a stub record.
@@ -122,15 +146,25 @@ class QtRecord:
 
     @property
     def error(self) -> bool:
-        """Return if the record has an error."""
+        """Return if the record has an error.
+
+        Returns:
+            True if the record has an error, False otherwise.
+        """
         return self._error
 
     @error.setter
     def error(self, value: bool) -> None:
-        """Set the error flag."""
+        """Set the error flag.
+
+        Args:
+            value: True if the record has an error, False otherwise.
+                When set to True, sets the background brush to ERROR_BRUSH
+                for all columns.
+        """
         self._error = value
-        if not value:
-            # Indicate that this is a stub record.
+        if value:
+            # Indicate that this record has an error.
             for i in range(len(self.model.column_fields)):
                 self.values[i][Qt.ItemDataRole.BackgroundRole] = ERROR_BRUSH
 
@@ -139,6 +173,12 @@ class QtRecord:
 
         For computing the row the record is in we search the cache of
         the model for this record.
+
+        Args:
+            col: The column index.
+
+        Returns:
+            The QModelIndex for the specified column of this record's row.
         """
         return self.model.index(
             self.model.cache.index(self), col  # type: ignore

@@ -107,26 +107,66 @@ class JoinLoad:
             for i_p, parent in enumerate(parents):
                 dot = "" if i_p == 0 else "."
                 st = parent.container.strategy
-                lines.append(
-                    f"{s_indent_1}{dot}{st}(Db{repr(parent.container)})"
+                lines.append(f"{s_indent_1}{dot}{st}(")
+                lines.append(f"{s_indent_2}Db{repr(parent.container)},")
+                # Chain with next call (next parent or self)
+                next_st = (
+                    parents[i_p + 1].container.strategy
+                    if i_p < len(parents) - 1
+                    else self.container.strategy
                 )
-            dot = "." if parents else ""
-            st = self.container.strategy
-            lines.append(f"{s_indent_1}{dot}{st}(Db{repr(self.container)})")
-            lines.append(f"{s_indent_1}.load_only(")
+                lines.append(f"{s_indent_1}).{next_st}(")
+            # Output self if no parents, or continue chain from last parent
+            if not parents:
+                st = self.container.strategy
+                lines.append(f"{s_indent_1}{st}(")
+                lines.append(f"{s_indent_2}Db{repr(self.container)},")
+            else:
+                # Already started the call in the loop above
+                lines.append(f"{s_indent_2}Db{repr(self.container)},")
+            lines.append(f"{s_indent_1}).load_only(")
             for lo in self.load_only:
                 lines.append(f"{s_indent_2}Db{repr(lo)},")
-            lines.append(f"{s_indent_1}),")
+            lines.append(f"{s_indent_1})")
+        elif level == 0 and not self.children:
+            # Output the basic joinedload if no children and no load_only
+            st = self.container.strategy
+            lines.append(f"{s_indent_1}{st}(")
+            lines.append(f"{s_indent_2}Db{repr(self.container)},")
+            lines.append(f"{s_indent_1})")
 
         for c in self.children:
-            c.stringify(
-                indent=indent,
-                level=level + 1,
-                lines=lines,
-                parents=parents + [self],
-            )
+            # Children process themselves, outputting parents if they have
+            # load_only
+            if c.load_only:
+                # Child has load_only, it will output the chain including
+                # parents
+                c.stringify(
+                    indent=indent,
+                    level=level + 1,
+                    lines=lines,
+                    parents=parents + [self],
+                )
+            elif level == 0:
+                # Child without load_only at root level, chain after root
+                if not self.load_only and not any(
+                    ch.load_only for ch in self.children if ch != c
+                ):
+                    # Only output root if we haven't already
+                    if not lines or not lines[-1].endswith(")"):
+                        st = self.container.strategy
+                        lines.append(f"{s_indent_1}{st}(")
+                        lines.append(f"{s_indent_2}Db{repr(self.container)},")
+                        lines.append(f"{s_indent_1})")
+                # Chain the child
+                dot = "."
+                st = c.container.strategy
+                lines.append(f"{s_indent_1}{dot}{st}(")
+                lines.append(f"{s_indent_2}Db{repr(c.container)},")
+                lines.append(f"{s_indent_1})")
 
-        return "\n".join(lines) if level == 0 else ""
+        result = "\n".join(lines) if level == 0 else ""
+        return result + "\n" if result and level == 0 else result
 
     def load(self, sub_fld_name: str, related_model: "ExResource"):
         """Add a field to the tree.

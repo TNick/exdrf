@@ -24,7 +24,7 @@ class IdField(QtIntegerField["Child"]):
     """Primary key for the child."""
 
     name: str = field(default="id", init=False)
-    title: str = field(default="Id")
+    title: str = field(default="ID")
     description: str = field(default=("Primary key for the child."))
     category: str = field(default="keys")
     primary: bool = field(default=True)

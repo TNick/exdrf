@@ -140,10 +140,11 @@ class Selector(Generic[DBM]):
         """Apply a field filter to the selection.
 
         Args:
-            item: The field filter to apply.
+            item: The field filter to apply (can be a FieldFilter instance or
+                a dictionary with 'fld', 'op', and 'vl' keys).
 
         Returns:
-            The SQLAlchemy select statement with the filter applied.
+            The SQLAlchemy ColumnElement representing the filter condition.
         """
         if isinstance(item, dict):
             # This is a dictionary with the field name and the filter.
@@ -167,6 +168,16 @@ class Selector(Generic[DBM]):
         items: the string keyword ("and" or "or") and the list of filters.
         "not" is also a list of two items: the string keyword ("not") and
         the filter to negate.
+
+        Args:
+            subset: The filter subset to apply. Can be empty, a list of field
+                filters (dict or FieldFilter instances), or a list representing
+                a logical operation like ["AND", [operands...]].
+
+        Returns:
+            A list of SQLAlchemy ColumnElement objects representing the applied
+            filters. Returns empty list if subset is empty or all filters fail
+            to process.
         """
         if not subset:
             return []
@@ -234,10 +245,16 @@ class Selector(Generic[DBM]):
         """Run the selection.
 
         The function applies the filters to the base selection and returns
-        the SQLAlchemy select statement with the filters applied.
+        the SQLAlchemy select statement with the filters applied. Joins are
+        applied before filters.
+
+        Args:
+            filters: The filters to apply. Can be empty, a list of field filters
+                (dict or FieldFilter instances), or complex logical operations.
 
         Returns:
-            The SQLAlchemy select statement with the filters applied.
+            The SQLAlchemy select statement with joins and filters applied.
+            Returns the base selection if no filters are provided.
         """
         components = self.apply_subset(filters)
         if not components:
@@ -263,7 +280,15 @@ class Selector(Generic[DBM]):
 
     @classmethod
     def from_qt_model(cls, qt_model: "QtModel[DBM]") -> "Selector":
-        """Create a constructor from a Qt model."""
+        """Create a selector from a Qt model.
+
+        Args:
+            qt_model: The Qt model instance to create the selector from.
+
+        Returns:
+            A new Selector instance configured with the model's database model,
+            base selection, and fields.
+        """
         return cls(
             db_model=qt_model.db_model,
             base=qt_model.base_selection,

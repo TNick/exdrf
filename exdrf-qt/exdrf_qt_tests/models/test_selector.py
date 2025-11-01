@@ -348,6 +348,35 @@ class TestSelectorApplySubsetAndRun(unittest.TestCase):
         # mock_base_select.join returns self.mock_base_select, so this is fine.
         self.mock_base_select.where.assert_called_once_with(self.id_filter_1_eq)
 
+    def test_run_with_join_with_kwargs(self) -> None:
+        """Test that joins with kwargs are applied correctly."""
+        mock_join_table = MagicMock(name="JoinTable")
+        join_with_kwargs = (mock_join_table, {"isouter": True})
+        self.selector.joins = [join_with_kwargs]
+
+        filters: FilterType = [
+            {"fld": "id", "op": "==", "vl": 1}  # type: ignore
+        ]
+        self.selector.run(filters)
+
+        # Ensure join is called with kwargs
+        self.mock_base_select.join.assert_called_once_with(
+            mock_join_table, isouter=True
+        )
+
+    def test_run_with_join_tuple_no_kwargs(self) -> None:
+        """Test that tuple joins without kwargs work."""
+        mock_join_table = MagicMock(name="JoinTable")
+        join_tuple = (mock_join_table,)
+        self.selector.joins = [join_tuple]
+
+        filters: FilterType = [
+            {"fld": "id", "op": "==", "vl": 1}  # type: ignore
+        ]
+        self.selector.run(filters)
+
+        self.mock_base_select.join.assert_called_once_with(mock_join_table)
+
     def test_apply_subset_malformed_logical_op_length(self) -> None:
         filters: FilterType = [  # type: ignore
             ["AND", {"fld": "id", "op": "==", "vl": 1}, "extra"]  # type: ignore
@@ -388,6 +417,30 @@ class TestSelectorApplySubsetAndRun(unittest.TestCase):
         err_msg = "Invalid filter definition type"
         with self.assertRaisesRegex(TypeError, err_msg):
             self.selector._single_def(12345)
+
+    def test_single_def_empty_list_returns_none(self) -> None:
+        """Test _single_def with empty list returns None."""
+        result = self.selector._single_def([])
+        self.assertIsNone(result)
+
+    def test_apply_subset_empty_returns_empty_list(self) -> None:
+        """Test apply_subset with empty list returns empty list."""
+        result = self.selector.apply_subset([])
+        self.assertEqual(result, [])
+
+    def test_apply_subset_handles_exception_in_single_def(self) -> None:
+        """Test apply_subset handles exceptions during _single_def gracefully."""
+        # Create a filter that will cause an error in _single_def
+        # (non-existent field)
+        filters: FilterType = [
+            {"fld": "nonexistent", "op": "==", "vl": 1}  # type: ignore
+        ]
+
+        # apply_subset should catch the exception and log it
+        result = self.selector.apply_subset(filters)
+
+        # Should return empty list since the filter failed
+        self.assertEqual(result, [])
 
 
 class TestSelectorFromQtModel(unittest.TestCase):

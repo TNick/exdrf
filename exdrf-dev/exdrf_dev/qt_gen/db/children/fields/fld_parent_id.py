@@ -24,7 +24,7 @@ class ParentIdField(QtIntegerField["Child"]):
     """Foreign key linking to the parent."""
 
     name: str = field(default="parent_id", init=False)
-    title: str = field(default="Parent Id")
+    title: str = field(default="Parent ID")
     description: str = field(default=("Foreign key linking to the parent."))
     category: str = field(default="general")
     nullable: bool = field(default=False)

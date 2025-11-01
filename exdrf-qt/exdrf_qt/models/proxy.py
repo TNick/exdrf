@@ -27,6 +27,8 @@ class ProxyModel(QSortFilterProxyModel):
         _column_filters: Map of column to compiled QRegExp.
         _row_predicate: Optional predicate receiving the source row index that
             can veto or accept a row after column filtering.
+        _numeric_sort_extractors: Map of column to extractor function for
+            numeric-aware sorting.
     """
 
     _column_filters: Dict[int, QRegExp]
@@ -36,6 +38,14 @@ class ProxyModel(QSortFilterProxyModel):
     _numeric_sort_extractors: Dict[int, Callable[[Any], str]]
 
     def __init__(self, parent=None) -> None:
+        """Initialize the proxy model.
+
+        Sets up empty column filters, no row predicate, case-insensitive
+        filtering by default, and empty numeric sort extractors.
+
+        Args:
+            parent: The parent QObject, if any.
+        """
         super().__init__(parent)
         self._column_filters = {}
         self._row_predicate = None
@@ -43,6 +53,14 @@ class ProxyModel(QSortFilterProxyModel):
         self._numeric_sort_extractors = {}
 
     def setFilterCaseSensitivity(self, cs: Qt.CaseSensitivity) -> None:
+        """Set the case sensitivity for filtering.
+
+        Updates all existing column filters to use the new case sensitivity
+        and calls the parent method to update the base filter sensitivity.
+
+        Args:
+            cs: The case sensitivity to use for filtering.
+        """
         k_v = list(self._column_filters.items())
         self._column_filters.clear()
         for k, v in k_v:
@@ -79,9 +97,13 @@ class ProxyModel(QSortFilterProxyModel):
     ) -> None:
         """Set the custom row predicate.
 
-        The predicate receives the source row and the source parent index.
-        Return True to accept, False to reject. If None, only column filters
-        are applied.
+        The predicate receives the source row index, source parent index,
+        and current case sensitivity. Return True to accept the row, False
+        to reject. If None, only column filters are applied.
+
+        Args:
+            predicate: Optional callable that takes (source_row, source_parent,
+                case_sensitivity) and returns bool, or None to clear the predicate.
         """
         self._row_predicate = predicate
         self.invalidateFilter()
@@ -91,8 +113,14 @@ class ProxyModel(QSortFilterProxyModel):
     ) -> None:
         """Enable numeric-aware sorting for a column.
 
-        If ``extractor`` is provided it is used to convert the display value to
-        a string to be interpreted as an integer when possible.
+        When sorting this column, values are converted to strings and then
+        parsed as integers when possible. Non-numeric values fall back to
+        string comparison.
+
+        Args:
+            column: The column index to enable numeric sorting for.
+            extractor: Optional callable to convert display values to strings.
+                If None, uses a default converter that handles None values.
         """
         if extractor is None:
             self._numeric_sort_extractors[column] = lambda v: (
@@ -104,6 +132,19 @@ class ProxyModel(QSortFilterProxyModel):
     def filterAcceptsRow(
         self, source_row: int, source_parent: QModelIndex
     ) -> bool:
+        """Determine if a row should be included in the filtered model.
+
+        Applies all active column filters first, then the optional row predicate.
+        A row is accepted only if all column filters match and the row predicate
+        (if set) returns True.
+
+        Args:
+            source_row: The row index in the source model.
+            source_parent: The parent index in the source model.
+
+        Returns:
+            True if the row should be included, False otherwise.
+        """
         model = self.sourceModel()
         if model is None:
             return True
@@ -133,6 +174,20 @@ class ProxyModel(QSortFilterProxyModel):
         return True
 
     def lessThan(self, left: QModelIndex, right: QModelIndex) -> bool:
+        """Compare two indices for sorting purposes.
+
+        Uses SORT_ROLE data if available, otherwise falls back to DisplayRole.
+        For columns with numeric sorting enabled, attempts to parse values as
+        integers. Falls back to string comparison if numeric parsing fails or
+        numeric sorting is not enabled.
+
+        Args:
+            left: The left index to compare.
+            right: The right index to compare.
+
+        Returns:
+            True if left should sort before right, False otherwise.
+        """
         insensitive = (
             self.filterCaseSensitivity() == Qt.CaseSensitivity.CaseInsensitive
         )
@@ -153,9 +208,14 @@ class ProxyModel(QSortFilterProxyModel):
             ls = extractor(lv)
             rs = extractor(rv)
 
-            def to_int(s: str):
-                """As the user sets this explicitly, we can assume it is a
-                valid integer.
+            def to_int(s: str) -> Optional[int]:
+                """Convert string to integer if possible.
+
+                Args:
+                    s: The string to convert.
+
+                Returns:
+                    The integer value, or None if conversion fails.
                 """
                 try:
                     return int(str(s).strip())

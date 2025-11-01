@@ -69,23 +69,39 @@ def func_plugin(
 
 def safe_hook_call(hook_caller, *args, **kwargs):
     """We use this function to ensure that an exception in a hook does not
-        cause the entire function to crash.
+    cause the entire function to crash.
 
-        Example:
-            from exdrf_qt.context import QtContext
-            from exdrf_qt.plugins import exdrf_qt_pm
-    from exdrf_qt.utils.plugins import safe_hook_call
+    The hook_caller should be obtained using get_hook_safely() to handle
+    cases where the hook doesn't exist.
 
-            context = QtContext()
-            results, errors = safe_hook_call(
-                exdrf_qt_pm.hook.context_created,
-                context=context
-            )
+    Example:
+        from exdrf_qt.context import QtContext
+        from exdrf_qt.plugins import exdrf_qt_pm
+        from exdrf_qt.utils.plugins import safe_hook_call, get_hook_safely
+
+        context = QtContext()
+        hook = get_hook_safely(exdrf_qt_pm.hook, "context_created")
+        if hook is not None:
+            results, errors = safe_hook_call(hook, context=context)
     """
     result_map = {}
     error_map = {}
 
-    for impl in hook_caller.get_hookimpls():
+    # Handle the case where the hook doesn't exist or is None
+    if hook_caller is None:
+        return result_map, error_map
+
+    try:
+        hook_impls = hook_caller.get_hookimpls()
+    except AttributeError:
+        # Hook doesn't exist or hook_caller is not a valid hook caller
+        logger.debug(
+            "Hook %s does not exist or is not callable, skipping",
+            getattr(hook_caller, "name", str(hook_caller)),
+        )
+        return result_map, error_map
+
+    for impl in hook_impls:
         try:
             result_map[impl.plugin_name] = impl.function(*args, **kwargs)
         except Exception as e:
@@ -98,3 +114,22 @@ def safe_hook_call(hook_caller, *args, **kwargs):
             )
 
     return result_map, error_map
+
+
+def get_hook_safely(hook_relay, hook_name: str):
+    """Safely get a hook from a hook relay.
+
+    Returns None if the hook doesn't exist instead of raising AttributeError.
+
+    Args:
+        hook_relay: The hook relay object (e.g., exdrf_qt_pm.hook)
+        hook_name: The name of the hook to get
+
+    Returns:
+        The hook caller if it exists, None otherwise
+    """
+    try:
+        return getattr(hook_relay, hook_name)
+    except AttributeError:
+        logger.debug("Hook %s does not exist", hook_name)
+        return None

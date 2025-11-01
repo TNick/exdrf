@@ -221,10 +221,13 @@ class TestFieldFromSqlRel:
         mock_ctor = mocker.patch("exdrf_al.loader.RefOneToManyField")
         mock_ctor.__name__ = "RefOneToManyField"
         mock_parser = mocker.patch("exdrf_al.loader.RelExtraInfo")
-        mock_parser.model_validate.return_value.model_dump.return_value = {
+        mock_parsed_info = MagicMock()
+        mock_parsed_info.model_dump.return_value = {
             "direction": "OneToMany",
             "example_key": "example_value",
         }
+        mock_parsed_info.subordinate = MagicMock()
+        mock_parser.model_validate.return_value = mock_parsed_info
 
         # Call the function
         result = field_from_sql_rel(
@@ -245,6 +248,7 @@ class TestFieldFromSqlRel:
             name="test_relation",
             title="Test Relation",
             example_key="example_value",
+            subordinate=mock_parsed_info.subordinate,
             custom_arg="custom_value",
         )
         mock_resource.add_field.assert_called_once_with(mock_ctor.return_value)
@@ -358,8 +362,11 @@ class TestDatasetFromSqlAlchemy:
         # mock_column = MagicMock(name="Column")
         # mock_relation = MagicMock(name="Relation")
 
-        mock_visitor = mocker.patch("exdrf_al.loader.DbVisitor")
-        mock_visitor.run.side_effect = lambda base: None
+        # Create a real class for DbVisitor so @define can work
+        mock_visitor_class = type("DbVisitor", (), {})
+        mock_run = MagicMock()
+        mock_visitor_class.run = mock_run
+        mocker.patch("exdrf_al.loader.DbVisitor", mock_visitor_class)
 
         mock_field_from_sql_col = mocker.patch(
             "exdrf_al.loader.field_from_sql_col"
@@ -372,7 +379,7 @@ class TestDatasetFromSqlAlchemy:
         result = dataset_from_sqlalchemy(mock_dataset, base=mock_base)
 
         # Assertions
-        mock_visitor.run.assert_any_call(base=mock_base)
+        mock_run.assert_any_call(base=mock_base)
         mock_field_from_sql_col.assert_not_called()  # No columns processed in this test
         # No relations processed in this test
         mock_field_from_sql_rel.assert_not_called()
@@ -389,13 +396,35 @@ class TestDatasetFromSqlAlchemy:
         mock_model.__doc__ = "Mock model docstring."
         mock_model.info = {}
 
-        mock_visitor = mocker.patch("exdrf_al.loader.DbVisitor")
-        mock_visitor.run.side_effect = lambda base: None
-
-        mock_extra_info = mocker.patch("exdrf_al.loader.DbVisitor.extra_info")
-        mock_extra_info.return_value.get_layer_ast.side_effect = Exception(
+        # Create a real class for DbVisitor so @define can work
+        mock_visitor_class = type("DbVisitor", (), {})
+        # Mock extra_info as an instance method that returns a mock with get_layer_ast
+        mock_extra_info_result = MagicMock()
+        mock_extra_info_result.get_layer_ast.side_effect = Exception(
             "Parsing error"
         )
+
+        def extra_info(self, model):
+            return mock_extra_info_result
+
+        def get_docs(self, model):
+            return [], []
+
+        def category(self, model):
+            return []
+
+        mock_visitor_class.extra_info = extra_info
+        mock_visitor_class.get_docs = get_docs
+        mock_visitor_class.category = category
+
+        @classmethod
+        def run(cls, base):
+            # Create an instance and call visit_model to trigger the error
+            visitor = cls()
+            visitor.visit_model(mock_model)
+
+        mock_visitor_class.run = run
+        mocker.patch("exdrf_al.loader.DbVisitor", mock_visitor_class)
 
         # Call the function and assert exception
         with pytest.raises(
@@ -416,8 +445,12 @@ class TestDatasetFromSqlAlchemy:
 
         # mock_column = MagicMock(name="Column")
 
-        mock_visitor = mocker.patch("exdrf_al.loader.DbVisitor")
-        mock_visitor.run.side_effect = lambda base: None
+        # Create a real class for DbVisitor so @define can work
+        mock_visitor_class = type("DbVisitor", (), {})
+        mock_visitor = mocker.patch(
+            "exdrf_al.loader.DbVisitor", mock_visitor_class
+        )
+        mock_visitor.run = lambda base: None
 
         mock_field_from_sql_col = mocker.patch(
             "exdrf_al.loader.field_from_sql_col"
@@ -442,8 +475,12 @@ class TestDatasetFromSqlAlchemy:
 
         # mock_relation = MagicMock(name="Relation")
 
-        mock_visitor = mocker.patch("exdrf_al.loader.DbVisitor")
-        mock_visitor.run.side_effect = lambda base: None
+        # Create a real class for DbVisitor so @define can work
+        mock_visitor_class = type("DbVisitor", (), {})
+        mock_visitor = mocker.patch(
+            "exdrf_al.loader.DbVisitor", mock_visitor_class
+        )
+        mock_visitor.run = lambda base: None
 
         mock_field_from_sql_rel = mocker.patch(
             "exdrf_al.loader.field_from_sql_rel"

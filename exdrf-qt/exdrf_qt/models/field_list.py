@@ -29,6 +29,7 @@ class FieldsList:
 
     @property
     def fields(self) -> List["QtField"]:
+        """Return the list of all fields."""
         return list(self._fields.values())
 
     @fields.setter
@@ -95,7 +96,14 @@ class FieldsList:
         self._s_s_fields = [self._fields[f] for f in value]
 
     def remove_from_ssf(self, field: str):
-        """Remove a field from the simple search fields."""
+        """Remove a field from the simple search fields.
+
+        Args:
+            field: The name of the field to remove.
+
+        Returns:
+            The updated list of simple search fields.
+        """
         self._s_s_fields = [f for f in self._s_s_fields if f.name != field]
         return self._s_s_fields
 
@@ -114,7 +122,14 @@ class FieldsList:
         self._f_fields = [self._fields[f] for f in value]
 
     def remove_from_ff(self, field: str):
-        """Remove a field from the filter fields."""
+        """Remove a field from the filter fields.
+
+        Args:
+            field: The name of the field to remove.
+
+        Returns:
+            The updated list of filter fields.
+        """
         self._f_fields = [f for f in self._f_fields if f.name != field]
         return self._f_fields
 
@@ -133,7 +148,14 @@ class FieldsList:
         self._s_fields = [self._fields[f] for f in value]
 
     def remove_from_sf(self, field: str):
-        """Remove a field from the sortable fields."""
+        """Remove a field from the sortable fields.
+
+        Args:
+            field: The name of the field to remove.
+
+        Returns:
+            The updated list of sortable fields.
+        """
         self._s_fields = [f for f in self._s_fields if f.name != field]
         return self._s_fields
 
@@ -152,7 +174,14 @@ class FieldsList:
         self._c_fields = [self._fields[f] for f in value]
 
     def remove_from_cf(self, field: str):
-        """Remove a field from the column fields."""
+        """Remove a field from the column fields.
+
+        Args:
+            field: The name of the field to remove.
+
+        Returns:
+            The updated list of column fields.
+        """
         self._c_fields = [f for f in self._c_fields if f.name != field]
         return self._c_fields
 
@@ -171,6 +200,13 @@ class FieldsList:
         self._e_fields = [self._fields[f] for f in value]
 
     def remove_from_ef(self, field: str):
-        """Remove a field from the exportable fields."""
+        """Remove a field from the exportable fields.
+
+        Args:
+            field: The name of the field to remove.
+
+        Returns:
+            The updated list of exportable fields.
+        """
         self._e_fields = [f for f in self._e_fields if f.name != field]
         return self._e_fields

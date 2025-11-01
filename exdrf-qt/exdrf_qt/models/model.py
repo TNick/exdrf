@@ -47,7 +47,19 @@ DBM = TypeVar("DBM")
 logger = logging.getLogger(__name__)
 
 
-def compare_filters(f1, f2):
+def compare_filters(f1: FilterType, f2: FilterType) -> bool:
+    """Compare two filter structures for equality.
+
+    Recursively compares filter structures, handling nested lists/tuples
+    and converting dictionaries to FieldFilter objects for comparison.
+
+    Args:
+        f1: The first filter structure to compare.
+        f2: The second filter structure to compare.
+
+    Returns:
+        True if the filters are equal, False otherwise.
+    """
     if isinstance(f1, (list, tuple)) and isinstance(f2, (list, tuple)):
         if len(f1) != len(f2):
             return False
@@ -416,12 +428,29 @@ class QtModel(
             self.reset_model()
 
     def ensure_stubs(self, new_total: int) -> None:
-        """We populate the cache with stubs so that the model can be used."""
+        """Populate the cache with stubs so that the model can be used.
+
+        Sets the cache size to the new total count. If no items are currently
+        loaded, requests an initial batch of items from the database.
+
+        Args:
+            new_total: The new total count to set for the cache size.
+        """
         self.cache.set_size(new_total)
 
         # If the cache is empty, we post a request for items.
-        if self._loaded_count == 0:
-            self.request_items(0, self.batch_size * 2)
+        # Note: This is called from total_count setter BEFORE _total_count is updated.
+        # We temporarily set _total_count so request_items() works correctly.
+        if self._loaded_count == 0 and new_total > 0:
+            old_total = self._total_count
+            try:
+                self._total_count = new_total
+                count = min(self.batch_size * 2, new_total)
+                if count > 0:
+                    self.request_items(0, count)
+            finally:
+                # Restore old value - it will be set correctly by the setter
+                self._total_count = old_total
 
     def request_items(self, start: int, count: int) -> None:
         """Request items from the database.
@@ -480,9 +509,14 @@ class QtModel(
     def _load_items(self, work: "Work") -> None:
         """We are informed that a batch of items has been loaded."""
         # Locate the request in the list of requests.
-        req = self.requests.pop(work.req_id[1].uniq_id, None)
+        # work.req_id is a tuple (id(self), req), so work.req_id[1] is the request object
+        if isinstance(work.req_id, tuple) and len(work.req_id) >= 2:
+            req = self.requests.pop(work.req_id[1].uniq_id, None)
+        else:
+            # Fallback for different req_id formats
+            req = None
         if req is None:
-            logger.debug("Request %d not found in requests", work.req_id)
+            logger.debug("Request %s not found in requests", work.req_id)
             return
 
         # If this request generated an error mark those requests as such.
@@ -762,35 +796,99 @@ class QtModel(
             selection=self.base_selection,
             prevent_total_count=True,
         )
-        result.filters = self._filters
+        # Set filters and sort - this will trigger reset_model() if filters change
+        # But we want to avoid that, so set _filters directly and sort_by
+        result._filters = self._filters
         result.sort_by = self.sort_by
-        result.top_cache = self.top_cache
-        result.total_count = self.recalculate_total_count()
-        result.loaded_count = -1
+        # Don't copy top_cache - cloned model should start fresh
+        result.top_cache = []
+        result._loaded_count = 0
+        # Update the selection to match the sorted/filtered query BEFORE
+        # recalculating total count, so ensure_stubs() uses the correct query
+        # Note: base_selection should remain the unfiltered base, selection
+        # will be the filtered/sorted version
+        # Ensure base_selection is set correctly first (should already be set
+        # in constructor, but be explicit)
+        result.base_selection = self.base_selection
+        # Compute the sorted selection - this will use the filters and sort_by
+        # we just set, and will compute from base_selection
+        result.selection = result.sorted_selection
+        # Recalculate total count, which will trigger ensure_stubs()
+        # and request initial items using the correct sorted/filtered selection
+        result.recalculate_total_count()
         return result
 
-    def rowCount(self, parent: QModelIndex = QModelIndex()):
+    def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
+        """Return the number of rows under the given parent.
+
+        Args:
+            parent: The parent index. If invalid, returns the total count.
+                Items have no children, so for valid parents returns 0.
+
+        Returns:
+            The number of rows (total count for root, 0 for items).
+        """
         if not parent.isValid():
             return self.total_count
 
         # Items have no children.
         return 0
 
-    def columnCount(self, parent: QModelIndex = QModelIndex()):
+    def columnCount(self, parent: QModelIndex = QModelIndex()) -> int:
+        """Return the number of columns under the given parent.
+
+        Args:
+            parent: The parent index (unused, items have no children).
+
+        Returns:
+            The number of columns (number of column fields).
+        """
         return len(self.column_fields)
 
-    def hasChildren(self, parent: QModelIndex = QModelIndex()):
+    def hasChildren(self, parent: QModelIndex = QModelIndex()) -> bool:
+        """Return whether the parent has any children.
+
+        Args:
+            parent: The parent index. If invalid, returns True (root has
+                children). Items have no children, so for valid parents
+                returns False.
+
+        Returns:
+            True if the parent has children, False otherwise.
+        """
         if not parent.isValid():
             return True
 
         # Items have no children.
         return False
 
-    def parent(self, child: QModelIndex = QModelIndex()):
+    def parent(self, child: QModelIndex = QModelIndex()) -> QModelIndex:
+        """Return the parent of the given child.
+
+        Args:
+            child: The child index (unused, items have no parent).
+
+        Returns:
+            An invalid QModelIndex, as items have no parent.
+        """
         # Items have no children.
         return QModelIndex()
 
-    def index(self, row: int, column: int, parent=QModelIndex()):
+    def index(
+        self, row: int, column: int, parent: QModelIndex = QModelIndex()
+    ) -> QModelIndex:
+        """Return the index of the item at the given row and column.
+
+        Args:
+            row: The row number.
+            column: The column number.
+            parent: The parent index. Items have no parent, so valid parents
+                return an invalid index.
+
+        Returns:
+            A valid QModelIndex for root items, or an invalid QModelIndex
+            if the indices are out of range or parent is valid.
+        """
         if not self.hasIndex(row, column, parent):
             return QModelIndex()
 
@@ -818,7 +916,23 @@ class QtModel(
             return self.cache[row]
         return None
 
-    def data(self, index: QModelIndex, role: int = Qt.ItemDataRole.DisplayRole):
+    def data(
+        self, index: QModelIndex, role: int = Qt.ItemDataRole.DisplayRole
+    ) -> Any:
+        """Return the data for the given index and role.
+
+        For DisplayRole, if the item is not loaded, requests items from the
+        database. For CheckStateRole, returns the checked state if the model
+        is in checkable mode and the item is loaded.
+
+        Args:
+            index: The model index to get data for.
+            role: The data role (DisplayRole, CheckStateRole, etc.).
+
+        Returns:
+            The data for the given index and role, or None if invalid or
+            not available.
+        """
         if not index.isValid():
             return None
 
@@ -848,7 +962,21 @@ class QtModel(
 
     def headerData(
         self, section: int, orientation: Qt.Orientation, role: int = 0
-    ):
+    ) -> Any:
+        """Return the header data for the given section, orientation, and role.
+
+        For horizontal headers with DisplayRole, returns the field title.
+        For vertical headers with DisplayRole, returns the database ID.
+        For TextAlignmentRole, returns centered alignment.
+
+        Args:
+            section: The section (column for horizontal, row for vertical).
+            orientation: The header orientation (Horizontal or Vertical).
+            role: The data role (DisplayRole, TextAlignmentRole, etc.).
+
+        Returns:
+            The header data for the given parameters, or None if not available.
+        """
         if (
             orientation == Qt.Orientation.Horizontal
             and role == Qt.ItemDataRole.DisplayRole
@@ -867,7 +995,16 @@ class QtModel(
             return Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter
         return None
 
-    def flags(self, index: QModelIndex):
+    def flags(self, index: QModelIndex) -> Qt.ItemFlags:
+        """Return the item flags for the given index.
+
+        Args:
+            index: The model index to get flags for.
+
+        Returns:
+            Item flags (Enabled, Selectable, and optionally UserCheckable
+            if in checkable mode). Returns NoItemFlags for invalid indices.
+        """
         if not index.isValid():
             return Qt.ItemFlag.NoItemFlags
 
@@ -877,8 +1014,24 @@ class QtModel(
         return cast(Qt.ItemFlags, base)
 
     def setData(
-        self, index: QModelIndex, value: Any, role=Qt.ItemDataRole.EditRole
+        self,
+        index: QModelIndex,
+        value: Any,
+        role: int = Qt.ItemDataRole.EditRole,
     ) -> bool:
+        """Set the data for the given index and role.
+
+        Currently only supports setting CheckStateRole in checkable mode.
+        Top cache items and unloaded items cannot have their data set.
+
+        Args:
+            index: The model index to set data for.
+            value: The value to set.
+            role: The data role (CheckStateRole for checkboxes).
+
+        Returns:
+            True if the data was set successfully, False otherwise.
+        """
         if not index.isValid():
             return False
 
@@ -928,9 +1081,17 @@ class QtModel(
             logger.error("Error sorting model: %s", e, exc_info=True)
 
     def apply_filter(self, filter: Union[FilterType, None]) -> None:
-        """Sort the model by the given column and order.
+        """Apply a filter to the model.
 
-        The function clears the cache and resets the total count.
+        Sets the filter and resets the model, clearing the cache and
+        recalculating the total count. If the filter is the same as the
+        current filter, no action is taken.
+
+        Args:
+            filter: The filter to apply. Can be None to clear filters.
+
+        Raises:
+            ValueError: If the filter structure is invalid.
         """
         previous = self._filters
         try:
@@ -1050,7 +1211,15 @@ class QtModel(
         self.apply_filter(filters)  # type: ignore
 
     def checked_rows(self) -> Optional[List[RecIdType]]:
-        """Return the list of checked items."""
+        """Return the list of row indices for checked items.
+
+        Returns None if the model is not in checkable mode. The returned
+        row indices include the offset from top_cache items.
+
+        Returns:
+            A list of row indices for checked items, or None if not in
+            checkable mode.
+        """
         if self._checked is None:
             return None
         return [
@@ -1059,7 +1228,14 @@ class QtModel(
         ]
 
     def set_prioritized_ids(self, ids: Optional[List[RecIdType]]) -> None:
-        """Set the prioritized IDs and reset the model."""
+        """Set the prioritized IDs and reset the model.
+
+        Prioritized IDs appear first in sorting results. If the IDs are
+        the same as the current prioritized IDs, no action is taken.
+
+        Args:
+            ids: The list of IDs to prioritize, or None to clear prioritization.
+        """
         if self.prioritized_ids == ids:
             return
         self.prioritized_ids = ids

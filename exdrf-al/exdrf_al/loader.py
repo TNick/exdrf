@@ -100,7 +100,9 @@ def sql_col_to_type(
 
     if (
         hasattr(column.type, "native_enum")
-        and column.type.native_enum  # type: ignore
+        and getattr(column.type, "native_enum", False) is True
+        and hasattr(column.type, "enums")
+        and isinstance(getattr(column.type, "enums", None), (list, tuple))
     ):
         result = construct_enum, EnumInfo
     elif str_type == "BLOB":

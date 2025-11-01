@@ -60,11 +60,17 @@ class QtChildFuMo(QtModel["Child"]):
     ):
         from exdrf_dev.db.api import Child as DbChild
 
+        # Use db_model from kwargs if provided (e.g., from clone_me),
+        # otherwise calculate it from context overrides
+        db_model = kwargs.pop("db_model", None)
+        if db_model is None:
+            db_model = ctx.get_ovr(
+                "exdrf_dev.qt_gen.db.children.ful.model", DbChild
+            )
+
         super().__init__(
             ctx=ctx,
-            db_model=ctx.get_ovr(
-                "exdrf_dev.qt_gen.db.children.ful.model", DbChild
-            ),
+            db_model=db_model,
             selection=(
                 selection
                 if selection is not None
@@ -74,17 +80,19 @@ class QtChildFuMo(QtModel["Child"]):
                 fields
                 if fields is not None
                 else [
-                    DataField,
-                    ParentField,
-                    ParentIdField,
                     IdField,
+                    DataField,
+                    ParentIdField,
+                    ParentField,
                 ]
             ),
             **kwargs,
         )
 
         # Inform plugins that the model has been created.
-        safe_hook_call(exdrf_qt_pm.hook.child_fumo_created, model=self)
+        hook = getattr(exdrf_qt_pm.hook, "child_fumo_created", None)
+        if hook is not None:
+            safe_hook_call(hook, model=self)
 
     def get_primary_columns(self) -> Any:
         return self.db_model.id
@@ -112,14 +120,16 @@ class QtChildFuMo(QtModel["Child"]):
         filter using the `simple_search_fields` property.
         """
         filters = super().text_to_filter(text, exact, limit)
-        safe_hook_call(
-            exdrf_qt_pm.hook.child_fumo_ttf,
-            model=self,
-            filters=filters,
-            text=text,
-            exact=exact,
-            limit=limit,
-        )
+        hook = getattr(exdrf_qt_pm.hook, "child_fumo_ttf", None)
+        if hook is not None:
+            safe_hook_call(
+                hook,
+                model=self,
+                filters=filters,
+                text=text,
+                exact=exact,
+                limit=limit,
+            )
         return filters
 
         # exdrf-keep-start extra_init -----------------------------------------

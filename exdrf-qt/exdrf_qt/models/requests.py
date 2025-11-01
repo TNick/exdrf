@@ -11,6 +11,7 @@ class RecordRequest:
         start: The starting index of the items to load.
         count: The number of items to load.
         uniq_id: A unique identifier for the request.
+        pushed: Whether this request has been pushed to the database.
     """
 
     start: int = field(hash=True)
@@ -19,6 +20,11 @@ class RecordRequest:
     pushed: bool = field(default=False, init=False)
 
     def __hash__(self) -> int:
+        """Return the hash of the request.
+
+        Returns:
+            A hash value based on start, count, and uniq_id.
+        """
         return hash((self.start, self.count, self.uniq_id))
 
 
@@ -27,18 +33,27 @@ class RecordRequestManager:
 
     Attributes:
         uniq_gen: A unique identifier generator for requests.
-        requests: A list of requests for items from the database.
+        requests: A dictionary mapping unique IDs to requests.
     """
 
     uniq_gen: int
     requests: Dict[int, RecordRequest]
 
     def __init__(self) -> None:
+        """Initialize the request manager with empty state."""
         self.uniq_gen = 0
         self.requests = {}
 
     def new_request(self, start: int, count: int) -> "RecordRequest":
-        """Create a new request for items from the database."""
+        """Create a new request for items from the database.
+
+        Args:
+            start: The starting index of the items to load.
+            count: The number of items to load.
+
+        Returns:
+            A new RecordRequest instance (not yet added to the manager).
+        """
         return RecordRequest(start, count)
 
     def add_request(self, req: "RecordRequest") -> None:

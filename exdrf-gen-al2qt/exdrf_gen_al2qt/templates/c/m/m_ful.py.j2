@@ -69,12 +69,18 @@ class Qt{{ ResPascal }}FuMo(QtModel["{{ ResPascal }}"]):
     ):
         from {{ db_module }}.{{ r.categories[0] }}.api import {{ r.name }} as Db{{ r.name }}
 
-        super().__init__(
-            ctx=ctx,
-            db_model=ctx.get_ovr(
+        # Use db_model from kwargs if provided (e.g., from clone_me),
+        # otherwise calculate it from context overrides
+        db_model = kwargs.pop("db_model", None)
+        if db_model is None:
+            db_model = ctx.get_ovr(
                 "{{ out_module }}.{{ r.categories[0] }}.{{ res_p_snake }}.ful.model",
                 Db{{ ResPascal }}
-            ),
+            )
+
+        super().__init__(
+            ctx=ctx,
+            db_model=db_model,
             selection=selection if selection is not None
             else default_{{ r.snake_case_name }}_list_selection(),
             fields=fields if fields is not None
