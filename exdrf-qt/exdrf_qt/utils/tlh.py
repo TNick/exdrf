@@ -17,6 +17,21 @@ def top_level_handler(func):
         Wrapped function with error handling.
     """
 
+    def show_error(self, e: Exception):
+        self.ctx.show_error(
+            message=self.t(
+                "resi.qt.handler-error.message",
+                "An error occurred while executing the "
+                "function {func}: {error}",
+                func=func.__name__,
+                error=str(e),
+            ),
+            title=self.t(
+                "resi.qt.handler-error.title",
+                "Error",
+            ),
+        )
+
     def wrapper(self, *args, **kwargs):
         """Wrapper function that provides error handling.
 
@@ -28,27 +43,37 @@ def top_level_handler(func):
         Returns:
             Result of the original function, or None if an error occurred.
         """
+        xep = None
         try:
             return func(self, *args, **kwargs)
+        except TypeError as e:
+            xep = e
+            if "takes 1 positional argument but 2 were given" in str(e):
+                try:
+                    return func(self)
+                except Exception as e:
+                    xep = e
+                    logger.error(
+                        "An error occurred while executing the function: %s",
+                        func.__name__,
+                        exc_info=True,
+                    )
+
+            else:
+                logger.error(
+                    "An error occurred while executing the function: %s",
+                    func.__name__,
+                    exc_info=True,
+                )
+
         except Exception as e:
+            xep = e
             logger.error(
                 "An error occurred while executing the function: %s",
                 func.__name__,
                 exc_info=True,
             )
-            self.ctx.show_error(
-                message=self.t(
-                    "resi.qt.handler-error.message",
-                    "An error occurred while executing the "
-                    "function {func}: {error}",
-                    func=func.__name__,
-                    error=str(e),
-                ),
-                title=self.t(
-                    "resi.qt.handler-error.title",
-                    "Error",
-                ),
-            )
-            return None
+        show_error(self, xep)
+        return None
 
     return wrapper
