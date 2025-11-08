@@ -1,6 +1,7 @@
 import logging
 import logging.config
 import os
+from contextlib import contextmanager
 from importlib import resources
 from typing import (
     TYPE_CHECKING,
@@ -19,8 +20,6 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QMessageBox
 from pyrsistent import thaw
-from contextlib import contextmanager
-
 
 from exdrf_qt.controls.seldb.sel_db import SelectDatabaseDlg
 from exdrf_qt.local_settings import LocalSettings

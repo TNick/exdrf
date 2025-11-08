@@ -1,5 +1,6 @@
-from attrs import define, field
 from typing import TYPE_CHECKING, Any, Dict, Tuple
+
+from attrs import define, field
 
 from exdrf_util.table2base import Range2Other
 
@@ -112,8 +113,8 @@ class Range2Pdf(Range2Other):
         """Get the paragraph style for center alignment."""
         value = self.cache.get("par_sty_center")
         if value is None:
-            from reportlab.lib.styles import ParagraphStyle
             from reportlab.lib.enums import TA_CENTER  # type: ignore
+            from reportlab.lib.styles import ParagraphStyle
 
             value = ParagraphStyle("Normal", None, alignment=TA_CENTER)
             self.cache["par_sty_center"] = value
@@ -124,8 +125,8 @@ class Range2Pdf(Range2Other):
         """Get the paragraph style for left alignment."""
         value = self.cache.get("par_sty_left")
         if value is None:
-            from reportlab.lib.styles import ParagraphStyle
             from reportlab.lib.enums import TA_LEFT
+            from reportlab.lib.styles import ParagraphStyle
 
             value = ParagraphStyle("Normal", None, alignment=TA_LEFT)
             self.cache["par_sty_left"] = value
@@ -136,8 +137,8 @@ class Range2Pdf(Range2Other):
         """Get the paragraph style for right alignment."""
         value = self.cache.get("par_sty_right")
         if value is None:
-            from reportlab.lib.styles import ParagraphStyle
             from reportlab.lib.enums import TA_RIGHT
+            from reportlab.lib.styles import ParagraphStyle
 
             value = ParagraphStyle("Normal", None, alignment=TA_RIGHT)
             self.cache["par_sty_right"] = value

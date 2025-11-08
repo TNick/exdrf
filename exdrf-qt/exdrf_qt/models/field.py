@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Dict, Generic, TypeVar, List
+from typing import TYPE_CHECKING, Any, Dict, Generic, List, TypeVar
 
 from attrs import define, field
 from exdrf.api import ExField

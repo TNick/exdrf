@@ -90,9 +90,10 @@ class TestILikeFiOp(unittest.TestCase):
         mock_cast_column = MagicMock()
         mock_result = MagicMock()
 
-        with patch("exdrf_qt.models.fi_op.al_cast") as mock_cast, patch(
-            "exdrf_qt.models.fi_op.ilike_op"
-        ) as mock_ilike:
+        with (
+            patch("exdrf_qt.models.fi_op.al_cast") as mock_cast,
+            patch("exdrf_qt.models.fi_op.ilike_op") as mock_ilike,
+        ):
             mock_cast.return_value = mock_cast_column
             mock_ilike.return_value = mock_result
             result = ILikeFiOp._predicate(mock_column, mock_value)

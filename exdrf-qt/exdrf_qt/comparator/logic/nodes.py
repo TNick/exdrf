@@ -1,12 +1,13 @@
-from typing import Any, List, TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Any, List, Optional
+
 from attrs import define, field
 
 if TYPE_CHECKING:
-    from exdrf_qt.comparator.logic.manager import ComparatorManager
     from exdrf_qt.comparator.logic.adapter import ComparatorAdapter
+    from exdrf_qt.comparator.logic.manager import ComparatorManager
 
 
-@define
+@define(eq=False)
 class BaseNode:
     """Represents the common base class for all nodes in the comparator.
 
@@ -16,10 +17,10 @@ class BaseNode:
         parent: The parent node of this node. For root nodes, this is None.
     """
 
-    manager: "ComparatorManager"
+    manager: "ComparatorManager" = field(repr=False)
     key: str = field(default="")
     label: str = field(default="")
-    parent: Optional["BaseNode"] = field(default=None)
+    parent: Optional["BaseNode"] = field(default=None, repr=False)
 
     @property
     def is_leaf(self) -> bool:
@@ -42,13 +43,17 @@ class BaseNode:
         return 0
 
 
-@define
+@define(eq=False)
 class ParentNode(BaseNode):
     """Represents a node that does not have its own value but can host other
     nodes.
+
+    Attributes:
+        children: List of children nodes.
     """
 
-    children: List["BaseNode"] = field(factory=list)
+    children: List["BaseNode"] = field(factory=list, repr=False)
+    mismatch_count_value: int = field(default=-1)
 
     def add_child(self, child: "BaseNode") -> None:
         """Add a child node to this parent node."""
@@ -59,8 +64,37 @@ class ParentNode(BaseNode):
         """The number of children this node has."""
         return len(self.children)
 
+    def compare(self, first: "BaseNode", second: "BaseNode") -> int:
+        """Compare two nodes and return a score.
 
-@define
+        Args:
+            first: The first node to compare.
+            second: The second node to compare.
+
+        Returns:
+            A score that will be used to determine if the nodes are the same.
+            If the value is 0, the nodes are not the same; if the value is -1,
+            the nodes are the same and no other comparison is needed; any other
+            value will be be used to choose a match amongst the children of
+            this parent. The score should be based on the similarity of the
+            nodes.
+        """
+        return -1 if first.key == second.key else 0
+
+    @property
+    def mismatch_count(self) -> int:
+        if self.mismatch_count_value == -1:
+            self.mismatch_count_value = 0
+            for child in self.children:
+                if isinstance(child, LeafNode):
+                    if not child.are_equal:
+                        self.mismatch_count_value += 1
+                elif isinstance(child, ParentNode):
+                    self.mismatch_count_value += child.mismatch_count
+        return self.mismatch_count_value
+
+
+@define(eq=False)
 class Value:
     """Represents the value in a leaf node.
 
@@ -86,8 +120,24 @@ class LeafNode(BaseNode):
     """
 
     values: List[Value] = field(factory=list)
+    are_equal_value: bool | None = field(default=None)
 
     @property
     def is_leaf(self) -> bool:
         """Whether this node is a leaf node."""
         return True
+
+    @property
+    def are_equal(self) -> bool:
+        """Whether this node is equal to another node."""
+        if self.are_equal_value is None:
+            reference = None
+            for v_i, value in enumerate(self.values):
+                if v_i == 0:
+                    reference = value.exists, value.value
+                elif (value.exists, value.value) != reference:
+                    self.are_equal_value = False
+                    break
+            if self.are_equal_value is None:
+                self.are_equal_value = True
+        return self.are_equal_value

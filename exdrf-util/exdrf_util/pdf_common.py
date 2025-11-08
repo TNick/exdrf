@@ -15,7 +15,6 @@ import zipfile
 from dataclasses import dataclass
 from typing import Dict, Optional
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -263,9 +262,9 @@ def _ensure_files(filenames: Dict[str, str]) -> Optional[FontPaths]:
 def _register_family(family: str, paths: FontPaths) -> None:
     """Register a TTF family and add bold/italic mappings."""
 
+    from reportlab.lib.fonts import addMapping  # type: ignore
     from reportlab.pdfbase import pdfmetrics  # type: ignore
     from reportlab.pdfbase.ttfonts import TTFont  # type: ignore
-    from reportlab.lib.fonts import addMapping  # type: ignore
 
     # Register each face only if needed
     mapping = {

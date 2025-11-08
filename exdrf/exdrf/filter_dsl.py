@@ -27,8 +27,6 @@ except ImportError:
     class QtUseContext:  # type: ignore
         """Fallback base class when exdrf_qt is not available."""
 
-        pass
-
     DBM = TypeVar("DBM")  # type: ignore
     QtModel = Any  # type: ignore
     _HAS_EXDRF_QT = False

@@ -1,5 +1,6 @@
-from attrs import define, field
 from typing import TYPE_CHECKING
+
+from attrs import define, field
 
 if TYPE_CHECKING:
     from openpyxl.worksheet.worksheet import Worksheet

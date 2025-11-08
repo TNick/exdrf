@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 
 from PyQt5.QtCore import QModelIndex, Qt
 
-from exdrf_qt.models.proxy import ProxyModel, SORT_ROLE
+from exdrf_qt.models.proxy import SORT_ROLE, ProxyModel
 
 
 class TestProxyModelInit(unittest.TestCase):

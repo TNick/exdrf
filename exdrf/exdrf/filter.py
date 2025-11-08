@@ -58,8 +58,9 @@ This is how the filter is imagined to show in JSON format:
 ```
 """
 
-from typing import Any, List, Literal, Optional, Tuple, TypedDict, Union, cast
 import logging
+from typing import Any, List, Literal, Optional, Tuple, TypedDict, Union, cast
+
 from attrs import define
 
 logger = logging.getLogger(__name__)

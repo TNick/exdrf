@@ -1,15 +1,22 @@
-from typing import Optional, TYPE_CHECKING, Any, cast
-from attrs import define, field
 import logging
+from typing import TYPE_CHECKING, Any, Optional, cast
+
+from attrs import define, field
 from openpyxl.utils import get_column_letter
 
 if TYPE_CHECKING:
     from openpyxl import Workbook
-    from openpyxl.worksheet.worksheet import Worksheet
     from openpyxl.cell import Cell, MergedCell
     from openpyxl.cell.read_only import ReadOnlyCell  # type: ignore
-    from openpyxl.styles import NamedStyle
-    from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+    from openpyxl.styles import (
+        Alignment,
+        Border,
+        Font,
+        NamedStyle,
+        PatternFill,
+        Side,
+    )
+    from openpyxl.worksheet.worksheet import Worksheet
 
 
 logger = logging.getLogger(__name__)

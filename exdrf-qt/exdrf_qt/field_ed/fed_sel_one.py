@@ -25,11 +25,12 @@ from exdrf_qt.controls.popup_list import PopupWidget
 from exdrf_qt.field_ed.base import DrfFieldEd
 
 if TYPE_CHECKING:
+    from exdrf.constants import RecIdType
+
     from exdrf_qt.context import QtContext
     from exdrf_qt.controls.base_editor import ExdrfEditor
     from exdrf_qt.models import QtModel
     from exdrf_qt.models.record import QtRecord
-    from exdrf.constants import RecIdType
 
 logger = logging.getLogger(__name__)
 DBM = TypeVar("DBM", bound="DrfSelOneEditor")

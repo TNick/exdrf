@@ -1,12 +1,14 @@
-from attrs import define, field
-from typing import TYPE_CHECKING
 import logging
+from typing import TYPE_CHECKING
+
+from attrs import define, field
+
 from exdrf_util.table2base import Range2Other
 
 if TYPE_CHECKING:
-    from openpyxl.worksheet.cell_range import CellRange  # type: ignore
     from docx.document import Document
     from docx.table import Table as DocxTable
+    from openpyxl.worksheet.cell_range import CellRange  # type: ignore
 
 logger = logging.getLogger(__name__)
 
@@ -148,8 +150,8 @@ class Range2Docx(Range2Other):
 
     def remove_table_borders(self):
         # Remove borders from all cells
-        from docx.oxml.parser import OxmlElement
         from docx.oxml.ns import qn
+        from docx.oxml.parser import OxmlElement
 
         for row in self.table.rows:
             for cell in row.cells:

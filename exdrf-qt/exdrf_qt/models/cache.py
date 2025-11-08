@@ -1,6 +1,6 @@
 """Cache module providing sparse list implementation."""
 
-from typing import Callable, Dict, Generic, TypeVar, KeysView
+from typing import Callable, Dict, Generic, KeysView, TypeVar
 
 T = TypeVar("T")
 

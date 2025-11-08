@@ -1,8 +1,8 @@
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from exdrf_qt.comparator.logic.nodes import ParentNode
     from exdrf_qt.comparator.logic.manager import ComparatorManager
+    from exdrf_qt.comparator.logic.nodes import ParentNode
 
 
 class ComparatorAdapter:

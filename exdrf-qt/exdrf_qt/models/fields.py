@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, Optional, TYPE_CHECKING, List
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 import humanize
 from attrs import define, field
@@ -30,6 +30,7 @@ from exdrf.moment import MomentFormat
 from PyQt5.QtCore import QSize, Qt
 from PyQt5.QtGui import QBrush
 from sqlalchemy.orm import class_mapper
+
 from exdrf_qt.models.field import (
     DBM,
     QtField,
@@ -39,8 +40,9 @@ from exdrf_qt.models.field import (
 )
 
 if TYPE_CHECKING:
-    from exdrf_qt.models.selector import Selector
     from exdrf.api import FieldFilter
+
+    from exdrf_qt.models.selector import Selector
 
 logger = logging.getLogger(__name__)
 

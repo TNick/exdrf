@@ -3,9 +3,8 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-from PyQt5.QtCore import QModelIndex, Qt
-
 from exdrf.filter import FieldFilter
+from PyQt5.QtCore import QModelIndex, Qt
 
 from exdrf_qt.models.model import QtModel, compare_filters
 
