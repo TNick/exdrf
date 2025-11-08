@@ -1,4 +1,7 @@
 {
+    "markdownlint.config": {
+        "MD029": false
+    },
     "cSpell.words": [
         "addprevious",
         "aflake",
@@ -132,7 +135,7 @@
         "webassets",
         "xmlchemy"
     ],
-    "python.analysis.extraPaths": [
+    "cursorpyright.analysis.extraPaths": [
         "${workspaceFolder}/exdrf",
         "${workspaceFolder}/exdrf-al",
         "${workspaceFolder}/exdrf-dev",

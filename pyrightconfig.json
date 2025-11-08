@@ -1,0 +1,38 @@
+{
+    "venvPath": ".",
+
+    "include": [
+      "exdrf",
+      "exdrf-al",
+      "exdrf-dev",
+      "exdrf-gen",
+      "exdrf-pd",
+      "exdrf-qt",
+      "exdrf-gen-al2qt",
+      "exdrf-util"
+    ],
+  
+    "exclude": [
+      "venv",
+      "**/__pycache__",
+      "**/.mypy_cache",
+      ".git"
+    ],
+  
+    "executionEnvironments": [
+      {
+        "root": ".",
+        "extraPaths": [
+          "./exdrf",
+          "./exdrf-al",
+          "./exdrf-dev",
+          "./exdrf-gen",
+          "./exdrf-pd",
+          "./exdrf-qt",
+          "./exdrf-gen-al2qt",
+          "./exdrf-util"    
+        ]
+      }
+    ]
+  }
+  
