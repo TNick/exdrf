@@ -162,7 +162,7 @@ class Selector(Generic[DBM]):
             field = self.fields[f_item.fld]
 
             # Let the field apply the filter.
-            return field.apply_filter(item=item, selector=self)  # type: ignore
+            return field.apply_filter(item=f_item, selector=self)
         else:
             field = self.fields[parts[0]]
             return field.apply_sub_filter(

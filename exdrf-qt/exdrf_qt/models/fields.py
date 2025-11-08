@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, TYPE_CHECKING, List
 
 import humanize
 from attrs import define, field
@@ -29,7 +29,7 @@ from exdrf.constants import RecIdType
 from exdrf.moment import MomentFormat
 from PyQt5.QtCore import QSize, Qt
 from PyQt5.QtGui import QBrush
-
+from sqlalchemy.orm import class_mapper
 from exdrf_qt.models.field import (
     DBM,
     QtField,
@@ -37,6 +37,10 @@ from exdrf_qt.models.field import (
     light_grey,
     regular_font,
 )
+
+if TYPE_CHECKING:
+    from exdrf_qt.models.selector import Selector
+    from exdrf.api import FieldFilter
 
 logger = logging.getLogger(__name__)
 
@@ -365,8 +369,36 @@ class QtFormattedField(FormattedField, QtField[DBM]):
         return value_for_text(self, record)
 
 
+class RefFilterByPart:
+    def apply_sub_filter(
+        self, item: "FieldFilter", selector: "Selector", path: List[str]
+    ) -> Any:
+        """Apply a sub-filter to this field."""
+        from exdrf_qt.models.fi_op import filter_op_registry
+
+        if len(path) == 0:
+            raise ValueError("Path is empty")
+        if len(path) > 1:
+            raise ValueError("Path is too long, only one part is supported")
+
+        predicate = filter_op_registry[item.op].predicate
+        related_entity = getattr(
+            self.resource.db_model, self.name  # type: ignore[attr-defined]
+        )
+        other_model = (
+            class_mapper(self.resource.db_model)  # type: ignore[attr-defined]
+            .get_property(self.name)  # type: ignore[attr-defined]
+            .mapper.class_
+        )
+
+        subq = related_entity.has(
+            predicate(getattr(other_model, path[0]), item.vl),
+        )
+        return subq
+
+
 @define
-class QtRefManyToOneField(RefManyToOneField, QtField[DBM]):
+class QtRefManyToOneField(RefManyToOneField, RefFilterByPart, QtField[DBM]):
     def values(self, record) -> Dict[Qt.ItemDataRole, Any]:
         item = getattr(record, self.name)
         if item is None:
@@ -385,7 +417,7 @@ class QtRefManyToOneField(RefManyToOneField, QtField[DBM]):
 
 
 @define
-class QtRefOneToManyField(RefOneToManyField, QtField[DBM]):
+class QtRefOneToManyField(RefOneToManyField, RefFilterByPart, QtField[DBM]):
     show_n_labels: int = field(default=4)
 
     def values(self, record: DBM) -> Dict[Qt.ItemDataRole, Any]:
@@ -438,7 +470,7 @@ class QtRefOneToManyField(RefOneToManyField, QtField[DBM]):
 
 
 @define
-class QtRefOneToOneField(RefOneToOneField, QtField[DBM]):
+class QtRefOneToOneField(RefOneToOneField, RefFilterByPart, QtField[DBM]):
     def values(self, record) -> Dict[Qt.ItemDataRole, Any]:
         item = getattr(record, self.name)
         if item is None:
@@ -457,7 +489,7 @@ class QtRefOneToOneField(RefOneToOneField, QtField[DBM]):
 
 
 @define
-class QtRefManyToManyField(RefManyToManyField, QtField[DBM]):
+class QtRefManyToManyField(RefManyToManyField, RefFilterByPart, QtField[DBM]):
     show_n_labels: int = field(default=4)
 
     def values(self, record) -> Dict[Qt.ItemDataRole, Any]:

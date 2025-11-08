@@ -19,6 +19,8 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QMessageBox
 from pyrsistent import thaw
+from contextlib import contextmanager
+
 
 from exdrf_qt.controls.seldb.sel_db import SelectDatabaseDlg
 from exdrf_qt.local_settings import LocalSettings
@@ -32,7 +34,7 @@ from exdrf_qt.worker import Relay, Work
 if TYPE_CHECKING:
     from PyQt5.QtWidgets import QWidget  # noqa: F401
     from sqlalchemy import Select  # noqa: F401
-
+    from sqlalchemy.orm import Session
 
 # Default logging configuration
 DEFAULT_LOGGING = {
@@ -470,3 +472,12 @@ class QtContext(DbConn):
             logging.getLogger(__name__).error(
                 "Error while loading saved DB config: %s", e, exc_info=True
             )
+
+
+@contextmanager
+def same_session(session_or_ctx: "Session | QtContext"):
+    if isinstance(session_or_ctx, QtContext):
+        with session_or_ctx.same_session() as session:
+            yield session
+    else:
+        yield session_or_ctx
