@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8" />
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+
+    header {
+      padding: 8px 12px;
+      background: #f5f5f5;
+      border-bottom: 1px solid #ddd;
+    }
+
+    .sources {
+      font-size: 12px;
+      color: #555;
+      display: flex;
+      gap: 16px;
+    }
+
+    .container {
+      padding: 12px;
+    }
+
+    .section {
+      margin-top: 16px;
+      border-top: 1px solid #ccc;
+      padding-top: 8px;
+    }
+
+    .section h2 {
+      font-size: 16px;
+      margin: 8px 0;
+    }
+
+    .cmp-table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    .cmp-table td {
+      vertical-align: top;
+      padding: 6px 8px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .cmp-table td.field-name {
+      width: 200px;
+      min-width: 150px;
+      max-width: 300px;
+    }
+
+    .row {
+      border-radius: 4px;
+    }
+
+    .row.left_only {
+      background: #ffecec;
+    }
+
+    .row.right_only {
+      background: #ecffec;
+    }
+
+    .row.modified {
+      background: #fffbe6;
+    }
+
+    .cell {
+      border: 1px solid #eee;
+      padding: 4px 6px;
+    }
+
+    .cell .name {
+      color: #1e64d4;
+      font-size: 12px;
+      display: inline-block;
+      min-width: 120px;
+      margin-right: 6px;
+      font-weight: bold;
+    }
+
+    .ins {
+      background: #c9f7c7;
+    }
+
+    .del {
+      background: #f9c0c0;
+      text-decoration: line-through;
+    }
+
+    .parent-row {
+      font-weight: bold;
+      color: #333;
+      padding: 8px 6px;
+      background: #f9f9f9;
+      border-bottom: 1px solid #ddd;
+      margin-top: 8px;
+    }
+
+    .parent-row.has-mismatches {
+      background: #fffbe6;
+    }
+
+    .indent {
+      padding-left: 20px;
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div class="sources">
+      {% for name in source_names %}
+      <div>Source {{ loop.index }}: {{ name }}</div>
+      {% endfor %}
+    </div>
+  </header>
+
+  <div class="container">
+    {% macro render_node(node, depth) %}
+      {% if node.type == "leaf" %}
+        <table class="cmp-table">
+          <tbody>
+            <tr class="row {{ node.status }}">
+              <td class="cell field-name">
+                <span class="name">{{ node.label }}</span>
+              </td>
+              {% for cell in node.cells %}
+              <td class="cell" style="width: {{ (100 - 20) / num_sources }}%;">
+                <div>
+                  <span class="val">{{ cell.html | safe }}</span>
+                </div>
+              </td>
+              {% endfor %}
+            </tr>
+          </tbody>
+        </table>
+      {% elif node.type == "parent" %}
+        {% if depth > 0 %}
+          <div class="parent-row{% if node.mismatch_count > 0 %} has-mismatches{% endif %}">
+            {{ node.label }}{% if node.mismatch_count > 0 %} ({{ node.mismatch_count }} mismatch{{ 'es' if node.mismatch_count != 1 else '' }}){% endif %}
+          </div>
+        {% else %}
+          <div class="section">
+            <h2>{{ node.label }}</h2>
+          </div>
+        {% endif %}
+        <div class="indent">
+          {% for child in node.children %}
+            {{ render_node(child, depth + 1) }}
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endmacro %}
+
+    {% for child in tree.children %}
+      {{ render_node(child, 0) }}
+    {% endfor %}
+  </div>
+</body>
+
+</html>

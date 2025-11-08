@@ -1,3 +1,6 @@
+import html
+import logging
+from difflib import SequenceMatcher
 from typing import TYPE_CHECKING, Any, List, Optional
 
 from attrs import define, field
@@ -5,6 +8,8 @@ from attrs import define, field
 if TYPE_CHECKING:
     from exdrf_qt.comparator.logic.adapter import ComparatorAdapter
     from exdrf_qt.comparator.logic.manager import ComparatorManager
+
+logger = logging.getLogger(__name__)
 
 
 @define(eq=False)
@@ -141,3 +146,84 @@ class LeafNode(BaseNode):
             if self.are_equal_value is None:
                 self.are_equal_value = True
         return self.are_equal_value
+
+    def is_similar_enough(self, a: str, b: str, threshold: float = 0.6) -> bool:
+        """Check if two strings are similar enough using fuzzy matching.
+
+        Args:
+            a: First string to compare.
+            b: Second string to compare.
+            threshold: Similarity threshold (0.0 to 1.0). Default is 0.6.
+
+        Returns:
+            True if the strings are similar enough, False otherwise.
+        """
+        try:
+            return SequenceMatcher(None, a, b).ratio() >= threshold
+        except Exception:
+            logger.error(
+                "Failed to compare %s and %s",
+                a,
+                b,
+                exc_info=True,
+            )
+            return False
+
+    @staticmethod
+    def _html_escape(s: str) -> str:
+        """Escape HTML special characters.
+
+        Args:
+            s: String to escape.
+
+        Returns:
+            HTML-escaped string.
+        """
+        return html.escape(s)
+
+    def html_diff(
+        self,
+        left: str,
+        right: str,
+        ins_class: str = "ins",
+        del_class: str = "del",
+    ) -> tuple[str, str]:
+        """Produce inline diff HTML spans for two strings.
+
+        Args:
+            left: Left-side string.
+            right: Right-side string.
+            ins_class: CSS class for insertions. Default is "ins".
+            del_class: CSS class for deletions. Default is "del".
+
+        Returns:
+            A pair of HTML strings with <span> markers highlighting
+            deletions (left) and insertions (right).
+        """
+        try:
+            # Compute opcode sequence for granular differences.
+            sm = SequenceMatcher(None, left, right)
+            l_out: List[str] = []
+            r_out: List[str] = []
+
+            for tag, i1, i2, j1, j2 in sm.get_opcodes():
+                if tag == "equal":
+                    seg_l = self._html_escape(left[i1:i2])
+                    seg_r = self._html_escape(right[j1:j2])
+                    l_out.append(seg_l)
+                    r_out.append(seg_r)
+                elif tag == "insert":
+                    seg_r = self._html_escape(right[j1:j2])
+                    r_out.append(f'<span class="{ins_class}">{seg_r}</span>')
+                elif tag == "delete":
+                    seg_l = self._html_escape(left[i1:i2])
+                    l_out.append(f'<span class="{del_class}">{seg_l}</span>')
+                elif tag == "replace":
+                    seg_l = self._html_escape(left[i1:i2])
+                    seg_r = self._html_escape(right[j1:j2])
+                    l_out.append(f'<span class="{del_class}">{seg_l}</span>')
+                    r_out.append(f'<span class="{ins_class}">{seg_r}</span>')
+            return ("".join(l_out), "".join(r_out))
+        except Exception:
+            logger.exception("Failed inline diff, using plain")
+            return (self._html_escape(left), self._html_escape(right))

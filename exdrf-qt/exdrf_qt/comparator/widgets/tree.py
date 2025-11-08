@@ -8,6 +8,7 @@ from PyQt5.QtWidgets import (
     QAction,
     QApplication,
     QMenu,
+    QTabWidget,
     QTreeView,
     QVBoxLayout,
     QWidget,
@@ -413,24 +414,75 @@ class _MockAdapter(ComparatorAdapter):
 if __name__ == "__main__":
     # Minimal runnable demo
     logging.basicConfig(level=logging.INFO)
+
+    # Initialize Qt WebEngine before creating QApplication
+    # This must be done before QApplication is instantiated
+    # Import QtWebEngineWidgets to initialize the plugin
+    try:
+        import PyQt5.QtWebEngineWidgets  # noqa: F401
+    except ImportError:
+        # If import fails, try setting the attribute instead
+        try:
+            from PyQt5.QtCore import QCoreApplication, Qt
+
+            QCoreApplication.setAttribute(  # type: ignore
+                Qt.AA_ShareOpenGLContexts, True  # type: ignore
+            )
+        except Exception:
+            pass
+
     app = QApplication(sys.argv)
 
-    # Build manager with two mock sources
+    # Build manager with three mock sources
     manager = ComparatorManager()
     manager.sources = [
         _MockAdapter(name="Source A", values_suffix="A"),
         _MockAdapter(name="Source B", values_suffix="B"),
+        _MockAdapter(name="Source C", values_suffix="C"),
     ]
     manager.get_compare_data()
     manager.compare()
 
-    # Host widget containing the tree view
+    # Create host widget first (needed for context)
     host = QWidget()
+
+    # Create a minimal QtContext for the webview
+    import os
+
+    from exdrf_qt.context import LocalSettings, QtContext
+
+    ctx = QtContext(
+        c_string="",
+        stg=LocalSettings(),
+        top_widget=None,  # type: ignore
+        schema=os.environ.get("EXDRF_DB_SCHEMA", "public"),
+    )  # type: ignore
+    ctx.top_widget = host  # type: ignore
+
+    # Create layout with tabs for tree and webview
     layout = QVBoxLayout(host)
+
+    tabs = QTabWidget(host)
+    layout.addWidget(tabs)
+
+    # Tree view tab
     tree = ComparatorTreeView(manager=manager, parent=host)
-    layout.addWidget(tree)
-    host.resize(900, 600)
-    host.setWindowTitle("Comparator Tree Demo")
+    tabs.addTab(tree, "Tree View")
+
+    # Webview tab
+    try:
+        from exdrf_qt.comparator.widgets.webview import ComparatorWebView
+
+        webview = ComparatorWebView(
+            ctx=ctx, manager=manager, parent=host  # type: ignore
+        )
+        tabs.addTab(webview, "Web View")
+    except Exception as e:
+        logging.error("Failed to create webview: %s", e, exc_info=True)
+        # Continue without webview if it fails
+
+    host.resize(1200, 800)
+    host.setWindowTitle("Comparator Demo - Tree & Web View")
     host.show()
 
     sys.exit(app.exec_())

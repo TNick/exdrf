@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from difflib import SequenceMatcher
 from typing import Any, Optional
 
 from PyQt5.QtCore import QAbstractItemModel, QModelIndex, Qt
@@ -146,11 +145,11 @@ class ComparatorTreeModel(QAbstractItemModel):
                     crt_text = (
                         "" if crt_obj.value is None else str(crt_obj.value)
                     )
-                    if crt_text != base_text and self._is_similar_enough(
-                        base_text, crt_text
-                    ):
-                        left_html, _ = self._html_diff(base_text, crt_text)
-                        return left_html
+                    if crt_text != base_text:
+                        # Use LeafNode's similarity check and diff methods.
+                        if node.is_similar_enough(base_text, crt_text):
+                            left_html, _ = node.html_diff(base_text, crt_text)
+                            return left_html
                 return None
 
             if column > 0:
@@ -159,8 +158,8 @@ class ComparatorTreeModel(QAbstractItemModel):
                 if crt_obj is None or not crt_obj.exists or crt_obj is base_obj:
                     return None
                 crt_text = "" if crt_obj.value is None else str(crt_obj.value)
-                if self._is_similar_enough(base_text, crt_text):
-                    _, right_html = self._html_diff(base_text, crt_text)
+                if node.is_similar_enough(base_text, crt_text):
+                    _, right_html = node.html_diff(base_text, crt_text)
                     return right_html
             return None
 
@@ -248,7 +247,7 @@ class ComparatorTreeModel(QAbstractItemModel):
             crt_text = "" if crt.value is None else str(crt.value)
             if crt_text != base_text:
                 all_equal = False
-                if self._is_similar_enough(base_text, crt_text):
+                if node.is_similar_enough(base_text, crt_text):
                     has_partial = True
         if all_equal:
             return "equal"
@@ -270,52 +269,3 @@ class ComparatorTreeModel(QAbstractItemModel):
                 ):
                     return v_obj
         return None
-
-    def _is_similar_enough(self, a: str, b: str) -> bool:
-        try:
-            return SequenceMatcher(None, a, b).ratio() >= 0.6
-        except Exception:
-            logger.error(
-                "Failed to compare %s and %s",
-                a,
-                b,
-                exc_info=True,
-            )
-            return False
-
-    def _html_escape(self, s: str) -> str:
-        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-
-    def _html_diff(self, left: str, right: str) -> tuple[str, str]:
-        sm = SequenceMatcher(None, left, right)
-
-        def wrap_ins(text: str) -> str:
-            if not text:
-                return ""
-            return '<span style="background:#e6e6e6;">' + text + "</span>"
-
-        def wrap_del(text: str) -> str:
-            if not text:
-                return ""
-            return (
-                '<span style="background:#e6e6e6;'
-                'text-decoration:line-through;">' + text + "</span>"
-            )
-
-        l_parts: list[str] = []
-        r_parts: list[str] = []
-        for tag, i1, i2, j1, j2 in sm.get_opcodes():
-            l_seg = self._html_escape(left[i1:i2])
-            r_seg = self._html_escape(right[j1:j2])
-            if tag == "equal":
-                l_parts.append(l_seg)
-                r_parts.append(r_seg)
-            elif tag == "replace":
-                l_parts.append(wrap_del(l_seg))
-                r_parts.append(wrap_ins(r_seg))
-            elif tag == "delete":
-                l_parts.append(wrap_del(l_seg))
-            elif tag == "insert":
-                r_parts.append(wrap_ins(r_seg))
-
-        return ("".join(l_parts), "".join(r_parts))
