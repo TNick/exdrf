@@ -1,5 +1,5 @@
 import logging
-from typing import TYPE_CHECKING, Any, Optional, cast
+from typing import TYPE_CHECKING, Any, Dict, Optional, cast
 
 from exdrf.var_bag import VarBag
 from PyQt5.QtCore import (
@@ -9,7 +9,8 @@ from PyQt5.QtCore import (
     Qt,
     pyqtSignal,
 )
-from PyQt5.QtGui import QColor
+from PyQt5.QtGui import QBrush, QColor
+from typing_extensions import List
 
 from exdrf_qt.context_use import QtUseContext
 
@@ -39,6 +40,7 @@ class VarModel(QAbstractItemModel, QtUseContext):
     value_filter: str
     _var_bag: "VarBag"
     filtered_bag: "VarBag"
+    extra_context: Dict[str, Any]
 
     varDataChanged = pyqtSignal()
 
@@ -54,6 +56,7 @@ class VarModel(QAbstractItemModel, QtUseContext):
         self.filtered_bag = self._var_bag
         self.name_filter = ""
         self.value_filter = ""
+        self.extra_context = {}
 
     @property
     def var_bag(self) -> "VarBag":
@@ -66,6 +69,7 @@ class VarModel(QAbstractItemModel, QtUseContext):
         self.beginResetModel()
         self._var_bag = value
         self.filtered_bag = self._var_bag
+        self.extra_context = {}
         self.endResetModel()
 
     def rowCount(self, parent: QModelIndex = QModelIndex()):
@@ -130,6 +134,15 @@ class VarModel(QAbstractItemModel, QtUseContext):
         elif role == Qt.ItemDataRole.ForegroundRole:
             if column == 0:
                 return QColor("blue")
+        elif role == Qt.ItemDataRole.BackgroundRole:
+            override = self.extra_context.get(field.name, None)
+            if override:
+                if isinstance(override, str):
+                    return QBrush(QColor(override))
+                elif isinstance(override, QColor):
+                    return QBrush(override)
+                elif isinstance(override, QBrush):
+                    return override
         return None
 
     def headerData(
@@ -223,3 +236,38 @@ class VarModel(QAbstractItemModel, QtUseContext):
             self.filtered_bag.add_field(field, value)
         self.varDataChanged.emit()
         self.endResetModel()
+
+    def from_simple_data(self, data: Any):
+        for item in data:
+            field, value = self.var_bag.simple_to_one(item)
+            if field is None:
+                continue
+            color = item.get("bgcolor", None)
+            if color:
+                self.extra_context[field.name] = color
+
+    def to_simple_data(self) -> List[Dict[str, Any]]:
+        """Convert the variable bag data to a simple data structure.
+
+        The result is a list of dictionaries, each containing the name,
+        type, and value of a variable.
+
+        The simple values are:
+        - int
+        - float
+        - bool
+        - str
+        - list
+        - dict
+
+        Classes that are not one of those will be converted to a string
+        with the class name.
+        """
+        result = []
+        for name in self.var_bag.values.keys():
+            item = self.var_bag.one_to_simple(name)
+            result.append(item)
+            color = self.extra_context.get(name, None)
+            if color:
+                item["bgcolor"] = color
+        return result

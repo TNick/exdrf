@@ -1,5 +1,6 @@
 import logging
 import logging.config
+from contextlib import contextmanager
 from typing import TYPE_CHECKING, Any
 
 import sqlparse  # type: ignore
@@ -7,6 +8,9 @@ import sqlparse  # type: ignore
 if TYPE_CHECKING:
     from PyQt5.QtWidgets import QWidget  # noqa: F401
     from sqlalchemy import Select  # noqa: F401
+
+
+DISABLED = False
 
 
 def is_dict_arg(record: logging.LogRecord) -> bool:
@@ -32,6 +36,14 @@ def is_dict_arg(record: logging.LogRecord) -> bool:
 def pformat(obj: Any) -> str:
     """Pretty-print a _repr_params object."""
     result = []
+    if isinstance(obj.params, (tuple, list)):
+        for i, v in enumerate(obj.params):
+            if isinstance(v, str):
+                result.append(f'  {i}: "{v}",')
+            else:
+                result.append(f"  {i}: {v},")
+        return "(\n" + "\n".join(result) + "\n)"
+
     for k, v in obj.params.items():
         if isinstance(v, str):
             result.append(f'  {k}: "{v}",')
@@ -46,6 +58,9 @@ class SQLPrettyFormatter(logging.Formatter):
     """Custom formatter that pretty-prints SQL statements from SQLAlchemy."""
 
     def format(self, record):
+        if DISABLED:
+            return super().format(record)
+
         msg = record.getMessage()
 
         if record.name == "sqlalchemy.engine.Engine" and isinstance(
@@ -71,4 +86,18 @@ class SQLPrettyFormatter(logging.Formatter):
             except Exception as e:
                 # fallback to default formatting if sqlparse fails
                 print(f"Error formatting SQL: {record.msg}: {e}")
+
+                import traceback
+
+                traceback.print_exc()
         return super().format(record)
+
+
+@contextmanager
+def disable_sql_formatter():
+    global DISABLED
+    DISABLED = True
+    try:
+        yield
+    finally:
+        DISABLED = False

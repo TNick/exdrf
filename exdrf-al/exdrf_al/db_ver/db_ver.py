@@ -162,8 +162,11 @@ class DbVer:
             engine: The database engine.
             migrations: The migrations module (`myapp:migrations`).
         """
-        with self.alembic_config() as alembic_cfg:
-            command.upgrade(alembic_cfg, target)
+        from exdrf_qt.utils.sql_formatter import disable_sql_formatter
+
+        with disable_sql_formatter():
+            with self.alembic_config() as alembic_cfg:
+                command.upgrade(alembic_cfg, target)
 
     def initial(self, metadata, message: str = "Initial schema"):
         """Create the initial migration that creates the tables.

@@ -333,15 +333,55 @@ class ExField:
         elif self.type_name == FIELD_TYPE_DT:
             return datetime.strptime(value, "%Y-%m-%dT%H:%M:%S")
         elif self.type_name == FIELD_TYPE_REF_ONE_TO_MANY:
-            return value.split(",")
+            if isinstance(value, (tuple, list)):
+                return list(value)
+            elif isinstance(value, str):
+                return value.split(",")
+            else:
+                raise ValueError(
+                    f"Invalid value for one-to-many: {value} of "
+                    f"type {type(value)}"
+                )
         elif self.type_name == FIELD_TYPE_REF_MANY_TO_MANY:
-            return value.split(",")
+            if isinstance(value, (tuple, list)):
+                return list(value)
+            elif isinstance(value, str):
+                return value.split(",")
+            else:
+                raise ValueError(
+                    f"Invalid value for many-to-many: {value} of "
+                    f"type {type(value)}"
+                )
         elif self.type_name == FIELD_TYPE_INT_LIST:
-            return [int(v) for v in value.split(",")]
+            if isinstance(value, (tuple, list)):
+                return list(value)
+            elif isinstance(value, str):
+                return [int(v) for v in value.split(",")]
+            else:
+                raise ValueError(
+                    f"Invalid value for int list: {value} of "
+                    f"type {type(value)}"
+                )
         elif self.type_name == FIELD_TYPE_FLOAT_LIST:
-            return [float(v) for v in value.split(",")]
+            if isinstance(value, (tuple, list)):
+                return list(value)
+            elif isinstance(value, str):
+                return [float(v) for v in value.split(",")]
+            else:
+                raise ValueError(
+                    f"Invalid value for float list: {value} of "
+                    f"type {type(value)}"
+                )
         elif self.type_name == FIELD_TYPE_STRING_LIST:
-            return value.split(",")
+            if isinstance(value, (tuple, list)):
+                return list(value)
+            elif isinstance(value, str):
+                return value.split(",")
+            else:
+                raise ValueError(
+                    f"Invalid value for string list: {value} of "
+                    f"type {type(value)}"
+                )
         else:
             return value
 

@@ -52,6 +52,7 @@ from exdrf_qt.controls.crud_actions import (
     RouteProvider,
 )
 from exdrf_qt.controls.templ_viewer.add_var_dlg import NewVariableDialog
+from exdrf_qt.controls.templ_viewer.delegate import VarItemDelegate
 from exdrf_qt.controls.templ_viewer.header import VarHeader
 from exdrf_qt.controls.templ_viewer.html_to_docx.main import HtmlToDocxConverter
 from exdrf_qt.controls.templ_viewer.model import VarModel
@@ -180,6 +181,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
     ac_others: List[Union["AcBase", QAction, None]]
     mnu_snippets: "QMenu"
     _prevent_render: bool
+    _prevent_save: bool
 
     def __init__(
         self,
@@ -212,6 +214,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
             other_actions: The other actions of the template viewer.
             prevent_render: Whether to prevent the template from being rendered.
         """
+        self._prevent_save = False
         self._prevent_render = prevent_render
         self.ctx = ctx
         self._current_template_file = None
@@ -353,21 +356,31 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
         self.c_vars.setUniformRowHeights(True)
 
         # Set alternating row colors
-        self.c_vars.setAlternatingRowColors(True)
+        self.c_vars.setAlternatingRowColors(False)
         self.c_vars.setStyleSheet(
             """
             QTreeView {
-                alternate-background-color: #f0f0f0;
-                background-color: white;
                 font-size: 12px;
             }
             """
         )
+        # print(QApplication.instance().styleSheet())
 
         # Use custom header
         self.header = VarHeader(parent=self.c_vars, ctx=self.ctx, viewer=self)
         self.c_vars.setHeader(self.header)
         self.header.setStretchLastSection(True)
+
+        # Install custom delegate for editing values by type.
+        try:
+            self._var_delegate = VarItemDelegate(
+                parent=self.c_vars, ctx=self.ctx
+            )
+            self.c_vars.setItemDelegate(self._var_delegate)
+        except Exception as e:
+            logger.error(
+                "Failed to install VarItemDelegate: %s", e, exc_info=True
+            )
 
         # Context menu for the list of variables.
         self.c_vars.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -388,8 +401,20 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
     def prevent_render(self):
         """Prevent the template from being rendered."""
         self._prevent_render = True
-        yield
-        self._prevent_render = False
+        try:
+            yield
+        finally:
+            self._prevent_render = False
+        self.render_template()
+
+    @contextmanager
+    def prevent_save(self):
+        """Prevent the template from being rendered."""
+        self._prevent_save = True
+        try:
+            yield
+        finally:
+            self._prevent_save = False
         self.render_template()
 
     @property
@@ -1238,6 +1263,9 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
 
     def on_editor_text_changed(self):
         """Handle the change of the editor text."""
+        if self._prevent_save:
+            logger.log(1, "Skipping auto-save in prevent_save mode")
+            return
         self._use_edited_text = True
         if self._auto_save_timer.isActive():
             self._auto_save_timer.stop()
@@ -1246,6 +1274,10 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
 
     def _perform_auto_save(self):
         """Perform the actual auto-save operation."""
+        if self._prevent_save:
+            logger.log(1, "Skipping auto-save in prevent_save mode")
+            return
+
         if self._auto_save_to is not None:
             try:
                 with open(self._auto_save_to, "w", encoding="utf-8") as f:

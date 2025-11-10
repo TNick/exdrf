@@ -1,6 +1,6 @@
 import re
 from datetime import date, datetime
-from typing import Any, Dict, Iterator, List, Tuple
+from typing import Any, Dict, Iterator, List, Tuple, Union
 
 from attrs import define, field
 
@@ -273,16 +273,17 @@ class VarBag:
         """
         result = []
         for name in self.values.keys():
-            fld = self._fields.get(name)
-            type_name = fld.type_name if fld else FIELD_TYPE_STRING
-            result.append(
-                {
-                    "name": name,
-                    "type": type_name,
-                    "value": self.simplify_value(self.values[name]),
-                }
-            )
+            result.append(self.one_to_simple(name))
         return result
+
+    def one_to_simple(self, name: str) -> Dict[str, Any]:
+        fld = self._fields.get(name)
+        type_name = fld.type_name if fld else FIELD_TYPE_STRING
+        return {
+            "name": name,
+            "type": type_name,
+            "value": self.simplify_value(self.values[name]),
+        }
 
     def from_simple_data(self, data: Any):
         """Populate the variable bag from a simple data structure.
@@ -291,17 +292,33 @@ class VarBag:
         containing the name, type, and value of a variable.
         """
         for item in data:
-            type_name = item.get("type", FIELD_TYPE_STRING)
-            cls_for_type = field_type_to_class.get(type_name, StrField)
-            name = item.get("name", "")
-            if not name:
-                continue
-            if name not in self.values:
+            self.simple_to_one(item)
+
+    def simple_to_one(
+        self, item: Dict[str, Any]
+    ) -> Tuple[Union["ExField", None], Any]:
+        """Load a single item from a simple data structure into the variable
+        bag.
+
+        Returns:
+            A tuple containing the field and the value.
+            None, None if the item has no name.
+        """
+        type_name = item.get("type", FIELD_TYPE_STRING)
+        cls_for_type = field_type_to_class.get(type_name, StrField)
+        name = item.get("name", "")
+        if not name:
+            return None, None
+
+        if name not in self.values:
+            inst = cls_for_type(name=name)
+            self._fields[name] = inst
+        else:
+            inst = self._fields.get(name)
+            if inst is None:
                 inst = cls_for_type(name=name)
                 self._fields[name] = inst
-            else:
-                inst = self._fields.get(name)
-                if inst is None:
-                    inst = cls_for_type(name=name)
-                    self._fields[name] = inst
-            self.values[name] = inst.value_from_str(item.get("value", ""))
+
+        value = item.get("value", "")
+        self.values[name] = inst.value_from_str(value)
+        return inst, value

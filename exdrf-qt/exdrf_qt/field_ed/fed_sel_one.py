@@ -133,11 +133,15 @@ class DrfSelOneEditor(QWidget, Generic[DBM], DrfFieldEd):
         """Show the popup."""
         # Prevent popup from opening if not in edit mode.
         if not self._in_editing:
-            logger.log(10, "DrfSelOneEditor.show_popup(): not in editing mode")
+            logger.log(
+                10,
+                "%s.show_popup(): not in editing mode",
+                self.__class__.__name__,
+            )
             return
 
         # Position and display the popup below the line edit.
-        logger.log(10, "DrfSelOneEditor.show_popup()")
+        logger.log(10, "%s.show_popup()", self.__class__.__name__)
         self.popup.move(self.mapToGlobal(QPoint(0, self.height())))
         self.popup.resize(self.width(), 150)
         self.popup.show()
@@ -168,11 +172,13 @@ class DrfSelOneEditor(QWidget, Generic[DBM], DrfFieldEd):
 
     def on_item_selected(self, item: "QtRecord"):
         # Handle selection of a record from the popup.
-        logger.log(10, "DrfSelOneEditor.on_item_selected(%s)", item.db_id)
+        logger.log(
+            10, "%s.on_item_selected(%s)", self.__class__.__name__, item.db_id
+        )
 
         # Update the line edit with the selected record's display text.
         text = item.display_text()
-        logger.log(10, "DrfSelOneEditor.on_item_selected: %s", text)
+        logger.log(10, "%s.on_item_selected: %s", self.__class__.__name__, text)
 
         self.line_edit.setText(text)
         self.popup.hide()
@@ -182,7 +188,7 @@ class DrfSelOneEditor(QWidget, Generic[DBM], DrfFieldEd):
 
     def resizeEvent(self, event: QResizeEvent | None) -> None:  # type: ignore
         # Handle widget resize events.
-        logger.log(1, "DrfSelOneEditor.resizeEvent")
+        logger.log(1, "%s.resizeEvent", self.__class__.__name__)
         super().resizeEvent(event)
         # Resize the popup to match the widget width if it's visible.
         if self.popup and self.popup.isVisible():
@@ -272,14 +278,19 @@ class DrfSelOneEditor(QWidget, Generic[DBM], DrfFieldEd):
         """
         # Prevent changes if the field is read-only.
         if self._read_only:
-            logger.log(10, "DrfSelOneEditor.change_field_value(): read only")
+            logger.log(
+                10,
+                "%s.change_field_value(): read only",
+                self.__class__.__name__,
+            )
             return
 
         # Handle None values by clearing the field.
         if new_value is None:
             logger.log(
                 10,
-                "DrfSelOneEditor.change_field_value(): None",
+                "%s.change_field_value(): None",
+                self.__class__.__name__,
             )
             self.set_to_null()
             return
@@ -288,13 +299,15 @@ class DrfSelOneEditor(QWidget, Generic[DBM], DrfFieldEd):
         if hasattr(new_value, "metadata"):
             logger.log(
                 10,
-                "DrfSelOneEditor.change_field_value(): database record",
+                "%s.change_field_value(): database record",
+                self.__class__.__name__,
             )
-            new_value = self.qt_model.get_db_item_id(new_value)
+            new_value = self.qt_model.get_db_item_id(new_value)  # type: ignore
 
         logger.log(
             1,
-            "DrfSelOneEditor.change_field_value() to %s (%s)",
+            "%s.change_field_value() to %s (%s)",
+            self.__class__.__name__,
             new_value,
             new_value.__class__.__name__,
         )
@@ -305,7 +318,8 @@ class DrfSelOneEditor(QWidget, Generic[DBM], DrfFieldEd):
         if new_value == self.field_value:
             logger.log(
                 1,
-                "DrfSelOneEditor.change_field_value(): same value: %s",
+                "%s.change_field_value(): same value: %s",
+                self.__class__.__name__,
                 new_value,
             )
             return
@@ -318,8 +332,8 @@ class DrfSelOneEditor(QWidget, Generic[DBM], DrfFieldEd):
             if record.loaded:
                 logger.log(
                     1,
-                    "DrfSelOneEditor.change_field_value(): "
-                    "record found in cache:",
+                    "%s.change_field_value(): " "record found in cache:",
+                    self.__class__.__name__,
                 )
                 self.line_edit.setText(self.record_to_text(record))
                 loaded = True
@@ -330,8 +344,9 @@ class DrfSelOneEditor(QWidget, Generic[DBM], DrfFieldEd):
                 if db_item is None:
                     logger.log(
                         10,
-                        "DrfSelOneEditor.change_field_value(): "
+                        "%s.change_field_value(): "
                         "record not found: %s; setting to null",
+                        self.__class__.__name__,
                         new_value,
                     )
                     self.set_to_null()
@@ -339,8 +354,8 @@ class DrfSelOneEditor(QWidget, Generic[DBM], DrfFieldEd):
                 record = self.qt_model.db_item_to_record(db_item)
                 logger.log(
                     10,
-                    "DrfSelOneEditor.change_field_value(): "
-                    "record loaded from database:",
+                    "%s.change_field_value(): " "record loaded from database:",
+                    self.__class__.__name__,
                 )
                 self.line_edit.setText(self.record_to_text(record))
 
@@ -356,7 +371,8 @@ class DrfSelOneEditor(QWidget, Generic[DBM], DrfFieldEd):
         if not self._in_editing:
             logger.log(
                 10,
-                "DrfSelOneEditor.set_to_null(): not in editing mode",
+                "%s.set_to_null(): not in editing mode",
+                self.__class__.__name__,
             )
             return
 
