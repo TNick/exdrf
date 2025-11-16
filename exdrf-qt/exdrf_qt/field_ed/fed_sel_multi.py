@@ -84,7 +84,7 @@ class DrfSelMultiEditor(DropBase, Generic[DBM]):
             self.set_line_null()
             return
 
-        self.field_value = []
+        self._field_value = []
         content: List[Any] = []
         not_set = {}
         for itr in new_value:
@@ -152,8 +152,7 @@ class DrfSelMultiEditor(DropBase, Generic[DBM]):
                 cnt=len(self._dropdown.qt_model.checked_ids),  # type: ignore
             )
         )
-        self.field_value = self._dropdown.qt_model.checked_ids
-        self.controlChanged.emit()
+        self.field_value = list(self._dropdown.qt_model.checked_ids or [])
 
     def set_line_null(self):
         super().set_line_null()

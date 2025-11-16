@@ -113,7 +113,7 @@ class DrfSelOneEditor(QWidget, Generic[DBM], DrfFieldEd):
         # Set up the layout with the line edit.
         layout = QHBoxLayout(self)
         layout.addWidget(self.line_edit)
-        layout.setContentsMargins(4, 0, 4, 0)
+        layout.setContentsMargins(0, 0, 0, 0)
 
         # Create and connect the popup widget for record selection.
         self.popup = PopupWidget(parent=self, ctx=ctx, qt_model=qt_model)
