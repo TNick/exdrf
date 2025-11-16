@@ -228,7 +228,8 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
         super().__init__(parent)
 
         # Prepare the model.
-        assert var_bag is not None
+        if var_bag is None:
+            var_bag = VarBag()
         self.model = var_model or VarModel(
             ctx=ctx, var_bag=var_bag, parent=self
         )
@@ -241,7 +242,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
 
         # Browse for the template file.
         self.c_sel_templ.clicked.connect(self.on_browse_templ_file)
-        self.c_templ.textChanged.connect(self.on_templ_file_changed)
+        self.c_templ.textChanged.connect(self.set_template_source)
 
         # Context menu for template editor.
         self.c_editor.setContextMenuPolicy(
@@ -408,14 +409,16 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
         self.render_template()
 
     @contextmanager
-    def prevent_save(self):
+    def prevent_save(self, rerender: bool = True):
         """Prevent the template from being rendered."""
         self._prevent_save = True
         try:
             yield
         finally:
             self._prevent_save = False
-        self.render_template()
+
+        if rerender:
+            self.render_template()
 
     @property
     def highlight_code(self) -> bool:
@@ -883,7 +886,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
         if file_name:
             self.c_templ.setText(file_name)
 
-    def on_templ_file_changed(self, text: Optional[str]):
+    def set_template_source(self, text: Optional[str]):
         """React to change in the text of the template file line edit.
 
         The template is compiled and the source code is displayed in the
@@ -892,42 +895,43 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
         Args:
             text: The file system path or module path to the template file.
         """
-        if not text:
-            self.c_templ.setStyleSheet("QLineEdit { color: black; }")
-            self.c_templ.setToolTip(
-                self.t("templ.open-dlg.none", "No template file selected")
-            )
-            self._current_template = None
-            self._current_template_file = None
-            self._use_edited_text = False
-            self.c_editor.setPlainText("")
-            self.render_template()
-            return
+        with self.prevent_save(rerender=False):
+            if not text:
+                self.c_templ.setStyleSheet("QLineEdit { color: black; }")
+                self.c_templ.setToolTip(
+                    self.t("templ.open-dlg.none", "No template file selected")
+                )
+                self._current_template = None
+                self._current_template_file = None
+                self._use_edited_text = False
+                self.c_editor.setPlainText("")
+                self.render_template()
+                return
 
-        try:
-            self._current_template = self.jinja_env.get_template(text)
-            self.c_templ.setStyleSheet("QLineEdit { color: black; }")
-            self.c_templ.setToolTip("")
+            try:
+                self._current_template = self.jinja_env.get_template(text)
+                self.c_templ.setStyleSheet("QLineEdit { color: black; }")
+                self.c_templ.setToolTip("")
 
-            loader = self.jinja_env.loader
-            assert loader is not None
-            source, filename, _ = loader.get_source(self.jinja_env, text)
-            # self.c_editor.blockSignals(True)
-            # self.c_editor.setPlainText(source)
-            # self.c_editor.blockSignals(False)
-            self._current_template_file = filename
-            self._use_edited_text = False
-            self.render_template()
-            if self.c_editor.toPlainText() != source:
-                self.c_editor.blockSignals(True)
-                self.c_editor.setPlainText(source)
-                self.c_editor.blockSignals(False)
+                loader = self.jinja_env.loader
+                assert loader is not None
+                source, filename, _ = loader.get_source(self.jinja_env, text)
+                # self.c_editor.blockSignals(True)
+                # self.c_editor.setPlainText(source)
+                # self.c_editor.blockSignals(False)
+                self._current_template_file = filename
+                self._use_edited_text = False
+                self.render_template()
+                if self.c_editor.toPlainText() != source:
+                    self.c_editor.blockSignals(True)
+                    self.c_editor.setPlainText(source)
+                    self.c_editor.blockSignals(False)
 
-        except Exception as e:
-            logger.error("Error loading template: %s", e, exc_info=True)
-            self.c_templ.setStyleSheet("QLineEdit { color: red; }")
-            self.c_templ.setToolTip(str(e))
-            self.show_exception(e, traceback.format_exc())
+            except Exception as e:
+                logger.error("Error loading template: %s", e, exc_info=True)
+                self.c_templ.setStyleSheet("QLineEdit { color: red; }")
+                self.c_templ.setToolTip(str(e))
+                self.show_exception(e, traceback.format_exc())
 
     def on_switch_mode(self, checked: bool):
         """Switch between source and rendered mode.
