@@ -1,7 +1,7 @@
 import io
 import os
 import re
-from typing import List, Set, Tuple
+from typing import List, Optional, Set, Tuple
 
 import click
 
@@ -149,9 +149,16 @@ class Fixer:
             for cw in self._custom_widgets:
                 matcher = f" = {cw}("
                 if matcher in line:
-                    line = (
-                        line[:-1].replace("(", "(parent=") + ", ctx=self.ctx)"
-                    )
+                    next_char = line[line.index(matcher) + len(matcher)]
+                    if next_char == ")":
+                        # In some rare cases (non-standard use of the ui
+                        # language), the widget is created using
+                        # self.xxx = CustomWidget() instead of
+                        # self.xxx = CustomWidget(parent=self).
+                        replacer = "(parent=self"
+                    else:
+                        replacer = "(parent="
+                    line = line[:-1].replace("(", replacer) + ", ctx=self.ctx)"
 
             changed.append(line)
 
@@ -223,7 +230,9 @@ class Fixer:
         return ("\n".join(self._modified_text) + "\n").replace("\n\n\n", "\n\n")
 
 
-def convert_pair(ui_file: str, py_file: str) -> int:
+def convert_pair(
+    ui_file: str, py_file: str, keep_original: Optional[str] = None
+) -> int:
     from PyQt5 import uic
 
     if not os.path.exists(ui_file):
@@ -255,7 +264,13 @@ def convert_pair(ui_file: str, py_file: str) -> int:
     except Exception as e:
         print(f"Error compiling {ui_file}: {e}")
         return 1
-    fx = Fixer(output.getvalue(), custom_widgets)
+
+    original = output.getvalue()
+    if keep_original:
+        with open(keep_original, "w", encoding="utf-8") as f:
+            f.write(original)
+
+    fx = Fixer(original, custom_widgets)
     if os.path.isfile(py_file):
         os.remove(py_file)
     output.close()
@@ -305,6 +320,7 @@ def cli():
 )
 def cli_gen_ui_file(files, ex_file_name, ex_dir_name):
     """Generate UI files from .ui files."""
+    keep_original = None
     if len(files) == 1:
         if os.path.isdir(files[0]):
             convert_dir(files[0], set(ex_file_name), set(ex_dir_name))
@@ -315,13 +331,17 @@ def cli_gen_ui_file(files, ex_file_name, ex_dir_name):
     elif len(files) == 2:
         src_file = files[0]
         dst_file = files[1]
+    elif len(files) == 3:
+        src_file = files[0]
+        dst_file = files[1]
+        keep_original = files[2]
     else:
         click.echo("Invalid number of arguments.", err=True)
         click.echo(
             "Either provide one source directory or two files.", err=True
         )
         return
-    convert_pair(src_file, dst_file)  # type: ignore[arg-type]
+    convert_pair(src_file, dst_file, keep_original)  # type: ignore[arg-type]
 
 
 if __name__ == "__main__":
