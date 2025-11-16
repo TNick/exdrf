@@ -8,7 +8,7 @@ inflect_e = inflect.engine()
 
 def doc_lines(text: str) -> List[str]:
     """Get the docstring as a set of lines."""
-    docs = text.split("\n")
+    docs = (text or "").split("\n")
     result = []
     for i, d in enumerate(docs):
         if i > 0:
