@@ -949,7 +949,11 @@ class QtModel(
         row = row - len(self.top_cache)
 
         item = self.cache[row]
-        if role == Qt.ItemDataRole.DisplayRole and not item.loaded:
+        if (
+            role == Qt.ItemDataRole.DisplayRole
+            and not item.loaded
+            and not item.error
+        ):
             self.request_items(row, self.batch_size)
 
         if role == Qt.ItemDataRole.CheckStateRole:
