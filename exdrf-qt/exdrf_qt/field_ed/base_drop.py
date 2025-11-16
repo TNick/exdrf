@@ -71,3 +71,10 @@ class DropBase(LineBase):
         self._dropdown.show()
         # self.btm_tip.hide()
         QTimer.singleShot(10, lambda: self.setFocus())  # type: ignore[arg-type]
+
+    def setEnabled(self, enabled: bool) -> None:  # type: ignore[override]
+        super().setEnabled(enabled)
+        self.dropdown_action.setEnabled(enabled and not self._read_only)
+        if self.nullable:
+            assert self.ac_clear is not None
+            self.ac_clear.setEnabled(enabled and not self._read_only)
