@@ -127,7 +127,7 @@ class JoinLoad:
             lines.append(f"{s_indent_1}).load_only(")
             for lo in self.load_only:
                 lines.append(f"{s_indent_2}Db{repr(lo)},")
-            lines.append(f"{s_indent_1})")
+            lines.append(f"{s_indent_1}),")
         elif level == 0 and not self.children:
             # Output the basic joinedload if no children and no load_only
             st = self.container.strategy
@@ -180,30 +180,36 @@ class JoinLoad:
 
         # Make sure that this is a leaf field, not a relation.
         crt_model = related_model
-        for part in parts[:-1]:
-            crt_model = cast("RefBaseField", crt_model[part]).ref
-        src_field = crt_model[parts[-1]]
+        m_key = parts[-1]
+        i_p = len(parts) - 1
+        for i_p, part in enumerate(parts[:-1]):
+            try:
+                crt_model = cast("RefBaseField", crt_model[part]).ref
+            except AttributeError:
+                m_key = part
+                break
+        src_field = crt_model[m_key]
         if src_field.is_ref_type:
             return
 
         # The parts up to but excluding last one generate joins, the
         # last one generates a load_only.
         crt_join = self
-        crt_model = related_model
-        for part in parts[:-1]:
-            crt_join = crt_join.get_join(crt_model, part)
-            crt_model = cast("RefBaseField", crt_model[part]).ref
+        join_model = related_model
+        for part in parts[:i_p]:
+            crt_join = crt_join.get_join(join_model, part)
+            join_model = cast("RefBaseField", join_model[part]).ref
 
         # Add the field to the load_only list of the last join.
         for lo in crt_join.load_only:
-            if lo.name == parts[-1]:
+            if lo.name == m_key:
                 return
 
         crt_join.load_only.append(
             FieldRef(
                 resource=crt_model,
-                name=parts[-1],
-                is_list=crt_model[parts[-1]].is_list,
+                name=m_key,
+                is_list=src_field.is_list,
             )
         )
 

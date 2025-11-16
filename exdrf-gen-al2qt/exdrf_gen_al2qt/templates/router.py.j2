@@ -112,7 +112,7 @@ class ExdrfRouter(BaseRouter):
             Qt{{ mdl.pascal_case_name }}Tv,
         )
         
-        router.open_viewer(
+        return router.open_viewer(
             router.ctx.get_ovr(
                 "{{ out_module }}.{{ mdl.categories[0] }}.{{ mdl.snake_case_name_plural }}.qt.viewer",
                 Qt{{ mdl.pascal_case_name }}Tv
@@ -126,7 +126,7 @@ class ExdrfRouter(BaseRouter):
             Qt{{ mdl.pascal_case_name }}List
         )
 
-        router.open_list(
+        return router.open_list(
             router.ctx.get_ovr(
                 "{{ out_module }}.{{ mdl.categories[0] }}.{{ mdl.snake_case_name_plural }}.qt.list",
                 Qt{{ mdl.pascal_case_name }}List
@@ -139,7 +139,7 @@ class ExdrfRouter(BaseRouter):
             Qt{{ mdl.pascal_case_name }}Editor,
         )
 
-        router.open_editor(
+        return router.open_editor(
             router.ctx.get_ovr(
                 "{{ out_module }}.{{ mdl.categories[0] }}.{{ mdl.snake_case_name_plural }}.qt.editor",
                 Qt{{ mdl.pascal_case_name }}Editor
@@ -153,7 +153,7 @@ class ExdrfRouter(BaseRouter):
             Qt{{ mdl.pascal_case_name }}Editor,
         )
 
-        router.open_editor(
+        return router.open_editor(
             router.ctx.get_ovr(
                 "{{ out_module }}.{{ mdl.categories[0] }}.{{ mdl.snake_case_name_plural }}.qt.editor",
                 Qt{{ mdl.pascal_case_name }}Editor
@@ -164,7 +164,7 @@ class ExdrfRouter(BaseRouter):
     def delete_{{ mdl.snake_case_name }}(router: "ExdrfRouter", {{ field_params(mdl.primary_inst_fields()) }}):
         from {{ db_module }}.{{ mdl.categories[0] }}.api import {{ mdl.pascal_case_name }}
         
-        router.delete_record(
+        return router.delete_record(
             {{ mdl.pascal_case_name }},
             id=(
                 {{ field_args(mdl.primary_inst_fields()) }},
