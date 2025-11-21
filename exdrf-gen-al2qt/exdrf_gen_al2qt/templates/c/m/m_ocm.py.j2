@@ -3,11 +3,12 @@
 # Don't change it manually.
 
 from typing import TYPE_CHECKING, Union
+import logging
+
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload, selectinload, load_only, load_only
 from exdrf_qt.plugins import exdrf_qt_pm
 from exdrf_qt.utils.plugins import safe_hook_call
-
 from {{ out_module }}.{{ r.categories[0] }}.{{ r.snake_case_name_plural }}.models.{{ res_snake }}_ful import (
     Qt{{ ResPascal }}FuMo
 )
@@ -42,15 +43,23 @@ def default_{{ r.snake_case_name }}_ocm_selection():
     {%- endif %}
     {%- endfor %}
 
-    return (
-        select(Db{{ ResPascal }})
+    try:
+        return (
+            select(Db{{ ResPascal }})
 
-        {%- for path in all_related_label_paths %}
-        .options(
+            {%- for path in all_related_label_paths %}
+            .options(
 {{ path.stringify() }}
+            )
+            {%- endfor %}
         )
-        {%- endfor %}
-    )
+    except Exception as e:
+        logging.getLogger(__name__).error(
+            "Error creating default selection for {{ r.snake_case_name }}",
+            exc_info=True,
+        )
+        return select(Db{{ ResPascal }})
+
 
 class Qt{{ ResPascal }}NaMo(Qt{{ ResPascal }}FuMo):
     """The model that contains only the label field of the

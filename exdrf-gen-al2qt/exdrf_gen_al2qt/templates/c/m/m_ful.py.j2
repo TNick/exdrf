@@ -3,6 +3,7 @@
 # Don't change it manually.
 
 from typing import TYPE_CHECKING, Union, Optional, Any, Tuple, List
+import logging
 
 from exdrf.constants import RecIdType
 from exdrf_qt.models import QtModel
@@ -42,15 +43,21 @@ def default_{{ r.snake_case_name }}_list_selection():
     )
     {%- endif %}
     {%- endfor %}
-
-    return (
-        select(Db{{ ResPascal }})
-        {%- for path in all_related_paths %}
-        .options(
+    try:
+        return (
+            select(Db{{ ResPascal }})
+            {%- for path in all_related_paths %}
+            .options(
 {{ path.stringify() }}
+            )
+            {%- endfor %}
         )
-        {%- endfor %}
-    )
+    except Exception as e:
+        logging.getLogger(__name__).error(
+            "Error creating default selection for {{ r.snake_case_name }}",
+            exc_info=True,
+        )
+        return select(Db{{ ResPascal }})
 
 
 class Qt{{ ResPascal }}FuMo(QtModel["{{ ResPascal }}"]):
