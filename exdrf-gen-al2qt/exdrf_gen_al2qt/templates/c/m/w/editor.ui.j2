@@ -76,7 +76,7 @@
         %}
         {%- if read_only_data is not none %}
         {%- if read_only_data.get("ui_xml", None) %}
-        {{ read_only_data["ui_xml"] }}
+        {{ read_only_data["ui_xml"].format(field=field.name) }}
         {%- else %}{# if read_only_data.get("ui_xml", None) #}
         <widget class="QLineEdit" name="c_{{ field.name }}">
          <property name="readOnly">
@@ -124,17 +124,29 @@
  <customwidgets>
  {%- set seen_widgets = set() %}
  {%- for field in r.sorted_fields() %}
-  {%- if base_ui_class(field) not in seen_widgets %}
+  {%-
+      set read_only_data = read_only_fields.get(
+        r.name + "." + field.name, 
+        read_only_fields.get(
+          field.name,
+          {}
+        )
+      )
+  %}
+  {%- set b_ui = read_only_data.get("custom_ui_xml", base_ui_class(field)) %}
+  {%- if b_ui not in seen_widgets %}
   <customwidget>
-    <class>{{ base_ui_class(field) }}</class>
+    <class>{{ b_ui }}</class>
     <extends>QLineEdit</extends>
-    {%- if field.is_ref_type %}
+    {%- if read_only_data.get("custom_header", None) %}
+    <header>{{ read_only_data["custom_header"] }}</header>
+    {%- elif field.is_ref_type %}
     <header>{{ out_module }}.{{ field.ref.categories[0] }}.{{ field.ref.snake_case_name_plural }}.api</header>
     {%- else %}
     <header>exdrf_qt.field_ed.api</header>
     {%- endif %}
   </customwidget>
-  {%- set _ = seen_widgets.add(base_ui_class(field)) %}
+  {%- set _ = seen_widgets.add(b_ui) %}
   {%- endif %}
  {%- endfor %}
  </customwidgets>
