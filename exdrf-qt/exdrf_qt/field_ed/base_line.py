@@ -1,7 +1,7 @@
 from typing import Optional, cast
 
 from PyQt5.QtCore import QEvent, QPoint, QRect, Qt, pyqtSignal
-from PyQt5.QtWidgets import QAction, QApplication, QLabel, QLineEdit
+from PyQt5.QtWidgets import QAction, QLabel, QLineEdit, QVBoxLayout, QWidget
 
 from exdrf_qt.field_ed.base import DrfFieldEd
 
@@ -78,22 +78,58 @@ class InfoLabel(QLabel):
         self.last_label_rect = self.frameGeometry()
 
 
-class LineBase(QLineEdit, DrfFieldEd):
+class SpecialLine(QLineEdit):
+
+    def keyPressEvent(self, event):  # type: ignore[override]
+        result = super().keyPressEvent(event)
+        # if event.key() == Qt.Key.Key_Escape:
+        #     self.btm_tip.hide()
+        #     self.clearFocus()
+        if (
+            event.type() == QEvent.Type.KeyPress
+            and event.key() == Qt.Key.Key_Space
+            and (event.modifiers() & Qt.KeyboardModifier.ControlModifier)
+        ):
+            cast("LineBase", self.parentWidget()).showChoices.emit()
+        return result
+
+
+class LineBase(QWidget, DrfFieldEd):
     """Base for classes that are based on line edit controls."""
+
+    c_line: "SpecialLine"
+    c_info: "InfoLabel"
+    lay_main: "QVBoxLayout"
 
     ac_clear: Optional[QAction] = None  # type: ignore
     showChoices = pyqtSignal()
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.btm_tip = InfoLabel(parent=self, text=self.description)
+        self.lay_main = QVBoxLayout(self)
+        self.lay_main.setContentsMargins(0, 0, 0, 0)
+
+        self.c_line = SpecialLine(self)
+        self.lay_main.addWidget(self.c_line)
+
+        self.c_info = InfoLabel(self)
+        self.lay_main.addWidget(self.c_info)
+
+        self.setLayout(self.lay_main)
+        # self.btm_tip = InfoLabel(parent=self, text=self.description)
 
         # watch for global mouse‑moves
-        cast(QApplication, QApplication.instance()).installEventFilter(self)
+        # cast(QApplication, QApplication.instance()).installEventFilter(self)
 
         # Enable or disable the clear to null action depending on the
         # presence of text in the line edit.
-        self.textChanged.connect(self.change_clear_action)
+        self.c_line.textChanged.connect(self.change_clear_action)
+        self.textChanged = self.c_line.textChanged
+        self.returnPressed = self.c_line.returnPressed
+        self.textEdited = self.c_line.textEdited
+        self.editingFinished = self.c_line.editingFinished
+        self.selectionChanged = self.c_line.selectionChanged
+        self.cursorPositionChanged = self.c_line.cursorPositionChanged
 
     def change_clear_action(self, text: str):
         """Enable or disable the clear to null action depending on the text."""
@@ -105,9 +141,10 @@ class LineBase(QLineEdit, DrfFieldEd):
         if self.description:
             self.tooltip_text = self.description
             self.setStatusTip(self.description)
+            self.c_line.setToolTip(self.description)
 
     def change_edit_mode(self, in_editing: bool) -> None:
-        self.setReadOnly(not in_editing and not self._read_only)
+        self.c_line.setReadOnly(not in_editing and not self._read_only)
         if self.nullable:
             assert self.ac_clear is not None
             self.ac_clear.setEnabled(in_editing and not self._read_only)
@@ -119,16 +156,18 @@ class LineBase(QLineEdit, DrfFieldEd):
         - controlChanged: if NULL is an acceptable value for the field.
         - enteredErrorState: if NULL is not an acceptable value for the field.
         """
-        self.setText("")
+        self.c_line.setText("")
         if self.nullable:
-            self.setStyleSheet(
+            self.c_line.setStyleSheet(
                 "QLineEdit { color: gray; font-style: italic; } "
             )
-            self.setPlaceholderText(self.t("cmn.NULL", "NULL"))
+            self.c_line.setPlaceholderText(self.t("cmn.NULL", "NULL"))
             self.controlChanged.emit()
         else:
-            self.setStyleSheet("QLineEdit { color: red; font-style: italic; } ")
-            self.setPlaceholderText(self.t("cmn.Empty", "Empty"))
+            self.c_line.setStyleSheet(
+                "QLineEdit { color: red; font-style: italic; } "
+            )
+            self.c_line.setPlaceholderText(self.t("cmn.Empty", "Empty"))
 
             error = self.null_error()
             self.update_tooltip(error, error=True)
@@ -140,8 +179,10 @@ class LineBase(QLineEdit, DrfFieldEd):
 
         Note that this method does not emit any signal.
         """
-        self.setStyleSheet("QLineEdit { color: black; font-style: normal; } ")
-        self.setPlaceholderText("")
+        self.c_line.setStyleSheet(
+            "QLineEdit { color: black; font-style: normal; } "
+        )
+        self.c_line.setPlaceholderText("")
         self.update_tooltip(self.description or "")
 
     def set_line_error(self, error: str):
@@ -150,27 +191,30 @@ class LineBase(QLineEdit, DrfFieldEd):
 
         The control also issues the error signal.
         """
-        self.setStyleSheet("QLineEdit { color: red; font-style: normal; } ")
-        self.setPlaceholderText(self.t("cmn.ERROR", "ERROR"))
+        self.c_line.setStyleSheet(
+            "QLineEdit { color: red; font-style: normal; } "
+        )
+        self.c_line.setPlaceholderText(self.t("cmn.ERROR", "ERROR"))
         self.update_tooltip(error, error=True)
         self.enteredErrorState.emit(error)
 
     def update_tooltip(self, text: str, error: bool = False):
         if error:
-            self.btm_tip.show_error(text)
+            self.c_info.show_error(text)
         else:
-            self.btm_tip.show_text(text)
+            self.c_info.show_text(text)
         if len(text) == 0:
-            self.btm_tip.hide()
+            self.c_info.hide()
         else:
             self._show_floating_label()
 
     def _show_floating_label(self):
-        self.btm_tip.resize(self.width(), self.btm_tip.sizeHint().height())
-        if self.hasFocus() and not self.btm_tip.is_empty:
-            self.btm_tip.show()
+        pass
+        # self.btm_tip.resize(self.width(), self.btm_tip.sizeHint().height())
+        # if self.hasFocus() and not self.btm_tip.is_empty:
+        #     self.btm_tip.show()
 
-        self.btm_tip.update_position(self)
+        # self.btm_tip.update_position(self)
 
     def add_clear_to_null_action(self):
         """Adds a clear to null action to the line edit."""
@@ -184,7 +228,9 @@ class LineBase(QLineEdit, DrfFieldEd):
             self,
         )
         self.ac_clear.triggered.connect(self.set_line_null)
-        self.addAction(self.ac_clear, QLineEdit.ActionPosition.LeadingPosition)
+        self.c_line.addAction(
+            self.ac_clear, QLineEdit.ActionPosition.LeadingPosition
+        )
         self.ac_clear.setEnabled(
             self.field_value is not None and not self._read_only
         )
@@ -195,68 +241,56 @@ class LineBase(QLineEdit, DrfFieldEd):
             "set_line_null() must be implemented in subclasses."
         )
 
-    def focusInEvent(self, event):  # type: ignore[override]
-        super().focusInEvent(event)
-        self._show_floating_label()
+    # def focusInEvent(self, event):  # type: ignore[override]
+    #     super().focusInEvent(event)
+    #     self._show_floating_label()
 
-    def focusOutEvent(self, event):  # type: ignore[override]
-        super().focusOutEvent(event)
-        self.btm_tip.hide()
+    # def focusOutEvent(self, event):  # type: ignore[override]
+    #     super().focusOutEvent(event)
+    #     self.btm_tip.hide()
 
-    def resizeEvent(self, event):  # type: ignore[override]
-        super().resizeEvent(event)
-        self.btm_tip.update_position(self)
+    # def resizeEvent(self, event):  # type: ignore[override]
+    #     super().resizeEvent(event)
+    #     self.btm_tip.update_position(self)
 
-    def moveEvent(self, event):  # type: ignore[override]
-        super().moveEvent(event)
-        self.btm_tip.update_position(self)
+    # def moveEvent(self, event):  # type: ignore[override]
+    #     super().moveEvent(event)
+    #     self.btm_tip.update_position(self)
 
-    def keyPressEvent(self, event):  # type: ignore[override]
-        result = super().keyPressEvent(event)
-        if event.key() == Qt.Key.Key_Escape:
-            self.btm_tip.hide()
-            self.clearFocus()
-        if (
-            event.type() == QEvent.Type.KeyPress
-            and event.key() == Qt.Key.Key_Space
-            and (event.modifiers() & Qt.KeyboardModifier.ControlModifier)
-        ):
-            self.showChoices.emit()
-        return result
+    # def eventFilter(self, obj, event):  # type: ignore[override]
+    #     # 1) intercept hover on the label itself
+    #     if obj is self.btm_tip:
+    #         if (
+    #             event.type() == QEvent.Type.Enter
+    #             and not self.btm_tip.hover_hidden
+    #         ):
+    #             self.btm_tip.hover_hidden = True
+    #             self.btm_tip.hide()
+    #             return True
 
-    def eventFilter(self, obj, event):  # type: ignore[override]
-        # 1) intercept hover on the label itself
-        if obj is self.btm_tip:
-            if (
-                event.type() == QEvent.Type.Enter
-                and not self.btm_tip.hover_hidden
-            ):
-                self.btm_tip.hover_hidden = True
-                self.btm_tip.hide()
-                return True
+    #         # swallow Leave on the label so it doesn’t flicker
+    #         # back immediately
+    #         if event.type() == QEvent.Type.Leave:
+    #             return True
 
-            # swallow Leave on the label so it doesn’t flicker back immediately
-            if event.type() == QEvent.Type.Leave:
-                return True
+    #     # # 2) watch all mouse‑moves globally
 
-        # # 2) watch all mouse‑moves globally
+    #     if (
+    #         self.btm_tip.hover_hidden
+    #         and event.type() == QEvent.Type.MouseMove
+    #         and self.hasFocus()
+    #     ):
+    #         # if the cursor has left the old label rect, show it again
+    #         if not self.btm_tip.is_inside(event.globalPos()):
+    #             self.hover_hidden = False
+    #             self._show_floating_label()
+    #         elif self.btm_tip.isVisible():
+    #             self.btm_tip.hide()
 
-        if (
-            self.btm_tip.hover_hidden
-            and event.type() == QEvent.Type.MouseMove
-            and self.hasFocus()
-        ):
-            # if the cursor has left the old label rect, show it again
-            if not self.btm_tip.is_inside(event.globalPos()):
-                self.hover_hidden = False
-                self._show_floating_label()
-            elif self.btm_tip.isVisible():
-                self.btm_tip.hide()
+    #         # don’t block the event
+    #         return False
 
-            # don’t block the event
-            return False
-
-        return super().eventFilter(obj, event)
+    #     return super().eventFilter(obj, event)
 
     def change_read_only(self, value: bool) -> None:
         if value:
@@ -265,4 +299,27 @@ class LineBase(QLineEdit, DrfFieldEd):
         else:
             if self.ac_clear is not None:
                 self.ac_clear.setEnabled(True)
-        self.setReadOnly(value)
+        self.c_line.setReadOnly(value)
+
+    def text(self) -> str:
+        return self.c_line.text()
+
+    def setText(self, text: str):
+        self.c_line.setText(text)
+
+    def addAction(  # type: ignore
+        self, action: QAction, position: QLineEdit.ActionPosition
+    ) -> None:  # type: ignore
+        self.c_line.addAction(action, position)
+
+    def setReadOnly(self, read_only: bool) -> None:  # type: ignore
+        self.c_line.setReadOnly(read_only)
+
+    def setPlaceholderText(self, text: str):
+        self.c_line.setPlaceholderText(text)
+
+    def setClearButtonEnabled(self, enabled: bool) -> None:
+        self.c_line.setClearButtonEnabled(enabled)
+
+    def setMaxLength(self, max_length: int) -> None:
+        self.c_line.setMaxLength(max_length)

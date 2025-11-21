@@ -52,6 +52,10 @@ class SearchList(QFrame, QtUseContext, Generic[DBM]):
         src_line: The line edit for the search term.
         tree: The tree view to display the results.
         _search_timer: The timer to apply the search term after a delay.
+
+    Signals:
+        recordCreated: Emitted when a new record is created. The signal carries
+            the record as an argument.
     """
 
     ly: QVBoxLayout
@@ -60,6 +64,8 @@ class SearchList(QFrame, QtUseContext, Generic[DBM]):
     editor_class: Optional[Type["ExdrfEditor"]]
     ac_create: Optional[QAction]
     field: Optional["DrfFieldEd"] = None
+
+    recordCreated = pyqtSignal(object)
 
     def __init__(
         self,
@@ -173,9 +179,12 @@ class SearchList(QFrame, QtUseContext, Generic[DBM]):
         dlg.setModal(True)
         dlg.setMinimumSize(400, 300)
 
+        editor.is_editing = True
         if dlg.exec_() == QDialog.Accepted:
             with self.ctx.same_session() as session:
-                editor.db_record(save=True)
+                new_record = editor.db_record(save=True)
+                if new_record is not None:
+                    self.recordCreated.emit(new_record)
                 session.expunge_all()
             # checked = self.qt_model.checked_ids or []
             # assert editor.record_id is not None

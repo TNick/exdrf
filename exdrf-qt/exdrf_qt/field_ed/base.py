@@ -105,7 +105,16 @@ class DrfFieldEd(QtUseContext):
             self.field_value,
             self._name,
         )
-        setattr(record, self._name, self.field_value)
+        try:
+            setattr(record, self._name, self.field_value)
+        except Exception as e:
+            logger.error(
+                "Error saving field value %s to record: %s",
+                self.field_value,
+                self._name,
+                exc_info=True,
+            )
+            raise e
 
     def load_value_from(self, record: Any):
         """Load the field value from the database record.

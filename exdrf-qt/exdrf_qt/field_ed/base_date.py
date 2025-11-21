@@ -65,7 +65,7 @@ class DateBase(LineBase):
 
         if self.nullable:
             self.add_clear_to_null_action()
-        self.textChanged.connect(self._on_text_changed)
+        self.c_line.textChanged.connect(self._on_text_changed)
 
     def wheelEvent(self, event):  # type: ignore[override]
         if self._read_only:

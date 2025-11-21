@@ -469,7 +469,3 @@ class DrfSelOneEditor(QWidget, Generic[DBM], DrfFieldEd):
             self._dropdown_action.setEnabled(enabled)
         if self._clear_action:
             self._clear_action.setEnabled(enabled)
-
-        if enabled:
-            print(1)
-        print(f"setEnabled: {enabled} {self.__class__.__name__}")

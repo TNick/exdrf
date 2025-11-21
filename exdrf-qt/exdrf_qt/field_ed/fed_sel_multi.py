@@ -53,6 +53,7 @@ class DrfSelMultiEditor(DropBase, Generic[DBM]):
             editor_class=editor_class,
         )
         qt_model.checkedChanged.connect(self.on_checked_ids_changed)
+        self._dropdown.recordCreated.connect(self.on_record_created)
 
     @property
     def checked_ids(self) -> Set[RecIdType]:
@@ -211,3 +212,12 @@ class DrfSelMultiEditor(DropBase, Generic[DBM]):
                 related.append(self.qt_model.get_db_item_id(r))
 
         self.change_field_value(related)
+
+    def on_record_created(self, record: Any) -> None:
+        """The editor informs us that a new record was created."""
+        rec_id = self.qt_model.get_db_item_id(record)
+        field_v = self.field_value
+        if field_v is None:
+            field_v = []
+        field_v.append(rec_id)
+        self.change_field_value(field_v)
