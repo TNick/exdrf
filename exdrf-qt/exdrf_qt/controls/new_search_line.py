@@ -2,7 +2,7 @@ import logging
 from typing import TYPE_CHECKING, Optional
 
 from PyQt5.QtCore import QTimer, pyqtSignal
-from PyQt5.QtWidgets import QLineEdit, QWidget
+from PyQt5.QtWidgets import QAction, QLineEdit, QWidget
 
 from exdrf_qt.context_use import QtUseContext
 
@@ -24,17 +24,21 @@ class SearchLine(QLineEdit, QtUseContext):
 
     Signals:
         searchTermChanged: Emitted when the search term changes.
+        addButtonClicked: Emitted when the add button is clicked.
     """
 
     _search_timer: Optional[QTimer]
+    _add_action: Optional[QAction]
 
     searchTermChanged = pyqtSignal(str)
+    addButtonClicked = pyqtSignal(str)
 
     def __init__(
         self,
         ctx: "QtContext",
         parent: Optional[QWidget] = None,
         delay: int = 500,
+        add_button: bool = False,
     ):
         logger.log(
             10,
@@ -46,6 +50,10 @@ class SearchLine(QLineEdit, QtUseContext):
         self.delay = delay
         self._search_timer = None
 
+        if add_button:
+            self.create_add_action()
+        else:
+            self._add_action = None
         label = self.t("cmn.search.term", "Enter search term")
         self.setPlaceholderText(label)
         self.setToolTip(label)
@@ -54,6 +62,18 @@ class SearchLine(QLineEdit, QtUseContext):
 
         self.textChanged.connect(self.on_search_term_changed)
 
+    def create_add_action(self):
+        """Creates the add action button and adds it to the line edit."""
+        self._add_action = QAction(
+            self.get_icon("plus"), self.t("cmn.create", "Create"), self
+        )
+        self._add_action.triggered.connect(
+            lambda: self.addButtonClicked.emit(self.text())
+        )
+        self.addAction(
+            self._add_action, QLineEdit.ActionPosition.TrailingPosition
+        )
+
     def on_search_term_changed(self, term: str) -> None:
         """Set the search term in the line edit for live timed updates.
 
@@ -61,6 +81,9 @@ class SearchLine(QLineEdit, QtUseContext):
         applying the search term via the callback.
         """
         logger.log(10, "SearchLine on_search_term_changed(%s)", term)
+
+        if self._add_action is not None:
+            self._add_action.setVisible(len(term) > 0)
 
         if self.delay <= 0:
             if self._search_timer is not None:
