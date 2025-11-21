@@ -2,6 +2,7 @@ import logging
 from typing import (
     TYPE_CHECKING,
     Any,
+    Callable,
     Generic,
     Optional,
     Type,
@@ -88,6 +89,7 @@ class DrfSelOneEditor(QWidget, Generic[DBM], DrfFieldEd):
         ctx: "QtContext",
         qt_model: "QtModel[DBM]",
         editor_class: Optional[Type["ExdrfEditor"]] = None,
+        add_kb: Optional[Callable[[str], None]] = None,
         **kwargs,
     ) -> None:
 
@@ -116,7 +118,12 @@ class DrfSelOneEditor(QWidget, Generic[DBM], DrfFieldEd):
         layout.setContentsMargins(0, 0, 0, 0)
 
         # Create and connect the popup widget for record selection.
-        self.popup = PopupWidget(parent=self, ctx=ctx, qt_model=qt_model)
+        self.popup = PopupWidget(
+            parent=self,
+            ctx=ctx,
+            qt_model=qt_model,
+            add_kb=add_kb,
+        )
         self.popup.tree.itemSelected.connect(self.on_item_selected)
 
     @property
@@ -453,3 +460,16 @@ class DrfSelOneEditor(QWidget, Generic[DBM], DrfFieldEd):
             if self._clear_action is not None:
                 self._clear_action.deleteLater()
                 self._clear_action = None
+
+    def setEnabled(self, enabled: bool) -> None:  # type: ignore
+        """Set the enabled state of the widget."""
+        super().setEnabled(enabled)
+        self.line_edit.setEnabled(enabled)
+        if self._dropdown_action:
+            self._dropdown_action.setEnabled(enabled)
+        if self._clear_action:
+            self._clear_action.setEnabled(enabled)
+
+        if enabled:
+            print(1)
+        print(f"setEnabled: {enabled} {self.__class__.__name__}")

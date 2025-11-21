@@ -1,6 +1,7 @@
 import logging
 from typing import (
     TYPE_CHECKING,
+    Callable,
     Generic,
     Optional,
     Type,
@@ -45,6 +46,7 @@ class PopupWidget(QWidget, Generic[DBM], QtUseContext):
         ctx: "QtContext",
         qt_model: Union["QtModel[DBM]", Type["QtModel[DBM]"]],
         parent=None,
+        add_kb: Optional[Callable[[str], None]] = None,
     ):
         logger.log(10, "PopupWidget.__init__()")
 
@@ -65,8 +67,11 @@ class PopupWidget(QWidget, Generic[DBM], QtUseContext):
         self.filter_edit = SearchLine(
             parent=self,
             ctx=ctx,
+            add_button=add_kb is not None,
         )
         self.filter_edit.searchTermChanged.connect(qt_model.apply_simple_search)
+        if add_kb is not None:
+            self.filter_edit.addButtonClicked.connect(add_kb)
 
         self.create_tree()
         self.create_progress()
@@ -119,6 +124,7 @@ class PopupWidget(QWidget, Generic[DBM], QtUseContext):
         """
         )
         # progress.setVisible(False)
+        progress.setVisible(False)
         self.progress = progress
         return progress
 
