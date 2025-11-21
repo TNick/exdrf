@@ -24,7 +24,6 @@ from exdrf_qt.context_use import QtUseContext
 from .image_graphics_view import ImageGraphicsView
 from .pdf_render_worker import PdfRenderWorker
 
-
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:

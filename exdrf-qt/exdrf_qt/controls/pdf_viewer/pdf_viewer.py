@@ -1,6 +1,6 @@
 from exdrf_qt.controls.pdf_viewer.image_graphics_view import ImageGraphicsView
-from exdrf_qt.controls.pdf_viewer.pdf_render_worker import PdfRenderWorker
 from exdrf_qt.controls.pdf_viewer.pdf_image_viewer import PdfImageViewer
+from exdrf_qt.controls.pdf_viewer.pdf_render_worker import PdfRenderWorker
 
 __all__ = [
     "ImageGraphicsView",
@@ -12,6 +12,7 @@ __all__ = [
 if __name__ == "__main__":
     import os
     import sys
+
     from PyQt5.QtWidgets import QApplication, QFileDialog, QMessageBox, QWidget
 
     from exdrf_qt.context import LocalSettings, QtContext
