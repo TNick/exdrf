@@ -52,7 +52,7 @@ def default_{{ r.snake_case_name }}_list_selection():
             )
             {%- endfor %}
         )
-    except Exception as e:
+    except Exception:
         logging.getLogger(__name__).error(
             "Error creating default selection for {{ r.snake_case_name }}",
             exc_info=True,
