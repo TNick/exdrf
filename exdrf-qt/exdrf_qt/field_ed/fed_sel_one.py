@@ -95,7 +95,7 @@ class DrfSelOneEditor(QWidget, Generic[DBM], DrfFieldEd):
     ) -> None:
 
         # Initialize logging and instance variables.
-        logger.log(10, "DrfSelOneEditor.__init__")
+        logger.log(1, "DrfSelOneEditor.__init__")
         self._in_editing = True
         self._clear_action = None
         self._dropdown_action = None  # type: ignore
@@ -159,19 +159,19 @@ class DrfSelOneEditor(QWidget, Generic[DBM], DrfFieldEd):
         self.popup.tree.blockSignals(True)
         index = QModelIndex()
         if self.field_value is None:
-            logger.log(10, "Tree cleared")
+            logger.log(1, "Tree cleared")
         else:
             # Find the row corresponding to the current field value.
             row = self.qt_model._db_to_row.get(self.field_value, None)
-            logger.log(10, "Found row %s for value %s", row, self.field_value)
+            logger.log(1, "Found row %s for value %s", row, self.field_value)
             if row is not None:
                 index = self.qt_model.index(row, 0)
                 logger.log(
-                    10, "Found index %s for value %s", index, self.field_value
+                    1, "Found index %s for value %s", index, self.field_value
                 )
             else:
                 logger.log(
-                    10,
+                    1,
                     "No row found for value %s",
                     self.field_value,
                 )
@@ -186,7 +186,7 @@ class DrfSelOneEditor(QWidget, Generic[DBM], DrfFieldEd):
 
         # Update the line edit with the selected record's display text.
         text = item.display_text()
-        logger.log(10, "%s.on_item_selected: %s", self.__class__.__name__, text)
+        logger.log(1, "%s.on_item_selected: %s", self.__class__.__name__, text)
 
         self.line_edit.setText(text)
         self.popup.hide()
@@ -378,7 +378,7 @@ class DrfSelOneEditor(QWidget, Generic[DBM], DrfFieldEd):
         # Prevent clearing if not in edit mode.
         if not self._in_editing:
             logger.log(
-                10,
+                1,
                 "%s.set_to_null(): not in editing mode",
                 self.__class__.__name__,
             )

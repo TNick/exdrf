@@ -35,6 +35,17 @@ DBM = TypeVar("DBM", bound="PopupWidget")
 
 
 class PopupWidget(QWidget, Generic[DBM], QtUseContext):
+    """A widget that shows a list of items in a popup and allows the user
+    to filter them.
+
+    Attributes:
+        tree: The tree view that shows the list of items.
+        filter_edit: The line edit that allows the user to filter the list.
+        qt_model: The model that provides the data.
+        progress: The progress bar that shows the progress of the search.
+        progress_timer: The timer that shows the progress bar.
+    """
+
     tree: "TreeView"
     filter_edit: "SearchLine"
     qt_model: "QtModel[DBM]"
@@ -123,7 +134,6 @@ class PopupWidget(QWidget, Generic[DBM], QtUseContext):
             }
         """
         )
-        # progress.setVisible(False)
         progress.setVisible(False)
         self.progress = progress
         return progress

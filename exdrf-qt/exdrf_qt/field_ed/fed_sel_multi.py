@@ -45,16 +45,27 @@ class DrfSelMultiEditor(DropBase, Generic[DBM]):
         **kwargs,
     ) -> None:
         super().__init__(ctx=ctx, **kwargs)
+
+        # The main line edit is read-only.
         self.setReadOnly(True)
+
+        # Keep the current value inhere.
         qt_model.checked_ids = set()
+
+        # This is the popup.
         self._dropdown = SearchList(  # type: ignore[assignment]
             ctx=ctx,
             qt_model=qt_model,
             popup=True,
             editor_class=editor_class,
         )
+
+        # Inform listeners that the set of selected items changed.
         qt_model.checkedChanged.connect(self.on_checked_ids_changed)
-        self._dropdown.recordCreated.connect(self.on_record_created)
+
+        # If the user created a new record by using the "Create" button
+        # in the popup, we add that record to the list of selected items.
+        self._dropdown.recordCreated.connect(self.add_record)
 
     @property
     def checked_ids(self) -> Set[RecIdType]:
@@ -141,12 +152,14 @@ class DrfSelMultiEditor(DropBase, Generic[DBM]):
         """Show the dropdown with filtered choices."""
         if self._read_only:
             return
-        # Populate with filtered choices
         self._position_dropdown()
         self._dropdown.src_line.setFocus()
 
     def on_checked_ids_changed(self) -> None:
-        """The model informs us that the set of checked items changed."""
+        """The model informs us that the set of checked items changed.
+
+        We update the label in response and change the field value.
+        """
         self.setText(
             self.t(
                 "cmn.sel_count",
@@ -169,11 +182,17 @@ class DrfSelMultiEditor(DropBase, Generic[DBM]):
     def save_value_to(self, record: Any):
         """Save the field value into the target record.
 
+        It is assumed that the record has an attribute with the same name as
+        the field. The attribute should be a list of records from which
+        the unique identifiers of the records are extracted.
+
         Attributes:
             record: The item to save the field value to.
         """
         if not self._name:
             raise ValueError("Field name is not set.")
+
+        # Get the value of the attribute.
         crt_val = getattr(record, self._name, None)
         if self.field_value is None:
             if crt_val is not None:
@@ -181,11 +200,14 @@ class DrfSelMultiEditor(DropBase, Generic[DBM]):
             else:
                 setattr(record, self._name, None)
             return
+
+        # Construct the new value.
         db_lst = [
             d
             for d in self.qt_model.get_db_items_by_id(self.field_value)
             if d is not None
         ]
+
         # As the value may be either a list or a set, let the class decide
         # what to do.
         if crt_val is not None:
@@ -198,13 +220,21 @@ class DrfSelMultiEditor(DropBase, Generic[DBM]):
     def load_value_from(self, record: Any):
         """Load the field value from the database record.
 
+        It is assumed that the record has an attribute with the same name as
+        the field. The attribute should be a list of records from which
+        the unique identifiers of the records are extracted.
+
         Attributes:
             record: The item to load the field value from.
         """
         if not self._name:
             raise ValueError("Field name is not set.")
+
+        # Get the value of the attribute.
         related_list = getattr(record, self._name, None)
         related: List[RecIdType]
+
+        # Construct the new value.
         if related_list is None:
             related = []
         else:
@@ -212,20 +242,34 @@ class DrfSelMultiEditor(DropBase, Generic[DBM]):
             for r in related_list:
                 related.append(self.qt_model.get_db_item_id(r))
 
+        # Update the field value.
         self.change_field_value(related)
 
-    def on_record_created(self, record: Any) -> None:
-        """The editor informs us that a new record was created."""
+    def add_record(self, record: Any) -> None:
+        """Append the record to the list of selected items.
+
+        Args:
+            record: The record to add to the list of selected items.
+        """
+        # Extract the unique identifier of the record.
         rec_id = self.qt_model.get_db_item_id(record)
+
+        # get the current set of selected items.
         field_v = self.field_value
         if field_v is None:
-            field_v = []
-        field_v.append(rec_id)
+            field_v = [rec_id]
+        else:
+            if rec_id in field_v:
+                return
+            field_v.append(rec_id)
+
+        # Update the field value.
         self.change_field_value(field_v)
 
     def create_ex_field(self) -> "ExField":
         from exdrf.field_types.ref_m2m import RefManyToManyField
 
+        # TODO: ref and ref_intermediate should be set to models.
         return RefManyToManyField(
             name=self.name,
             description=self.description or "",
