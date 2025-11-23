@@ -278,7 +278,9 @@ class ExResource:
         """Get the minimum set of fields that are used to represent the
         resource except those fields that are also primary keys.
         """
-        names: Set[str] = set(get_used_fields(self.label_ast))
+        names: Set[str] = set(
+            [n.split(".")[0] for n in get_used_fields(self.label_ast)]
+        )
         return sorted(
             n for n in names if self.__in__(n) and not self[n].primary
         )
