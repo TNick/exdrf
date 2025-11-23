@@ -12,6 +12,7 @@ from typing import (
     Optional,
     Union,
     cast,
+    overload,
 )
 
 from attrs import define, field
@@ -221,10 +222,22 @@ class QtContext(DbConn):
         """Get the ID of the current database configuration."""
         return self.stg.get_db_configs()[0]["id"]
 
-    def push_work(
+    @overload
+    def push_work(self, work: "Work") -> "Work": ...
+
+    @overload
+    def push_work(  # type: ignore[misc, assignment]
         self,
         statement: "Select",
         callback: Callable[["Work"], None],
+        req_id: Optional[Any] = None,
+        use_unique: bool = False,
+    ) -> "Work": ...
+
+    def push_work(  # type: ignore[misc, assignment]
+        self,
+        statement_or_work: Any,
+        callback: Any = None,
         req_id: Optional[Any] = None,
         use_unique: bool = False,
     ) -> "Work":
@@ -250,12 +263,16 @@ class QtContext(DbConn):
                     "Attempted to push work but no database connection "
                     "string was provided"
                 )
-        return self.work_relay.push_work(
-            statement=statement,
-            callback=callback,
-            req_id=req_id,
-            use_unique=use_unique,
-        )
+        if isinstance(statement_or_work, Work):
+            return self.work_relay.push_work(statement_or_work)
+        else:
+            assert callback is not None and req_id is not None
+            return self.work_relay.push_work(
+                statement=cast("Select", statement_or_work),
+                callback=cast(Callable[["Work"], None], callback),
+                req_id=req_id,
+                use_unique=use_unique,
+            )
 
     def show_error(
         self,

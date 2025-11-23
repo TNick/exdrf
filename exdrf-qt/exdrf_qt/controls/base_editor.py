@@ -2,18 +2,19 @@ import logging
 from datetime import datetime, timezone
 from typing import (
     TYPE_CHECKING,
-    Generic,
+    Any,
     Dict,
+    Generic,
     List,
     Optional,
     Type,
     TypeVar,
     Union,
     cast,
-    Any,
 )
 
 from exdrf.constants import RecIdType
+from exdrf.var_bag import VarBag
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import (
     QDialogButtonBox,
@@ -23,7 +24,7 @@ from PyQt5.QtWidgets import (
     QWidget,
 )
 from sqlalchemy import select
-from exdrf.var_bag import VarBag
+
 from exdrf_qt.context_use import QtUseContext
 from exdrf_qt.field_ed.base import DrfFieldEd
 

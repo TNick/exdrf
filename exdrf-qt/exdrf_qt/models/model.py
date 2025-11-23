@@ -18,11 +18,13 @@ from typing import (
 )
 
 import sqlparse
+from attrs import define, field
 from exdrf.constants import RecIdType
 from exdrf.filter import FieldFilter, FilterType, validate_filter
 from PyQt5.QtCore import QAbstractItemModel, QModelIndex, Qt, QTimer, pyqtSignal
 from sqlalchemy import case, func, select, tuple_
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm.exc import DetachedInstanceError
 from unidecode import unidecode
 
 from exdrf_qt.context_use import QtUseContext
@@ -31,16 +33,16 @@ from exdrf_qt.models.field_list import FieldsList
 from exdrf_qt.models.record import QtRecord
 from exdrf_qt.models.requests import RecordRequestManager
 from exdrf_qt.models.selector import Selector
-from sqlalchemy.orm.exc import DetachedInstanceError
+from exdrf_qt.worker import Work
 
 if TYPE_CHECKING:
     from PyQt5.QtCore import QObject  # noqa: F401
     from sqlalchemy import Select  # noqa: F401
+    from sqlalchemy.orm import Session  # noqa: F401
 
     from exdrf_qt.context import QtContext  # noqa: F401
     from exdrf_qt.models.field import QtField  # noqa: F401
     from exdrf_qt.models.requests import RecordRequest  # noqa: F401
-    from exdrf_qt.worker import Work  # noqa: F401
 
 
 DEFAULT_CHUNK_SIZE = 8
@@ -74,6 +76,36 @@ def compare_filters(f1: "FilterType", f2: "FilterType") -> bool:
         if isinstance(f2, dict):
             f2 = FieldFilter(**f2)
         return f1 == f2
+
+
+@define
+class ModelWork(Work):
+
+    model: "QtModel" = field(kw_only=True)
+
+    def perform(self, session: "Session") -> None:
+        """Perform the work."""
+        if self.use_unique:
+            tmp_result = list(session.scalars(self.statement).unique().all())
+        else:
+            tmp_result = list(session.scalars(self.statement))
+
+        self.result = []
+        for i, db_rec in enumerate(tmp_result):
+            qt_rec = QtRecord(model=self.model)
+            try:
+                self.model.db_item_to_record(db_rec, qt_rec)
+            except Exception as e:
+                logger.error(
+                    "Error converting item %d to record: %s",
+                    i,
+                    e,
+                    exc_info=e,
+                )
+                qt_rec.error = True
+            self.result.append(qt_rec)
+
+        session.expunge_all()
 
 
 class QtModel(
@@ -498,9 +530,14 @@ class QtModel(
         req.pushed = True
 
         self.ctx.push_work(
-            statement=self.sorted_selection.offset(req.start).limit(req.count),
-            callback=self._load_items,
-            req_id=(id(self), req),
+            ModelWork(
+                model=self,
+                statement=(
+                    self.sorted_selection.offset(req.start).limit(req.count)
+                ),
+                callback=self._load_items_2,  # type: ignore
+                req_id=(id(self), req),
+            )
         )
 
         # Inform interested parties that a request has been issued.
@@ -510,6 +547,61 @@ class QtModel(
             )
         except RuntimeError:
             logger.error("RuntimeError in requestIssued signal", exc_info=True)
+
+    def _load_items_2(self, work: "ModelWork") -> None:
+        # Locate the request in the list of requests.
+        # work.req_id is a tuple (id(self), req), so work.req_id[1] is the
+        # request object
+        if isinstance(work.req_id, tuple) and len(work.req_id) >= 2:
+            req = self.requests.pop(work.req_id[1].uniq_id, None)
+        else:
+            # Fallback for different req_id formats
+            req = None
+        if req is None:
+            logger.debug("Request %s not found in requests", work.req_id)
+            return
+
+        # If this request generated an error mark those requests as such.
+        if work.error:
+            for i in range(req.start, req.start + req.count):
+                record = self.cache[i]
+                record.db_id = -1
+                record.error = True
+            logger.debug(
+                "Request %d generated an error: %s", work.req_id, work.error
+            )
+            self.requestError.emit(
+                req.uniq_id,
+                req.start,
+                req.count,
+                len(self.requests),
+                str(work.error),
+            )
+        else:
+            loaded_update = 0
+            for i in range(req.start, req.start + req.count):
+                old_record = cast("QtRecord", self.cache[i])
+                new_record = cast("QtRecord", work.result[i - req.start])
+                if not old_record.loaded:
+                    loaded_update = loaded_update + 1
+                self.cache[i] = new_record
+
+                # The row is the index of the item in the cache
+                # without the top cache.
+                self._db_to_row[new_record.db_id] = i
+            self.requestCompleted.emit(
+                req.uniq_id,
+                req.start,
+                req.count,
+                len(self.requests),
+            )
+            self.loaded_count = self._loaded_count + loaded_update
+        self.dataChanged.emit(
+            self.createIndex(req.start, 0),
+            self.createIndex(
+                req.start + req.count - 1, len(self.column_fields) - 1
+            ),
+        )
 
     def _load_items(self, work: "Work") -> None:
         """We are informed that a batch of items has been loaded."""

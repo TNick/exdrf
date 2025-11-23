@@ -1,7 +1,7 @@
 import logging
 import threading
 from queue import Empty, Queue
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, overload
 from uuid import uuid4
 
 import sqlparse
@@ -11,6 +11,7 @@ from sqlalchemy import Select
 
 if TYPE_CHECKING:
     from exdrf_al.connection import DbConn
+    from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +32,14 @@ class Work:
     result: List[Any] = field(factory=list)
     error: Any = field(default=None)
     use_unique: bool = False
+
+    def perform(self, session: "Session") -> None:
+        """Perform the work."""
+        if self.use_unique:
+            self.result = list(session.scalars(self.statement).unique().all())
+        else:
+            self.result = list(session.scalars(self.statement))
+        session.expunge_all()
 
 
 class Relay(QObject):
@@ -84,31 +93,53 @@ class Relay(QObject):
             self.worker.quit()
             self.worker.wait()
 
+    @overload
+    def push_work(self, work: "Work") -> "Work": ...
+
+    @overload
     def push_work(
         self,
         statement: "Select",
         callback: Callable[["Work"], None],
         req_id: Optional[Any] = None,
         use_unique: bool = False,
+    ) -> "Work": ...
+
+    def push_work(  # type: ignore[misc, assignment]
+        self,
+        statement_or_work: Any,
+        callback: Any = None,
+        req_id: Optional[Any] = None,
+        use_unique: bool = False,
     ) -> "Work":
         """Add work to be done by the worker thread.
 
         Args:
-            statement: The SQLAlchemy select statement to execute.
-            callback: The callback function to call with the result.
+            statement_or_work: Either a SQLAlchemy select statement or a Work
+                object. If a Work object is provided, other parameters are
+                ignored.
+            callback: The callback function to call with the result. Required
+                if statement_or_work is a Select statement.
             req_id: An optional request ID to identify the work. If one is not
                 provided, a new one will be generated.
+            use_unique: Whether to use unique() on the result.
         """
         if not self.worker.isRunning():
             self.worker.start()
 
-        # Create the work object.
-        work = Work(
-            statement=statement,
-            callback=callback,
-            req_id=req_id or uuid4().int,
-            use_unique=use_unique,
-        )
+        # Handle the case where a Work object is passed directly.
+        if isinstance(statement_or_work, Work):
+            work = statement_or_work
+        else:
+            # Create the work object from individual parameters.
+            if callback is None:
+                raise TypeError("callback is required when passing a statement")
+            work = Work(
+                statement=statement_or_work,
+                callback=callback,
+                req_id=req_id or uuid4().int,
+                use_unique=use_unique,
+            )
 
         # Save it locally.
         self.data[work.req_id] = work
@@ -159,13 +190,7 @@ class Worker(QThread):
 
             try:
                 with self.cn.session() as session:
-                    if work.use_unique:
-                        work.result = list(
-                            session.scalars(work.statement).unique().all()
-                        )
-                    else:
-                        work.result = list(session.scalars(work.statement))
-                    session.expunge_all()
+                    work.perform(session)
                 logger.debug("Work with ID %s completed", work.req_id)
             except Exception as e:
                 logger.error(
