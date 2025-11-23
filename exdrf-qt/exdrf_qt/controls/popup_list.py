@@ -1,4 +1,5 @@
 import logging
+from contextlib import contextmanager
 from typing import (
     TYPE_CHECKING,
     Callable,
@@ -199,3 +200,14 @@ class PopupWidget(QWidget, Generic[DBM], QtUseContext):
             error: The error message.
         """
         self.change_progress(in_progress)
+
+    @contextmanager
+    def block_signals(self):
+        """Block the signals of the widget."""
+        self.filter_edit.blockSignals(True)
+        self.tree.blockSignals(True)
+        try:
+            yield
+        finally:
+            self.filter_edit.blockSignals(False)
+            self.tree.blockSignals(False)
