@@ -1,5 +1,5 @@
 from datetime import date, datetime
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from PyQt5.QtWidgets import QLineEdit
 

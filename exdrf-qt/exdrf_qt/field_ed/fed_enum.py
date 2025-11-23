@@ -15,8 +15,9 @@ from exdrf_qt.field_ed.base_drop import DropBase
 from exdrf_qt.field_ed.choices_mixin import EditorWithChoices
 
 if TYPE_CHECKING:
-    from exdrf_qt.context import QtContext
     from exdrf.field import ExField
+
+    from exdrf_qt.context import QtContext
 
 
 class DropdownList(QFrame, QtUseContext):

@@ -7,6 +7,7 @@ from typing import (
     Optional,
     Type,
     TypeVar,
+    cast,
 )
 
 from PyQt5.QtCore import (
@@ -16,6 +17,7 @@ from PyQt5.QtCore import (
 )
 from PyQt5.QtGui import QResizeEvent
 from PyQt5.QtWidgets import (
+    QAbstractItemView,
     QAction,
     QHBoxLayout,
     QLineEdit,
@@ -27,63 +29,26 @@ from exdrf_qt.field_ed.base import DrfFieldEd
 
 if TYPE_CHECKING:
     from exdrf.constants import RecIdType
+    from exdrf.field import ExField
 
     from exdrf_qt.context import QtContext
     from exdrf_qt.controls.base_editor import ExdrfEditor
+    from exdrf_qt.controls.tree_list import TreeView
     from exdrf_qt.models import QtModel
     from exdrf_qt.models.record import QtRecord
-    from exdrf.field import ExField
 
 logger = logging.getLogger(__name__)
-DBM = TypeVar("DBM", bound="DrfSelOneEditor")
+DBM = TypeVar("DBM", bound="DrfSelBase")
+DBM_O = TypeVar("DBM_O", bound="DrfSelOneEditor")
 
 
-class DrfSelOneEditor(QWidget, Generic[DBM], DrfFieldEd):
-    """Editor for selecting a single related record from a QtModel.
-
-    This widget provides a user interface for selecting one related database
-    record from a model. It consists of a read-only line edit that displays
-    the currently selected record's display text, along with action buttons
-    for opening a selection popup and clearing the selection.
-
-    The selection mechanism uses a PopupWidget that displays a searchable tree
-    view of records from the associated QtModel. When the user clicks the
-    dropdown button, a popup appears below the line edit showing available
-    records. The popup includes a search/filter field that allows filtering
-    records in real-time. When a record is selected from the popup, it updates
-    the line edit with the record's display text and stores the record's
-    database ID as the field value.
-
-    The widget supports both edit and display modes. In edit mode, the dropdown
-    and clear buttons are enabled, allowing users to change the selection. In
-    display mode, these buttons are disabled, making the field read-only.
-
-    If the field is nullable, a clear button is displayed that allows setting
-    the value to null. The clear button is automatically enabled or disabled
-    based on whether a value is currently selected and whether the field is in
-    edit mode.
-
-    The widget integrates with the field editing system through the DrfFieldEd
-    base class, providing methods to load values from database records and
-    save values back to them. It can handle both database record objects and
-    record IDs as values, automatically converting between them as needed.
-
-    Attributes:
-        popup: The popup widget containing the searchable tree view for
-            record selection.
-        line_edit: The read-only line edit displaying the selected record's
-            text.
-        _in_editing: Flag indicating whether the widget is in edit mode.
-        _clear_action: Optional action button for clearing the selection,
-            present only when the field is nullable.
-        _dropdown_action: Action button for opening the selection popup.
-    """
-
+class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
     popup: "PopupWidget[DBM]"
     line_edit: QLineEdit
     _in_editing: bool
     _clear_action: Optional[QAction]
     _dropdown_action: QAction
+    _editor_class: Optional[Type["ExdrfEditor"]]
 
     def __init__(
         self,
@@ -100,6 +65,7 @@ class DrfSelOneEditor(QWidget, Generic[DBM], DrfFieldEd):
         self._clear_action = None
         self._dropdown_action = None  # type: ignore
         self.line_edit = None  # type: ignore
+        self._editor_class = editor_class
 
         # Initialize parent classes.
         QWidget.__init__(self, kwargs.pop("parent", None))
@@ -119,13 +85,16 @@ class DrfSelOneEditor(QWidget, Generic[DBM], DrfFieldEd):
         layout.setContentsMargins(0, 0, 0, 0)
 
         # Create and connect the popup widget for record selection.
+        if not add_kb and self._editor_class is not None:
+            add_kb = self.auto_create_new
         self.popup = PopupWidget(
             parent=self,
             ctx=ctx,
             qt_model=qt_model,
             add_kb=add_kb,
         )
-        self.popup.tree.itemSelected.connect(self.on_item_selected)
+
+        self.post_init()
 
     @property
     def qt_model(self) -> "QtModel[DBM]":
@@ -149,50 +118,26 @@ class DrfSelOneEditor(QWidget, Generic[DBM], DrfFieldEd):
             return
 
         # Position and display the popup below the line edit.
-        logger.log(10, "%s.show_popup()", self.__class__.__name__)
+        logger.log(1, "%s.show_popup()", self.__class__.__name__)
         self.popup.move(self.mapToGlobal(QPoint(0, self.height())))
         self.popup.resize(self.width(), 150)
         self.popup.show()
         self.popup.filter_edit.setFocus()
 
-        # Set the current selection in the popup tree to match the field value.
-        self.popup.tree.blockSignals(True)
-        index = QModelIndex()
-        if self.field_value is None:
-            logger.log(1, "Tree cleared")
-        else:
-            # Find the row corresponding to the current field value.
-            row = self.qt_model._db_to_row.get(self.field_value, None)
-            logger.log(1, "Found row %s for value %s", row, self.field_value)
-            if row is not None:
-                index = self.qt_model.index(row, 0)
-                logger.log(
-                    1, "Found index %s for value %s", index, self.field_value
-                )
-            else:
-                logger.log(
-                    1,
-                    "No row found for value %s",
-                    self.field_value,
-                )
-        self.popup.tree.setCurrentIndex(index)
-        self.popup.tree.blockSignals(False)
+        # Allow subclasses to do additional setup.
+        with self.popup.block_signals():
+            self.on_show_popup()
+
+    def post_init(self):
+        """Perform additional initialization after the widget is created."""
 
     def on_item_selected(self, item: "QtRecord"):
-        # Handle selection of a record from the popup.
-        logger.log(
-            10, "%s.on_item_selected(%s)", self.__class__.__name__, item.db_id
-        )
+        """The item has been selected from the popup."""
 
-        # Update the line edit with the selected record's display text.
-        text = item.display_text()
-        logger.log(1, "%s.on_item_selected: %s", self.__class__.__name__, text)
+    def on_show_popup(self):
+        """The popup is about to be shown.
 
-        self.line_edit.setText(text)
-        self.popup.hide()
-
-        # Store the selected record's database ID as the field value.
-        self.field_value = item.db_id
+        Allows subclasses to do additional setup."""
 
     def resizeEvent(self, event: QResizeEvent | None) -> None:  # type: ignore
         # Handle widget resize events.
@@ -240,16 +185,25 @@ class DrfSelOneEditor(QWidget, Generic[DBM], DrfFieldEd):
 
         # Create and configure the clear button action.
         action = QAction(
-            self.get_icon("clear_to_null_to_left"),
+            self.get_icon("clear_to_null"),
             self.t("cmn.clear_to_null", "Clear to NULL"),
             self,
         )
         action.triggered.connect(self.set_to_null)
         self.line_edit.addAction(
-            action, QLineEdit.ActionPosition.TrailingPosition
+            action, QLineEdit.ActionPosition.LeadingPosition
         )
         self._clear_action = action
         return action
+
+    def setEnabled(self, enabled: bool) -> None:  # type: ignore
+        """Set the enabled state of the widget."""
+        super().setEnabled(enabled)
+        self.line_edit.setEnabled(enabled)
+        if self._dropdown_action:
+            self._dropdown_action.setEnabled(enabled)
+        if self._clear_action:
+            self._clear_action.setEnabled(enabled)
 
     def change_edit_mode(  # type: ignore
         self: QWidget, in_editing: bool  # type: ignore
@@ -276,102 +230,27 @@ class DrfSelOneEditor(QWidget, Generic[DBM], DrfFieldEd):
                 in_editing and self.field_value is not None
             )
 
-    def change_field_value(self, new_value: "None | DBM | RecIdType") -> None:
-        """Change the field value.
+    def change_nullable(self, value: bool) -> None:
+        """Set the nullable property.
 
-        The new value can be a database record or an ID of a record.
-
-        Args:
-            new_value: The new value to set for the field.
+        The default implementation looks for an attribute called ac_clear
+        in itself and, if found, assumes it is a QAction.
         """
-        # Prevent changes if the field is read-only.
-        if self._read_only:
-            logger.log(
-                10,
-                "%s.change_field_value(): read only",
-                self.__class__.__name__,
-            )
-            return
-
-        # Handle None values by clearing the field.
-        if new_value is None:
-            logger.log(
-                10,
-                "%s.change_field_value(): None",
-                self.__class__.__name__,
-            )
-            self.set_to_null()
-            return
-
-        # Convert database record objects to their IDs.
-        if hasattr(new_value, "metadata"):
-            logger.log(
-                10,
-                "%s.change_field_value(): database record",
-                self.__class__.__name__,
-            )
-            new_value = self.qt_model.get_db_item_id(new_value)  # type: ignore
-
-        logger.log(
-            1,
-            "%s.change_field_value() to %s (%s)",
-            self.__class__.__name__,
-            new_value,
-            new_value.__class__.__name__,
-        )
-        # import traceback
-        # logger.debug(traceback.format_stack())
-
-        # Skip update if the value hasn't changed.
-        if new_value == self.field_value:
-            logger.log(
-                1,
-                "%s.change_field_value(): same value: %s",
-                self.__class__.__name__,
-                new_value,
-            )
-            return
-
-        # Try to find the record in the model cache first.
-        loaded = False
-        row = self.qt_model._db_to_row.get(new_value, None)
-        if row is not None:
-            record = self.qt_model.cache[row]
-            if record.loaded:
-                logger.log(
-                    1,
-                    "%s.change_field_value(): " "record found in cache:",
-                    self.__class__.__name__,
-                )
-                self.line_edit.setText(self.record_to_text(record))
-                loaded = True
-
-        # Load the record from the database if not found in cache.
-        if not loaded:
-            with self.qt_model.get_one_db_item_by_id(new_value) as db_item:
-                if db_item is None:
-                    logger.log(
-                        10,
-                        "%s.change_field_value(): "
-                        "record not found: %s; setting to null",
-                        self.__class__.__name__,
-                        new_value,
-                    )
-                    self.set_to_null()
-                    return
-                record = self.qt_model.db_item_to_record(db_item)
-                logger.log(
-                    10,
-                    "%s.change_field_value(): " "record loaded from database:",
-                    self.__class__.__name__,
-                )
-                self.line_edit.setText(self.record_to_text(record))
-
-        # Update model priority and enable clear action, then set value.
-        self.qt_model.set_prioritized_ids([new_value])
-        if self._clear_action:
-            self._clear_action.setEnabled(True)
-        self.field_value = new_value
+        # Update the nullable flag.
+        self._nullable = value
+        # Add clear action if field becomes nullable.
+        if value:
+            if self._clear_action is None:
+                # Recreate dropdown action to allow clear action placement.
+                self._dropdown_action.deleteLater()
+                self._dropdown_action = None  # type: ignore
+                self.create_drop_down_action()
+                self.create_clear_action()
+        # Remove clear action if field becomes non-nullable.
+        else:
+            if self._clear_action is not None:
+                self._clear_action.deleteLater()
+                self._clear_action = None
 
     def set_to_null(self):
         """Set the field value to null."""
@@ -398,6 +277,78 @@ class DrfSelOneEditor(QWidget, Generic[DBM], DrfFieldEd):
         value = ", ".join([str(d) for d in data if d is not None])
         return value
 
+    def change_field_value(self, new_value: Any) -> None:
+        """Change the field value.
+
+        The new value can be a database record or an ID of a record.
+
+        Args:
+            new_value: The new value to set for the field.
+        """
+        # Prevent changes if the field is read-only.
+        if self._read_only:
+            logger.log(
+                10,
+                "%s.change_field_value(): read only",
+                self.__class__.__name__,
+            )
+            return
+
+        # Handle None values by clearing the field.
+        if new_value is None:
+            logger.log(
+                10,
+                "%s.change_field_value(): None",
+                self.__class__.__name__,
+            )
+            self.set_to_null()
+            return
+
+        if self._sel_field_value(new_value):
+            if self._clear_action:
+                self._clear_action.setEnabled(True)
+        else:
+            if self._clear_action and self.field_value is not None:
+                self._clear_action.setEnabled(False)
+
+    def _sel_field_value(self, new_value: Any) -> bool:
+        """Change the field value."""
+        raise NotImplementedError("Subclasses must implement this method")
+
+    def get_record_label(self, record_id: "RecIdType") -> str:
+        # Try to find the record in the model cache first.
+        assert record_id is not None
+        row = self.qt_model._db_to_row.get(record_id, None)
+        if row is not None:
+            record = self.qt_model.cache[row]
+            if record.loaded:
+                logger.log(
+                    1,
+                    "%s.change_field_value(): " "record found in cache:",
+                    self.__class__.__name__,
+                )
+                return self.record_to_text(record)
+
+        # Load the record from the database if not found in cache.
+        with self.qt_model.get_one_db_item_by_id(record_id) as db_item:
+            if db_item is None:
+                logger.log(
+                    1,
+                    "%s.change_field_value(): "
+                    "record not found: %s; setting to null",
+                    self.__class__.__name__,
+                    record_id,
+                )
+                self.set_to_null()
+                return ""
+            record = self.qt_model.db_item_to_record(db_item)
+            logger.log(
+                1,
+                "%s.change_field_value(): " "record loaded from database:",
+                self.__class__.__name__,
+            )
+            return self.record_to_text(record)
+
     def load_value_from(self, record: Any):
         """Load the field value from the database record.
 
@@ -407,22 +358,177 @@ class DrfSelOneEditor(QWidget, Generic[DBM], DrfFieldEd):
         # Validate that the field name is set.
         if not self._name:
             raise ValueError("Field name is not set.")
+
         # Get the related record from the database record.
         related = getattr(record, self._name, None)
-        # Convert to ID if it's a database record object.
-        if related is not None:
-            related = self.qt_model.get_db_item_id(related)
 
         # Update the field value with the loaded related record ID.
         self.change_field_value(related)
 
-    def save_value_to(self, record: Any):
-        """Load the field value from the database record.
+    def auto_create_new(self, text: str) -> None:
+        """Create a new record."""
+        if self._editor_class is None:
+            logger.error("No editor class set")
+            return
+        editor = self._editor_class(
+            ctx=self.ctx,
+            db_model=self.qt_model.db_model,
+            parent=self,
+        )
+        editor.on_create_new()
+        if self.popup.isVisible():
+            self.popup.hide()
+        self.ctx.create_window(editor, title=editor.windowTitle())
 
-        Attributes:
-            record: The item to load the field value from. May be the
-                database record or the ID of the record.
+        def _on_record_saved(record: DBM) -> None:
+            """The record has been saved."""
+            self.on_record_saved(record)
+            self.ctx.close_window(editor)
+
+        editor.recordSaved.connect(_on_record_saved)
+
+    def on_record_saved(self, record: DBM) -> None:
+        """The record has been saved."""
+        raise NotImplementedError("Subclasses must implement this method")
+
+
+class DrfSelOneEditor(DrfSelBase[DBM_O]):
+    """Editor for selecting a single related record from a QtModel.
+
+    This widget provides a user interface for selecting one related database
+    record from a model. It consists of a read-only line edit that displays
+    the currently selected record's display text, along with action buttons
+    for opening a selection popup and clearing the selection.
+
+    The selection mechanism uses a PopupWidget that displays a searchable tree
+    view of records from the associated QtModel. When the user clicks the
+    dropdown button, a popup appears below the line edit showing available
+    records. The popup includes a search/filter field that allows filtering
+    records in real-time. When a record is selected from the popup, it updates
+    the line edit with the record's display text and stores the record's
+    database ID as the field value.
+
+    The widget supports both edit and display modes. In edit mode, the dropdown
+    and clear buttons are enabled, allowing users to change the selection. In
+    display mode, these buttons are disabled, making the field read-only.
+
+    If the field is nullable, a clear button is displayed that allows setting
+    the value to null. The clear button is automatically enabled or disabled
+    based on whether a value is currently selected and whether the field is in
+    edit mode.
+
+    The widget integrates with the field editing system through the DrfFieldEd
+    base class, providing methods to load values from database records and
+    save values back to them. It can handle both database record objects and
+    record IDs as values, automatically converting between them as needed.
+
+    Attributes:
+        popup: The popup widget containing the searchable tree view for
+            record selection.
+        line_edit: The read-only line edit displaying the selected record's
+            text.
+        _in_editing: Flag indicating whether the widget is in edit mode.
+        _clear_action: Optional action button for clearing the selection,
+            present only when the field is nullable.
+        _dropdown_action: Action button for opening the selection popup.
+    """
+
+    def post_init(self):
+        tree = cast("TreeView", self.popup.tree)
+        tree.itemSelected.connect(self.on_item_selected)
+        tree.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+
+    def on_show_popup(self):
+        # Set the current selection in the popup tree to match the field value.
+        index = QModelIndex()
+        if self.field_value is None:
+            logger.log(1, "Tree cleared")
+        else:
+            # Find the row corresponding to the current field value.
+            row = self.qt_model._db_to_row.get(self.field_value, None)
+            logger.log(1, "Found row %s for value %s", row, self.field_value)
+            if row is not None:
+                index = self.qt_model.index(row, 0)
+                logger.log(
+                    1, "Found index %s for value %s", index, self.field_value
+                )
+            else:
+                logger.log(
+                    1,
+                    "No row found for value %s",
+                    self.field_value,
+                )
+
+        # Either select what we have found or clear the selection.
+        tree = cast("TreeView", self.popup.tree)
+        tree.setCurrentIndex(index)
+
+    def on_item_selected(self, item: "QtRecord"):
+        # Handle selection of a record from the popup.
+        logger.log(
+            1, "%s.on_item_selected(%s)", self.__class__.__name__, item.db_id
+        )
+
+        # Update the line edit with the selected record's display text.
+        text = item.display_text()
+        logger.log(1, "%s.on_item_selected: %s", self.__class__.__name__, text)
+
+        self.line_edit.setText(text)
+        self.popup.hide()
+
+        # Store the selected record's database ID as the field value.
+        self.field_value = item.db_id
+
+    def _sel_field_value(self, new_value: "None | DBM_O | RecIdType") -> bool:
+        """Change the field value.
+
+        The new value can be a database record or an ID of a record.
+
+        Args:
+            new_value: The new value to set for the field.
         """
+        assert new_value is not None
+
+        # Convert database record objects to their IDs.
+        if hasattr(new_value, "metadata"):
+            logger.log(
+                1,
+                "%s.change_field_value(): database record",
+                self.__class__.__name__,
+            )
+            new_value = self.qt_model.get_db_item_id(new_value)  # type: ignore
+
+        logger.log(
+            1,
+            "%s.change_field_value() to %s (%s)",
+            self.__class__.__name__,
+            new_value,
+            new_value.__class__.__name__,
+        )
+
+        # Skip update if the value hasn't changed.
+        if new_value == self.field_value:
+            logger.log(
+                1,
+                "%s.change_field_value(): same value: %s",
+                self.__class__.__name__,
+                new_value,
+            )
+            return False
+
+        # Change the label.
+        label = self.get_record_label(new_value)
+        if label == "":
+            self.set_to_null()
+            return False
+        self.line_edit.setText(label)
+
+        # Set value.
+        self.qt_model.set_prioritized_ids([new_value])
+        self.field_value = new_value
+        return True
+
+    def save_value_to(self, record: Any):
         # Validate that the field name is set.
         if not self._name:
             raise ValueError("Field name is not set.")
@@ -440,37 +546,6 @@ class DrfSelOneEditor(QWidget, Generic[DBM], DrfFieldEd):
         # Save the value to the record.
         setattr(record, self._name, new_val)
 
-    def change_nullable(self, value: bool) -> None:
-        """Set the nullable property.
-
-        The default implementation looks for an attribute called ac_clear
-        in itself and, if found, assumes it is a QAction.
-        """
-        # Update the nullable flag.
-        self._nullable = value
-        # Add clear action if field becomes nullable.
-        if value:
-            if self._clear_action is None:
-                # Recreate dropdown action to allow clear action placement.
-                self._dropdown_action.deleteLater()
-                self._dropdown_action = None  # type: ignore
-                self.create_drop_down_action()
-                self.create_clear_action()
-        # Remove clear action if field becomes non-nullable.
-        else:
-            if self._clear_action is not None:
-                self._clear_action.deleteLater()
-                self._clear_action = None
-
-    def setEnabled(self, enabled: bool) -> None:  # type: ignore
-        """Set the enabled state of the widget."""
-        super().setEnabled(enabled)
-        self.line_edit.setEnabled(enabled)
-        if self._dropdown_action:
-            self._dropdown_action.setEnabled(enabled)
-        if self._clear_action:
-            self._clear_action.setEnabled(enabled)
-
     def create_ex_field(self) -> "ExField":
         from exdrf.field_types.ref_o2m import RefOneToManyField
 
@@ -480,3 +555,7 @@ class DrfSelOneEditor(QWidget, Generic[DBM], DrfFieldEd):
             nullable=self.nullable,
             ref=self.qt_model.db_model,  # type: ignore
         )
+
+    def on_record_saved(self, record: DBM_O) -> None:
+        """The record has been saved."""
+        self.change_field_value(self.qt_model.get_db_item_id(record))

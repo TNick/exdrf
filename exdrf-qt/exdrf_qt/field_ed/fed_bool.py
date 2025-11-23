@@ -10,8 +10,9 @@ from PyQt5.QtWidgets import (
 from exdrf_qt.field_ed.base import DrfFieldEd
 
 if TYPE_CHECKING:
-    from exdrf_qt.context import QtContext
     from exdrf.field import ExField
+
+    from exdrf_qt.context import QtContext
 
 
 class DrfBoolEditor(QCheckBox, DrfFieldEd):

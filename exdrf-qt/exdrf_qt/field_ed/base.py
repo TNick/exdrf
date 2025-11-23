@@ -8,9 +8,10 @@ from PyQt5.QtWidgets import QWidget
 from exdrf_qt.context_use import QtUseContext
 
 if TYPE_CHECKING:
+    from exdrf.field import ExField
+
     from exdrf_qt.context import QtContext
     from exdrf_qt.controls.base_editor import ExdrfEditorBase
-    from exdrf.field import ExField
 
 
 logger = logging.getLogger(__name__)

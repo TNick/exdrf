@@ -1,5 +1,6 @@
 from typing import Any
 
+from exdrf.field import ExField
 from PyQt5.QtWidgets import (
     QAction,
     QApplication,
@@ -10,7 +11,6 @@ from PyQt5.QtWidgets import (
 )
 
 from exdrf_qt.field_ed.base_line import LineBase
-from exdrf.field import ExField
 
 
 class DrfBlobEditor(LineBase):

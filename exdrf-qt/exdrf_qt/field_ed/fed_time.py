@@ -1,5 +1,5 @@
 from datetime import date, datetime, time
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from exdrf_qt.field_ed.base_date import DateBase
 

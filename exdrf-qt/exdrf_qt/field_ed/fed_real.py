@@ -1,8 +1,7 @@
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from exdrf_qt.field_ed.base_number import NumberBase
 from exdrf_qt.field_ed.choices_mixin import EditorWithChoices
-
 
 if TYPE_CHECKING:
     from exdrf.field import ExField

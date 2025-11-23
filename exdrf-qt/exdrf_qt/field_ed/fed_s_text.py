@@ -1,4 +1,4 @@
-from typing import Any, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Optional
 
 from exdrf_qt.field_ed.base_line import LineBase
 from exdrf_qt.field_ed.choices_mixin import EditorWithChoices
