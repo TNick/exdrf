@@ -31,6 +31,7 @@ from exdrf_qt.models.field_list import FieldsList
 from exdrf_qt.models.record import QtRecord
 from exdrf_qt.models.requests import RecordRequestManager
 from exdrf_qt.models.selector import Selector
+from sqlalchemy.orm.exc import DetachedInstanceError
 
 if TYPE_CHECKING:
     from PyQt5.QtCore import QObject  # noqa: F401
@@ -541,32 +542,50 @@ class QtModel(
                 str(work.error),
             )
         else:
-            loaded_update = 0
-            for i in range(req.start, req.start + req.count):
-                record = self.cache[i]
-                if not record.loaded:
-                    loaded_update = loaded_update + 1
-                try:
-                    self.db_item_to_record(work.result[i - req.start], record)
-                except Exception as e:
-                    logger.error(
-                        "Error converting item %d to record: %s",
-                        i - req.start,
-                        e,
-                        exc_info=e,
-                    )
-                    record.error = True
+            with self.ctx.same_session() as session:
+                loaded_update = 0
+                for i in range(req.start, req.start + req.count):
+                    record = self.cache[i]
+                    if not record.loaded:
+                        loaded_update = loaded_update + 1
+                    try:
+                        self.db_item_to_record(
+                            work.result[i - req.start], record
+                        )
+                    except DetachedInstanceError:
+                        session.add(work.result[i - req.start])
+                        try:
+                            self.db_item_to_record(
+                                work.result[i - req.start], record
+                            )
+                        except Exception as e:
+                            logger.error(
+                                "Error converting item %d to record: %s",
+                                i - req.start,
+                                e,
+                                exc_info=e,
+                            )
+                            record.error = True
 
-                # The row is the index of the item in the cache
-                # without the top cache.
-                self._db_to_row[record.db_id] = i
-            self.requestCompleted.emit(
-                req.uniq_id,
-                req.start,
-                req.count,
-                len(self.requests),
-            )
-            self.loaded_count = self._loaded_count + loaded_update
+                    except Exception as e:
+                        logger.error(
+                            "Error converting item %d to record: %s",
+                            i - req.start,
+                            e,
+                            exc_info=e,
+                        )
+                        record.error = True
+
+                    # The row is the index of the item in the cache
+                    # without the top cache.
+                    self._db_to_row[record.db_id] = i
+                self.requestCompleted.emit(
+                    req.uniq_id,
+                    req.start,
+                    req.count,
+                    len(self.requests),
+                )
+                self.loaded_count = self._loaded_count + loaded_update
         self.dataChanged.emit(
             self.createIndex(req.start, 0),
             self.createIndex(
