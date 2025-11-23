@@ -886,7 +886,9 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
         if file_name:
             self.c_templ.setText(file_name)
 
-    def set_template_source(self, text: Optional[str]):
+    def set_template_source(
+        self, text: Optional[str], var_bag: Optional[VarBag] = None
+    ):
         """React to change in the text of the template file line edit.
 
         The template is compiled and the source code is displayed in the
@@ -895,7 +897,11 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
         Args:
             text: The file system path or module path to the template file.
         """
+
         with self.prevent_save(rerender=False):
+            if var_bag is not None:
+                self.model.var_bag = var_bag
+
             if not text:
                 self.c_templ.setStyleSheet("QLineEdit { color: black; }")
                 self.c_templ.setToolTip(
