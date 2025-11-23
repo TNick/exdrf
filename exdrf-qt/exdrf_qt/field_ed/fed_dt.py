@@ -1,9 +1,12 @@
 from datetime import date, datetime
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 from PyQt5.QtWidgets import QLineEdit
 
 from exdrf_qt.field_ed.base_date import DateBase
+
+if TYPE_CHECKING:
+    from exdrf.field import ExField
 
 
 class DrfDateTimeEditor(DateBase):
@@ -42,6 +45,18 @@ class DrfDateTimeEditor(DateBase):
             if self.nullable:
                 assert self.ac_clear is not None
                 self.ac_clear.setEnabled(True)
+
+    def create_ex_field(self) -> "ExField":
+        from exdrf.field_types.date_time import DateTimeField
+
+        return DateTimeField(
+            name=self.name,
+            description=self.description or "",
+            nullable=self.nullable,
+            format=self.format,
+            min=self.min,
+            max=self.max,
+        )
 
 
 if __name__ == "__main__":

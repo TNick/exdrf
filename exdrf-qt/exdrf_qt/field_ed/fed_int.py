@@ -1,7 +1,10 @@
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 from exdrf_qt.field_ed.base_number import NumberBase
 from exdrf_qt.field_ed.choices_mixin import EditorWithChoices
+
+if TYPE_CHECKING:
+    from exdrf.field import ExField
 
 
 class DrfIntEditor(NumberBase[int], EditorWithChoices):
@@ -15,6 +18,19 @@ class DrfIntEditor(NumberBase[int], EditorWithChoices):
             return int(text)
         except ValueError:
             return None
+
+    def create_ex_field(self) -> "ExField":
+        from exdrf.field_types.int_field import IntField
+
+        return IntField(
+            name=self.name,
+            description=self.description or "",
+            nullable=self.nullable,
+            min=self.min,
+            max=self.max,
+            unit=self.unit,
+            unit_symbol=self.unit_symbol,
+        )
 
 
 if __name__ == "__main__":

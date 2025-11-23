@@ -32,6 +32,7 @@ if TYPE_CHECKING:
     from exdrf_qt.controls.base_editor import ExdrfEditor
     from exdrf_qt.models import QtModel
     from exdrf_qt.models.record import QtRecord
+    from exdrf.field import ExField
 
 logger = logging.getLogger(__name__)
 DBM = TypeVar("DBM", bound="DrfSelOneEditor")
@@ -469,3 +470,13 @@ class DrfSelOneEditor(QWidget, Generic[DBM], DrfFieldEd):
             self._dropdown_action.setEnabled(enabled)
         if self._clear_action:
             self._clear_action.setEnabled(enabled)
+
+    def create_ex_field(self) -> "ExField":
+        from exdrf.field_types.ref_o2m import RefOneToManyField
+
+        return RefOneToManyField(
+            name=self.name,
+            description=self.description or "",
+            nullable=self.nullable,
+            ref=self.qt_model.db_model,  # type: ignore
+        )

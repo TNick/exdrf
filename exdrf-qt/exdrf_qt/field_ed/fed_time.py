@@ -1,7 +1,10 @@
 from datetime import date, datetime, time
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 from exdrf_qt.field_ed.base_date import DateBase
+
+if TYPE_CHECKING:
+    from exdrf.field import ExField
 
 
 class DrfTimeEditor(DateBase):
@@ -43,6 +46,18 @@ class DrfTimeEditor(DateBase):
     def field_value(self, value: Any) -> None:
         """Set the field value."""
         self._change_field_value(value)
+
+    def create_ex_field(self) -> "ExField":
+        from exdrf.field_types.time_field import TimeField
+
+        return TimeField(
+            name=self.name,
+            description=self.description or "",
+            nullable=self.nullable,
+            format=self.format,
+            min=self.min,
+            max=self.max,
+        )
 
 
 if __name__ == "__main__":

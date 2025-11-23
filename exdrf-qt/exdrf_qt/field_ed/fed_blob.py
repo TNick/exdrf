@@ -10,6 +10,7 @@ from PyQt5.QtWidgets import (
 )
 
 from exdrf_qt.field_ed.base_line import LineBase
+from exdrf.field import ExField
 
 
 class DrfBlobEditor(LineBase):
@@ -129,6 +130,15 @@ class DrfBlobEditor(LineBase):
         super().change_read_only(value)
         if self.ac_upload is not None:
             self.ac_upload.setEnabled(not value)
+
+    def create_ex_field(self) -> "ExField":
+        from exdrf.field_types.blob_field import BlobField
+
+        return BlobField(
+            name=self.name,
+            description=self.description or "",
+            nullable=self.nullable,
+        )
 
 
 if __name__ == "__main__":

@@ -23,6 +23,7 @@ if TYPE_CHECKING:
     from exdrf_qt.controls.base_editor import ExdrfEditor
     from exdrf_qt.models import QtModel
     from exdrf_qt.models.record import QtRecord
+    from exdrf.field import ExField
 
 DBM = TypeVar("DBM")
 logger = logging.getLogger(__name__)
@@ -221,3 +222,14 @@ class DrfSelMultiEditor(DropBase, Generic[DBM]):
             field_v = []
         field_v.append(rec_id)
         self.change_field_value(field_v)
+
+    def create_ex_field(self) -> "ExField":
+        from exdrf.field_types.ref_m2m import RefManyToManyField
+
+        return RefManyToManyField(
+            name=self.name,
+            description=self.description or "",
+            nullable=self.nullable,
+            ref=self.qt_model.db_model,  # type: ignore
+            ref_intermediate=self.qt_model.db_model,  # type: ignore
+        )

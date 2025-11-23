@@ -1,8 +1,11 @@
-from typing import Any, Optional
+from typing import Any, Optional, TYPE_CHECKING
 
 from PyQt5.QtWidgets import QAction, QPlainTextEdit
 
 from exdrf_qt.field_ed.base import DrfFieldEd
+
+if TYPE_CHECKING:
+    from exdrf.field import ExField
 
 
 class DrfTextEditor(QPlainTextEdit, DrfFieldEd):
@@ -173,6 +176,18 @@ class DrfTextEditor(QPlainTextEdit, DrfFieldEd):
         self.setReadOnly(value)
         if self.ac_clear is not None:
             self.ac_clear.setEnabled(not value and self.field_value is not None)
+
+    def create_ex_field(self) -> "ExField":
+        from exdrf.field_types.str_field import StrField
+
+        return StrField(
+            name=self.name,
+            description=self.description or "",
+            multiline=True,
+            nullable=self.nullable,
+            min_length=self.min_len or 0,
+            max_length=self.max_len or 0,
+        )
 
 
 if __name__ == "__main__":

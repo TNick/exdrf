@@ -1,7 +1,10 @@
-from typing import Any, Optional
+from typing import Any, Optional, TYPE_CHECKING
 
 from exdrf_qt.field_ed.base_line import LineBase
 from exdrf_qt.field_ed.choices_mixin import EditorWithChoices
+
+if TYPE_CHECKING:
+    from exdrf.field import ExField
 
 
 class DrfLineEditor(LineBase, EditorWithChoices):
@@ -104,6 +107,18 @@ class DrfLineEditor(LineBase, EditorWithChoices):
         if self.nullable:
             assert self.ac_clear is not None
             self.ac_clear.setEnabled(False)
+
+    def create_ex_field(self) -> "ExField":
+        from exdrf.field_types.str_field import StrField
+
+        return StrField(
+            name=self.name,
+            description=self.description or "",
+            nullable=self.nullable,
+            multiline=False,
+            min_length=self.min_len or 0,
+            max_length=self.max_len or 0,
+        )
 
 
 if __name__ == "__main__":

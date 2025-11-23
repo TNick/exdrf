@@ -11,6 +11,7 @@ from exdrf_qt.field_ed.base import DrfFieldEd
 
 if TYPE_CHECKING:
     from exdrf_qt.context import QtContext
+    from exdrf.field import ExField
 
 
 class DrfBoolEditor(QCheckBox, DrfFieldEd):
@@ -116,6 +117,17 @@ class DrfBoolEditor(QCheckBox, DrfFieldEd):
             return self.set_null_value()
 
         self.change_field_value(state == Qt.CheckState.Checked)
+
+    def create_ex_field(self) -> "ExField":
+        from exdrf.field_types.bool_field import BoolField
+
+        return BoolField(
+            name=self.name,
+            description=self.description or "",
+            nullable=self.nullable,
+            true_str=self.true_str,
+            false_str=self.false_str,
+        )
 
 
 if __name__ == "__main__":

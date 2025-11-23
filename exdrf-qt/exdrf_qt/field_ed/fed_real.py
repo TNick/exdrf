@@ -1,7 +1,11 @@
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 from exdrf_qt.field_ed.base_number import NumberBase
 from exdrf_qt.field_ed.choices_mixin import EditorWithChoices
+
+
+if TYPE_CHECKING:
+    from exdrf.field import ExField
 
 
 class DrfRealEditor(NumberBase[float], EditorWithChoices):
@@ -25,6 +29,21 @@ class DrfRealEditor(NumberBase[float], EditorWithChoices):
     def stringify(self, value: float) -> str:
         """Converts the number to a string."""
         return f"{value:.{self.decimals}f}" if value is not None else ""
+
+    def create_ex_field(self) -> "ExField":
+        from exdrf.field_types.float_field import FloatField
+
+        return FloatField(
+            name=self.name,
+            description=self.description or "",
+            nullable=self.nullable,
+            min=self.min,
+            max=self.max,
+            precision=self.decimals,
+            scale=self.scale,
+            unit=self.unit,
+            unit_symbol=self.unit_symbol,
+        )
 
 
 if __name__ == "__main__":

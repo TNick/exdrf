@@ -16,6 +16,7 @@ from exdrf_qt.field_ed.choices_mixin import EditorWithChoices
 
 if TYPE_CHECKING:
     from exdrf_qt.context import QtContext
+    from exdrf.field import ExField
 
 
 class DropdownList(QFrame, QtUseContext):
@@ -378,6 +379,16 @@ class DrfEnumEditor(DropBase, EditorWithChoices):
                     self.text()
                 ),  # type: ignore[arg-type]
             )
+
+    def create_ex_field(self) -> "ExField":
+        from exdrf.field_types.enum_field import EnumField
+
+        return EnumField(
+            name=self.name,
+            description=self.description or "",
+            nullable=self.nullable,
+            enum_values=self._choices,
+        )
 
 
 if __name__ == "__main__":
