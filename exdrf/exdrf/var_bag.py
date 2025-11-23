@@ -322,3 +322,13 @@ class VarBag:
         value = item.get("value", "")
         self.values[name] = inst.value_from_str(value)
         return inst, value
+
+    def update(self, other: "VarBag") -> None:
+        """Update this variable bag with the values from another variable bag.
+
+        Args:
+            other: The other variable bag to update from.
+        """
+        for name in other._fields.keys():
+            self._fields[name] = other._fields[name]
+            self.values[name] = other.values[name]
