@@ -228,6 +228,11 @@ def field_from_sql_rel(
         extra["subordinate"] = parsed_info.subordinate
     elif in_dir == "ManyToMany":
         Ctor = RefManyToManyField
+        if relation.secondary is None:
+            raise ValueError(
+                f"ManyToMany relationship {resource.name}.{relation.key} "
+                "has no secondary table"
+            )
         extra["ref_intermediate"] = res_by_table_name(
             resource.dataset, getattr(relation.secondary, "key")
         )
