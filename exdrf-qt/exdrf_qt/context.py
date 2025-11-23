@@ -117,12 +117,13 @@ class QtContext(DbConn):
 
         # Attempt to load the last used connection from settings before
         # notifying plugins, so they can find an initialized DB context.
-        try:
-            self._load_last_used_db_config()
-        except Exception as e:
-            logging.getLogger(__name__).error(
-                "Failed to load last used DB config: %s", e, exc_info=True
-            )
+        if not self.c_string:
+            try:
+                self._load_last_used_db_config()
+            except Exception as e:
+                logging.getLogger(__name__).error(
+                    "Failed to load last used DB config: %s", e, exc_info=True
+                )
 
         # Inform plugins that the context has been created.
         safe_hook_call(exdrf_qt_pm.hook.context_created, context=self)
