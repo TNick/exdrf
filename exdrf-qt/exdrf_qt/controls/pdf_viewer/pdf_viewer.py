@@ -1,3 +1,5 @@
+"""Public re-exports and a quick standalone launcher for the PDF viewer UI."""
+
 from exdrf_qt.controls.pdf_viewer.image_graphics_view import ImageGraphicsView
 from exdrf_qt.controls.pdf_viewer.pdf_image_viewer import PdfImageViewer
 from exdrf_qt.controls.pdf_viewer.pdf_render_worker import PdfRenderWorker
@@ -17,6 +19,7 @@ if __name__ == "__main__":
 
     from exdrf_qt.context import LocalSettings, QtContext
 
+    # Spin up a very small application that can host the viewer widget.
     app = QApplication(sys.argv)
 
     # Create a minimal context for standalone usage
@@ -30,6 +33,7 @@ if __name__ == "__main__":
         schema=os.environ.get("EXDRF_DB_SCHEMA", "public"),
     )
 
+    # Instantiate the viewer and prompt the user for a PDF to open.
     viewer = PdfImageViewer(ctx=ctx)
     viewer.resize(1000, 800)
 
@@ -44,6 +48,7 @@ if __name__ == "__main__":
         sys.exit(0)
 
     try:
+        # Load the chosen file and enter the Qt event loop.
         viewer.set_pdf(file_path)
         viewer.show()
         sys.exit(app.exec_())

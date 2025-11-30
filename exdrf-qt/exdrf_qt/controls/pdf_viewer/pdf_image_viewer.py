@@ -1,28 +1,61 @@
+"""High-level PDF/image viewer with splitting, navigation, and OCR tools."""
+
+import importlib
 import logging
 import os
+import re
 import shutil
 import tempfile
-from typing import TYPE_CHECKING, Dict, List, Optional, Set
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple, cast
 
-from PyQt5.QtCore import QSize, QThread, QUrl, pyqtSignal
-from PyQt5.QtGui import QDesktopServices, QPixmap, QTransform
+from PyQt5.QtCore import (
+    QEvent,
+    QPoint,
+    QRect,
+    QSize,
+    Qt,
+    QThread,
+    QUrl,
+    pyqtSignal,
+)
+from PyQt5.QtGui import (
+    QBrush,
+    QColor,
+    QDesktopServices,
+    QImage,
+    QKeyEvent,
+    QMouseEvent,
+    QPen,
+    QPixmap,
+    QTransform,
+)
 from PyQt5.QtWidgets import (
     QFrame,
     QGraphicsPixmapItem,
+    QGraphicsRectItem,
     QGraphicsScene,
     QGraphicsView,
     QHBoxLayout,
     QLabel,
+    QMenu,
+    QMessageBox,
     QSizePolicy,
+    QSplitter,
     QToolButton,
     QVBoxLayout,
     QWidget,
 )
 
 from exdrf_qt.context_use import QtUseContext
+from exdrf_qt.controls.pdf_viewer.image_graphics_view import ImageGraphicsView
+from exdrf_qt.controls.pdf_viewer.pdf_render_worker import PdfRenderWorker
+from exdrf_qt.controls.pdf_viewer.splitter import SplitEntry, SplitPlanPanel
 
-from .image_graphics_view import ImageGraphicsView
-from .pdf_render_worker import PdfRenderWorker
+try:  # pragma: no cover - optional dependency
+    _paddle_module = importlib.import_module("paddleocr")
+    PaddleOCR = getattr(_paddle_module, "PaddleOCR", None)
+except Exception:  # pragma: no cover - optional
+    PaddleOCR = None
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +76,8 @@ class PdfImageViewer(QWidget, QtUseContext):
     - Multi-page view modes (1-up, 2-up, 4-up)
     - Fit to width/height
     - Open in external viewer/editor
+        - Split planner for exporting page ranges into new PDF files
+        - OCR capture tool for quickly extracting text snippets
 
     Attributes:
         requestRender: Signal emitted to request PDF page rendering.
@@ -71,6 +106,7 @@ class PdfImageViewer(QWidget, QtUseContext):
     """
 
     requestRender = pyqtSignal(list)
+    pageImageReady = pyqtSignal(int)
 
     def __init__(self, ctx: "QtContext", parent: Optional[QWidget] = None):
         """Initialize the PDF/image viewer widget.
@@ -80,6 +116,8 @@ class PdfImageViewer(QWidget, QtUseContext):
             parent: Parent widget.
         """
         super().__init__(parent)
+
+        # Keep a reference to the shared Qt context for translations/icons.
         self.ctx = ctx
 
         # State
@@ -107,21 +145,83 @@ class PdfImageViewer(QWidget, QtUseContext):
         self._view = ImageGraphicsView(self)
         self._view.setScene(self._scene)
         self._pix_items: List[QGraphicsPixmapItem] = []
+        self._page_items: Dict[int, QGraphicsPixmapItem] = {}
+        self._item_to_page: Dict[QGraphicsPixmapItem, int] = {}
+        self._selection_frames: Dict[int, QGraphicsRectItem] = {}
+        self._active_page_index: Optional[int] = None
+        self._ocr_enabled = False
+        self._ocr_mode: str = "auto"
+        self._paddle_reader: Optional[Any] = None
+        self._paddle_available = PaddleOCR is not None
+        self._ocr_engine: str = (
+            "paddle" if self._paddle_available else "tesseract"
+        )
 
         toolbar = self._create_toolbar()
 
-        # Root layout: vertical toolbar on the left, viewer on the right.
+        viewer_panel = QWidget(self)
+        viewer_layout = QHBoxLayout()
+        viewer_layout.setContentsMargins(0, 0, 0, 0)
+        viewer_layout.setSpacing(4)
+        viewer_layout.addLayout(toolbar)
+        viewer_layout.addWidget(self._view)
+        viewer_panel.setLayout(viewer_layout)
+
+        self._split_panel = SplitPlanPanel(self)
+        self._split_panel.generateAllRequested.connect(
+            self._handle_generate_all
+        )
+        self._split_panel.generateSelectedRequested.connect(
+            self._handle_generate_selected
+        )
+        self._split_panel.ocrModeChanged.connect(self._set_ocr_mode)
+        self._split_panel.ocrEngineChanged.connect(self._set_ocr_engine)
+        self._split_panel.set_paddle_available(self._paddle_available)
+        self._split_panel.set_ocr_engine(self._ocr_engine)
+        self._install_interaction_hooks()
+
+        self._splitter = QSplitter(Qt.Orientation.Horizontal, self)
+        self._splitter.addWidget(viewer_panel)
+        self._splitter.addWidget(self._split_panel)
+        self._splitter.setStretchFactor(0, 3)
+        self._splitter.setStretchFactor(1, 1)
+        self._splitter.setCollapsible(0, False)
+        self._splitter.setCollapsible(1, False)
+        self._splitter.setSizes([900, 320])
+
+        # Root layout: viewer on the left, split planner on the right.
         root = QHBoxLayout()
         root.setContentsMargins(0, 0, 0, 0)
-        root.setSpacing(4)
-        root.addLayout(toolbar)
-        root.addWidget(self._view)
+        root.addWidget(self._splitter)
         self.setLayout(root)
 
         self._update_nav_buttons()
         self._update_open_button()
+        self._split_panel.set_generation_enabled(False)
 
     # ---- UI -----------------------------------------------------------------
+    def _install_interaction_hooks(self):
+        """Install event filters and context menus for shortcuts."""
+        viewport = self._view.viewport()
+        if viewport is not None:
+            viewport.installEventFilter(self)
+            viewport.setContextMenuPolicy(
+                Qt.ContextMenuPolicy.CustomContextMenu
+            )
+            viewport.customContextMenuRequested.connect(
+                self._handle_view_context_request
+            )
+        self._view.installEventFilter(self)
+        self._view.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self._view.customContextMenuRequested.connect(
+            self._handle_view_context_request
+        )
+        table = self._split_panel.table
+        table.installEventFilter(self)
+        table_viewport = table.viewport()
+        if table_viewport is not None:
+            table_viewport.installEventFilter(self)
+
     def _create_toolbar(self) -> QVBoxLayout:
         """Create and configure the vertical toolbar.
 
@@ -208,6 +308,13 @@ class PdfImageViewer(QWidget, QtUseContext):
         self._configure_button_size(self.btn_pan)
         self.btn_pan.toggled.connect(self._toggle_pan_mode)
 
+        self.btn_ocr = QToolButton()
+        self.btn_ocr.setText(self.t("pdf.ocr", "OCR"))
+        self.btn_ocr.setIcon(self.get_icon("font"))
+        self.btn_ocr.setCheckable(True)
+        self._configure_button_size(self.btn_ocr)
+        self.btn_ocr.toggled.connect(self._toggle_ocr_mode)
+
         sep2 = self._v_sep()
 
         self.btn_rot_ccw = QToolButton()
@@ -246,6 +353,7 @@ class PdfImageViewer(QWidget, QtUseContext):
         vl.addWidget(self.btn_fit_w)
         vl.addWidget(self.btn_fit_h)
         vl.addWidget(self.btn_pan)
+        vl.addWidget(self.btn_ocr)
         vl.addWidget(sep2)
         vl.addWidget(self.btn_rot_ccw)
         vl.addWidget(self.btn_rot_cw)
@@ -282,9 +390,140 @@ class PdfImageViewer(QWidget, QtUseContext):
         Args:
             enabled: If True, enable scroll hand drag mode; otherwise disable.
         """
+        if enabled and self.btn_ocr.isChecked():
+            self.btn_ocr.setChecked(False)
         self._view.setDragMode(
             QGraphicsView.ScrollHandDrag if enabled else QGraphicsView.NoDrag
         )
+
+    def _toggle_ocr_mode(self, enabled: bool):
+        """Toggle OCR selection mode.
+
+        Args:
+            enabled: If True, enable OCR rectangle selection; otherwise disable.
+        """
+        self._ocr_enabled = enabled
+        if enabled and self.btn_pan.isChecked():
+            self.btn_pan.setChecked(False)
+        callback = self._handle_ocr_selection if enabled else None
+        self._view.set_selection_mode(enabled, callback)
+
+    def _set_ocr_mode(self, mode: str):
+        """Update OCR interpretation mode based on UI selection.
+
+        Args:
+            mode: One of "auto", "digits", "letters", or "handwriting".
+        """
+        valid_modes = {"auto", "digits", "letters", "handwriting"}
+        if mode not in valid_modes:
+            return
+        self._ocr_mode = mode
+        logger.debug("OCR mode changed to: %s", mode)
+
+    def _set_ocr_engine(self, engine: str):
+        """Switch between available OCR engines.
+
+        Args:
+            engine: Engine name, either "tesseract" or "paddle" (if available).
+        """
+        supported = {"tesseract"}
+        if self._paddle_available:
+            supported.add("paddle")
+        if engine not in supported:
+            return
+        if engine == "paddle" and not self._paddle_available:
+            engine = "tesseract"
+        if self._ocr_engine == engine:
+            return
+        self._ocr_engine = engine
+        self._split_panel.set_ocr_engine(engine)
+        logger.debug("OCR engine changed to: %s", engine)
+
+    def is_paddle_available(self) -> bool:
+        """Return True if PaddleOCR backend can be used."""
+        return self._paddle_available
+
+    def eventFilter(self, obj, event):  # type: ignore
+        """Intercept key and mouse events for custom shortcuts."""
+        if event is None:
+            return super().eventFilter(obj, event)
+        if event.type() == QEvent.Type.KeyPress:
+            key_event = cast(QKeyEvent, event)
+            if self._handle_key_press(key_event, obj):
+                return True
+        if (
+            obj is self._view.viewport()
+            and event.type() == QEvent.Type.MouseButtonPress
+        ):
+            mouse_event = cast(QMouseEvent, event)
+            if mouse_event.button() in (
+                Qt.MouseButton.LeftButton,
+                Qt.MouseButton.RightButton,
+            ):
+                page_index = self._page_index_at_view_pos(mouse_event.pos())
+                if page_index is not None:
+                    self._set_active_page_index_only(page_index)
+            return False
+        return super().eventFilter(obj, event)
+
+    def _handle_key_press(self, event: QKeyEvent, source) -> bool:
+        """Process shortcut keys routed through the event filter.
+
+        Args:
+            event: The keyboard event to process.
+            source: The widget that received the event.
+
+        Returns:
+            True if the event was handled and should not propagate.
+        """
+        if event is None or self._image_total <= 0:
+            return False
+        modifiers = event.modifiers()
+        if modifiers not in (
+            Qt.KeyboardModifier.NoModifier,
+            Qt.KeyboardModifiers(),
+        ):
+            return False
+        view_targets = [self._view]
+        viewport = self._view.viewport()
+        if viewport is not None:
+            view_targets.append(viewport)
+        list_targets = [self._split_panel.table]
+        table_viewport = self._split_panel.table.viewport()
+        if table_viewport is not None:
+            list_targets.append(table_viewport)
+        key = event.key()
+        if key in (Qt.Key.Key_A, Qt.Key.Key_N, Qt.Key.Key_S):
+            if source in view_targets or source in list_targets:
+                self._trigger_page_entry_action(key)
+                event.accept()
+                return True
+            return False
+        if key in (
+            Qt.Key.Key_Left,
+            Qt.Key.Key_Right,
+            Qt.Key.Key_Up,
+            Qt.Key.Key_Down,
+        ):
+            if source in view_targets:
+                delta = -1 if key in (Qt.Key.Key_Left, Qt.Key.Key_Up) else 1
+                self._adjust_active_page(delta)
+                event.accept()
+                return True
+            if source in list_targets:
+                delta = -1 if key in (Qt.Key.Key_Left, Qt.Key.Key_Up) else 1
+                self._adjust_active_page(delta)
+                # Allow the table to continue handling the arrow press.
+                return False
+        if key in (Qt.Key.Key_Comma, Qt.Key.Key_Period):
+            if source in view_targets or source in list_targets:
+                if key == Qt.Key.Key_Comma:
+                    self.rotate_ccw()
+                else:  # Qt.Key.Key_Period
+                    self.rotate_cw()
+                event.accept()
+                return True
+        return False
 
     # ---- Public API ----------------------------------------------------------
     def set_pdf(
@@ -302,9 +541,12 @@ class PdfImageViewer(QWidget, QtUseContext):
             dpi: Resolution for rendering PDF pages (default 150).
             lookahead: Number of pages to render ahead of current (default 4).
         """
+        # Recreate the temporary workspace so stale renders do not linger.
         self._cleanup_temp_dir()
         self._temp_dir = tempfile.mkdtemp(prefix="exdrf-pdf-viewer-")
 
+        # Reset bookkeeping so navigation and cache state align with the
+        # newly requested document.
         self._source_type = "pdf"
         self._pdf_path = file_path
         self._image_path = None  # Clear image path when loading PDF
@@ -317,13 +559,23 @@ class PdfImageViewer(QWidget, QtUseContext):
         self._page_to_path.clear()
         self._pix_cache.clear()
 
+        # Detect page count and clamp the initial index to the document size.
         total = self._probe_pdf_pages(file_path)
         self._image_total = total
         self._current_index = max(0, min(start_page, max(0, total - 1)))
+        self._active_page_index = (
+            self._current_index if self._image_total > 0 else None
+        )
+
+        # Let the split planner and toolbar know the new context.
+        self._split_panel.set_generation_enabled(True)
+        self._split_panel.set_total_pages(total)
+        self._split_panel.set_source(file_path)
         self._update_page_label()
         self._update_nav_buttons()
         self._update_open_button()
 
+        # Start background rendering and show the visible window immediately.
         self._start_worker()
         self._queue_initial_render()
 
@@ -333,6 +585,7 @@ class PdfImageViewer(QWidget, QtUseContext):
         Args:
             file_path: Path to the image file.
         """
+        # Copy the source into a temporary directory for consistent cleanup.
         self._cleanup_temp_dir()
         self._temp_dir = tempfile.mkdtemp(prefix="exdrf-pdf-viewer-")
         base_name = os.path.basename(file_path) or "image.png"
@@ -343,6 +596,7 @@ class PdfImageViewer(QWidget, QtUseContext):
             # Fallback: attempt to load directly without copying
             out_path = file_path
 
+        # Reset page bookkeeping for the single-image workflow.
         self._source_type = "image"
         self._pdf_path = None
         self._image_path = file_path  # Store original path
@@ -350,15 +604,21 @@ class PdfImageViewer(QWidget, QtUseContext):
         self._rotation = 0
         self._image_total = 1
         self._current_index = 0
+        self._active_page_index = 0
         self._page_to_path = {0: out_path}
         self._rendered_pages = {0}
         self._queued_pages = set()
         self._pix_cache.clear()
 
+        # Split features are disabled for standalone images.
+        self._split_panel.set_generation_enabled(False)
+        self._split_panel.set_total_pages(1)
+        self._split_panel.set_source(file_path)
         self._update_page_label()
         self._update_nav_buttons()
         self._update_open_button()
         self._display_page(0)
+        self.pageImageReady.emit(1)
 
     # ---- Navigation ----------------------------------------------------------
     def next_page(self):
@@ -366,6 +626,7 @@ class PdfImageViewer(QWidget, QtUseContext):
         step = max(1, self._pages_per_view)
         if self._current_index + step < self._image_total:
             self._current_index += step
+            self._active_page_index = self._current_index
             self._update_page_label()
             self._update_nav_buttons()
             self._render_and_show_current_group()
@@ -376,10 +637,89 @@ class PdfImageViewer(QWidget, QtUseContext):
         step = max(1, self._pages_per_view)
         if self._current_index - step >= 0:
             self._current_index -= step
+            self._active_page_index = self._current_index
             self._update_page_label()
             self._update_nav_buttons()
             self._render_and_show_current_group()
             self._maybe_queue_lookahead(self._current_index)
+
+    def current_page_number(self) -> int:
+        """Return the 1-based index of the first visible page.
+
+        Returns:
+            The current page number, defaulting to 1 when no document is loaded.
+        """
+        if self._image_total <= 0:
+            return 1
+        active_index = (
+            self._active_page_index
+            if self._active_page_index is not None
+            else self._current_index
+        )
+        return min(active_index + 1, self._image_total)
+
+    def current_rotation(self) -> int:
+        """Return the rotation applied to the active page (degrees)."""
+        return self._rotation
+
+    def navigate_to_page(self, page_number: int):
+        """Navigate the viewer to the requested 1-based page number.
+
+        Args:
+            page_number: 1-based index of the page that should become active.
+        """
+        if self._image_total <= 0:
+            return
+        if page_number <= 1:
+            target = 0
+        else:
+            target = min(page_number - 1, self._image_total - 1)
+        self._set_active_page(target)
+
+    def prefetch_pages(self, pages: List[int]):
+        """Queue the provided 1-based pages for rendering if needed.
+
+        Args:
+            pages: Collection of 1-based page numbers to pre-render.
+        """
+        if not pages or self._image_total <= 0:
+            return
+        if self._worker is None:
+            return
+        for page in pages:
+            index = page - 1
+            if index < 0 or index >= self._image_total:
+                continue
+            if index in self._rendered_pages or index in self._queued_pages:
+                continue
+            self._queued_pages.add(index)
+            self.requestRender.emit([index])
+
+    def get_cached_pixmap(self, page_number: int) -> Optional[QPixmap]:
+        """Return the cached pixmap for the requested 1-based page.
+
+        Args:
+            page_number: 1-based page number requested by the caller.
+
+        Returns:
+            A QPixmap instance when the page image is already rendered,
+            otherwise ``None``.
+        """
+        if self._image_total <= 0:
+            return None
+        index = page_number - 1
+        if index < 0 or index >= self._image_total:
+            return None
+        path = self._page_to_path.get(index)
+        if not path or not os.path.exists(path):
+            return None
+        pixmap = self._pix_cache.get(index)
+        if pixmap is None:
+            pixmap = QPixmap(path)
+            if pixmap.isNull():
+                return None
+            self._pix_cache[index] = pixmap
+        return pixmap
 
     # ---- Transformations -----------------------------------------------------
     def zoom_in(self):
@@ -432,6 +772,501 @@ class PdfImageViewer(QWidget, QtUseContext):
                     error=str(e),
                 ),
             )
+
+    # ---- OCR -----------------------------------------------------------------
+    def _handle_ocr_selection(self, rect: QRect):
+        """Process OCR selection rectangle coming from the graphics view.
+
+        Args:
+            rect: Viewport coordinates of the selected region.
+        """
+        if rect is None or rect.width() < 3 or rect.height() < 3:
+            return
+
+        # Grab the selected viewport pixels and hand them to the OCR pipeline.
+        viewport = self._view.viewport()
+        if viewport is None:
+            return
+        pixmap = viewport.grab(rect)
+        text = self._run_ocr_on_pixmap(pixmap)
+        if text is None:
+            return
+        if not text.strip():
+            text = self.t("pdf.ocr.empty", "No text detected.")
+        self._split_panel.set_ocr_text(text.strip())
+
+    def _run_ocr_on_pixmap(self, pixmap: QPixmap) -> Optional[str]:
+        """Convert a viewport pixmap into text using OpenCV if available.
+
+        Args:
+            pixmap: The image region to extract text from.
+
+        Returns:
+            Extracted text string, or None if OCR failed or dependencies are
+            missing.
+        """
+        # Defer to OpenCV+NumPy for pre-processing; warn if unavailable.
+        try:
+            import cv2  # type: ignore
+            import numpy as np  # type: ignore
+        except ImportError:
+            self._split_panel.set_ocr_text(
+                self.t(
+                    "pdf.ocr.cv_missing",
+                    "OpenCV is not installed. OCR is unavailable.",
+                )
+            )
+            return None
+
+        # Convert the Qt pixmap into an RGBA image buffer OpenCV understands.
+        image: QImage = pixmap.toImage().convertToFormat(QImage.Format_RGBA8888)
+        width = image.width()
+        height = image.height()
+        if width == 0 or height == 0:
+            return ""
+        bits = image.bits()
+        if bits is None:
+            return ""
+        ptr = cast(Any, bits)
+        ptr.setsize(image.byteCount())
+        array = np.frombuffer(ptr, dtype=np.uint8).reshape((height, width, 4))
+
+        # Build RGB/greyscale derivations and enhance the bitmap for OCR.
+        rgb = cv2.cvtColor(array, cv2.COLOR_RGBA2RGB)
+        gray = cv2.cvtColor(array, cv2.COLOR_RGBA2GRAY)
+        processed = self._prepare_ocr_bitmap(gray, cv2, np)
+
+        text_result: Optional[str] = None
+
+        # Use PaddleOCR when enabled before falling back to cv2 / pytesseract.
+        if self._ocr_engine == "paddle" and self._paddle_available:
+            text_result = self._run_paddle_ocr(rgb)
+
+        if not text_result:
+            cv2_text = getattr(cv2, "text", None)
+            if cv2_text is not None:
+                try:
+                    ocr_engine = cv2_text.OCRTesseract_create()
+                    text_result = ocr_engine.run(processed, 0)
+                except Exception as exc:  # pragma: no cover - best effort
+                    logger.debug("cv2.text OCR failed: %s", exc)
+
+        if not text_result:
+            try:
+                import pytesseract  # type: ignore[import-untyped]
+
+                # Allow overriding the Tesseract binary via environment.
+                tess_path = os.environ.get("EXDRF_TESSERACT_PATH")
+                if tess_path:
+                    pytesseract.pytesseract.tesseract_cmd = tess_path
+                text_result = pytesseract.image_to_string(
+                    processed, config=self._tesseract_config()
+                )
+            except Exception as exc:  # pragma: no cover - optional dep
+                self._split_panel.set_ocr_text(
+                    self.t(
+                        "pdf.ocr.failed",
+                        "OCR failed: {error}",
+                        error=str(exc),
+                    )
+                )
+                return None
+
+        return text_result
+
+    def _run_paddle_ocr(self, rgb_image) -> Optional[str]:
+        """Run PaddleOCR on the provided RGB image.
+
+        Args:
+            rgb_image: NumPy array representing the RGB image.
+
+        Returns:
+            Extracted text string, or None if PaddleOCR is unavailable or fails.
+        """
+        reader = self._get_paddle_reader()
+        if reader is None:
+            return None
+        try:
+            result = reader.ocr(rgb_image)
+        except Exception as exc:  # pragma: no cover - optional path
+            logger.warning("PaddleOCR failed: %s", exc)
+            return None
+        texts: List[str] = []
+        for line in result:
+            for i, text in enumerate(line["rec_texts"]):
+                score = line["rec_scores"][i]
+                if score is None or score < 0.45:
+                    continue
+                texts.append(text)
+        return "\n".join(texts).strip()
+
+    def _get_paddle_reader(self):
+        """Instantiate and cache a PaddleOCR reader.
+
+        Returns:
+            PaddleOCR instance, or None if unavailable or initialization fails.
+        """
+        if not self._paddle_available or PaddleOCR is None:
+            return None
+        if self._paddle_reader is not None:
+            return self._paddle_reader
+        try:
+            lang = os.environ.get("EXDRF_PADDLE_LANG", "en")
+            self._paddle_reader = PaddleOCR(
+                use_angle_cls=True,
+                lang=lang,
+            )
+        except Exception as exc:  # pragma: no cover - optional path
+            logger.warning("Failed to initialize PaddleOCR: %s", exc)
+            self._paddle_reader = None
+            self._paddle_available = False
+        return self._paddle_reader
+
+    def _prepare_ocr_bitmap(self, gray, cv2, np):
+        """Improve contrast and resolution for OCR backends.
+
+        Args:
+            gray: Grayscale image array from OpenCV.
+            cv2: OpenCV module reference.
+            np: NumPy module reference.
+
+        Returns:
+            Processed binary image array optimized for OCR.
+        """
+        denoise = cv2.fastNlMeansDenoising(gray, None, 30, 7, 21)
+        block_size = 41 if self._ocr_mode == "handwriting" else 31
+        if block_size % 2 == 0:
+            block_size += 1
+        c_subtract = 7 if self._ocr_mode == "handwriting" else 11
+        thresh = cv2.adaptiveThreshold(
+            denoise,
+            255,
+            cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+            cv2.THRESH_BINARY,
+            block_size,
+            c_subtract,
+        )
+        blur = cv2.GaussianBlur(thresh, (3, 3), 0)
+        kernel_size = 3 if self._ocr_mode == "handwriting" else 2
+        kernel = np.ones((kernel_size, kernel_size), np.uint8)
+        morph = cv2.morphologyEx(blur, cv2.MORPH_CLOSE, kernel)
+        if self._ocr_mode == "handwriting":
+            morph = cv2.medianBlur(morph, 3)
+        enlarged = cv2.resize(
+            morph,
+            None,
+            fx=2.0,
+            fy=2.0,
+            interpolation=cv2.INTER_CUBIC,
+        )
+        return enlarged
+
+    def _tesseract_config(self) -> str:
+        """Construct tesseract configuration for the current OCR mode.
+
+        Returns:
+            Command-line configuration string for Tesseract OCR.
+        """
+        base = ["--oem 1"]
+        if self._ocr_mode == "handwriting":
+            base.append("--psm 13")
+        else:
+            base.append("--psm 6")
+        if self._ocr_mode == "digits":
+            base.append("tessedit_char_whitelist=0123456789.,- ")
+        elif self._ocr_mode == "letters":
+            whitelist = (
+                "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+                "ĂÂÎȘȚăâîșț "
+            )
+            base.append(f"tessedit_char_whitelist={whitelist}")
+        return " ".join(base)
+
+    # ---- Split planner -------------------------------------------------------
+    def _handle_generate_all(self):
+        """Generate all configured split files."""
+        self._generate_from_panel(selected_only=False)
+
+    def _handle_generate_selected(self):
+        """Generate only the selected split definitions."""
+        self._generate_from_panel(selected_only=True)
+
+    def _generate_from_panel(self, selected_only: bool):
+        """Dispatch split generation for panel entries.
+
+        Args:
+            selected_only: If True, generate only selected entries; otherwise
+                generate all entries.
+        """
+        if self._source_type != "pdf":
+            self.show_error(
+                self.t(
+                    "pdf.split.no_pdf",
+                    "Load a PDF file before creating split files.",
+                ),
+                self.t("pdf.split.error", "Split error"),
+            )
+            return
+        entries = self._split_panel.entries(selected_only=selected_only)
+        if not entries:
+            self.show_error(
+                self.t(
+                    "pdf.split.no_entries",
+                    "No split definitions are available.",
+                ),
+                self.t("pdf.split.error", "Split error"),
+            )
+            return
+        jobs = self._build_split_jobs(entries)
+        if not jobs:
+            return
+        self._run_split_jobs(jobs)
+
+    def _build_split_jobs(
+        self, entries: List[SplitEntry]
+    ) -> List[Tuple[SplitEntry, List[int]]]:
+        """Validate panel entries and expand page expressions.
+
+        Args:
+            entries: List of split entry definitions to process.
+
+        Returns:
+            List of tuples containing validated entries and their page lists.
+        """
+        if self._image_total <= 0:
+            self.show_error(
+                self.t("pdf.split.no_pages", "No pages are loaded."),
+                self.t("pdf.split.error", "Split error"),
+            )
+            return []
+        jobs: List[Tuple[SplitEntry, List[int]]] = []
+        for entry in entries:
+            try:
+                pages = self._parse_page_expression(entry.pages_expr)
+            except ValueError as exc:
+                self.show_error(
+                    self.t(
+                        "pdf.split.invalid_row",
+                        "Row {row}: {error}",
+                        row=entry.row_index + 1,
+                        error=str(exc),
+                    ),
+                    self.t("pdf.split.error", "Split error"),
+                )
+                return []
+            jobs.append((entry, pages))
+        return jobs
+
+    def expand_page_expression(self, expr: str) -> List[int]:
+        """Public helper for expanding page expressions.
+
+        Args:
+            expr: Page expression string (e.g., "1-5, 10, 15-20").
+
+        Returns:
+            List of 1-based page numbers.
+        """
+        return self._parse_page_expression(expr)
+
+    def _parse_page_expression(self, expr: str) -> List[int]:
+        """Parse user-provided page expressions into 1-based page numbers.
+
+        Args:
+            expr: Page expression string (e.g., "1-5, 10, 15-20").
+
+        Returns:
+            List of 1-based page numbers, sorted and deduplicated.
+
+        Raises:
+            ValueError: If the expression is invalid or contains out-of-bounds
+                page numbers.
+        """
+        expr = (expr or "").strip()
+        if not expr:
+            raise ValueError(self.t("pdf.split.empty", "Empty page range."))
+        tokens = [tok for tok in re.split(r"[,\s]+", expr) if tok]
+        if not tokens:
+            raise ValueError(self.t("pdf.split.empty", "Empty page range."))
+        pages: List[int] = []
+        seen: Set[int] = set()
+        for token in tokens:
+            token = token.strip()
+            if "-" in token:
+                parts = token.split("-", 1)
+                if len(parts) != 2:
+                    raise ValueError(
+                        self.t(
+                            "pdf.split.invalid_token",
+                            "Invalid token: {token}",
+                            token=token,
+                        )
+                    )
+                try:
+                    start = int(parts[0])
+                    end = int(parts[1])
+                except ValueError as exc:
+                    raise ValueError(
+                        self.t(
+                            "pdf.split.invalid_number",
+                            "Invalid number in token: {token}",
+                            token=token,
+                        )
+                    ) from exc
+                if end < start:
+                    start, end = end, start
+                for value in range(start, end + 1):
+                    if 1 <= value <= self._image_total and value not in seen:
+                        pages.append(value)
+                        seen.add(value)
+            else:
+                try:
+                    value = int(token)
+                except ValueError as exc:
+                    raise ValueError(
+                        self.t(
+                            "pdf.split.invalid_number",
+                            "Invalid number in token: {token}",
+                            token=token,
+                        )
+                    ) from exc
+                if 1 <= value <= self._image_total and value not in seen:
+                    pages.append(value)
+                    seen.add(value)
+        if not pages:
+            raise ValueError(
+                self.t(
+                    "pdf.split.out_of_bounds",
+                    "All pages are outside the document bounds.",
+                )
+            )
+        return pages
+
+    def _run_split_jobs(self, jobs: List[Tuple[SplitEntry, List[int]]]):
+        """Execute the split operations and save generated PDFs.
+
+        Args:
+            jobs: List of tuples containing split entries and their page lists.
+        """
+        if not jobs:
+            return
+
+        # Sanity-check that the PDF source exists before doing any work.
+        if self._pdf_path is None or not os.path.exists(self._pdf_path):
+            self.show_error(
+                self.t(
+                    "pdf.split.no_pdf",
+                    "A PDF must be loaded before splitting.",
+                ),
+                self.t("pdf.split.error", "Split error"),
+            )
+            return
+        try:
+            import fitz  # type: ignore
+        except Exception as exc:  # pragma: no cover - optional dependency
+            self.show_error(
+                self.t("pdf.split.fitz_missing", "PyMuPDF is not available."),
+                self.t("pdf.split.error", "Split error"),
+            )
+            logger.error("PyMuPDF import failed: %s", exc)
+            return
+
+        # Open the document once and accumulate all generated filenames.
+        doc = fitz.open(self._pdf_path)
+        base_dir = os.path.dirname(self._pdf_path) or os.getcwd()
+        prefix_enabled = self._split_panel.is_prefix_enabled()
+        digits = len(str(len(jobs))) if prefix_enabled else 0
+        created: List[str] = []
+        try:
+            # Iterate through each job, copying requested pages into a new PDF.
+            for idx, (entry, pages) in enumerate(jobs, start=1):
+                if not pages:
+                    continue
+                new_doc = fitz.open()
+                for page_num in pages:
+                    page_idx = page_num - 1
+                    if 0 <= page_idx < doc.page_count:
+                        new_doc.insert_pdf(
+                            doc, from_page=page_idx, to_page=page_idx
+                        )
+                        rotation = entry.page_rotations.get(page_num, 0)
+                        if rotation and new_doc.page_count > 0:
+                            target_page = new_doc[-1]
+                            self._apply_export_rotation(target_page, rotation)
+                title = entry.title.strip() or entry.pages_expr.strip()
+                safe_title = self._safe_filename(title or f"part_{idx}")
+                prefix = (
+                    f"{idx:0{digits}d}. " if prefix_enabled and digits else ""
+                )
+                filename = f"{prefix}{safe_title}.pdf"
+                out_path = os.path.join(base_dir, filename)
+                suffix = 1
+                while os.path.exists(out_path):
+                    filename = f"{prefix}{safe_title}_{suffix}.pdf"
+                    out_path = os.path.join(base_dir, filename)
+                    suffix += 1
+                new_doc.save(out_path)
+                created.append(out_path)
+                new_doc.close()
+        finally:
+            doc.close()
+
+        # Communicate the outcome with a friendly dialog.
+        if created:
+            self._show_info(
+                self.t("pdf.split.success", "Split complete"),
+                self.t(
+                    "pdf.split.created",
+                    "Created {count} file(s) in {folder}",
+                    count=len(created),
+                    folder=base_dir,
+                ),
+            )
+        else:
+            self.show_error(
+                self.t("pdf.split.nothing", "No files created"),
+                self.t(
+                    "pdf.split.nothing_msg",
+                    "No valid page definitions were found.",
+                ),
+            )
+
+    def _apply_export_rotation(self, page, rotation: int):
+        """Apply rotation to a PyMuPDF page instance.
+
+        Args:
+            page: PyMuPDF page object to rotate.
+            rotation: Rotation angle in degrees (0, 90, 180, or 270).
+        """
+        if rotation % 360 == 0:
+            return
+        setter = getattr(page, "set_rotation", None)
+        if callable(setter):
+            setter(rotation)
+            return
+        legacy = getattr(page, "setRotation", None)
+        if callable(legacy):
+            legacy(rotation)
+
+    def _safe_filename(self, name: str) -> str:
+        """Return a filesystem-safe filename fragment.
+
+        Args:
+            name: Original filename string that may contain invalid characters.
+
+        Returns:
+            Sanitized filename with invalid characters replaced by underscores.
+        """
+        cleaned = re.sub(r'[\\\\/:*?"<>|]+', "_", name).strip()
+        return cleaned or "part"
+
+    def _show_info(self, title: str, message: str):
+        """Show an informational dialog.
+
+        Args:
+            title: Dialog window title.
+            message: Message text to display.
+        """
+        QMessageBox.information(self, title, message)
 
     def fit_width(self):
         """Fit current content to the view width, preserving aspect ratio."""
@@ -573,6 +1408,7 @@ class PdfImageViewer(QWidget, QtUseContext):
         """
         self._rendered_pages.add(page_index)
         self._page_to_path[page_index] = image_path
+        self.pageImageReady.emit(page_index + 1)
         if page_index in self._visible_indices():
             self._render_and_show_current_group()
 
@@ -592,6 +1428,10 @@ class PdfImageViewer(QWidget, QtUseContext):
         logger.error("PDF render error: %s", message)
         self._scene.clear()
         self._pix_items = []
+        self._page_items.clear()
+        self._item_to_page.clear()
+        self._selection_frames.clear()
+        self._active_page_index = None
         self._view.reset_zoom(1.0)
         self.lbl_page.setText(
             self.t("pdf.render_error", "Error: {msg}", msg=message)
@@ -604,12 +1444,16 @@ class PdfImageViewer(QWidget, QtUseContext):
         Args:
             indices: List of page indices to display.
         """
-        # Clear previous items
+        # Clear previous items so the scene contains only the current group.
         for it in self._pix_items:
             self._scene.removeItem(it)
         self._pix_items = []
+        self._page_items.clear()
+        self._item_to_page.clear()
+        self._selection_frames.clear()
 
-        # Create items for available indices
+        # Resolve the pixmap for each requested index, keeping None placeholders
+        # for pages that are still rendering.
         pix_maps: List[Optional[QPixmap]] = []
         for idx in indices:
             path = self._page_to_path.get(idx)
@@ -622,7 +1466,7 @@ class PdfImageViewer(QWidget, QtUseContext):
             else:
                 pix_maps.append(None)
 
-        # Layout grid (2-up -> 2x1, 4-up -> 2x2)
+        # Determine the layout grid — 1x1, 2x1, or 2x2 depending on count.
         n = len(indices)
         cols = 1 if n == 1 else 2
         gap = 16
@@ -673,8 +1517,52 @@ class PdfImageViewer(QWidget, QtUseContext):
             x = float(c * (max_w + gap))
             y = float(r * (max_h + gap))
             item.setPos(x, y)
+            page_index = indices[i]
+            self._page_items[page_index] = item
+            self._item_to_page[item] = page_index
+            frame = QGraphicsRectItem(
+                0.0,
+                0.0,
+                float(p.width()),
+                float(p.height()),
+                item,
+            )
+            pen = QPen(QColor(29, 110, 247))
+            pen.setWidth(3)
+            frame.setPen(pen)
+            frame.setBrush(QBrush(Qt.BrushStyle.NoBrush))
+            frame.setZValue(1.0)
+            frame.setVisible(False)
+            self._selection_frames[page_index] = frame
 
+        # Sync selection, overlays, and default fit with the refreshed scene.
+        self._ensure_active_visible(indices)
+        self._update_selection_overlay()
         self._fit_if_needed()
+
+    def _ensure_active_visible(self, visible: List[int]):
+        """Ensure the current active page index is part of the visible group.
+
+        Args:
+            visible: List of currently visible page indices.
+        """
+        if not visible:
+            self._active_page_index = None
+            return
+        if (
+            self._active_page_index is None
+            or self._active_page_index not in visible
+        ):
+            self._active_page_index = visible[0]
+
+    def _update_selection_overlay(self):
+        """Toggle the blue contour for the active page in multi-page mode."""
+        show = self._pages_per_view > 1
+        active = self._active_page_index if show else None
+
+        # Show the contour only around the active item while hiding others.
+        for idx, frame in self._selection_frames.items():
+            frame.setVisible(show and active is not None and idx == active)
 
     def _apply_rotation(self):
         """Apply rotation to all pixmap items and re-layout if needed."""
@@ -781,6 +1669,13 @@ class PdfImageViewer(QWidget, QtUseContext):
         """
         n = 1 if n < 2 else (4 if n >= 4 else 2)
         self._pages_per_view = n
+        if self._image_total > 0:
+            anchor = (
+                self._active_page_index
+                if self._active_page_index is not None
+                else self._current_index
+            )
+            self._current_index = self._group_start_for(anchor)
         # Update toggle state
         self.btn_1up.setChecked(n == 1)
         self.btn_2up.setChecked(n == 2)
@@ -823,11 +1718,214 @@ class PdfImageViewer(QWidget, QtUseContext):
         vp = self._view.viewport()
         if vp is None or self._view._zoom <= 0:
             return
+
         # Convert viewport size to scene coordinates via current zoom
         vw_scene = vp.width() / self._view._zoom
         vh_scene = vp.height() / self._view._zoom
+
         # Add margins only when content is smaller than the viewport
         margin_w = max(0.0, (vw_scene - vr.width()) / 2.0) + 8.0
         margin_h = max(0.0, (vh_scene - vr.height()) / 2.0) + 8.0
         expanded = vr.adjusted(-margin_w, -margin_h, margin_w, margin_h)
         self._scene.setSceneRect(expanded)
+
+    # ---- Interaction helpers -------------------------------------------------
+    def _page_index_at_view_pos(self, pos: QPoint) -> Optional[int]:
+        """Return the page index under the provided viewport position.
+
+        Args:
+            pos: Viewport coordinates to query.
+
+        Returns:
+            Zero-based page index if found, otherwise None.
+        """
+        item = self._view.itemAt(pos)
+        while item is not None:
+            # Walk up the parent chain until we reach a pixmap item.
+            if isinstance(item, QGraphicsPixmapItem):
+                page_index = self._item_to_page.get(item)
+                if page_index is not None:
+                    return page_index
+            item = item.parentItem()
+        return None
+
+    def _set_active_page_index_only(self, page_index: int):
+        """Update the active page without changing the current view group.
+
+        Args:
+            page_index: Zero-based page index to activate.
+        """
+        if self._image_total <= 0:
+            return
+        clamped = max(0, min(page_index, self._image_total - 1))
+        if self._active_page_index == clamped:
+            return
+        self._active_page_index = clamped
+        self._update_selection_overlay()
+        self._update_page_label()
+
+    def _set_active_page(self, page_index: int):
+        """Update the active page making sure it is visible.
+
+        Args:
+            page_index: Zero-based page index to activate and display.
+        """
+        if self._image_total <= 0:
+            return
+        clamped = max(0, min(page_index, self._image_total - 1))
+        self._active_page_index = clamped
+        desired_start = self._group_start_for(clamped)
+        if desired_start != self._current_index:
+            self._current_index = desired_start
+            self._update_nav_buttons()
+            self._render_and_show_current_group()
+            self._maybe_queue_lookahead(self._current_index)
+        else:
+            self._update_selection_overlay()
+        self._update_page_label()
+
+    def _group_start_for(self, index: int) -> int:
+        """Return the first page index of the group that contains `index`.
+
+        Args:
+            index: Zero-based page index to find the group for.
+
+        Returns:
+            Zero-based index of the first page in the containing group.
+        """
+        n = max(1, self._pages_per_view)
+        if n == 1:
+            return index
+        remainder = index % n
+        start = index - remainder
+        max_start = max(0, self._image_total - n)
+        return min(start, max_start)
+
+    def _adjust_active_page(self, delta: int):
+        """Move the active page selection forward or backward.
+
+        Args:
+            delta: Number of pages to move (positive for forward, negative for
+                backward).
+        """
+        if delta == 0 or self._image_total <= 0:
+            return
+        current = (
+            self._active_page_index
+            if self._active_page_index is not None
+            else self._current_index
+        )
+        target = max(0, min(current + delta, self._image_total - 1))
+        if target == current:
+            return
+        self._set_active_page(target)
+
+    def _current_action_page(self) -> Optional[int]:
+        """Return the 1-based page index used for split actions."""
+        if self._image_total <= 0:
+            return None
+        source = (
+            self._active_page_index
+            if self._active_page_index is not None
+            else self._current_index
+        )
+        if source < 0 or source >= self._image_total:
+            return None
+        return source + 1
+
+    def _add_current_page_to_last(self):
+        """Append the current page to the last split entry."""
+        page = self._current_action_page()
+        if page is None:
+            return
+        rotation = self.current_rotation()
+        self._split_panel.add_page_to_last(page, rotation)
+
+    def _add_current_page_to_selection(self):
+        """Append the current page to every selected split entry."""
+        page = self._current_action_page()
+        if page is None:
+            return
+        rows = self._split_panel.selected_rows()
+        if not rows:
+            return
+        rotation = self.current_rotation()
+        self._split_panel.add_page_to_rows(page, rows, rotation=rotation)
+
+    def _create_entry_from_current_page(self):
+        """Create a new entry that points only to the current page."""
+        page = self._current_action_page()
+        if page is None:
+            return
+        rotation = self.current_rotation()
+        self._split_panel.create_entry_for_page(page, rotation)
+
+    def _handle_view_context_request(self, pos: QPoint):
+        """Normalize context menu positions coming from the view/viewport.
+
+        Args:
+            pos: Position in the coordinate system of the sender widget.
+        """
+        viewport = self._view.viewport()
+        if viewport is None:
+            return
+        source = self.sender()
+        viewport_pos = pos
+        if source is self._view:
+            viewport_pos = self._view.mapTo(viewport, pos)
+        self._show_view_context_menu(viewport_pos)
+
+    def _show_view_context_menu(self, pos: QPoint):
+        """Show the context menu for the graphics view.
+
+        Args:
+            pos: Viewport coordinates where the menu should appear.
+        """
+        if self._image_total <= 0:
+            return
+        viewport = self._view.viewport()
+        if viewport is None:
+            return
+        menu = QMenu(self)
+        act_add_last = menu.addAction(
+            self.t(
+                "pdf.split.add_page_last",
+                "Add current page to last entry",
+            )
+        )
+        assert act_add_last is not None
+        act_add_last.triggered.connect(self._add_current_page_to_last)
+
+        act_add_selected = menu.addAction(
+            self.t(
+                "pdf.split.add_page_selected",
+                "Add current page to selected entries",
+            )
+        )
+        assert act_add_selected is not None
+        act_add_selected.setEnabled(bool(self._split_panel.selected_rows()))
+        act_add_selected.triggered.connect(self._add_current_page_to_selection)
+
+        act_new_entry = menu.addAction(
+            self.t(
+                "pdf.split.new_from_page",
+                "New entry from current page",
+            )
+        )
+        assert act_new_entry is not None
+        act_new_entry.triggered.connect(self._create_entry_from_current_page)
+
+        menu.exec_(viewport.mapToGlobal(pos))
+
+    def _trigger_page_entry_action(self, key: int):
+        """Dispatch keyboard shortcuts tied to split planner actions.
+
+        Args:
+            key: Qt key code for the pressed key.
+        """
+        if key == Qt.Key.Key_A:
+            self._add_current_page_to_last()
+        elif key == Qt.Key.Key_N:
+            self._create_entry_from_current_page()
+        elif key == Qt.Key.Key_S:
+            self._add_current_page_to_selection()

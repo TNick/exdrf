@@ -1,3 +1,5 @@
+"""Threaded worker that rasterizes PDF pages for the PDF viewer widget."""
+
 import logging
 from typing import List
 
@@ -52,6 +54,7 @@ class PdfRenderWorker(QObject):
             pages: List of zero-based page indices to render.
         """
         try:
+            # Lazily import PyMuPDF so optional dependencies are tolerated.
             try:
                 import fitz  # type: ignore
             except Exception:
@@ -60,6 +63,8 @@ class PdfRenderWorker(QObject):
                 )
                 return
 
+            # Open the document once per batch and pre-compute the scaling
+            # matrix that controls the output DPI.
             doc = fitz.open(self._pdf_path)
             x_zoom = self._dpi / 72.0
             y_zoom = self._dpi / 72.0
@@ -69,6 +74,8 @@ class PdfRenderWorker(QObject):
                 try:
                     if idx < 0 or idx >= doc.page_count:
                         continue
+
+                    # Render each requested page to PNG and record the output.
                     page = doc.load_page(idx)
                     pix = page.get_pixmap(matrix=mat, alpha=False)
                     out_path = f"{self._out_dir}/page-{idx + 1:04d}.png"
