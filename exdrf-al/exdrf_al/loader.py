@@ -107,7 +107,7 @@ def sql_col_to_type(
         result = construct_enum, EnumInfo
     elif str_type == "BLOB":
         result = BlobField, BlobInfo  # type: ignore
-    elif str_type == "INTEGER":
+    elif str_type in ("INTEGER", "BIGINT", "SMALLINT", "TINYINT"):
         result = IntField, IntInfo  # type: ignore
     elif str_type == "TEXT":
         result = StrField, StrInfo  # type: ignore

@@ -1,13 +1,27 @@
 """Public re-exports and a quick standalone launcher for the PDF viewer UI."""
 
 from exdrf_qt.controls.pdf_viewer.image_graphics_view import ImageGraphicsView
+from exdrf_qt.controls.pdf_viewer.pdf_image_splitter import PdfImageSplitter
 from exdrf_qt.controls.pdf_viewer.pdf_image_viewer import PdfImageViewer
 from exdrf_qt.controls.pdf_viewer.pdf_render_worker import PdfRenderWorker
+from exdrf_qt.controls.pdf_viewer.rotation_editor_dialog import (
+    RotationEditorDialog,
+)
+from exdrf_qt.controls.pdf_viewer.split_entry import SplitEntry
+from exdrf_qt.controls.pdf_viewer.split_plan_panel import SplitPlanPanel
+from exdrf_qt.controls.pdf_viewer.split_preview_window import (
+    SplitPreviewWindow,
+)
 
 __all__ = [
     "ImageGraphicsView",
     "PdfRenderWorker",
     "PdfImageViewer",
+    "PdfImageSplitter",
+    "RotationEditorDialog",
+    "SplitEntry",
+    "SplitPlanPanel",
+    "SplitPreviewWindow",
 ]
 
 

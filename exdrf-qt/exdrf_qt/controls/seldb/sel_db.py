@@ -478,6 +478,7 @@ class SelectDatabaseDlg(QDialog, Ui_SelectDatabase, QtUseContext):
             top_widget=self.ctx.top_widget,
             work_relay=None,
             asset_sources=self.ctx.asset_sources,
+            auto_migrate=False,
         )
         try:
             local_ctx.connect()

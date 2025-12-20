@@ -1,4 +1,4 @@
-"""High-level PDF/image viewer with splitting, navigation, and OCR tools."""
+"""High-level PDF/image viewer with navigation and OCR tools."""
 
 import importlib
 import logging
@@ -6,7 +6,7 @@ import os
 import re
 import shutil
 import tempfile
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple, cast
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, cast
 
 from PyQt5.QtCore import (
     QEvent,
@@ -37,10 +37,7 @@ from PyQt5.QtWidgets import (
     QGraphicsView,
     QHBoxLayout,
     QLabel,
-    QMenu,
-    QMessageBox,
     QSizePolicy,
-    QSplitter,
     QToolButton,
     QVBoxLayout,
     QWidget,
@@ -49,7 +46,6 @@ from PyQt5.QtWidgets import (
 from exdrf_qt.context_use import QtUseContext
 from exdrf_qt.controls.pdf_viewer.image_graphics_view import ImageGraphicsView
 from exdrf_qt.controls.pdf_viewer.pdf_render_worker import PdfRenderWorker
-from exdrf_qt.controls.pdf_viewer.splitter import SplitEntry, SplitPlanPanel
 
 try:  # pragma: no cover - optional dependency
     _paddle_module = importlib.import_module("paddleocr")
@@ -76,8 +72,7 @@ class PdfImageViewer(QWidget, QtUseContext):
     - Multi-page view modes (1-up, 2-up, 4-up)
     - Fit to width/height
     - Open in external viewer/editor
-        - Split planner for exporting page ranges into new PDF files
-        - OCR capture tool for quickly extracting text snippets
+    - OCR capture tool for quickly extracting text snippets
 
     Attributes:
         requestRender: Signal emitted to request PDF page rendering.
@@ -167,37 +162,16 @@ class PdfImageViewer(QWidget, QtUseContext):
         viewer_layout.addWidget(self._view)
         viewer_panel.setLayout(viewer_layout)
 
-        self._split_panel = SplitPlanPanel(self)
-        self._split_panel.generateAllRequested.connect(
-            self._handle_generate_all
-        )
-        self._split_panel.generateSelectedRequested.connect(
-            self._handle_generate_selected
-        )
-        self._split_panel.ocrModeChanged.connect(self._set_ocr_mode)
-        self._split_panel.ocrEngineChanged.connect(self._set_ocr_engine)
-        self._split_panel.set_paddle_available(self._paddle_available)
-        self._split_panel.set_ocr_engine(self._ocr_engine)
         self._install_interaction_hooks()
 
-        self._splitter = QSplitter(Qt.Orientation.Horizontal, self)
-        self._splitter.addWidget(viewer_panel)
-        self._splitter.addWidget(self._split_panel)
-        self._splitter.setStretchFactor(0, 3)
-        self._splitter.setStretchFactor(1, 1)
-        self._splitter.setCollapsible(0, False)
-        self._splitter.setCollapsible(1, False)
-        self._splitter.setSizes([900, 320])
-
-        # Root layout: viewer on the left, split planner on the right.
+        # Root layout: just the viewer panel
         root = QHBoxLayout()
         root.setContentsMargins(0, 0, 0, 0)
-        root.addWidget(self._splitter)
+        root.addWidget(viewer_panel)
         self.setLayout(root)
 
         self._update_nav_buttons()
         self._update_open_button()
-        self._split_panel.set_generation_enabled(False)
 
     # ---- UI -----------------------------------------------------------------
     def _install_interaction_hooks(self):
@@ -216,11 +190,6 @@ class PdfImageViewer(QWidget, QtUseContext):
         self._view.customContextMenuRequested.connect(
             self._handle_view_context_request
         )
-        table = self._split_panel.table
-        table.installEventFilter(self)
-        table_viewport = table.viewport()
-        if table_viewport is not None:
-            table_viewport.installEventFilter(self)
 
     def _create_toolbar(self) -> QVBoxLayout:
         """Create and configure the vertical toolbar.
@@ -436,7 +405,6 @@ class PdfImageViewer(QWidget, QtUseContext):
         if self._ocr_engine == engine:
             return
         self._ocr_engine = engine
-        self._split_panel.set_ocr_engine(engine)
         logger.debug("OCR engine changed to: %s", engine)
 
     def is_paddle_available(self) -> bool:
@@ -488,17 +456,7 @@ class PdfImageViewer(QWidget, QtUseContext):
         viewport = self._view.viewport()
         if viewport is not None:
             view_targets.append(viewport)
-        list_targets = [self._split_panel.table]
-        table_viewport = self._split_panel.table.viewport()
-        if table_viewport is not None:
-            list_targets.append(table_viewport)
         key = event.key()
-        if key in (Qt.Key.Key_A, Qt.Key.Key_N, Qt.Key.Key_S):
-            if source in view_targets or source in list_targets:
-                self._trigger_page_entry_action(key)
-                event.accept()
-                return True
-            return False
         if key in (
             Qt.Key.Key_Left,
             Qt.Key.Key_Right,
@@ -510,13 +468,8 @@ class PdfImageViewer(QWidget, QtUseContext):
                 self._adjust_active_page(delta)
                 event.accept()
                 return True
-            if source in list_targets:
-                delta = -1 if key in (Qt.Key.Key_Left, Qt.Key.Key_Up) else 1
-                self._adjust_active_page(delta)
-                # Allow the table to continue handling the arrow press.
-                return False
         if key in (Qt.Key.Key_Comma, Qt.Key.Key_Period):
-            if source in view_targets or source in list_targets:
+            if source in view_targets:
                 if key == Qt.Key.Key_Comma:
                     self.rotate_ccw()
                 else:  # Qt.Key.Key_Period
@@ -567,10 +520,6 @@ class PdfImageViewer(QWidget, QtUseContext):
             self._current_index if self._image_total > 0 else None
         )
 
-        # Let the split planner and toolbar know the new context.
-        self._split_panel.set_generation_enabled(True)
-        self._split_panel.set_total_pages(total)
-        self._split_panel.set_source(file_path)
         self._update_page_label()
         self._update_nav_buttons()
         self._update_open_button()
@@ -610,14 +559,10 @@ class PdfImageViewer(QWidget, QtUseContext):
         self._queued_pages = set()
         self._pix_cache.clear()
 
-        # Split features are disabled for standalone images.
-        self._split_panel.set_generation_enabled(False)
-        self._split_panel.set_total_pages(1)
-        self._split_panel.set_source(file_path)
         self._update_page_label()
         self._update_nav_buttons()
         self._update_open_button()
-        self._display_page(0)
+        self._display_pages([0])
         self.pageImageReady.emit(1)
 
     # ---- Navigation ----------------------------------------------------------
@@ -793,7 +738,8 @@ class PdfImageViewer(QWidget, QtUseContext):
             return
         if not text.strip():
             text = self.t("pdf.ocr.empty", "No text detected.")
-        self._split_panel.set_ocr_text(text.strip())
+        # OCR text is available but not displayed in base viewer
+        # Subclasses can override to handle OCR text display
 
     def _run_ocr_on_pixmap(self, pixmap: QPixmap) -> Optional[str]:
         """Convert a viewport pixmap into text using OpenCV if available.
@@ -810,12 +756,7 @@ class PdfImageViewer(QWidget, QtUseContext):
             import cv2  # type: ignore
             import numpy as np  # type: ignore
         except ImportError:
-            self._split_panel.set_ocr_text(
-                self.t(
-                    "pdf.ocr.cv_missing",
-                    "OpenCV is not installed. OCR is unavailable.",
-                )
-            )
+            logger.warning("OpenCV is not installed. OCR is unavailable.")
             return None
 
         # Convert the Qt pixmap into an RGBA image buffer OpenCV understands.
@@ -863,13 +804,7 @@ class PdfImageViewer(QWidget, QtUseContext):
                     processed, config=self._tesseract_config()
                 )
             except Exception as exc:  # pragma: no cover - optional dep
-                self._split_panel.set_ocr_text(
-                    self.t(
-                        "pdf.ocr.failed",
-                        "OCR failed: {error}",
-                        error=str(exc),
-                    )
-                )
+                logger.warning("OCR failed: %s", exc)
                 return None
 
         return text_result
@@ -982,81 +917,6 @@ class PdfImageViewer(QWidget, QtUseContext):
             base.append(f"tessedit_char_whitelist={whitelist}")
         return " ".join(base)
 
-    # ---- Split planner -------------------------------------------------------
-    def _handle_generate_all(self):
-        """Generate all configured split files."""
-        self._generate_from_panel(selected_only=False)
-
-    def _handle_generate_selected(self):
-        """Generate only the selected split definitions."""
-        self._generate_from_panel(selected_only=True)
-
-    def _generate_from_panel(self, selected_only: bool):
-        """Dispatch split generation for panel entries.
-
-        Args:
-            selected_only: If True, generate only selected entries; otherwise
-                generate all entries.
-        """
-        if self._source_type != "pdf":
-            self.show_error(
-                self.t(
-                    "pdf.split.no_pdf",
-                    "Load a PDF file before creating split files.",
-                ),
-                self.t("pdf.split.error", "Split error"),
-            )
-            return
-        entries = self._split_panel.entries(selected_only=selected_only)
-        if not entries:
-            self.show_error(
-                self.t(
-                    "pdf.split.no_entries",
-                    "No split definitions are available.",
-                ),
-                self.t("pdf.split.error", "Split error"),
-            )
-            return
-        jobs = self._build_split_jobs(entries)
-        if not jobs:
-            return
-        self._run_split_jobs(jobs)
-
-    def _build_split_jobs(
-        self, entries: List[SplitEntry]
-    ) -> List[Tuple[SplitEntry, List[int]]]:
-        """Validate panel entries and expand page expressions.
-
-        Args:
-            entries: List of split entry definitions to process.
-
-        Returns:
-            List of tuples containing validated entries and their page lists.
-        """
-        if self._image_total <= 0:
-            self.show_error(
-                self.t("pdf.split.no_pages", "No pages are loaded."),
-                self.t("pdf.split.error", "Split error"),
-            )
-            return []
-        jobs: List[Tuple[SplitEntry, List[int]]] = []
-        for entry in entries:
-            try:
-                pages = self._parse_page_expression(entry.pages_expr)
-            except ValueError as exc:
-                self.show_error(
-                    self.t(
-                        "pdf.split.invalid_row",
-                        "Row {row}: {error}",
-                        row=entry.row_index + 1,
-                        error=str(exc),
-                    ),
-                    self.t("pdf.split.error", "Split error"),
-                )
-                return []
-            jobs.append((entry, pages))
-        return jobs
-
     def expand_page_expression(self, expr: str) -> List[int]:
         """Public helper for expanding page expressions.
 
@@ -1065,17 +925,6 @@ class PdfImageViewer(QWidget, QtUseContext):
 
         Returns:
             List of 1-based page numbers.
-        """
-        return self._parse_page_expression(expr)
-
-    def _parse_page_expression(self, expr: str) -> List[int]:
-        """Parse user-provided page expressions into 1-based page numbers.
-
-        Args:
-            expr: Page expression string (e.g., "1-5, 10, 15-20").
-
-        Returns:
-            List of 1-based page numbers, sorted and deduplicated.
 
         Raises:
             ValueError: If the expression is invalid or contains out-of-bounds
@@ -1140,133 +989,6 @@ class PdfImageViewer(QWidget, QtUseContext):
                 )
             )
         return pages
-
-    def _run_split_jobs(self, jobs: List[Tuple[SplitEntry, List[int]]]):
-        """Execute the split operations and save generated PDFs.
-
-        Args:
-            jobs: List of tuples containing split entries and their page lists.
-        """
-        if not jobs:
-            return
-
-        # Sanity-check that the PDF source exists before doing any work.
-        if self._pdf_path is None or not os.path.exists(self._pdf_path):
-            self.show_error(
-                self.t(
-                    "pdf.split.no_pdf",
-                    "A PDF must be loaded before splitting.",
-                ),
-                self.t("pdf.split.error", "Split error"),
-            )
-            return
-        try:
-            import fitz  # type: ignore
-        except Exception as exc:  # pragma: no cover - optional dependency
-            self.show_error(
-                self.t("pdf.split.fitz_missing", "PyMuPDF is not available."),
-                self.t("pdf.split.error", "Split error"),
-            )
-            logger.error("PyMuPDF import failed: %s", exc)
-            return
-
-        # Open the document once and accumulate all generated filenames.
-        doc = fitz.open(self._pdf_path)
-        base_dir = os.path.dirname(self._pdf_path) or os.getcwd()
-        prefix_enabled = self._split_panel.is_prefix_enabled()
-        digits = len(str(len(jobs))) if prefix_enabled else 0
-        created: List[str] = []
-        try:
-            # Iterate through each job, copying requested pages into a new PDF.
-            for idx, (entry, pages) in enumerate(jobs, start=1):
-                if not pages:
-                    continue
-                new_doc = fitz.open()
-                for page_num in pages:
-                    page_idx = page_num - 1
-                    if 0 <= page_idx < doc.page_count:
-                        new_doc.insert_pdf(
-                            doc, from_page=page_idx, to_page=page_idx
-                        )
-                        rotation = entry.page_rotations.get(page_num, 0)
-                        if rotation and new_doc.page_count > 0:
-                            target_page = new_doc[-1]
-                            self._apply_export_rotation(target_page, rotation)
-                title = entry.title.strip() or entry.pages_expr.strip()
-                safe_title = self._safe_filename(title or f"part_{idx}")
-                prefix = (
-                    f"{idx:0{digits}d}. " if prefix_enabled and digits else ""
-                )
-                filename = f"{prefix}{safe_title}.pdf"
-                out_path = os.path.join(base_dir, filename)
-                suffix = 1
-                while os.path.exists(out_path):
-                    filename = f"{prefix}{safe_title}_{suffix}.pdf"
-                    out_path = os.path.join(base_dir, filename)
-                    suffix += 1
-                new_doc.save(out_path)
-                created.append(out_path)
-                new_doc.close()
-        finally:
-            doc.close()
-
-        # Communicate the outcome with a friendly dialog.
-        if created:
-            self._show_info(
-                self.t("pdf.split.success", "Split complete"),
-                self.t(
-                    "pdf.split.created",
-                    "Created {count} file(s) in {folder}",
-                    count=len(created),
-                    folder=base_dir,
-                ),
-            )
-        else:
-            self.show_error(
-                self.t("pdf.split.nothing", "No files created"),
-                self.t(
-                    "pdf.split.nothing_msg",
-                    "No valid page definitions were found.",
-                ),
-            )
-
-    def _apply_export_rotation(self, page, rotation: int):
-        """Apply rotation to a PyMuPDF page instance.
-
-        Args:
-            page: PyMuPDF page object to rotate.
-            rotation: Rotation angle in degrees (0, 90, 180, or 270).
-        """
-        if rotation % 360 == 0:
-            return
-        setter = getattr(page, "set_rotation", None)
-        if callable(setter):
-            setter(rotation)
-            return
-        legacy = getattr(page, "setRotation", None)
-        if callable(legacy):
-            legacy(rotation)
-
-    def _safe_filename(self, name: str) -> str:
-        """Return a filesystem-safe filename fragment.
-
-        Args:
-            name: Original filename string that may contain invalid characters.
-
-        Returns:
-            Sanitized filename with invalid characters replaced by underscores.
-        """
-        cleaned = re.sub(r'[\\\\/:*?"<>|]+', "_", name).strip()
-        return cleaned or "part"
-
-    def _show_info(self, title: str, message: str):
-        """Show an informational dialog.
-
-        Args:
-            title: Dialog window title.
-            message: Message text to display.
-        """
-        QMessageBox.information(self, title, message)
 
     def fit_width(self):
         """Fit current content to the view width, preserving aspect ratio."""
@@ -1393,7 +1115,7 @@ class PdfImageViewer(QWidget, QtUseContext):
             index: Page index to ensure is ready.
         """
         if index in self._rendered_pages:
-            self._display_page(index)
+            self._display_pages([index])
             return
         # Ensure it's queued
         self._maybe_queue_lookahead(index)
@@ -1820,112 +1542,11 @@ class PdfImageViewer(QWidget, QtUseContext):
             return
         self._set_active_page(target)
 
-    def _current_action_page(self) -> Optional[int]:
-        """Return the 1-based page index used for split actions."""
-        if self._image_total <= 0:
-            return None
-        source = (
-            self._active_page_index
-            if self._active_page_index is not None
-            else self._current_index
-        )
-        if source < 0 or source >= self._image_total:
-            return None
-        return source + 1
-
-    def _add_current_page_to_last(self):
-        """Append the current page to the last split entry."""
-        page = self._current_action_page()
-        if page is None:
-            return
-        rotation = self.current_rotation()
-        self._split_panel.add_page_to_last(page, rotation)
-
-    def _add_current_page_to_selection(self):
-        """Append the current page to every selected split entry."""
-        page = self._current_action_page()
-        if page is None:
-            return
-        rows = self._split_panel.selected_rows()
-        if not rows:
-            return
-        rotation = self.current_rotation()
-        self._split_panel.add_page_to_rows(page, rows, rotation=rotation)
-
-    def _create_entry_from_current_page(self):
-        """Create a new entry that points only to the current page."""
-        page = self._current_action_page()
-        if page is None:
-            return
-        rotation = self.current_rotation()
-        self._split_panel.create_entry_for_page(page, rotation)
-
     def _handle_view_context_request(self, pos: QPoint):
         """Normalize context menu positions coming from the view/viewport.
 
         Args:
             pos: Position in the coordinate system of the sender widget.
         """
-        viewport = self._view.viewport()
-        if viewport is None:
-            return
-        source = self.sender()
-        viewport_pos = pos
-        if source is self._view:
-            viewport_pos = self._view.mapTo(viewport, pos)
-        self._show_view_context_menu(viewport_pos)
-
-    def _show_view_context_menu(self, pos: QPoint):
-        """Show the context menu for the graphics view.
-
-        Args:
-            pos: Viewport coordinates where the menu should appear.
-        """
-        if self._image_total <= 0:
-            return
-        viewport = self._view.viewport()
-        if viewport is None:
-            return
-        menu = QMenu(self)
-        act_add_last = menu.addAction(
-            self.t(
-                "pdf.split.add_page_last",
-                "Add current page to last entry",
-            )
-        )
-        assert act_add_last is not None
-        act_add_last.triggered.connect(self._add_current_page_to_last)
-
-        act_add_selected = menu.addAction(
-            self.t(
-                "pdf.split.add_page_selected",
-                "Add current page to selected entries",
-            )
-        )
-        assert act_add_selected is not None
-        act_add_selected.setEnabled(bool(self._split_panel.selected_rows()))
-        act_add_selected.triggered.connect(self._add_current_page_to_selection)
-
-        act_new_entry = menu.addAction(
-            self.t(
-                "pdf.split.new_from_page",
-                "New entry from current page",
-            )
-        )
-        assert act_new_entry is not None
-        act_new_entry.triggered.connect(self._create_entry_from_current_page)
-
-        menu.exec_(viewport.mapToGlobal(pos))
-
-    def _trigger_page_entry_action(self, key: int):
-        """Dispatch keyboard shortcuts tied to split planner actions.
-
-        Args:
-            key: Qt key code for the pressed key.
-        """
-        if key == Qt.Key.Key_A:
-            self._add_current_page_to_last()
-        elif key == Qt.Key.Key_N:
-            self._create_entry_from_current_page()
-        elif key == Qt.Key.Key_S:
-            self._add_current_page_to_selection()
+        # Base class doesn't show context menu
+        # Subclasses can override to add custom menus

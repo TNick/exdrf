@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, List
 
 from exdrf.constants import (
     FIELD_TYPE_BLOB,
@@ -31,9 +31,11 @@ from jinja2 import Environment
 
 if TYPE_CHECKING:
     from exdrf.dataset import ExDataset
+    from exdrf.field import ExField
+    from exdrf.resource import ExResource
 
 
-_type_to_attrs = {
+_type_to_xl = {
     FIELD_TYPE_BLOB: "bytes",
     FIELD_TYPE_BOOL: "bool",
     FIELD_TYPE_DT: "datetime",
@@ -56,11 +58,55 @@ _type_to_attrs = {
 }
 
 
-def type_to_attrs(type: str) -> str:
-    return _type_to_attrs[type]
+def type_to_xl(type: str) -> str:
+    return _type_to_xl[type]
 
 
-def generate_attrs_from_alchemy(
+def field_sort_key(res: "ExResource", fld: "ExField") -> str:
+    """Get the sort key for a field.
+
+    The sort key is used to sort the fields in the resource. By default it
+    is computed by joining the categories of the resource with the name of
+    the field.
+
+    You may want to reimplement this method in a subclass if you want to
+    the fields ranked before the alphabetical sort.
+
+    Args:
+        fld: The field to get the sort key for.
+
+    Returns:
+        The sort key for the field.
+    """
+    if fld.primary:
+        prefix = "0"
+    elif fld.name == "description":
+        prefix = "7"
+    elif fld.name == "deleted":
+        prefix = "8"
+    elif fld.name == "created_on":
+        prefix = "9"
+    elif fld.name == "updated_on":
+        prefix = "9"
+    else:
+        prefix = "1"
+    category = fld.category or ""
+    return f"{prefix}.{category}.{fld.name}"
+
+
+def sorted_fields(res: "ExResource") -> List["ExField"]:
+    """Get a sorted list of fields.
+
+    You can customize the order of the fields by reimplementing the
+    `field_sort_key` method.
+    """
+    return sorted(
+        res.fields,
+        key=lambda fld: field_sort_key(res, fld),
+    )
+
+
+def generate_xl_from_alchemy(
     d_set: "ExDataset",
     out_path: str,
     out_module: str,
@@ -71,7 +117,7 @@ def generate_attrs_from_alchemy(
     # Only allow our templates to be used.
     env.loader.paths = list(
         filter(  # type: ignore
-            lambda x: x.endswith("al2at_templates"),
+            lambda x: x.endswith("al2xl_templates"),
             env.loader.paths,  # type: ignore
         )
     )
@@ -79,6 +125,7 @@ def generate_attrs_from_alchemy(
         comp=[
             File("__init__.py", "__init__.py.j2"),
             File("api.py", "api.py.j2"),
+            File("schema_from_text.py", "schema_from_text.py.j2"),
             CategDir(
                 name="{category_snake}",
                 comp=[
@@ -99,6 +146,7 @@ def generate_attrs_from_alchemy(
         source_module=__name__,
         out_module=out_module,
         db_module=db_module,
-        type_to_attrs=type_to_attrs,
+        type_to_xl=type_to_xl,
+        sorted_fields=sorted_fields,
         **kwargs,
     )

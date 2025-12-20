@@ -6,19 +6,19 @@ from exdrf_al.click_support import GetDataset
 from exdrf_gen.cli_base import cli
 from exdrf_gen.plugin_support import install_plugin
 
-from exdrf_gen_al2qt.creator import generate_qt_from_alchemy
+from exdrf_gen_al2xl.creator import generate_xl_from_alchemy
 
 if TYPE_CHECKING:
     from exdrf.dataset import ExDataset
 
 install_plugin(
     template_paths=[
-        os.path.join(os.path.dirname(__file__), "al2qt_templates"),
+        os.path.join(os.path.dirname(__file__), "al2xl_templates"),
     ]
 )
 
 
-@cli.command(name="al2qt")
+@cli.command(name="al2xl")
 @click.pass_context  # type: ignore
 @click.argument(
     "d_set",
@@ -29,7 +29,7 @@ install_plugin(
     "out_path",
     metavar="OUT-PATH",
     type=click.Path(exists=False, file_okay=False, dir_okay=True),
-    envvar="EXDRF_AL2QT_PATH",
+    envvar="EXDRF_AL2XL_PATH",
 )
 @click.argument(
     "out_module",
@@ -41,14 +41,14 @@ install_plugin(
     metavar="DB-MODULE",
     type=str,
 )
-def qt_from_alchemy(
+def at_from_alchemy(
     context: click.Context,
     d_set: "ExDataset",
     out_path: str,
     out_module: str,
     db_module: str,
 ):
-    """Generate Qt widgets and models from SqlAlchemy models.
+    """Generate Xl models from SqlAlchemy models.
 
     Arguments:
         DATASET: The base class for the SQLAlchemy models as a module.name:path.
@@ -56,8 +56,8 @@ def qt_from_alchemy(
         OUT-MODULE: The module name to use for the generated files.
         DB-MODULE: The module name for the SQLAlchemy models.
     """
-    click.echo("Generating Qt from exdrf...")
-    generate_qt_from_alchemy(
+    click.echo("Generating Xl models from exdrf...")
+    generate_xl_from_alchemy(
         d_set=d_set,
         out_path=out_path,
         out_module=out_module,

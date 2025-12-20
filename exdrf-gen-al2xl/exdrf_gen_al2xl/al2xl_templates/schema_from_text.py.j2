@@ -1,0 +1,34 @@
+from exdrf_xl.schema import XlSchema
+
+
+def table_from_name(name: str) -> type:
+{% for categ, resources in categ_zero %}
+{%- for res in resources %}
+    {%- if res.src.__tablename__ == res.snake_case_name %}
+    if name == "{{ res.snake_case_name }}":
+    {%- else %}
+    if name in ("{{ res.src.__tablename__ }}", "{{ res.snake_case_name }}"):
+    {%- endif %}
+        from {{ out_module }}.{{categ }}.{{ res.snake_case_name }} \
+            import {{ res.pascal_case_name }}
+
+        return {{ res.pascal_case_name }}
+{%- endfor %}
+
+{% endfor %}
+    raise ValueError(f"Table {name} not found")
+
+
+def schema_from_text(text: list[str], ignore_unknown: bool = False) -> XlSchema:
+    schema = XlSchema()
+    for table_name in text:
+        try:
+            table = table_from_name(table_name)
+            schema.tables.append(table(
+                schema=schema,
+            ))
+        except ValueError:
+            if ignore_unknown:
+                continue
+            raise
+    return schema

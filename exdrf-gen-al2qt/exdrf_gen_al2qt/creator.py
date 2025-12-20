@@ -202,6 +202,13 @@ def generate_qt_from_alchemy(
         **kwargs: Additional keyword arguments to pass to the generator.
     """
     click.echo("Generating Qt from exdrf...")
+    # Only allow our templates to be used.
+    env.loader.paths = list(
+        filter(  # type: ignore
+            lambda x: x.endswith("al2qt_templates"),
+            env.loader.paths,  # type: ignore
+        )
+    )
 
     # Allow the caller to update field categories.
     for res in d_set.resources:

@@ -1,0 +1,86 @@
+# This file was automatically generated using the exdrf_gen package.
+# Source: {{ source_module }} -> {{ source_templ }}
+# Don't change it manually.
+
+from attrs import define, field
+from typing import Optional, TYPE_CHECKING, Any
+from datetime import date, datetime, time, timedelta
+from enum import StrEnum
+from exdrf_xl.table import XlTable
+from exdrf_xl.column import XlColumn
+from sqlalchemy import select
+
+if TYPE_CHECKING:
+    from sqlalchemy.sql import Select  # noqa: F401
+    from {{ db_module }}.{{ r.categories[0] }}.api \
+        import {{ ResPascal }} as Db{{ ResPascal }}  # noqa: F401
+
+
+# exdrf-keep-start other_imports ----------------------------------------------
+{{other_imports}}
+# exdrf-keep-end other_imports ------------------------------------------------
+
+# exdrf-keep-start other_globals ----------------------------------------------
+{{other_globals}}
+# exdrf-keep-end other_globals ------------------------------------------------
+
+{% for field in sorted_fields(r) %}
+@define(slots=True, kw_only=True)
+class {{ field.pascal_case_name }}Col(XlColumn["{{ ResPascal }}", "Db{{ ResPascal }}"]):
+    table: "{{ ResPascal }}" = field(init=False, default=None)
+    xl_name: str = field(init=False, default="{{ field.name }}")
+
+    def value_from_record(self, record: "Db{{ ResPascal }}") -> Any:
+        {%- if field.is_ref_type %}
+        return None
+        {%- else %}
+        return record.{{ field.name }}
+        {%- endif %}
+
+    {%- if field.is_ref_type %}
+    def is_included(self) -> bool:
+        return False
+    {%- endif %}
+
+{% endfor %}
+
+def _create_columns():
+    return [
+    {%- for field in sorted_fields(r) %}
+        {{ field.pascal_case_name }}Col(),
+    {%- endfor %}
+    ]
+
+
+@define(slots=True, kw_only=True)
+class {{ ResPascal }}(XlTable):{%- if r.description %}
+    """{%- for line in r.description.split('\n') -%}
+    {%- if loop.first -%}
+    {{ line + '\n' }}
+    {%- else -%}
+    {{ '    ' + line + '\n' }}
+    {%- endif -%}
+    {%- endfor %}
+    """{%- endif %}
+    sheet_name: str = field(init=False, default="{{ res_snake }}")
+    xl_name: str = field(init=False, default="{{ res_snake }}")
+    columns: list[XlColumn] = field(factory=_create_columns)
+
+    # exdrf-keep-start other_attributes ---------------------------------------
+{{other_attributes}}
+    # exdrf-keep-end other_attributes -----------------------------------------
+
+    def get_selector(self) -> "Select":
+        from {{ db_module }}.{{ r.categories[0] }}.api \
+            import {{ ResPascal }} as Db{{ ResPascal }}
+        return select(Db{{ ResPascal }})
+
+    # exdrf-keep-start extra_class_content -------------------------------------
+{{extra_fumo_content}}
+    # exdrf-keep-end extra_class_content ---------------------------------------
+
+
+# exdrf-keep-start more_content -----------------------------------------------
+{{more_content}}
+# exdrf-keep-end more_content -------------------------------------------------
+{{- "\n" -}}

@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 install_plugin(
     template_paths=[
-        os.path.join(os.path.dirname(__file__), "templates"),
+        os.path.join(os.path.dirname(__file__), "al2at_templates"),
     ]
 )
 

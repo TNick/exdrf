@@ -1,3 +1,4 @@
+import os
 from contextlib import contextmanager
 from typing import Any, Dict, List, Optional
 
@@ -5,6 +6,8 @@ from attrs import define, field
 from sqlalchemy import Engine, Select, create_engine, event
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.session import Session
+
+from exdrf_al.db_ver.db_ver import DbVer
 
 dialects_with_schema = {"postgresql", "oracle", "mssql"}
 
@@ -31,6 +34,20 @@ class AutoCacheEntry:
     loaded: bool
 
 
+def react_on_c_string(instance, attribute, value):
+    """React to the change of the c_string attribute."""
+    old = getattr(instance, attribute.name, None)
+    if value == old:
+        return value
+    instance.engine = None
+    instance.s_stack = []
+    instance.cache = {}
+    instance.auto_cache = {}
+    instance.db_version = None
+
+    return value
+
+
 @define
 class DbConn:
     """Holds information about the connection to a database.
@@ -44,12 +61,14 @@ class DbConn:
             them is stored along with the value.
     """
 
-    c_string: str
+    c_string: str = field(on_setattr=react_on_c_string)
     schema: str = "public"
     engine: Optional[Engine] = None
     s_stack: List[Session] = field(factory=list, repr=False)
     cache: dict = field(factory=dict, repr=False)
     auto_cache: Dict[str, AutoCacheEntry] = field(factory=dict, repr=False)
+    db_version: Optional[str] = None
+    auto_migrate: Optional[bool] = False
 
     def connect(self) -> Engine:
         """Connect to the database."""
@@ -60,6 +79,15 @@ class DbConn:
         supports_schema = dialect_name in dialects_with_schema
         if supports_schema:
             self._set_search_path()
+
+        mgh = self.get_migration_handler()
+        if self.auto_migrate:
+            current_version = mgh.get_current_version()
+            latest_version = mgh.get_latest_version()
+            if current_version != latest_version:
+                mgh.upgrade(target=latest_version or "heads")
+        self.db_version = mgh.get_current_version()
+
         return self.engine
 
     def _set_search_path(self):
@@ -284,3 +312,16 @@ class DbConn:
 
         # Return value.
         return value
+
+    def get_migration_handler(self, mig_loc: Optional[str] = None) -> "DbVer":
+        assert self.engine is not None, "Engine is not connected."
+        final_mig_loc = mig_loc or os.environ.get(
+            "EXDRF_DB_MIGRATIONS_DIR", None
+        )
+        if not final_mig_loc:
+            raise ValueError("Migration location is not set.")
+        return DbVer(
+            engine=self.engine,
+            migrations=final_mig_loc,
+            schema=self.schema,
+        )

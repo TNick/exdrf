@@ -1,5 +1,6 @@
 import importlib.util
 import io
+import logging
 import subprocess
 import sys
 from contextlib import contextmanager
@@ -10,7 +11,7 @@ from alembic.config import Config
 from alembic.runtime.environment import EnvironmentContext, IncludeNameFn
 from alembic.script import ScriptDirectory
 from attrs import define, field
-from sqlalchemy import Engine, MetaData
+from sqlalchemy import Engine, MetaData, text
 
 
 def default_pretty_script(script):
@@ -56,6 +57,7 @@ class DbVer:
 
     engine: Engine
     migrations: str
+    schema: Optional[str] = None
     main_options: List[Tuple[str, str]] = field(factory=list)
     section_options: List[Tuple[str, str, str]] = field(factory=list)
     script_dir: str = field(default="exdrf_al:db_ver:alembic")
@@ -122,6 +124,9 @@ class DbVer:
         # Set the section options.
         for section, key, value in self.section_options:
             alembic_cfg.set_section_option(section, key, value)
+
+        # Set the schema in attributes so env.py can use it.
+        alembic_cfg.attributes["schema"] = self.schema
 
         # Set the connection.
         if self.engine is not None:
@@ -256,12 +261,57 @@ class DbVer:
         return output_buffer.getvalue()
 
     def get_history(self):
-        """Get the history of the migrations."""
-        with self.alembic_config() as alembic_cfg:
-            output_buffer = io.StringIO()
-            alembic_cfg.stdout = output_buffer
-            command.history(alembic_cfg, verbose=False)
+        """Get the history of the migrations.
 
-        return [
-            l1.split(" -> ") for l1 in output_buffer.getvalue().splitlines()
-        ]
+        Returns:
+            A list of tuples, where each tuple contains (revision_key, message).
+            The message is the migration message or an empty string if not
+            available. Revisions are returned in chronological order from
+            base to head.
+        """
+        with self.alembic_config() as alembic_cfg:
+            script_directory = ScriptDirectory.from_config(alembic_cfg)
+            # Get all revisions by walking the revision graph
+            # walk_revisions() returns scripts in topological order
+            # (base to heads)
+            revisions = []
+            for script in script_directory.walk_revisions():
+                message = script.doc if script.doc else ""
+                revisions.append((script.revision, message))
+
+        return revisions
+
+    def get_current_version(self) -> Optional[str]:
+        """Get the current version of the database."""
+        try:
+            with self.engine.connect() as conn:
+                with self.alembic_config() as alembic_cfg:
+                    alembic_version_table = (
+                        alembic_cfg.get_main_option("version_table")
+                        or "alembic_version"
+                    )
+                # Use schema-qualified table name if schema is set.
+                if self.schema:
+                    table_name = f"{self.schema}.{alembic_version_table}"
+                else:
+                    table_name = alembic_version_table
+                result = conn.execute(
+                    text(f"SELECT version_num FROM {table_name}")
+                )
+                row = result.fetchone()
+                if row is not None and len(row) > 0:
+                    return row[0]
+                else:
+                    return None
+        except Exception as e:
+            if "psycopg2.errors.UndefinedTable" not in str(e):
+                logging.getLogger(__name__).error(
+                    "Error getting current version of the database.",
+                    exc_info=True,
+                )
+            return None
+
+    def get_latest_version(self) -> Optional[str]:
+        """Get the latest version of the migrations."""
+        result = self.get_history()
+        return result[0][0]
