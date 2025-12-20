@@ -11,6 +11,7 @@ def xl_join_values(
     other_value_expression: str,
     delimiter: str = "CHAR(10)",
     ignore_empty: bool = True,
+    unique: bool = False,
 ) -> str:
     """Build an Excel formula that joins related values from another table.
 
@@ -49,16 +50,24 @@ def xl_join_values(
 
     # Keep the formula structure identical to existing templates.
     ignore_empty_token = "TRUE" if ignore_empty else "FALSE"
+
+    if unique:
+        f_start = "_xlfn.UNIQUE(_xlfn.FILTER("
+        f_end = "))"
+    else:
+        f_start = "_xlfn.FILTER("
+        f_end = ")"
+
     return "\n".join(
         [
             "=IFERROR(",
             "  _xlfn.SINGLE(",
             "    _xlfn.TEXTJOIN(",
             "      %s, %s," % (delimiter, ignore_empty_token),
-            "      _xlfn.FILTER(",
+            "      " + f_start,
             "        %s," % other_value_expression,
             "        %s = %s" % (other_filter_ref, this_key_ref),
-            "      )",
+            "      " + f_end,
             "    )",
             "  ),",
             '  ""',

@@ -130,6 +130,8 @@
         "startswith",
         "staticmethod",
         "stdset",
+        "sumifs",
+        "SUMIFS",
         "tablename",
         "templ",
         "tessedit",

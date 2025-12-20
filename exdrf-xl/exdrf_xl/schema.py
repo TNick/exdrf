@@ -5,6 +5,7 @@ from openpyxl import Workbook
 
 if TYPE_CHECKING:
     from exdrf_al.connection import DbConn
+    from sqlalchemy.orm import Session
 
     from .table import XlTable
 
@@ -29,10 +30,12 @@ class XlSchema:
         """
         wb = Workbook()
         with db.same_session() as session:
+            self.before_export(wb, session)
             for table in self.tables:
                 sheet = wb.create_sheet(title=table.sheet_name[0:31])
                 table.write_to_sheet(sheet, session)
-        wb.calculation.fullCalcOnLoad = True
+            self.after_export(wb, session)
+        wb.calculation.fullCalcOnLoad = True  # type: ignore
         wb.save(path)
 
     def has_table(self, name: str) -> bool:
@@ -56,3 +59,9 @@ class XlSchema:
             if table.xl_name == name:
                 return table
         return None
+
+    def before_export(self, wb: "Workbook", session: "Session"):
+        pass
+
+    def after_export(self, wb: "Workbook", session: "Session"):
+        pass

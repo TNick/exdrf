@@ -1,5 +1,14 @@
 import logging
-from typing import TYPE_CHECKING, Callable, Generator, Generic, Mapping, TypeVar
+from copy import copy
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+    Generator,
+    Generic,
+    Mapping,
+    TypeVar,
+    cast,
+)
 
 import openpyxl.cell._writer as www
 import openpyxl.worksheet._writer as ww2
@@ -213,7 +222,7 @@ class XlTable(Generic[T]):
         result = session.scalar(select(func.count()).select_from(subq))
         if result is None:
             logger.error(
-                f"Failed to retrieve rows count for table {self.xl_name}"
+                "Failed to retrieve rows count for table %s", self.xl_name
             )
             return 0
         return result
@@ -226,7 +235,7 @@ class XlTable(Generic[T]):
             session: SQLAlchemy session used to load rows for export.
         """
         if len(self.columns) == 0:
-            logger.warning(f"Table {self.xl_name} has no columns")
+            logger.warning("Table %s has no columns", self.xl_name)
             # return
 
         included = self.get_included_columns()
@@ -249,11 +258,8 @@ class XlTable(Generic[T]):
         self.apply_cell_styles(sheet, row_count)
         self.apply_duplicate_id_conditional_formatting(sheet, row_count)
 
-        row_count = 0
-        for row_idx, record in enumerate(self.get_rows(session)):
-            row_count += 1
-            for column in included:
-                column.post_table_created(sheet, table_obj, row_idx, record)
+        for column in included:
+            column.post_table_created(sheet, table_obj, row_count)
 
     def create_excel_table(self, ws: "Worksheet", row_count: int) -> "Table":
         """Create the Excel structured table object on worksheet.
@@ -303,6 +309,9 @@ class XlTable(Generic[T]):
             col_name = col_def.xl_name
             col_letter = get_column_letter(col_idx)
             col = ws.column_dimensions[col_letter]
+
+            # Hide columns that are marked as hidden.
+            col.hidden = col_def.hidden
 
             override_width = widths.get(col_name, None)
             if override_width is None:
@@ -365,9 +374,11 @@ class XlTable(Generic[T]):
                 cell = row[0]
 
                 if font_color is not None:
-                    # `cell.font` is a StyleProxy. Build a new Font and reassign
-                    # so we don't mutate the proxy.
-                    cell.font = cell.font + Font(color=font_color)
+                    # `cell.font` is a StyleProxy. Copy to a real Font and
+                    # reassign so we don't mutate the proxy.
+                    new_font = cast(Font, copy(cell.font))
+                    new_font.color = font_color  # type: ignore
+                    cell.font = new_font
 
                 if fill is not None:
                     cell.fill = fill

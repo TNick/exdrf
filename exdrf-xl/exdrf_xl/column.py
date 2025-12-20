@@ -14,7 +14,6 @@ from typing import (
 from attrs import define, field
 
 if TYPE_CHECKING:
-    from openpyxl.worksheet.table import Table
     from openpyxl.worksheet.worksheet import Worksheet
 
     from .table import XlTable
@@ -61,6 +60,7 @@ class XlColumn(Generic[T, DB]):
     number_format: str | None = field(default=None, repr=False)
     font_color: str | None = field(default=None, repr=False)
     bg_color: str | None = field(default=None, repr=False)
+    hidden: bool = field(default=False, repr=False)
     h_align: Literal["left", "center", "right"] = field(
         default="left", repr=False
     )
@@ -103,7 +103,9 @@ class XlColumn(Generic[T, DB]):
         col = self.table.get_column_index(self)
         if col == -1:
             logger.warning(
-                f"Column {self.xl_name} not found in table {self.table.xl_name}"
+                "Column %s not found in table %s",
+                self.xl_name,
+                self.table.xl_name,
             )
             return
         cell = sheet.cell(
@@ -118,17 +120,25 @@ class XlColumn(Generic[T, DB]):
 
         cell.number_format = self.number_format
 
-    def post_table_created(
-        self, sheet: "Worksheet", table_obj: "Table", row_index: int, record: DB
-    ):
+    def post_table_created(self, ws: "Worksheet", table_obj: T, row_count: int):
         """Called after the table is created.
 
         Args:
-            sheet: Target worksheet.
+            ws: Target worksheet.
             table_obj: The Excel structured table object created for the sheet.
-            row_index: 0-based index of the data row in the table.
-            record: Source record.
+            row_count: the number of rows written in the sheet.
         """
+
+    def apply_duplicate_values_conditional_formatting(
+        self, ws: "Worksheet", row_count: int
+    ):
+        self.table.apply_duplicate_values_conditional_formatting(
+            ws=ws,
+            row_count=row_count,
+            predicate=lambda c: c.xl_name.strip().lower() == self.xl_name,
+            fill_color="FFFFC7CE",
+            font_color="FFFF0000",
+        )
 
 
 @define(slots=True, kw_only=True)

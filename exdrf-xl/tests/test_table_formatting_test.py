@@ -62,6 +62,7 @@ class TestXlTableFormatting:
                     h_align="right",
                     v_align="bottom",
                     number_format="0.00",
+                    hidden=True,
                 ),
                 _Col(
                     xl_name="id",
@@ -106,6 +107,9 @@ class TestXlTableFormatting:
         assert ws.column_dimensions["B"].width == pytest.approx(11.0)
         assert ws.column_dimensions["C"].width == pytest.approx(10.0)
 
+        # Columns can be hidden.
+        assert ws.column_dimensions["B"].hidden is True
+
         # Alignments must be applied from column definitions (data rows).
         a2_align = ws["A2"].alignment
         assert a2_align.wrap_text is True
@@ -129,7 +133,7 @@ class TestXlTableFormatting:
         assert len(rules) == 1
         rule = rules[0]
         assert rule.type == "duplicateValues"
-        assert rule.formula == ()
+        assert not rule.formula
 
         # Verify the saved XML matches Excel's duplicateValues form (no formula).
         buff = BytesIO()
