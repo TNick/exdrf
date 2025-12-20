@@ -1,6 +1,5 @@
 import logging
-from copy import copy
-from typing import TYPE_CHECKING, Generator, Generic, Mapping, TypeVar
+from typing import TYPE_CHECKING, Callable, Generator, Generic, Mapping, TypeVar
 
 import openpyxl.cell._writer as www
 import openpyxl.worksheet._writer as ww2
@@ -8,8 +7,10 @@ from attrs import define, field
 from openpyxl.cell._writer import _set_attributes
 from openpyxl.cell.rich_text import CellRichText
 from openpyxl.compat import safe_string
-from openpyxl.styles import Alignment, PatternFill
+from openpyxl.formatting.rule import Rule
+from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.styles.colors import Color
+from openpyxl.styles.differential import DifferentialStyle
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.formula import ArrayFormula, DataTableFormula
 from openpyxl.worksheet.table import Table, TableColumn, TableStyleInfo
@@ -106,7 +107,8 @@ def lxml_write_cell_o(xf, worksheet, cell, styled=False):
                         attrs = {}
                         if value != value.strip():
                             attrs["{%s}space" % XML_NS] = "preserve"
-                        el = Element("t", attrs)  # lxml can't handle xml-ns
+                        # lxml can't handle xml-ns
+                        el = Element("t", attrs)
                         el.text = value
                         xf.write(el)
 
@@ -116,9 +118,9 @@ def lxml_write_cell_o(xf, worksheet, cell, styled=False):
                     xf.write(safe_string(value))
 
 
-www.write_cell = lxml_write_cell_o
-www.lxml_write_cell = lxml_write_cell_o
-ww2.write_cell = lxml_write_cell_o
+www.write_cell = lxml_write_cell_o  # type: ignore
+www.lxml_write_cell = lxml_write_cell_o  # type: ignore
+ww2.write_cell = lxml_write_cell_o  # type: ignore
 
 
 @define
@@ -143,10 +145,48 @@ class XlTable(Generic[T]):
     sheet_name: str
     xl_name: str
     columns: list["XlColumn"] = field(factory=list, repr=False)
+    _included_columns_cache: list["XlColumn"] | None = field(
+        default=None, init=False, repr=False
+    )
+    _included_index_by_name_cache: dict[str, int] | None = field(
+        default=None, init=False, repr=False
+    )
+    _included_index_by_objid_cache: dict[int, int] | None = field(
+        default=None, init=False, repr=False
+    )
 
     def __attrs_post_init__(self):
         for c in self.columns:
             c.table = self
+        self._invalidate_column_caches()
+
+    def _invalidate_column_caches(self) -> None:
+        """Invalidate cached included-columns data structures."""
+        self._included_columns_cache = None
+        self._included_index_by_name_cache = None
+        self._included_index_by_objid_cache = None
+
+    def _ensure_column_caches(self) -> None:
+        """Build cached included-columns data structures if missing."""
+        if (
+            self._included_columns_cache is not None
+            and self._included_index_by_name_cache is not None
+            and self._included_index_by_objid_cache is not None
+        ):
+            return
+
+        included = [c for c in self.columns if c.is_included()]
+        index_by_name: dict[str, int] = {}
+        index_by_objid: dict[int, int] = {}
+
+        for idx, c in enumerate(included):
+            # Keep the first match for a name, consistent with prior behavior.
+            index_by_name.setdefault(c.xl_name, idx)
+            index_by_objid[id(c)] = idx
+
+        self._included_columns_cache = included
+        self._included_index_by_name_cache = index_by_name
+        self._included_index_by_objid_cache = index_by_objid
 
     def get_selector(self) -> "Select":
         """Returns the SQLAlchemy selector for the table."""
@@ -167,9 +207,10 @@ class XlTable(Generic[T]):
         Args:
             session: SQLAlchemy session used to execute the selector.
         """
-        result = session.scalar(
-            select(func.count()).select_from(self.get_selector())
-        )  # type: ignore
+        # Count rows from the selector by wrapping it as a subquery so it
+        # becomes a valid FROM clause (and satisfies static type checkers).
+        subq = self.get_selector().subquery()
+        result = session.scalar(select(func.count()).select_from(subq))
         if result is None:
             logger.error(
                 f"Failed to retrieve rows count for table {self.xl_name}"
@@ -206,6 +247,7 @@ class XlTable(Generic[T]):
         self.apply_column_widths(sheet, {})
         self.apply_alignments(sheet)
         self.apply_cell_styles(sheet, row_count)
+        self.apply_duplicate_id_conditional_formatting(sheet, row_count)
 
         row_count = 0
         for row_idx, record in enumerate(self.get_rows(session)):
@@ -323,16 +365,116 @@ class XlTable(Generic[T]):
                 cell = row[0]
 
                 if font_color is not None:
-                    font = copy(cell.font)
-                    font.color = font_color
-                    cell.font = font
+                    # `cell.font` is a StyleProxy. Build a new Font and reassign
+                    # so we don't mutate the proxy.
+                    cell.font = cell.font + Font(color=font_color)
 
                 if fill is not None:
                     cell.fill = fill
 
+    def apply_duplicate_id_conditional_formatting(
+        self, ws: "Worksheet", row_count: int
+    ):
+        """Highlight duplicate values in columns named `id`.
+
+        This is a convenience wrapper around
+        `apply_duplicate_values_conditional_formatting()` that targets columns
+        whose `xl_name` is `"id"` (case-insensitive).
+
+        Args:
+            ws: Excel worksheet object.
+            row_count: Number of data rows (excluding the header).
+        """
+        self.apply_duplicate_values_conditional_formatting(
+            ws=ws,
+            row_count=row_count,
+            predicate=lambda c: c.xl_name.strip().lower() == "id",
+            fill_color="FFFFC7CE",
+            font_color="FFFF0000",
+        )
+
+    def apply_duplicate_values_conditional_formatting(
+        self,
+        ws: "Worksheet",
+        row_count: int,
+        predicate: Callable[["XlColumn"], bool],
+        fill_color: str,
+        font_color: str,
+    ):
+        """Add Excel "duplicate values" conditional formatting for columns.
+
+        This adds a native Excel conditional formatting rule of type
+        `"duplicateValues"` to each included column that matches `predicate`.
+        The rule is applied to the current data range (rows 2..N).
+
+        Args:
+            ws: Excel worksheet object.
+            row_count: Number of data rows (excluding the header).
+            predicate: Function that receives an included `XlColumn` and returns
+                True if the rule should be applied to that column.
+            fill_color: Background fill color (ARGB hex, e.g. `"FFFFC7CE"`).
+            font_color: Font color (ARGB hex, e.g. `"FFFF0000"`).
+        """
+        if row_count <= 0:
+            return
+
+        max_row = row_count + 1  # include header row at 1; data starts at 2
+
+        fill = PatternFill(
+            fill_type="solid",
+            start_color=fill_color,
+            end_color=fill_color,
+        )
+        font = Font(color=font_color)
+        dxf = DifferentialStyle(font=font, fill=fill)
+
+        for col_idx, col_def in enumerate(self.get_included_columns(), start=1):
+            if not predicate(col_def):
+                continue
+
+            col_letter = get_column_letter(col_idx)
+            range_ref = f"{col_letter}2:{col_letter}{max_row}"
+
+            rule = Rule(type="duplicateValues")
+            rule.dxf = dxf
+            ws.conditional_formatting.add(range_ref, rule)
+
+    def __getitem__(self, key: int | str) -> "XlColumn":
+        """Get an included column by index or by name.
+
+        Args:
+            key: Either a 0-based index into the included columns list, or the
+                column name (`XlColumn.xl_name`).
+
+        Returns:
+            The matching included column.
+
+        Raises:
+            IndexError: If an integer index is out of range.
+            KeyError: If a string name does not match any included column.
+            TypeError: If `key` is not an `int` or `str`.
+        """
+        self._ensure_column_caches()
+
+        if isinstance(key, int):
+            assert self._included_columns_cache is not None
+            return self._included_columns_cache[key]
+
+        if isinstance(key, str):
+            assert self._included_index_by_name_cache is not None
+            idx = self._included_index_by_name_cache.get(key, None)
+            if idx is None:
+                raise KeyError(key)
+            assert self._included_columns_cache is not None
+            return self._included_columns_cache[idx]
+
+        raise TypeError("Invalid key type %r; expected int or str" % type(key))
+
     def get_included_columns(self) -> list["XlColumn"]:
         """Returns the columns that are included in the table."""
-        return [c for c in self.columns if c.is_included()]
+        self._ensure_column_caches()
+        assert self._included_columns_cache is not None
+        return self._included_columns_cache
 
     def get_column_index(self, column: "XlColumn | str") -> int:
         """Returns the index of the column in the table.
@@ -344,15 +486,11 @@ class XlTable(Generic[T]):
         Returns:
             0-based index in the *included* columns list, or -1 if not found.
         """
-        idx = 0
+        self._ensure_column_caches()
+        assert self._included_index_by_name_cache is not None
+        assert self._included_index_by_objid_cache is not None
 
         if isinstance(column, str):
-            for idx, c in enumerate(self.get_included_columns()):
-                if c.xl_name == column:
-                    return idx
-            return -1
+            return self._included_index_by_name_cache.get(column, -1)
         else:
-            for idx, c in enumerate(self.get_included_columns()):
-                if c is column:
-                    return idx
-            return -1
+            return self._included_index_by_objid_cache.get(id(column), -1)

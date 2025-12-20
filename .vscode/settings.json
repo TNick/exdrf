@@ -3,10 +3,12 @@
         "MD029": false
     },
     "cSpell.words": [
+        "AARRGGBB",
         "addprevious",
         "aflake",
         "appauthor",
         "appname",
+        "ARGB",
         "autofit",
         "autoflake",
         "Backtab",
@@ -54,6 +56,7 @@
         "horstretch",
         "hsizetype",
         "htmlcov",
+        "IFERROR",
         "INNERGRID",
         "ipynb",
         "ipython",
@@ -134,6 +137,7 @@
         "Tesseract",
         "TESSERACT",
         "TEXTCOLOR",
+        "TEXTJOIN",
         "TINYINT",
         "TOPPADDING",
         "trolltech",
@@ -141,10 +145,14 @@
         "usebackq",
         "vbtm",
         "verstretch",
+        "VLOOKUP",
         "vmerge",
         "vsizetype",
         "vtop",
         "webassets",
+        "xlfn",
+        "xlookup",
+        "XLOOKUP",
         "xmlchemy"
     ],
     "cursorpyright.analysis.extraPaths": [

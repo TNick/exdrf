@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+from io import BytesIO
 from typing import Any, Iterable
+from zipfile import ZipFile
 
 import pytest
 from attrs import define, field
@@ -37,7 +39,10 @@ class TestXlTableFormatting:
             schema=schema,
             sheet_name="Sheet1",
             xl_name="T1",
-            records=[{"a": "x", "b": "y"}],
+            records=[
+                {"a": "x", "b": "y", "id": 1},
+                {"a": "x2", "b": "y2", "id": 1},
+            ],
             columns=[
                 _Col(
                     xl_name="A",
@@ -56,6 +61,15 @@ class TestXlTableFormatting:
                     wrap_text=False,
                     h_align="right",
                     v_align="bottom",
+                    number_format="0.00",
+                ),
+                _Col(
+                    xl_name="id",
+                    key="id",
+                    col_width=10.0,
+                    wrap_text=False,
+                    h_align="left",
+                    v_align="center",
                 ),
             ],
         )
@@ -66,20 +80,31 @@ class TestXlTableFormatting:
         # The implementation ignores the session object for this test table.
         table.write_to_sheet(ws, session=None)  # type: ignore[arg-type]
 
+        # Column access via `table[...]` should work for both index and name.
+        assert table[0].xl_name == "A"
+        assert table["id"].xl_name == "id"
+
         assert ws["A1"].value == "A"
         assert ws["B1"].value == "B"
+        assert ws["C1"].value == "id"
 
         # Data must start at row 2.
         assert ws["A2"].value == "x"
         assert ws["B2"].value == "y"
+        assert ws["C2"].value == 1
+        assert ws["C3"].value == 1
+
+        # Number format should be applied only when explicitly configured.
+        assert ws["B2"].number_format == "0.00"
 
         # The Excel structured table must cover the data row.
         assert "T1" in ws.tables
-        assert ws.tables["T1"].ref == "A1:B2"
+        assert ws.tables["T1"].ref == "A1:C3"
 
         # Widths must be applied from column definitions.
         assert ws.column_dimensions["A"].width == pytest.approx(33.0)
         assert ws.column_dimensions["B"].width == pytest.approx(11.0)
+        assert ws.column_dimensions["C"].width == pytest.approx(10.0)
 
         # Alignments must be applied from column definitions (data rows).
         a2_align = ws["A2"].alignment
@@ -97,3 +122,21 @@ class TestXlTableFormatting:
         assert ws["A2"].font.color.rgb == "FFFF0000"
         assert ws["A2"].fill.patternType == "solid"
         assert ws["A2"].fill.start_color.rgb == "FF00FF00"
+
+        # Duplicate IDs should be highlighted via conditional formatting.
+        assert len(ws.conditional_formatting) == 1
+        rules = ws.conditional_formatting["C2:C3"]
+        assert len(rules) == 1
+        rule = rules[0]
+        assert rule.type == "duplicateValues"
+        assert rule.formula == ()
+
+        # Verify the saved XML matches Excel's duplicateValues form (no formula).
+        buff = BytesIO()
+        wb.save(buff)
+        buff.seek(0)
+        with ZipFile(buff) as zf:
+            sheet_xml = zf.read("xl/worksheets/sheet1.xml").decode("utf-8")
+        assert 'conditionalFormatting sqref="C2:C3"' in sheet_xml
+        assert 'cfRule type="duplicateValues"' in sheet_xml
+        assert "<formula>" not in sheet_xml

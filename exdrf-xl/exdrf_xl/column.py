@@ -37,6 +37,9 @@ class XlColumn(Generic[T, DB]):
         col_width: Column width to apply on export when no external override is
             provided.
         wrap_text: Whether cell text should wrap (applied to data cells).
+        number_format: Optional Excel number format to apply to data cells in
+            this column. If `None`, the number format is not changed.
+            Valid examples: `"0"`, `"0.00"`, `"#,##0"`, `"yyyy-mm-dd"`.
         font_color: Optional font color for data cells in this column. If
             `None`, the font color is not changed.
             Valid examples: `"FF0000"`, `"#FF0000"`, `"FFFF0000"`,
@@ -55,6 +58,7 @@ class XlColumn(Generic[T, DB]):
     xl_name: str
     col_width: float = field(default=10.0, repr=False)
     wrap_text: bool = field(default=False, repr=False)
+    number_format: str | None = field(default=None, repr=False)
     font_color: str | None = field(default=None, repr=False)
     bg_color: str | None = field(default=None, repr=False)
     h_align: Literal["left", "center", "right"] = field(
@@ -102,12 +106,17 @@ class XlColumn(Generic[T, DB]):
                 f"Column {self.xl_name} not found in table {self.table.xl_name}"
             )
             return
-        sheet.cell(
+        cell = sheet.cell(
             # Row 1 is reserved for the header; data begins at row 2.
             row=row_index + 2,
             column=col + 1,
             value=value,
         )
+
+        if self.number_format is None:
+            return
+
+        cell.number_format = self.number_format
 
     def post_table_created(
         self, sheet: "Worksheet", table_obj: "Table", row_index: int, record: DB
