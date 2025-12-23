@@ -2,7 +2,9 @@ import logging
 from copy import copy
 from typing import (
     TYPE_CHECKING,
+    Any,
     Callable,
+    Dict,
     Generator,
     Generic,
     Mapping,
@@ -21,6 +23,7 @@ from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.styles.colors import Color
 from openpyxl.styles.differential import DifferentialStyle
 from openpyxl.utils import get_column_letter
+from openpyxl.utils.cell import column_index_from_string, range_boundaries
 from openpyxl.worksheet.formula import ArrayFormula, DataTableFormula
 from openpyxl.worksheet.table import Table, TableColumn, TableStyleInfo
 from openpyxl.xml.functions import XML_NS, Element
@@ -148,6 +151,14 @@ class XlTable(Generic[T]):
               written.
             - Column formatting (widths, alignments, optional font/fill colors)
               is applied to data rows (starting at row 2), not the header row.
+        _included_columns_cache: Cached list of included columns (those where
+            `XlColumn.is_included()` is `True`). This is an internal cache.
+        _included_index_by_name_cache: Cached mapping from column name
+            (`XlColumn.xl_name`) to 0-based index in the included columns list.
+            This is an internal cache.
+        _included_index_by_objid_cache: Cached mapping from column object id
+            (`id(column)`) to 0-based index in the included columns list. This
+            is an internal cache.
     """
 
     schema: "XlSchema" = field(repr=False)
@@ -165,18 +176,32 @@ class XlTable(Generic[T]):
     )
 
     def __attrs_post_init__(self):
+        """Finalize initialization after attrs has constructed the instance.
+
+        This wires each column definition back to this table and initializes
+        the included-column caches.
+        """
         for c in self.columns:
             c.table = self
         self._invalidate_column_caches()
 
     def _invalidate_column_caches(self) -> None:
-        """Invalidate cached included-columns data structures."""
+        """Invalidate cached included-columns data structures.
+
+        This should be called after mutating `columns` or when any column's
+        `is_included()` behavior can change.
+        """
         self._included_columns_cache = None
         self._included_index_by_name_cache = None
         self._included_index_by_objid_cache = None
 
     def _ensure_column_caches(self) -> None:
-        """Build cached included-columns data structures if missing."""
+        """Build cached included-columns data structures if missing.
+
+        The caches store:
+        - The list of included columns (in display order).
+        - Fast lookup by column name and by column object identity.
+        """
         if (
             self._included_columns_cache is not None
             and self._included_index_by_name_cache is not None
@@ -239,9 +264,19 @@ class XlTable(Generic[T]):
             # return
 
         included = self.get_included_columns()
-        for c, column in enumerate(included):
-            sheet.cell(row=1, column=c + 1, value=column.xl_name)
 
+        # Format header row.
+        sheet.row_dimensions[1].height = 30
+        header_align = Alignment(
+            wrap_text=False,
+            horizontal="center",
+            vertical="top",
+        )
+        for c, column in enumerate(included):
+            cell = sheet.cell(row=1, column=c + 1, value=column.xl_name)
+            cell.alignment = header_align
+
+        # Generate data rows.
         row_count = 0
         for row_idx, record in enumerate(self.get_rows(session)):
             row_count += 1
@@ -505,3 +540,158 @@ class XlTable(Generic[T]):
             return self._included_index_by_name_cache.get(column, -1)
         else:
             return self._included_index_by_objid_cache.get(id(column), -1)
+
+    @staticmethod
+    def _get_ws_col_idx(cell: object) -> int:
+        """Return the 1-based worksheet column index for an openpyxl cell.
+
+        Some openpyxl cell-like classes (e.g. `MergedCell`) do not expose
+        `col_idx` in their type information, even though a column index can
+        always be derived via `column`.
+        """
+        col_idx = getattr(cell, "col_idx", None)
+        if isinstance(col_idx, int):
+            return col_idx
+
+        column = getattr(cell, "column", None)
+        if isinstance(column, int):
+            return column
+        if isinstance(column, str):
+            return column_index_from_string(column)
+
+        raise TypeError(
+            "Unsupported cell column type %r for cell %r" % (type(column), cell)
+        )
+
+    def iter_excel_table(self, ws: "Worksheet", table: "Table"):
+        """Iterate rows from an Excel structured table and yield row dicts.
+
+        Args:
+            ws: Worksheet that contains the structured table.
+            table: The openpyxl structured table object to iterate.
+
+        Yields:
+            A dictionary mapping `XlColumn.xl_name` to the cell value for that
+            row. Only columns present in both the table definition and the
+            worksheet are included.
+
+            Rows are skipped if:
+            - A `primary` column is missing from the worksheet table, or
+            - A `primary` column has an empty/falsy value, or
+            - The resulting record dict would be empty.
+        """
+        if not table.ref:
+            return
+        min_col, min_row, max_col, max_row = range_boundaries(
+            cast(str, table.ref)
+        )
+        assert (
+            min_col is not None
+            and min_row is not None
+            and max_col is not None
+            and max_row is not None
+        )
+
+        # Build map: table header name -> 0-based column index in worksheet.
+        header_row = next(
+            ws.iter_rows(
+                min_row=min_row,
+                max_row=min_row,
+                min_col=min_col,
+                max_col=max_col,
+            )
+        )
+        col_name_to_idx = {
+            str(cell.value): (self._get_ws_col_idx(cell) - min_col)
+            for cell in header_row
+        }
+
+        for row in ws.iter_rows(
+            min_row=min_row + 1,
+            max_row=max_row,
+            min_col=min_col,
+            max_col=max_col,
+        ):
+            ignore_row = False
+            xl_record = {}
+            for c in self.columns:
+                c_index = col_name_to_idx.get(c.xl_name, None)
+                if c_index is None:
+                    if c.primary:
+                        # One of the primary columns is missing so
+                        # we're not going to be able to work with the database.
+                        ignore_row = True
+                        break
+                    continue
+                value = row[c_index].value
+
+                if not value and c.primary:
+                    # The primary key is incomplete.
+                    ignore_row = True
+                    break
+
+                xl_record[c.xl_name] = value
+
+            if ignore_row or not xl_record:
+                continue
+
+            yield xl_record
+
+    def find_db_rec(
+        self,
+        session: "Session",
+        xl_rec: Dict[str, Any],
+        is_db_pk: Callable[[Any], bool],
+    ) -> "T | None":
+        """Locate the corresponding database record for an Excel row.
+
+        Implementations typically use the table's primary columns to build a
+        lookup query.
+
+        Args:
+            session: SQLAlchemy session used to query the database.
+            xl_rec: Excel row dictionary mapping column names to values.
+            is_db_pk: a function that can determine if the value is a
+                is a database primary key (True) or a temporary key that
+                will be replaced by the true value in the insertion process.
+                If this function returns False for any primary key value the
+                record will be considered to be a new record.
+
+        Returns:
+            The matching database record, or `None` if no match is found.
+        """
+        raise NotImplementedError
+
+    def create_new_db_record(
+        self, session: "Session", xl_rec: Dict[str, Any]
+    ) -> T:
+        """Create a new database record.
+
+        Note that after this call each column in turn will get a chance to
+        update this record.
+
+        Args:
+            session: SQLAlchemy session used for persistence and related
+                lookups.
+            xl_rec: Excel row dictionary mapping column names to values.
+
+        Returns:
+            The newly created database record instance.
+        """
+        raise NotImplementedError
+
+    def apply_xl_to_db(
+        self, session: "Session", db_rec: T, xl_rec: Dict[str, Any]
+    ):
+        """Apply an Excel row dictionary to a database record.
+
+        This delegates to each column's `XlColumn.apply_xl_to_db()` with the
+        corresponding value from `xl_rec` (or `None` if missing).
+
+        Args:
+            session: SQLAlchemy session used for lookups and persistence.
+            db_rec: Database record to update.
+            xl_rec: Excel row dictionary mapping column names to values.
+        """
+        for c in self.columns:
+            c.apply_xl_to_db(session, db_rec, xl_rec.get(c.xl_name, None))

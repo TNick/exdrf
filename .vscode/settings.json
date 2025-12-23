@@ -140,6 +140,7 @@
         "TESSERACT",
         "TEXTCOLOR",
         "TEXTJOIN",
+        "timedelta",
         "TINYINT",
         "TOPPADDING",
         "trolltech",

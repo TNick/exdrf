@@ -3,15 +3,14 @@
 # Don't change it manually.
 
 from attrs import define, field
-from typing import Optional, TYPE_CHECKING, Any
-from datetime import date, datetime, time, timedelta
-from enum import StrEnum
+from typing import TYPE_CHECKING, Any, Dict
 from exdrf_xl.table import XlTable
 from exdrf_xl.column import XlColumn
 from sqlalchemy import select
 
 if TYPE_CHECKING:
     from sqlalchemy.sql import Select  # noqa: F401
+    from sqlalchemy.orm import Session  # noqa: F401
     from {{ db_module }}.{{ r.categories[0] }}.api \
         import {{ ResPascal }} as Db{{ ResPascal }}  # noqa: F401
 
@@ -29,6 +28,7 @@ if TYPE_CHECKING:
 class {{ field.pascal_case_name }}Col(XlColumn["{{ ResPascal }}", "Db{{ ResPascal }}"]):
     table: "{{ ResPascal }}" = field(init=False, default=None)
     xl_name: str = field(init=False, default="{{ field.name }}")
+    primary: bool = field(default={{ field.primary }}, repr=False)
 
     def value_from_record(self, record: "Db{{ ResPascal }}") -> Any:
         {%- if field.is_ref_type %}
@@ -40,6 +40,16 @@ class {{ field.pascal_case_name }}Col(XlColumn["{{ ResPascal }}", "Db{{ ResPasca
     {%- if field.is_ref_type %}
     def is_included(self) -> bool:
         return False
+    
+    def apply_xl_to_db(
+        self, session: "Session", db_rec: "Db{{ ResPascal }}", xl_value: Any
+    ):
+        pass
+    {%- else %}
+    def apply_xl_to_db(
+        self, session: "Session", db_rec: "Db{{ ResPascal }}", xl_value: Any
+    ):
+        db_rec.{{ field.name }} = xl_value
     {%- endif %}
 
 {% endfor %}
@@ -65,6 +75,13 @@ class {{ ResPascal }}(XlTable):{%- if r.description %}
     sheet_name: str = field(init=False, default="{{ res_snake }}")
     xl_name: str = field(init=False, default="{{ res_snake }}")
     columns: list[XlColumn] = field(factory=_create_columns)
+    pks: list[str] = (
+        {%- for field in sorted_fields(r) %}
+        {%- if field.primary %}
+        '{{ field.name }}',
+        {%- endif %}
+        {%- endfor %}
+    )
 
     # exdrf-keep-start other_attributes ---------------------------------------
 {{other_attributes}}
@@ -74,6 +91,51 @@ class {{ ResPascal }}(XlTable):{%- if r.description %}
         from {{ db_module }}.{{ r.categories[0] }}.api \
             import {{ ResPascal }} as Db{{ ResPascal }}
         return select(Db{{ ResPascal }})
+
+    def find_db_rec(
+        self,
+        session: "Session",
+        xl_rec: Dict[str, Any],
+        is_db_pk: Callable[[Any], bool]
+    ) -> "Db{{ ResPascal }} | None":
+        from {{ db_module }}.{{ r.categories[0] }}.api \
+            import {{ ResPascal }} as Db{{ ResPascal }}
+
+        {%- for field in sorted_fields(r) %}
+        {%- if field.primary %}
+
+        v_{{ field.name }} = xl_rec.get('{{ field.name }}', None)
+        if v_{{ field.name }} is None or (
+            isinstance(v_{{ field.name }}, str)
+            and v_{{ field.name }} == ''
+        ):
+            raise ValueError(
+                'Property `{{ field.name }}` is part of the primary '
+                'key set of the `{{ ResPascal }}` table and cannot be empty.'
+            )
+        if not is_db_pk(v_{{ field.name }}):
+            return None
+        {%- endif %}
+        {%- endfor %}
+
+        result = session.scalar(
+            select(Db{{ ResPascal }}).where(
+            {%- for field in sorted_fields(r) %}
+            {%- if field.primary %}
+                Db{{ ResPascal }}.{{ field.name }} == v_{{ field.name }},
+            {%- endif %}
+            {%- endfor %}
+            )
+        )
+        return result
+
+    def create_new_db_record(
+        self, session: "Session", xl_rec: Dict[str, Any]
+    ) -> "Db{{ ResPascal }}":
+        from {{ db_module }}.{{ r.categories[0] }}.api \
+            import {{ ResPascal }} as Db{{ ResPascal }}
+        return Db{{ ResPascal }}()
+        
 
     # exdrf-keep-start extra_class_content -------------------------------------
 {{extra_fumo_content}}

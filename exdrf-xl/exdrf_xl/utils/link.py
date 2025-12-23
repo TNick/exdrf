@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from copy import copy
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from openpyxl.styles.colors import Color
 from openpyxl.utils import get_column_letter
