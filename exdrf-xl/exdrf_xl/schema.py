@@ -12,7 +12,9 @@ from sqlalchemy.orm import Session
 from exdrf_xl.ingest.apply_import_plan import apply_import_plan
 from exdrf_xl.ingest.import_plan import ImportPlan
 from exdrf_xl.ingest.plan_import_from_file import plan_import_from_file
-from exdrf_xl.ingest.tools import default_is_db_pk
+from exdrf_xl.ingest.update_excel_with_allocated_ids import (
+    update_excel_with_allocated_ids,
+)
 from exdrf_xl.utils.col_widths import read_column_widths_from_existing_file
 
 from .table import XlTable
@@ -140,182 +142,30 @@ class XlSchema:
 
     def update_excel_with_allocated_ids(
         self,
-        path: str,
+        wb: Any,
         plan: ImportPlan,
         placeholder_to_id: dict[tuple[str, str], int],
         *,
+        path: str | None = None,
         is_db_pk: Callable[[Any], bool] | None = None,
-        wb: Any | None = None,
     ) -> None:
         """Update an Excel file with allocated database IDs.
 
-        This method updates the Excel file in-place, replacing temporary
+        This method updates the workbook in-place, replacing temporary
         placeholder IDs (e.g., "x1", "x2") with the actual integer IDs allocated
         by the database during import.
 
         Args:
-            path: Path to the Excel file to update (used if `wb` is None).
+            wb: Workbook to update (must be provided, already loaded).
             plan: Import plan that was applied.
             placeholder_to_id: Mapping from (table_name, placeholder_string) to
                 allocated integer ID.
+            path: Optional path to save the workbook to. If provided, the
+                workbook will be saved and backups rotated. If None, updates are
+                made in memory only.
             is_db_pk: Predicate used to determine DB IDs. Defaults to
                 `default_is_db_pk`.
-            wb: Optional workbook to update. If provided, `path` is only used
-                for saving. If None, the workbook is loaded from `path`.
         """
-        from openpyxl.utils.cell import range_boundaries  # type: ignore[import]
-
-        if not placeholder_to_id:
-            return
-
-        is_db_pk = is_db_pk or default_is_db_pk
-        should_close = False
-        if wb is None:
-            wb = load_workbook(filename=path, read_only=False, data_only=True)
-            should_close = True
-
-        try:
-            for table_plan in plan.tables:
-                table = table_plan.table
-                ws_name = table.sheet_name[0:31]
-                if ws_name not in wb.sheetnames:
-                    continue
-                ws = wb[ws_name]
-
-                ws_table = ws.tables.get(table.xl_name)
-                if ws_table is None:
-                    continue
-
-                if not ws_table.ref:
-                    continue
-
-                # Get table boundaries.
-                min_col, min_row, max_col, max_row = range_boundaries(
-                    ws_table.ref
-                )
-                if (
-                    min_col is None
-                    or min_row is None
-                    or max_col is None
-                    or max_row is None
-                ):
-                    continue
-
-                # Exclude Excel "Totals" rows when present.
-                totals_row_count = int(
-                    getattr(ws_table, "totalsRowCount", 0) or 0
-                )
-                if totals_row_count:
-                    max_row = max(min_row, max_row - totals_row_count)
-
-                # Build column name to index mapping.
-                header_row = next(
-                    ws.iter_rows(
-                        min_row=min_row,
-                        max_row=min_row,
-                        min_col=min_col,
-                        max_col=max_col,
-                    )
-                )
-                col_name_to_idx: dict[str, int] = {}
-                for cell in header_row:
-                    col_name = str(cell.value) if cell.value else ""
-                    if col_name:
-                        try:
-                            ws_col_idx = table._get_ws_col_idx(cell)
-                            col_idx = ws_col_idx - min_col
-                            col_name_to_idx[col_name] = col_idx
-                        except (TypeError, AttributeError):
-                            continue
-
-                # Build column objects lookup.
-                col_by_name: dict[str, Any] = {}
-                for c in table.get_included_columns():
-                    col_by_name[c.xl_name] = c
-
-                # Track which rows had placeholders and need updates.
-                rows_to_update: dict[int, dict[str, int]] = {}
-                # Map: data row index -> {column_name: new_id}
-
-                # Iterate through all data rows and check for placeholders.
-                data_row_idx = 0
-                for row in ws.iter_rows(
-                    min_row=min_row + 1,
-                    max_row=max_row,
-                    min_col=min_col,
-                    max_col=max_col,
-                ):
-                    row_updates: dict[str, int] = {}
-                    for col_name, col_idx in col_name_to_idx.items():
-                        if col_idx >= len(row):
-                            continue
-                        cell = row[col_idx]
-                        value = cell.value
-
-                        # Skip if not a string (placeholders are strings).
-                        if not isinstance(value, str):
-                            continue
-
-                        placeholder = value.strip()
-                        if not placeholder:
-                            continue
-
-                        col = col_by_name.get(col_name)
-                        if col is None:
-                            continue
-
-                        # Check if this is a primary key column with a
-                        # placeholder.
-                        if col.primary and col_name == "id":
-                            placeholder_key = (table.xl_name, placeholder)
-                            new_id = placeholder_to_id.get(placeholder_key)
-                            if new_id is not None:
-                                row_updates[col_name] = new_id
-                                continue
-
-                        # Check if this is a foreign key column with a
-                        # placeholder.
-                        fk_table_name = getattr(col, "fk_table", None)
-                        if fk_table_name:
-                            placeholder_key = (fk_table_name, placeholder)
-                            new_id = placeholder_to_id.get(placeholder_key)
-                            if new_id is not None:
-                                row_updates[col_name] = new_id
-
-                    if row_updates:
-                        rows_to_update[data_row_idx] = row_updates
-                    data_row_idx += 1
-
-                # Apply updates to cells.
-                for data_row_idx, updates in rows_to_update.items():
-                    excel_row = min_row + 1 + data_row_idx
-                    for col_name, new_id in updates.items():
-                        col_idx_opt = col_name_to_idx.get(col_name)
-                        if col_idx_opt is None:
-                            continue
-                        col_idx = col_idx_opt
-                        cell = ws.cell(
-                            row=excel_row,
-                            column=min_col + col_idx + 1,
-                        )
-                        # Skip merged cells (they are read-only).
-                        # Check by class name to avoid import dependency.
-                        if (
-                            hasattr(cell, "__class__")
-                            and cell.__class__.__name__ == "MergedCell"
-                        ):
-                            continue
-                        # Type checker may complain, but we've checked above.
-                        cell.value = new_id  # type: ignore[assignment]
-
-            # Rotate backups before saving.
-            from exdrf_util.rotate_backups import (  # type: ignore[import]
-                rotate_backups,
-            )
-
-            rotate_backups(path)
-
-            wb.save(path)
-        finally:
-            if should_close:
-                wb.close()
+        update_excel_with_allocated_ids(
+            wb, plan, placeholder_to_id, path=path, is_db_pk=is_db_pk
+        )

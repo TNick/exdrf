@@ -128,8 +128,6 @@ def render_review_html(plan: Any) -> str:
     th {
       background: #f5f5f5;
       text-align: left;
-      position: sticky;
-      top: 0;
     }
     tr.new-row td { background: #e8f7e8; }
     tr.modified-row td { background: #ffffff; }
@@ -142,7 +140,7 @@ def render_review_html(plan: Any) -> str:
     .json { margin: 0; padding-left: 16px; }
     .json-key { color: #d07a00; font-weight: 600; }
 
-    /* DataTables tweaks */
+    /* DataTables tweaks - sticky header and filter rows */
     thead tr:first-child th {
       position: sticky;
       top: 0;

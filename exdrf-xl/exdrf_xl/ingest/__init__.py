@@ -8,6 +8,9 @@ from exdrf_xl.ingest.pending_update import PendingUpdate
 from exdrf_xl.ingest.plan_import_from_file import plan_import_from_file
 from exdrf_xl.ingest.row_diff import RowDiff
 from exdrf_xl.ingest.table_diff import TableDiff
+from exdrf_xl.ingest.update_excel_with_allocated_ids import (
+    update_excel_with_allocated_ids,
+)
 
 __all__ = [
     "ApplyResult",
@@ -18,4 +21,5 @@ __all__ = [
     "TableDiff",
     "apply_import_plan",
     "plan_import_from_file",
+    "update_excel_with_allocated_ids",
 ]

@@ -533,6 +533,9 @@ class XlTable(Generic[T]):
 
         raise TypeError("Invalid key type %r; expected int or str" % type(key))
 
+    def __len__(self) -> int:
+        return len(self.columns)
+
     def get_included_columns(self) -> list[Any]:
         """Returns the columns that are included in the table."""
         self._ensure_column_caches()
