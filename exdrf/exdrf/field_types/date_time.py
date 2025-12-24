@@ -6,6 +6,9 @@ from attrs import define, field
 from exdrf.constants import FIELD_TYPE_DT
 from exdrf.field import ExField, FieldInfo
 
+# Sentinel date-time value used to represent an "unknown" date.
+UNKNOWN_DATETIME = datetime(1000, 2, 3, 4, 5, 6, 7)
+
 
 @define
 class DateTimeField(ExField):

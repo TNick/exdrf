@@ -1,5 +1,6 @@
 import logging
 from copy import copy
+from datetime import datetime
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -12,127 +13,46 @@ from typing import (
     cast,
 )
 
-import openpyxl.cell._writer as www
-import openpyxl.worksheet._writer as ww2
 from attrs import define, field
-from openpyxl.cell._writer import _set_attributes
-from openpyxl.cell.rich_text import CellRichText
-from openpyxl.compat import safe_string
-from openpyxl.formatting.rule import Rule
-from openpyxl.styles import Alignment, Font, PatternFill
-from openpyxl.styles.colors import Color
-from openpyxl.styles.differential import DifferentialStyle
-from openpyxl.utils import get_column_letter
-from openpyxl.utils.cell import column_index_from_string, range_boundaries
-from openpyxl.worksheet.formula import ArrayFormula, DataTableFormula
-from openpyxl.worksheet.table import Table, TableColumn, TableStyleInfo
-from openpyxl.xml.functions import XML_NS, Element
+from exdrf.constants import FIELD_TYPE_DT  # type: ignore[import]
+from exdrf.field_types.date_time import UNKNOWN_DATETIME
+from openpyxl.formatting.rule import Rule  # type: ignore[import]
+from openpyxl.styles import (  # type: ignore[import]
+    Alignment,
+    Font,
+    PatternFill,
+)
+from openpyxl.styles.colors import Color  # type: ignore[import]
+from openpyxl.styles.differential import (  # type: ignore[import]
+    DifferentialStyle,
+)
+from openpyxl.utils import get_column_letter  # type: ignore[import]
+from openpyxl.utils.cell import (  # type: ignore[import]
+    column_index_from_string,
+    range_boundaries,
+)
+from openpyxl.worksheet.table import (  # type: ignore[import]
+    Table,
+    TableColumn,
+    TableStyleInfo,
+)
 from sqlalchemy import func, select
 
+from exdrf_xl.utils.parse_int import parse_int
+from exdrf_xl.utils.rgb import normalize_rgb_color
+from exdrf_xl.utils.write_cell import install_custom_lxml_writer
+
 if TYPE_CHECKING:
+    from openpyxl.cell import Cell
     from openpyxl.worksheet.worksheet import Worksheet
     from sqlalchemy.orm import Session
-    from sqlalchemy.sql import Select
 
-    from .column import XlColumn
-    from .schema import XlSchema
+    from exdrf_xl.column import XlColumn
+
 
 T = TypeVar("T")
 logger = logging.getLogger(__name__)
-
-
-def _normalize_rgb_color(value: str) -> str:
-    """Normalize a color string into an 8-digit ARGB hex format.
-
-    Args:
-        value: A hex color value, in "RRGGBB" or "AARRGGBB" format. The leading
-            "#" is optional.
-
-    Returns:
-        An 8-digit ARGB hex string (e.g., "FFFF0000").
-
-    Raises:
-        ValueError: If the provided value is not a supported hex color format.
-    """
-    normalized = value.strip().lstrip("#").upper()
-    if len(normalized) == 6:
-        return "FF" + normalized
-    if len(normalized) == 8:
-        return normalized
-    raise ValueError(
-        "Invalid color value %r; expected RRGGBB or AARRGGBB" % value
-    )
-
-
-def lxml_write_cell_o(xf, worksheet, cell, styled=False):
-    """Write a cell using lxml, preserving whitespace for strings.
-
-    This is a lightly modified copy of openpyxl's cell writer, patched into
-    openpyxl's writer module at import time.
-
-    Args:
-        xf: XML generator/writer.
-        worksheet: Target worksheet instance.
-        cell: Cell to serialize.
-        styled: Whether to include style information for the cell.
-    """
-    value, attributes = _set_attributes(cell, styled)
-
-    if value == "" or value is None:
-        with xf.element("c", attributes):
-            return
-
-    if isinstance(value, tuple) and cell.data_type == "f":
-        attributes["t"] = "str"
-
-    with xf.element("c", attributes):
-        if cell.data_type == "f":
-            attrib = {}
-
-            final_value = None
-
-            if isinstance(value, ArrayFormula):
-                attrib = dict(value)
-                value = value.text
-
-            elif isinstance(value, DataTableFormula):
-                attrib = dict(value)
-                value = None
-
-            elif isinstance(value, tuple):
-                assert len(value) == 2
-                final_value = value[1]
-                value = value[0]
-
-            with xf.element("f", attrib):
-                if value is not None and not attrib.get("t") == "dataTable":
-                    xf.write(value[1:])
-                    value = final_value
-
-        if cell.data_type == "s":
-            if isinstance(value, CellRichText):
-                el = value.to_tree()
-                xf.write(el)
-            else:
-                with xf.element("is"):
-                    if isinstance(value, str):
-                        attrs = {}
-                        if value != value.strip():
-                            attrs["{%s}space" % XML_NS] = "preserve"
-                        # lxml can't handle xml-ns
-                        el = Element("t", attrs)
-                        el.text = value
-                        xf.write(el)
-
-        else:
-            with xf.element("v"):
-                if value is not None:
-                    xf.write(safe_string(value))
-
-
-www.write_cell = lxml_write_cell_o  # type: ignore
-www.lxml_write_cell = lxml_write_cell_o  # type: ignore
-ww2.write_cell = lxml_write_cell_o  # type: ignore
+install_custom_lxml_writer()
 
 
 @define
@@ -161,11 +81,12 @@ class XlTable(Generic[T]):
             is an internal cache.
     """
 
-    schema: "XlSchema" = field(repr=False)
+    schema: Any = field(repr=False)
     sheet_name: str
     xl_name: str
     columns: list["XlColumn"] = field(factory=list, repr=False)
-    _included_columns_cache: list["XlColumn"] | None = field(
+    pk_columns: tuple[str, ...] = field(default=None, init=False, repr=False)
+    _included_columns_cache: list[Any] | None = field(
         default=None, init=False, repr=False
     )
     _included_index_by_name_cache: dict[str, int] | None = field(
@@ -184,6 +105,94 @@ class XlTable(Generic[T]):
         for c in self.columns:
             c.table = self
         self._invalidate_column_caches()
+
+    def get_pk_column_names(self) -> tuple[str, ...]:
+        """Return the primary key column names in stable order.
+
+        Generated table classes can optionally define a `pk_columns` attribute.
+        If not available, we fall back to scanning `self.columns` for columns
+        marked as `primary` (in definition order).
+        """
+        pk_cols = self.pk_columns
+        if isinstance(pk_cols, (tuple, list)) and len(pk_cols) > 0:
+            return tuple(pk_cols)
+
+        result = tuple(c.xl_name for c in self.columns if c.primary)
+        self.pk_columns = result
+        return result
+
+    def get_db_model_class(self) -> Any:
+        """Return the SQLAlchemy model class for this table.
+
+        Generated classes should override this so schema planning can batch
+        lookups without relying on reflection/inspection.
+        """
+        raise NotImplementedError
+
+    def build_pk_conditions(
+        self,
+        db_model: Any,
+        xl_rec: Dict[str, Any],
+        is_db_pk: Callable[[Any], bool],
+    ) -> tuple[Any, ...] | None:
+        """Build SQLAlchemy WHERE conditions that identify a DB record.
+
+        Args:
+            db_model: SQLAlchemy mapped class (e.g. `DbMyTable`).
+            xl_rec: Excel row dictionary.
+            is_db_pk: Predicate used to decide whether a PK value is from the
+                database (True) or is a placeholder for new records (False).
+
+        Returns:
+            Tuple of SQLAlchemy binary expressions suitable for
+            `select(...).where(*conditions)`, or `None` if the record cannot be
+            matched to an existing DB row.
+        """
+        pk_cols = self.get_pk_column_names()
+        if not pk_cols:
+            return None
+
+        conditions: list[Any] = []
+        for col_name in pk_cols:
+            v = xl_rec.get(col_name, None)
+            if v is None or (isinstance(v, str) and v.strip() == ""):
+                return None
+
+            col_def = self[col_name]
+            assert col_def is not None
+            type_name = col_def.type_name
+
+            # If this PK component is an integer, it must be a DB id
+            # (or parse-able as one). Placeholders like "x1" must not be used
+            # in comparisons against integer columns.
+            if type_name == "integer":
+                parsed = parse_int(v)
+                if parsed is None:
+                    return None
+                if not is_db_pk(parsed):
+                    return None
+                conditions.append(getattr(db_model, col_name) == parsed)
+                continue
+
+            # For non-integer PKs (e.g. string PK components), we accept the
+            # value as-is (after trimming strings).
+            if isinstance(v, str):
+                v = v.strip()
+                if v == "":
+                    return None
+
+            conditions.append(getattr(db_model, col_name) == v)
+
+        return tuple(conditions)
+
+    def pk_conditions(
+        self,
+        xl_rec: Dict[str, Any],
+        is_db_pk: Callable[[Any], bool],
+    ) -> tuple[Any, ...] | None:
+        """Convenience wrapper to build PK match conditions for this table."""
+        db_model = self.get_db_model_class()
+        return self.build_pk_conditions(db_model, xl_rec, is_db_pk)
 
     def _invalidate_column_caches(self) -> None:
         """Invalidate cached included-columns data structures.
@@ -222,12 +231,12 @@ class XlTable(Generic[T]):
         self._included_index_by_name_cache = index_by_name
         self._included_index_by_objid_cache = index_by_objid
 
-    def get_selector(self) -> "Select":
+    def get_selector(self) -> Any:
         """Returns the SQLAlchemy selector for the table."""
         raise NotImplementedError("Subclasses must implement this method")
 
     def get_rows(self, session: "Session") -> Generator[T, None, None]:
-        """Returns the rows of the table.
+        """Returns the rows of the table from a database session.
 
         Args:
             session: SQLAlchemy session used to execute the selector.
@@ -245,14 +254,21 @@ class XlTable(Generic[T]):
         # becomes a valid FROM clause (and satisfies static type checkers).
         subq = self.get_selector().subquery()
         result = session.scalar(select(func.count()).select_from(subq))
+
         if result is None:
             logger.error(
                 "Failed to retrieve rows count for table %s", self.xl_name
             )
             return 0
+
         return result
 
-    def write_to_sheet(self, sheet: "Worksheet", session: "Session"):
+    def write_to_sheet(
+        self,
+        sheet: "Worksheet",
+        session: "Session",
+        col_widths: Mapping[str, float | None],
+    ):
         """Creates the table in the sheet.
 
         Args:
@@ -284,11 +300,11 @@ class XlTable(Generic[T]):
                 # Write data rows starting at row 2 (row 1 is the header).
                 column.write_to_sheet(sheet, row_idx, record)
 
-        table_obj = self.create_excel_table(sheet, row_count)
+        table_obj = self.create_excel_table(row_count)
         assert table_obj
         sheet.add_table(table_obj)
 
-        self.apply_column_widths(sheet, {})
+        self.apply_column_widths(sheet, widths=col_widths)
         self.apply_alignments(sheet)
         self.apply_cell_styles(sheet, row_count)
         self.apply_duplicate_id_conditional_formatting(sheet, row_count)
@@ -296,18 +312,16 @@ class XlTable(Generic[T]):
         for column in included:
             column.post_table_created(sheet, table_obj, row_count)
 
-    def create_excel_table(self, ws: "Worksheet", row_count: int) -> "Table":
-        """Create the Excel structured table object on worksheet.
+    def create_excel_table(self, row_count: int) -> "Table":
+        """Create the Excel structured table object.
 
         Args:
-            ws: Excel worksheet object.
             row_count: Number of data rows (excluding header).
 
         Returns:
             The created structured table object.
         """
-        # if not self.columns or row_count == 0:
-        #     return None
+
         columns = self.get_included_columns()
         num_cols = len(columns)
         last_col = get_column_letter(num_cols)
@@ -389,11 +403,11 @@ class XlTable(Generic[T]):
 
             font_color = None
             if col_def.font_color is not None:
-                font_color = Color(rgb=_normalize_rgb_color(col_def.font_color))
+                font_color = Color(rgb=normalize_rgb_color(col_def.font_color))
 
             fill = None
             if col_def.bg_color is not None:
-                rgb = _normalize_rgb_color(col_def.bg_color)
+                rgb = normalize_rgb_color(col_def.bg_color)
                 fill = PatternFill(
                     fill_type="solid",
                     start_color=rgb,
@@ -443,7 +457,7 @@ class XlTable(Generic[T]):
         self,
         ws: "Worksheet",
         row_count: int,
-        predicate: Callable[["XlColumn"], bool],
+        predicate: Callable[[Any], bool],
         fill_color: str,
         font_color: str,
     ):
@@ -479,13 +493,16 @@ class XlTable(Generic[T]):
                 continue
 
             col_letter = get_column_letter(col_idx)
+
+            # We assume here that the table is inserted at A1 and first row
+            # is the title row.
             range_ref = f"{col_letter}2:{col_letter}{max_row}"
 
             rule = Rule(type="duplicateValues")
             rule.dxf = dxf
             ws.conditional_formatting.add(range_ref, rule)
 
-    def __getitem__(self, key: int | str) -> "XlColumn":
+    def __getitem__(self, key: int | str) -> Any:
         """Get an included column by index or by name.
 
         Args:
@@ -516,7 +533,7 @@ class XlTable(Generic[T]):
 
         raise TypeError("Invalid key type %r; expected int or str" % type(key))
 
-    def get_included_columns(self) -> list["XlColumn"]:
+    def get_included_columns(self) -> list[Any]:
         """Returns the columns that are included in the table."""
         self._ensure_column_caches()
         assert self._included_columns_cache is not None
@@ -542,18 +559,14 @@ class XlTable(Generic[T]):
             return self._included_index_by_objid_cache.get(id(column), -1)
 
     @staticmethod
-    def _get_ws_col_idx(cell: object) -> int:
+    def _get_ws_col_idx(cell: "Cell") -> int:
         """Return the 1-based worksheet column index for an openpyxl cell.
 
         Some openpyxl cell-like classes (e.g. `MergedCell`) do not expose
         `col_idx` in their type information, even though a column index can
         always be derived via `column`.
         """
-        col_idx = getattr(cell, "col_idx", None)
-        if isinstance(col_idx, int):
-            return col_idx
-
-        column = getattr(cell, "column", None)
+        column = cell.column
         if isinstance(column, int):
             return column
         if isinstance(column, str):
@@ -582,6 +595,7 @@ class XlTable(Generic[T]):
         """
         if not table.ref:
             return
+
         min_col, min_row, max_col, max_row = range_boundaries(
             cast(str, table.ref)
         )
@@ -591,6 +605,70 @@ class XlTable(Generic[T]):
             and max_col is not None
             and max_row is not None
         )
+
+        # Exclude Excel "Totals" rows from iteration when present.
+        totals_row_count = table.totalsRowCount or 0
+        if totals_row_count:
+            max_row = max(min_row, max_row - totals_row_count)
+
+        def _coerce_value(col: "XlColumn", value: Any) -> Any:
+            """Coerce worksheet values based on column metadata.
+
+            Excel cells may store numeric content as numbers even when the
+            database column is textual. For columns declared as `string`, we
+            convert simple numeric values to strings to avoid DB type errors and
+            confusing diffs like `"10"` vs `10`.
+            """
+            if value is None:
+                return None
+
+            # Special handling for "unknown datetime" sentinel.
+            if col.type_name in (
+                "datetime",
+                FIELD_TYPE_DT,
+            ):
+                if isinstance(value, str) and value.strip().lower() == "x":
+                    return UNKNOWN_DATETIME
+                if isinstance(value, datetime):
+                    if (
+                        value.year == 1000
+                        and value.month == 2
+                        and value.day == 3
+                        and value.hour == 4
+                        and value.minute == 5
+                        and value.second == 6
+                    ):
+                        return UNKNOWN_DATETIME
+                return value
+
+            if getattr(col, "type_name", None) != "string":
+                return value
+
+            if isinstance(value, str):
+                return value
+
+            # Keep booleans stable (avoid "True"/"False" surprises).
+            if isinstance(value, bool):
+                return "1" if value else "0"
+
+            # Convert numeric types. Prefer "10" over "10.0" when integral.
+            if isinstance(value, int):
+                return str(value)
+            if isinstance(value, float):
+                if value.is_integer():
+                    return str(int(value))
+                return str(value)
+
+            try:
+                from decimal import Decimal
+            except ImportError:  # pragma: no cover
+                Decimal = None  # type: ignore
+            if Decimal is not None and isinstance(value, Decimal):
+                if value == int(value):
+                    return str(int(value))
+                return str(value)
+
+            return str(value)
 
         # Build map: table header name -> 0-based column index in worksheet.
         header_row = next(
@@ -625,12 +703,25 @@ class XlTable(Generic[T]):
                     continue
                 value = row[c_index].value
 
-                if not value and c.primary:
-                    # The primary key is incomplete.
-                    ignore_row = True
-                    break
+                # Decide whether an empty primary key should make the row
+                # unusable. For generated integer PKs (typically `id`),
+                # allowing empty cells enables inserting new rows where the
+                # database allocates the final id.
+                if c.primary:
+                    # Normalize "empty" values (None / whitespace-only string).
+                    is_empty = value is None or (
+                        isinstance(value, str) and value.strip() == ""
+                    )
 
-                xl_record[c.xl_name] = value
+                    # Generated PK columns can be empty in Excel.
+                    is_generated_pk = bool(getattr(c, "is_generated_pk", False))
+
+                    if is_empty and not is_generated_pk:
+                        # The primary key is incomplete.
+                        ignore_row = True
+                        break
+
+                xl_record[c.xl_name] = _coerce_value(c, value)
 
             if ignore_row or not xl_record:
                 continue
@@ -651,11 +742,8 @@ class XlTable(Generic[T]):
         Args:
             session: SQLAlchemy session used to query the database.
             xl_rec: Excel row dictionary mapping column names to values.
-            is_db_pk: a function that can determine if the value is a
-                is a database primary key (True) or a temporary key that
-                will be replaced by the true value in the insertion process.
-                If this function returns False for any primary key value the
-                record will be considered to be a new record.
+            is_db_pk: Predicate used to determine DB IDs. Defaults to
+                `_default_is_db_pk`.
 
         Returns:
             The matching database record, or `None` if no match is found.
@@ -693,5 +781,32 @@ class XlTable(Generic[T]):
             db_rec: Database record to update.
             xl_rec: Excel row dictionary mapping column names to values.
         """
+        # Derive `ua_*` values from the corresponding base column when both are
+        # present. These fields are used for diacritics-insensitive searching
+        # and should not be user-authored.
+        try:
+            from unidecode import unidecode  # type: ignore[import]
+        except Exception:
+            unidecode = None  # type: ignore
+
+        if unidecode is not None:
+            # Only compute when both ua_xxx and xxx exist in table definition.
+            col_names = {c.xl_name for c in self.columns}
+            for name in list(col_names):
+                if not name.startswith("ua_"):
+                    continue
+                base = name[3:]
+                if base not in col_names:
+                    continue
+                base_val = xl_rec.get(base, None)
+                if base_val is None:
+                    xl_rec[name] = None
+                elif isinstance(base_val, str):
+                    xl_rec[name] = unidecode(base_val)
+                else:
+                    xl_rec[name] = unidecode(str(base_val))
+
         for c in self.columns:
+            if c.read_only:
+                continue
             c.apply_xl_to_db(session, db_rec, xl_rec.get(c.xl_name, None))

@@ -3,9 +3,9 @@
 # Don't change it manually.
 
 from attrs import define, field
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING, Any, Dict, Callable
 from exdrf_xl.table import XlTable
-from exdrf_xl.column import XlColumn
+from exdrf_xl.column import XlColumn, XlReadOnlyColumn
 from sqlalchemy import select
 
 if TYPE_CHECKING:
@@ -24,11 +24,25 @@ if TYPE_CHECKING:
 # exdrf-keep-end other_globals ------------------------------------------------
 
 {% for field in sorted_fields(r) %}
+{%- set is_generated_pk = field.primary and field.name == "id" and field.type_name == "integer" %}
+{%- set col_base = "XlReadOnlyColumn" if field.name in read_only_columns else "XlColumn" %}
 @define(slots=True, kw_only=True)
-class {{ field.pascal_case_name }}Col(XlColumn["{{ ResPascal }}", "Db{{ ResPascal }}"]):
+class {{ field.pascal_case_name }}Col({{ col_base }}["{{ ResPascal }}", "Db{{ ResPascal }}"]):
     table: "{{ ResPascal }}" = field(init=False, default=None)
     xl_name: str = field(init=False, default="{{ field.name }}")
     primary: bool = field(default={{ field.primary }}, repr=False)
+    nullable: bool = field(init=False, default={{ field.nullable | default(true) }}, repr=False)
+    type_name: str = field(init=False, default="{{ field.type_name }}", repr=False)
+    fk_table: str | None = field(
+        init=False,
+        default={% if field.fk_to %}"{{ field.fk_to.ref.name }}"{% else %}None{% endif %},
+        repr=False,
+    )
+    is_generated_pk: bool = field(
+        init=False,
+        default={{ is_generated_pk }},
+        repr=False,
+    )
 
     def value_from_record(self, record: "Db{{ ResPascal }}") -> Any:
         {%- if field.is_ref_type %}
@@ -44,12 +58,11 @@ class {{ field.pascal_case_name }}Col(XlColumn["{{ ResPascal }}", "Db{{ ResPasca
     def apply_xl_to_db(
         self, session: "Session", db_rec: "Db{{ ResPascal }}", xl_value: Any
     ):
+        # Relationship-only field; values are stored in the underlying *_id
+        # foreign key columns.
         pass
     {%- else %}
-    def apply_xl_to_db(
-        self, session: "Session", db_rec: "Db{{ ResPascal }}", xl_value: Any
-    ):
-        db_rec.{{ field.name }} = xl_value
+    # Use the base implementation for applying values.
     {%- endif %}
 
 {% endfor %}
@@ -75,13 +88,20 @@ class {{ ResPascal }}(XlTable):{%- if r.description %}
     sheet_name: str = field(init=False, default="{{ res_snake }}")
     xl_name: str = field(init=False, default="{{ res_snake }}")
     columns: list[XlColumn] = field(factory=_create_columns)
-    pks: list[str] = (
+    pk_columns: tuple[str, ...] = (
         {%- for field in sorted_fields(r) %}
         {%- if field.primary %}
-        '{{ field.name }}',
+        "{{ field.name }}",
         {%- endif %}
         {%- endfor %}
     )
+    fk_columns: dict[str, str] = {
+        {%- for field in sorted_fields(r) %}
+        {%- if field.fk_to and field.name.endswith("_id") %}
+        "{{ field.name }}": "{{ field.fk_to.ref.name }}",
+        {%- endif %}
+        {%- endfor %}
+    }
 
     # exdrf-keep-start other_attributes ---------------------------------------
 {{other_attributes}}
@@ -92,42 +112,22 @@ class {{ ResPascal }}(XlTable):{%- if r.description %}
             import {{ ResPascal }} as Db{{ ResPascal }}
         return select(Db{{ ResPascal }})
 
+    def get_db_model_class(self):
+        from {{ db_module }}.{{ r.categories[0] }}.api \
+            import {{ ResPascal }} as Db{{ ResPascal }}
+        return Db{{ ResPascal }}
+
     def find_db_rec(
         self,
         session: "Session",
         xl_rec: Dict[str, Any],
         is_db_pk: Callable[[Any], bool]
     ) -> "Db{{ ResPascal }} | None":
-        from {{ db_module }}.{{ r.categories[0] }}.api \
-            import {{ ResPascal }} as Db{{ ResPascal }}
-
-        {%- for field in sorted_fields(r) %}
-        {%- if field.primary %}
-
-        v_{{ field.name }} = xl_rec.get('{{ field.name }}', None)
-        if v_{{ field.name }} is None or (
-            isinstance(v_{{ field.name }}, str)
-            and v_{{ field.name }} == ''
-        ):
-            raise ValueError(
-                'Property `{{ field.name }}` is part of the primary '
-                'key set of the `{{ ResPascal }}` table and cannot be empty.'
-            )
-        if not is_db_pk(v_{{ field.name }}):
+        db_model = self.get_db_model_class()
+        conds = self.pk_conditions(xl_rec, is_db_pk)
+        if not conds:
             return None
-        {%- endif %}
-        {%- endfor %}
-
-        result = session.scalar(
-            select(Db{{ ResPascal }}).where(
-            {%- for field in sorted_fields(r) %}
-            {%- if field.primary %}
-                Db{{ ResPascal }}.{{ field.name }} == v_{{ field.name }},
-            {%- endif %}
-            {%- endfor %}
-            )
-        )
-        return result
+        return session.scalar(select(db_model).where(*conds))
 
     def create_new_db_record(
         self, session: "Session", xl_rec: Dict[str, Any]

@@ -1,6 +1,6 @@
-from typing import TYPE_CHECKING, Any, List
+from typing import Any, List
 
-from exdrf.constants import (
+from exdrf.constants import (  # type: ignore[import]
     FIELD_TYPE_BLOB,
     FIELD_TYPE_BOOL,
     FIELD_TYPE_DATE,
@@ -21,19 +21,13 @@ from exdrf.constants import (
     FIELD_TYPE_STRING_LIST,
     FIELD_TYPE_TIME,
 )
-from exdrf_gen.fs_support import (
+from exdrf_gen.fs_support import (  # type: ignore[import]
     CategDir,
     File,
     ResFile,
     TopDir,
 )
 from jinja2 import Environment
-
-if TYPE_CHECKING:
-    from exdrf.dataset import ExDataset
-    from exdrf.field import ExField
-    from exdrf.resource import ExResource
-
 
 _type_to_xl = {
     FIELD_TYPE_BLOB: "bytes",
@@ -62,7 +56,7 @@ def type_to_xl(type: str) -> str:
     return _type_to_xl[type]
 
 
-def field_sort_key(res: "ExResource", fld: "ExField") -> str:
+def field_sort_key(res: Any, fld: Any) -> str:
     """Get the sort key for a field.
 
     The sort key is used to sort the fields in the resource. By default it
@@ -94,7 +88,14 @@ def field_sort_key(res: "ExResource", fld: "ExField") -> str:
     return f"{prefix}.{category}.{fld.name}"
 
 
-def sorted_fields(res: "ExResource") -> List["ExField"]:
+# Columns that are exported to Excel but should never be imported back into DB.
+READ_ONLY_COLUMNS = {
+    "created_on",
+    "updated_on",
+}
+
+
+def sorted_fields(res: Any) -> List[Any]:
     """Get a sorted list of fields.
 
     You can customize the order of the fields by reimplementing the
@@ -107,7 +108,7 @@ def sorted_fields(res: "ExResource") -> List["ExField"]:
 
 
 def generate_xl_from_alchemy(
-    d_set: "ExDataset",
+    d_set: Any,
     out_path: str,
     out_module: str,
     db_module: str,
@@ -115,12 +116,11 @@ def generate_xl_from_alchemy(
     **kwargs: Any,
 ):
     # Only allow our templates to be used.
-    env.loader.paths = list(
-        filter(  # type: ignore
-            lambda x: x.endswith("al2xl_templates"),
-            env.loader.paths,  # type: ignore
-        )
-    )
+    loader = getattr(env, "loader", None)
+    if loader is not None:
+        paths = list(getattr(loader, "paths", []))
+        filtered = [p for p in paths if str(p).endswith("al2xl_templates")]
+        setattr(loader, "paths", filtered)
     generator = TopDir(
         comp=[
             File("__init__.py", "__init__.py.j2"),
@@ -148,5 +148,6 @@ def generate_xl_from_alchemy(
         db_module=db_module,
         type_to_xl=type_to_xl,
         sorted_fields=sorted_fields,
+        read_only_columns=READ_ONLY_COLUMNS,
         **kwargs,
     )

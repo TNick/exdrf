@@ -1,7 +1,7 @@
 import json
 import logging
+from datetime import datetime
 from typing import (
-    TYPE_CHECKING,
     Any,
     Callable,
     Generic,
@@ -12,14 +12,9 @@ from typing import (
 )
 
 from attrs import define, field
+from exdrf.constants import FIELD_TYPE_DT  # type: ignore[import]
 
-if TYPE_CHECKING:
-    from openpyxl.worksheet.worksheet import Worksheet
-    from sqlalchemy.orm import Session
-
-    from .table import XlTable
-
-T = TypeVar("T", bound="XlTable")
+T = TypeVar("T")
 DB = TypeVar("DB")
 
 logger = logging.getLogger(__name__)
@@ -58,9 +53,12 @@ class XlColumn(Generic[T, DB]):
             `"bottom"`).
     """
 
-    table: T = field(default=None, repr=False)
+    table: Any = field(default=None, repr=False)
     xl_name: str
     primary: bool = field(default=False, repr=False)
+    read_only: bool = field(init=False, default=False, repr=False)
+    nullable: bool = field(init=False, default=True, repr=False)
+    type_name: str = field(init=False, default="string", repr=False)
     col_width: float = field(default=10.0, repr=False)
     wrap_text: bool = field(default=False, repr=False)
     number_format: str | None = field(default=None, repr=False)
@@ -72,6 +70,16 @@ class XlColumn(Generic[T, DB]):
     )
     v_align: Literal["top", "center", "bottom"] = field(
         default="center", repr=False
+    )
+    fk_table: str | None = field(
+        init=False,
+        default=None,
+        repr=False,
+    )
+    is_generated_pk: bool = field(
+        init=False,
+        default=False,
+        repr=False,
     )
 
     def is_included(self) -> bool:
@@ -93,7 +101,7 @@ class XlColumn(Generic[T, DB]):
         """
         raise NotImplementedError("Subclasses must implement this method")
 
-    def write_to_sheet(self, sheet: "Worksheet", row_index: int, record: DB):
+    def write_to_sheet(self, sheet: Any, row_index: int, record: DB):
         """Writes the column to the sheet.
 
         Args:
@@ -106,6 +114,20 @@ class XlColumn(Generic[T, DB]):
             return
         if isinstance(value, (list, dict)):
             value = json.dumps(value)
+
+        # Render unknown date-time sentinel outside Excel range as "x".
+        if (
+            str(getattr(self, "type_name", None))
+            in ("datetime", "date-time", FIELD_TYPE_DT)
+            and isinstance(value, datetime)
+            and value.year == 1000
+            and value.month == 2
+            and value.day == 3
+            and value.hour == 4
+            and value.minute == 5
+            and value.second == 6
+        ):
+            value = "x"
         col = self.table.get_column_index(self)
         if col == -1:
             logger.warning(
@@ -126,7 +148,7 @@ class XlColumn(Generic[T, DB]):
 
         cell.number_format = self.number_format
 
-    def post_table_created(self, ws: "Worksheet", table_obj: T, row_count: int):
+    def post_table_created(self, ws: Any, table_obj: T, row_count: int):
         """Called after the table is created.
 
         Args:
@@ -136,7 +158,7 @@ class XlColumn(Generic[T, DB]):
         """
 
     def apply_duplicate_values_conditional_formatting(
-        self, ws: "Worksheet", row_count: int
+        self, ws: Any, row_count: int
     ):
         """Apply "duplicate values" conditional formatting for this column.
 
@@ -157,7 +179,7 @@ class XlColumn(Generic[T, DB]):
             font_color="FFFF0000",
         )
 
-    def apply_xl_to_db(self, session: "Session", db_rec: DB, xl_value: Any):
+    def apply_xl_to_db(self, session: Any, db_rec: DB, xl_value: Any):
         """Apply an Excel value to a database record.
 
         Subclasses can override this to do validation, lookups, or type
@@ -170,6 +192,17 @@ class XlColumn(Generic[T, DB]):
             xl_value: Value parsed from Excel for this column.
         """
         setattr(db_rec, self.xl_name, xl_value)
+
+
+@define(slots=True, kw_only=True)
+class XlReadOnlyColumn(XlColumn[T, DB]):
+    """A column that is not editable and is ignored on import.
+
+    This is intended for columns that contain formulas or derived values that
+    should be visible in Excel but must not be written back into the database.
+    """
+
+    read_only: bool = field(init=False, default=True, repr=False)
 
 
 @define(slots=True, kw_only=True)
