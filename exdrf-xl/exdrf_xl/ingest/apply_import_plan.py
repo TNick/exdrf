@@ -321,6 +321,7 @@ class ImportPlanApplier:
 
             table.apply_xl_to_db(session, row.db_rec, transformed)
             self.result.updated += 1
+            session.add(row.db_rec)
 
     def _resolve_deferred_updates(self, session: Any) -> None:
         """Resolve deferred foreign key updates now that all inserts ran.

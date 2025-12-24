@@ -777,7 +777,8 @@ class XlTable(Generic[T]):
         """Apply an Excel row dictionary to a database record.
 
         This delegates to each column's `XlColumn.apply_xl_to_db()` with the
-        corresponding value from `xl_rec` (or `None` if missing).
+        corresponding value from `xl_rec`. Only columns present in `xl_rec` are
+        processed.
 
         Args:
             session: SQLAlchemy session used for lookups and persistence.
@@ -809,7 +810,15 @@ class XlTable(Generic[T]):
                 else:
                     xl_rec[name] = unidecode(str(base_val))
 
-        for c in self.columns:
+        # Build lookup map from column name to column object for efficient
+        # access.
+        col_by_name = {c.xl_name: c for c in self.columns}
+
+        # Only process columns that are actually present in the Excel record.
+        for col_name in xl_rec:
+            c = col_by_name.get(col_name)
+            if c is None:
+                continue
             if c.read_only:
                 continue
-            c.apply_xl_to_db(session, db_rec, xl_rec.get(c.xl_name, None))
+            c.apply_xl_to_db(session, db_rec, xl_rec[col_name])
