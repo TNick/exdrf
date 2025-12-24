@@ -2,7 +2,7 @@
 
 This module is intentionally standalone: it accepts the import plan as a
 duck-typed object (must expose the attributes used below) to avoid tight
-coupling / circular imports with `exdrf_xl.schema`.
+coupling / circular imports.
 """
 
 from __future__ import annotations
