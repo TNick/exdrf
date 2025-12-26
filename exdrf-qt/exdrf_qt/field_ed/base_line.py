@@ -1,7 +1,10 @@
-from typing import Optional, cast
+from typing import TYPE_CHECKING, Optional, cast
 
 from PyQt5.QtCore import QEvent, QPoint, QRect, Qt, pyqtSignal
 from PyQt5.QtWidgets import QAction, QLabel, QLineEdit, QVBoxLayout, QWidget
+
+if TYPE_CHECKING:
+    from PyQt5.QtWidgets import QCompleter
 
 from exdrf_qt.field_ed.base import DrfFieldEd
 
@@ -323,3 +326,11 @@ class LineBase(QWidget, DrfFieldEd):
 
     def setMaxLength(self, max_length: int) -> None:
         self.c_line.setMaxLength(max_length)
+
+    def completer(self) -> Optional["QCompleter"]:
+        """Return the completer for the line edit."""
+        return self.c_line.completer()
+
+    def setCompleter(self, completer: Optional["QCompleter"]) -> None:
+        """Set the completer for the line edit."""
+        self.c_line.setCompleter(completer)
