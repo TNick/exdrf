@@ -371,46 +371,52 @@ class QtModel(
 
         The function does not change the internal `selection` attribute.
         """
-        order_by_clauses = []
+        try:
+            order_by_clauses = []
 
-        if self.prioritized_ids:
-            primary_cols = self.get_primary_columns()
-            order_by_expression = case(
-                (primary_cols.in_(self.prioritized_ids), 0), else_=1
+            if self.prioritized_ids:
+                primary_cols = self.get_primary_columns()
+                order_by_expression = case(
+                    (primary_cols.in_(self.prioritized_ids), 0), else_=1
+                )
+                order_by_clauses.append(order_by_expression)
+
+            if not self.sort_by:
+                if not order_by_clauses:
+                    return self.filtered_selection
+            else:
+                try:
+                    for field_key, order in self.sort_by:
+                        fld = self.get_field(field_key)
+                        if fld is None:
+                            logger.warning(
+                                "Sorting field %s not found in model %s",
+                                field_key,
+                                self.name,
+                            )
+                            continue
+                        if not fld.sortable:
+                            logger.warning(
+                                "Sorting field %s not sortable in model %s",
+                                field_key,
+                                self.name,
+                            )
+                            continue
+                        tmp = fld.apply_sorting(order == "asc")
+                        if tmp is not None:
+                            order_by_clauses.append(tmp)
+
+                except Exception:
+                    logger.error("Error applying sorting", exc_info=True)
+                    return self.filtered_selection
+
+            if order_by_clauses:
+                return self.filtered_selection.order_by(*order_by_clauses)
+        except Exception:
+            logger.error(
+                "Error while computing the sorted selection",
+                exc_info=True,
             )
-            order_by_clauses.append(order_by_expression)
-
-        if not self.sort_by:
-            if not order_by_clauses:
-                return self.filtered_selection
-        else:
-            try:
-                for field_key, order in self.sort_by:
-                    fld = self.get_field(field_key)
-                    if fld is None:
-                        logger.warning(
-                            "Sorting field %s not found in model %s",
-                            field_key,
-                            self.name,
-                        )
-                        continue
-                    if not fld.sortable:
-                        logger.warning(
-                            "Sorting field %s not sortable in model %s",
-                            field_key,
-                            self.name,
-                        )
-                        continue
-                    tmp = fld.apply_sorting(order == "asc")
-                    if tmp is not None:
-                        order_by_clauses.append(tmp)
-
-            except Exception:
-                logger.error("Error applying sorting", exc_info=True)
-                return self.filtered_selection
-
-        if order_by_clauses:
-            return self.filtered_selection.order_by(*order_by_clauses)
         return self.filtered_selection
 
     @property
