@@ -376,6 +376,8 @@ class QtModel(
 
             if self.prioritized_ids:
                 primary_cols = self.get_primary_columns()
+                if isinstance(primary_cols, (list, tuple)):
+                    primary_cols = tuple_(*primary_cols)
                 order_by_expression = case(
                     (primary_cols.in_(self.prioritized_ids), 0), else_=1
                 )
