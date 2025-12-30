@@ -51,6 +51,9 @@ class DefBase:
         label: the label of the menu or action.
         parent: the path to the parent menu or action. If empty the
             menu or action will be placed in the root.
+        rules: placement rules that determine where this menu or action
+            should be placed relative to other menus or actions.
+        icon: optional icon to display for the menu or action.
     """
 
     key: str
@@ -62,14 +65,30 @@ class DefBase:
 
 @define
 class ActionDef(DefBase):
-    """Describes the way an action should be build."""
+    """Describes the way an action should be build.
+
+    Attributes:
+        callback: The function to call when the action is triggered.
+        description: Optional description text for the action.
+        no_menu: If True this action should not be added to any menu, but it
+            can still be available via other mechanisms (e.g. command palette).
+        no_command_palette: If True this action should not be available in the
+            command palette.
+    """
 
     callback: Callable[[], None] = field(factory=lambda: lambda: None)
+    description: Optional[str] = None
+    no_menu: bool = False
+    no_command_palette: bool = False
 
 
 @define
 class MenuDef(DefBase):
-    """Describes the way a menu should be build."""
+    """Describes the way a menu should be build.
+
+    This class inherits all attributes from DefBase and does not add any
+    additional attributes.
+    """
 
 
 @define
@@ -82,6 +101,13 @@ class NewMenus(QtUseContext):
     from all the providers. The list is then sorted according to the placement
     rules and the menus and actions are created. Each menu or action is then
     available in the `created` attribute under same key as the definition.
+
+    Attributes:
+        defs: Dictionary mapping menu/action keys to their definitions.
+        created: Dictionary mapping menu/action keys to the created QMenu or
+            QAction instances.
+        ctx: The Qt context for accessing translations, icons, and database
+            connections.
     """
 
     defs: Dict["str", "DefBase"] = field(factory=dict)
@@ -92,7 +118,7 @@ class NewMenus(QtUseContext):
         raise NotImplementedError
 
     @ctx.setter
-    def ctx(self, ctx: "QtContext"):
+    def ctx(self, ctx: "QtContext"):  # type: ignore
         raise NotImplementedError
 
     @hook_spec
@@ -100,6 +126,10 @@ class NewMenus(QtUseContext):
         """Hook definition for creating extra menus and actions.
 
         Implement this hook to create menus and actions in the main menu.
+
+        Args:
+            ctx: The Qt context for accessing translations, icons, and database
+                connections.
 
         Returns:
             List[DefBase]: A list of definitions for menus and actions.
@@ -113,7 +143,15 @@ class NewMenus(QtUseContext):
         default_menu: "QMenu",
         existing: Dict["str", "QMenu"],
     ):
-        """Called before the menus are created."""
+        """Called before the menus are created.
+
+        Args:
+            ctx: The Qt context for accessing translations, icons, and database
+                connections.
+            top_parent: Menus that have no parent will be added to this menu.
+            default_menu: The menu where actions without a parent will be added.
+            existing: A dictionary of existing menus to use, keyed by menu key.
+        """
 
     def post_create(
         self,
@@ -122,7 +160,15 @@ class NewMenus(QtUseContext):
         default_menu: "QMenu",
         existing: Dict["str", "QMenu"],
     ):
-        """Called after the menus are created."""
+        """Called after the menus are created.
+
+        Args:
+            ctx: The Qt context for accessing translations, icons, and database
+                connections.
+            top_parent: Menus that have no parent will be added to this menu.
+            default_menu: The menu where actions without a parent will be added.
+            existing: A dictionary of existing menus to use, keyed by menu key.
+        """
 
     def collect_and_create(
         self,
@@ -135,9 +181,11 @@ class NewMenus(QtUseContext):
         the placement rules.
 
         Args:
+            ctx: The Qt context for accessing translations, icons, and database
+                connections.
             top_parent: Menus that have no parent will be added to this menu.
             default_menu: The menu where actions without a parent will be added.
-            existing: A list of existing menus to use.
+            existing: A dictionary of existing menus to use, keyed by menu key.
         """
         logger.debug("collect_and_create menus starts")
         self.pre_create(ctx, top_parent, default_menu, existing)
@@ -212,7 +260,7 @@ class NewMenus(QtUseContext):
             default_menu: Default menu for menus without parents.
         """
         # Sort menus by their placement rules
-        sorted_menus = self._sort_definitions(menu_defs)
+        sorted_menus = cast("List[MenuDef]", self._sort_definitions(menu_defs))
 
         for menu_def in sorted_menus:
             if menu_def.key in self.created:
@@ -245,11 +293,14 @@ class NewMenus(QtUseContext):
             default_menu: Default menu for actions without parents.
         """
         # Sort actions by their placement rules
-        sorted_actions = self._sort_definitions(action_defs)
+        sorted_actions = cast(
+            "List[ActionDef]", self._sort_definitions(action_defs)
+        )
 
         for action_def in sorted_actions:
-            if action_def.key in self.created:
-                continue  # Skip if already exists
+            if action_def.key in self.created and not action_def.no_menu:
+                # Skip if already exists or is not supposed to be in a menu.
+                continue
 
             # Find or create parent menu
             if action_def.parent:
@@ -349,7 +400,12 @@ class NewMenus(QtUseContext):
         visited = set()
         temp_visited = set()
 
-        def visit(key):
+        def visit(key: str) -> None:
+            """Visit a node in the dependency graph for topological sorting.
+
+            Args:
+                key: The key of the definition to visit.
+            """
             if key in temp_visited:
                 logger.warning("Circular dependency detected involving %s", key)
                 return
