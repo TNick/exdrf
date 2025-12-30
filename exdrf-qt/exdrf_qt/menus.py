@@ -298,8 +298,13 @@ class NewMenus(QtUseContext):
         )
 
         for action_def in sorted_actions:
-            if action_def.key in self.created and not action_def.no_menu:
-                # Skip if already exists or is not supposed to be in a menu.
+            # Skip no_menu actions - they are not created as QActions,
+            # only stored in defs for command palette access.
+            if action_def.no_menu:
+                continue
+
+            if action_def.key in self.created:
+                # Skip if already exists.
                 continue
 
             # Find or create parent menu
@@ -316,7 +321,7 @@ class NewMenus(QtUseContext):
             new_action.triggered.connect(cast(ActionDef, action_def).callback)
             self.created[action_def.key] = new_action
 
-            # Add to parent
+            # Add to parent menu
             parent_menu.addAction(new_action)
 
     def _find_or_create_parent_menu(
