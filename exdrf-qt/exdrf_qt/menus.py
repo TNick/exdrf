@@ -20,7 +20,12 @@ from exdrf_qt.plugins import exdrf_qt_pm, hook_spec
 from exdrf_qt.utils.plugins import safe_hook_call
 
 if TYPE_CHECKING:
+    from PyQt5.QtWidgets import QWidget  # noqa: F401
+
     from exdrf_qt.context import QtContext  # noqa: F401
+    from exdrf_qt.controls.command_palette.line_edit import (  # noqa: F401
+        CommandPalette,
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -37,8 +42,8 @@ class PlacementRule:
             If False the menu or action will be placed after the reference.
     """
 
-    ref: str
-    before: bool = False
+    ref: str = field(repr=False)
+    before: bool = field(default=False, repr=False)
 
 
 @define
@@ -57,10 +62,10 @@ class DefBase:
     """
 
     key: str
-    label: str
-    parent: Tuple[str, ...]
-    rules: Tuple[PlacementRule, ...] = field(factory=tuple)
-    icon: Optional[QIcon] = None
+    label: str = field(repr=False)
+    parent: Tuple[str, ...] = field(repr=False)
+    rules: Tuple[PlacementRule, ...] = field(factory=tuple, repr=False)
+    icon: Optional[QIcon] = field(default=None, repr=False)
 
 
 @define
@@ -76,10 +81,13 @@ class ActionDef(DefBase):
             command palette.
     """
 
-    callback: Callable[[], None] = field(factory=lambda: lambda: None)
-    description: Optional[str] = None
-    no_menu: bool = False
-    no_command_palette: bool = False
+    callback: Callable[[], None] = field(
+        factory=lambda: lambda: None, repr=False
+    )
+    description: Optional[str] = field(default=None, repr=False)
+    no_menu: bool = field(default=False, repr=False)
+    no_command_palette: bool = field(default=False, repr=False)
+    tags: List[str] = field(factory=list, repr=False)
 
 
 @define
@@ -110,8 +118,10 @@ class NewMenus(QtUseContext):
             connections.
     """
 
-    defs: Dict["str", "DefBase"] = field(factory=dict)
-    created: Dict["str", Union["QMenu", "QAction"]] = field(factory=dict)
+    defs: Dict["str", "DefBase"] = field(factory=dict, repr=False)
+    created: Dict["str", Union["QMenu", "QAction"]] = field(
+        factory=dict, repr=False
+    )
 
     @property
     def ctx(self) -> "QtContext":
@@ -315,9 +325,17 @@ class NewMenus(QtUseContext):
             else:
                 parent_menu = default_menu
 
+            # The first line of the description is the status bar message.
+            status_bar_message = ""
+            if action_def.description:
+                status_bar_message = action_def.description.split("\n")[0]
+            else:
+                status_bar_message = action_def.label
+
             # Create the action
             new_action = QAction(action_def.label, parent_menu)
             new_action.setObjectName(action_def.key)
+            new_action.setStatusTip(status_bar_message)
             new_action.triggered.connect(cast(ActionDef, action_def).callback)
             self.created[action_def.key] = new_action
 
@@ -464,6 +482,27 @@ class NewMenus(QtUseContext):
                     len(before_rules),
                     len(after_rules),
                 )
+
+    def create_command_palette(
+        self, ctx: "QtContext", parent: "QWidget"
+    ) -> "CommandPalette":
+        """Create a command palette for the application."""
+        from exdrf_qt.controls.command_palette.line_edit import CommandPalette
+
+        result = CommandPalette(
+            ctx,
+            parent,
+            action_defs=cast(
+                "List[ActionDef]",
+                [
+                    def_item
+                    for def_item in self.defs.values()
+                    if isinstance(def_item, ActionDef)
+                    and not def_item.no_command_palette
+                ],
+            ),
+        )
+        return result
 
 
 exdrf_qt_pm.add_hookspecs(NewMenus)

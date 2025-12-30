@@ -99,7 +99,7 @@ class ExdrfMenus:
             ActionDef(
                 key="open_{{ mdl.snake_case_name }}_list",
                 label=ctx.t(
-                    "menus.{{ name }}.{{ mdl.snake_case_name }}.list",
+                    "menus.{{ name }}.{{ mdl.snake_case_name }}.list.t",
                     "{{ mdl.text_name }} list"
                 ),
                 parent=("{{ name }}-menu",),
@@ -113,7 +113,7 @@ class ExdrfMenus:
             ActionDef(
                 key="create_{{ mdl.snake_case_name }}",
                 label=ctx.t(
-                    "menus.{{ name }}.{{ mdl.snake_case_name }}.create",
+                    "menus.{{ name }}.{{ mdl.snake_case_name }}.create.t",
                     "Create {{ mdl.text_name }}"
                 ),
                 parent=(),
@@ -133,10 +133,20 @@ class ExdrfMenus:
         result.append(
             ActionDef(
                 key="show_conn_settings",
-                label=ctx.t("menus.connection_settings", "Connection settings"),
+                label=ctx.t(
+                    "menus.connection_settings.t", "Connection settings"
+                ),
+                description=ctx.t(
+                    "menus.connection_settings.d",
+                    "Define connection parameters and save them for later "
+                    "use.\n"
+                    "The database can also be initialized from this dialog."
+                ),
                 parent=("concerns-menu",),
                 rules=(),
-                callback=partial(SelectDatabaseDlg.change_connection_str, ctx),  # type: ignore
+                callback=partial(
+                    SelectDatabaseDlg.change_connection_str, ctx
+                ),  # type: ignore
             )
         )
 
