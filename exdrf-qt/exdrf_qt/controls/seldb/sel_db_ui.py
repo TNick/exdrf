@@ -186,6 +186,11 @@ class Ui_SelectDatabase:
         self.verticalLayout.addWidget(self.main_tab)
         self.label_8 = QtWidgets.QLabel(SelectDatabase)
         self.label_8.setWordWrap(True)
+        self.label_8.setTextInteractionFlags(
+            QtCore.Qt.LinksAccessibleByMouse
+            | QtCore.Qt.TextSelectableByKeyboard
+            | QtCore.Qt.TextSelectableByMouse
+        )
         self.label_8.setObjectName("label_8")
         self.verticalLayout.addWidget(self.label_8)
         self.bbox = QtWidgets.QDialogButtonBox(SelectDatabase)
