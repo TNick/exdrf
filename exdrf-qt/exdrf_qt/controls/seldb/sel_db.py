@@ -1,6 +1,5 @@
 import logging
 import os
-import re
 from typing import TYPE_CHECKING, Any, Tuple, Union
 from uuid import uuid4
 
@@ -17,6 +16,10 @@ from PyQt5.QtWidgets import (
 
 from exdrf_qt.context_use import QtUseContext
 from exdrf_qt.controls.seldb.sel_db_ui import Ui_SelectDatabase
+from exdrf_qt.controls.seldb.utils import (
+    CON_TYPE_LOCAL,
+    CON_TYPE_REMOTE,
+)
 
 if TYPE_CHECKING:
     from exdrf_qt.context import QtContext  # noqa: F401
@@ -24,31 +27,11 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-CONN_PATTERN = re.compile(
-    r"^(?P<scheme>[\w\+]+)://"
-    r"(?:(?P<username>[^:/]+)(?::(?P<password>[^@]+))?@)?"
-    r"(?P<host>[^:/]+)?"
-    r"(?:\:(?P<port>\d+))?"
-    r"(?:/(?P<database>[^\?]+))?"
-    r"(?:\?(?P<params>.*))?$"
-)
 
 COL_NAME = 0
 COL_TYPE = 1
 COL_SCHEMA = 2
 COL_C_STRING = 3
-
-
-def parse_sqlalchemy_conn_str(conn_str: str):
-    """
-    Parse a SQLAlchemy-style connection string into its components.
-    Returns a dictionary with keys: scheme, username, password,
-    host, port, database, and params.
-    """
-    match = CONN_PATTERN.match(conn_str)
-    if match:
-        return match.groupdict()
-    return {}
 
 
 class SelectDatabaseDlg(QDialog, Ui_SelectDatabase, QtUseContext):
@@ -270,11 +253,7 @@ class SelectDatabaseDlg(QDialog, Ui_SelectDatabase, QtUseContext):
             c_string: The connection string.
         """
         name = self.t("cmn.db.new_name", "New Connection")
-        kind = (
-            self.t("cmn.db.local", "Local")
-            if local
-            else self.t("cmn.db.remote", "Remote")
-        )
+        kind = CON_TYPE_LOCAL if local else CON_TYPE_REMOTE
         schema = self.c_schema.text().strip()
         config_id = str(uuid4())
 
@@ -421,6 +400,8 @@ class SelectDatabaseDlg(QDialog, Ui_SelectDatabase, QtUseContext):
 
     def set_con_str(self, con_str: str):
         """Set the connection string."""
+        from exdrf_qt.controls.seldb.utils import parse_sqlalchemy_conn_str
+
         try:
             if con_str.startswith("sqlite:///"):
                 self.main_tab.setCurrentWidget(self.tab_local)
