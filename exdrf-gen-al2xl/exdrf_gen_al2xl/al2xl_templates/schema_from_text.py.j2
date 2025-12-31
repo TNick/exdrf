@@ -1,14 +1,20 @@
 from exdrf_xl.schema import XlSchema
 
-
-def table_from_name(name: str) -> type:
+name_to_table = {
 {% for categ, resources in categ_zero %}
 {%- for res in resources %}
-    {%- if res.src.__tablename__ == res.snake_case_name %}
-    if name == "{{ res.snake_case_name }}":
-    {%- else %}
-    if name in ("{{ res.src.__tablename__ }}", "{{ res.snake_case_name }}"):
+    {%- if res.src.__tablename__ != res.snake_case_name %}
+    "{{ res.snake_case_name }}": "{{ res.src.__tablename__ }}",
     {%- endif %}
+{%- endfor %}
+{%- endfor %}
+}
+
+def table_from_name(name: str) -> type:
+    name = name_to_table.get(name, name)
+{% for categ, resources in categ_zero %}
+{%- for res in resources %}
+    if name == "{{ res.src.__tablename__ }}":
         from {{ out_module }}.{{categ }}.{{ res.snake_case_name }} \
             import {{ res.pascal_case_name }}
 

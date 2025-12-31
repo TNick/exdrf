@@ -15,8 +15,6 @@ def xl_join_values(
 ) -> str:
     """Build an Excel formula that joins related values from another table.
 
-    This mirrors the pattern used in resi_xl for "join related rows" columns:
-
     `IFERROR(SINGLE(TEXTJOIN(delimiter, ignore_empty, FILTER(values, cond))),
     "")`
 

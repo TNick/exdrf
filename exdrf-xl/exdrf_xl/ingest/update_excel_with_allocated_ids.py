@@ -354,7 +354,7 @@ class ExcelIdUpdater:
                 import tempfile
 
                 crt_base = os.path.join(tempfile.gettempdir(), base_name)
-                crt_path = f"{crt_base}-{ext}{ext}"
+                crt_path = f"{crt_base}-{counter}{ext}"
 
                 logger.warning(
                     "Unable to save the updated file in same location "
@@ -364,7 +364,7 @@ class ExcelIdUpdater:
                     crt_path,
                 )
             else:
-                crt_path = f"{crt_base}-{ext}{ext}"
+                crt_path = f"{crt_base}-{counter}{ext}"
 
             rotate_backups(crt_path)
             try:

@@ -12,8 +12,6 @@ def xl_sumifs(
 ) -> str:
     """Build an Excel formula that sums related values from another table.
 
-    This mirrors the pattern used in resi_xl for "sum related rows" columns:
-
     `IFERROR(SINGLE(SUMIFS(sum_range, criteria_range, this_row_key)), "")`
 
     Args:
