@@ -37,14 +37,14 @@ def top_level_handler(*d_args, **d_kwargs):
     def show_error(w_ctx, e: Exception, wrapped_func):
         w_ctx.show_error(
             message=w_ctx.t(
-                "resi.qt.handler-error.message",
+                "exdrf.qt.handler-error.message",
                 "An error occurred while executing the "
                 "function {func}: {error}",
                 func=wrapped_func.__name__,
                 error=str(e),
             ),
             title=w_ctx.t(
-                "resi.qt.handler-error.title",
+                "exdrf.qt.handler-error.title",
                 "Error",
             ),
         )

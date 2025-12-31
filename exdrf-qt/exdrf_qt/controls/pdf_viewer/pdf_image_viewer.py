@@ -278,7 +278,7 @@ class PdfImageViewer(QWidget, QtUseContext):
         self.btn_pan.toggled.connect(self._toggle_pan_mode)
 
         self.btn_ocr = QToolButton()
-        self.btn_ocr.setText(self.t("pdf.ocr", "OCR"))
+        self.btn_ocr.setText(self.t("pdf.ocr.t", "OCR"))
         self.btn_ocr.setIcon(self.get_icon("font"))
         self.btn_ocr.setCheckable(True)
         self._configure_button_size(self.btn_ocr)

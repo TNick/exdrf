@@ -748,7 +748,7 @@ class SplitPlanPanel(QWidget):
         clear_action.triggered.connect(self.ocr_text.clear)
         menu.addAction(clear_action)
 
-        mode_menu = menu.addMenu(self._t("pdf.ocr.mode", "OCR mode"))
+        mode_menu = menu.addMenu(self._t("pdf.ocr.mode.t", "OCR mode"))
         if mode_menu is not None:
             for key, label in self._ocr_mode_labels.items():
                 act = mode_menu.addAction(label)
@@ -758,7 +758,7 @@ class SplitPlanPanel(QWidget):
                 act.setChecked(self._ocr_mode == key)
                 act.triggered.connect(partial(self._handle_mode_change, key))
 
-        engine_menu = menu.addMenu(self._t("pdf.ocr.engine", "OCR engine"))
+        engine_menu = menu.addMenu(self._t("pdf.ocr.engine.t", "OCR engine"))
         if engine_menu is not None:
             for key in self._available_engines():
                 label = self._ocr_engine_labels.get(key, key.title())

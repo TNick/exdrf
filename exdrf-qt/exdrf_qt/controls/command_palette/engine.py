@@ -24,9 +24,9 @@ if TYPE_CHECKING:
     from PyQt5.QtGui import QIcon, QShowEvent  # noqa: F401
 
     from exdrf_qt.context import QtContext  # noqa: F401
-    from exdrf_qt.controls.command_palette.constants import (
+    from exdrf_qt.controls.command_palette.constants import (  # noqa: F401
         SearchLocation,
-    )  # noqa: F401
+    )
     from exdrf_qt.menus import ActionDef  # noqa: F401
 
 

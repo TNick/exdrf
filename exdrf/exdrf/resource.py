@@ -126,12 +126,26 @@ class ExResource:
 
     @property
     def snake_case_name(self) -> str:
-        """Return the name of the resource in snake_case."""
+        """Return the name of the resource in snake_case.
+
+        Examples:
+          If self.name == "ContractProposal", then:
+              - snake_case_name -> "contract_proposal"
+          If self.name == "IssItem", then:
+              - snake_case_name -> "iss_item"
+        """
         return re.sub(r"(?<!^)(?=[A-Z])", "_", self.name).lower()
 
     @property
     def snake_case_name_plural(self) -> str:
-        """Return the name of the resource in snake_case."""
+        """Return the name of the resource in snake_case.
+
+        Examples:
+          If self.name == "ContractProposal", then:
+              - snake_case_name_plural -> "contract_proposals"
+          If self.name == "IssItem", then:
+              - snake_case_name_plural -> "iss_items"
+        """
         return inflect_e.plural(
             re.sub(r"(?<!^)(?=[A-Z])", "_", self.name).lower()  # type: ignore
         )

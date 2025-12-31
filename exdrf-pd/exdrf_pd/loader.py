@@ -155,7 +155,7 @@ def field_from_pydantic(
             **extra,
             nullable=True,
         )
-    elif str(annotation).startswith("<class 'resi_models."):
+    elif str(annotation).startswith("<class 'exdrf_models."):
         c_path = str(annotation)[8:-2]
         _, cls_name = c_path.rsplit(".", 1)
         raise NotImplementedError
