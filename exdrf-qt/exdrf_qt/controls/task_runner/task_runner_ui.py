@@ -11,12 +11,13 @@ class Ui_TaskRunner:
 
     Attributes:
         lay_main: Lay main.
+        lay_tab: Lay tab.
+        c_task_tab: C task tab.
         c_stacked: C stacked.
         page_1: Page 1.
         lay_page_1: Lay page 1.
         horizontalLayout_2: The layout for the widget.
         c_db_connection: C db connection.
-        page_2: Page 2.
         c_progress: C progress.
         lay_button_box: Lay button box.
         c_main_button: C main button.
@@ -25,6 +26,8 @@ class Ui_TaskRunner:
     """
 
     lay_main: "QtWidgets.QVBoxLayout"
+    lay_tab: "QtWidgets.QHBoxLayout"
+    c_task_tab: "QtWidgets.QPushButton"
     c_stacked: "QtWidgets.QStackedWidget"
     page_1: "QtWidgets.QWidget"
     lay_page_1: "QtWidgets.QVBoxLayout"
@@ -32,7 +35,6 @@ class Ui_TaskRunner:
     horizontalLayout_2: "QtWidgets.QHBoxLayout"
     lbl_db_connection: "QtWidgets.QLabel"
     c_db_connection: "ChooseDb"
-    page_2: "QtWidgets.QWidget"
     c_progress: "QtWidgets.QProgressBar"
     lay_button_box: "QtWidgets.QHBoxLayout"
     c_main_button: "QtWidgets.QPushButton"
@@ -45,6 +47,22 @@ class Ui_TaskRunner:
         TaskRunner.resize(543, 502)
         self.lay_main = QtWidgets.QVBoxLayout(TaskRunner)
         self.lay_main.setObjectName("lay_main")
+        self.lay_tab = QtWidgets.QHBoxLayout()
+        self.lay_tab.setSpacing(2)
+        self.lay_tab.setObjectName("lay_tab")
+        self.c_task_tab = QtWidgets.QPushButton(TaskRunner)
+        self.c_task_tab.setCheckable(True)
+        self.c_task_tab.setChecked(True)
+        self.c_task_tab.setObjectName("c_task_tab")
+        self.lay_tab.addWidget(self.c_task_tab)
+        spacerItem = QtWidgets.QSpacerItem(
+            40,
+            20,
+            QtWidgets.QSizePolicy.Expanding,
+            QtWidgets.QSizePolicy.Minimum,
+        )
+        self.lay_tab.addItem(spacerItem)
+        self.lay_main.addLayout(self.lay_tab)
         self.c_stacked = QtWidgets.QStackedWidget(TaskRunner)
         self.c_stacked.setObjectName("c_stacked")
         self.page_1 = QtWidgets.QWidget()
@@ -93,9 +111,6 @@ class Ui_TaskRunner:
         self.horizontalLayout_2.addWidget(self.c_db_connection)
         self.lay_page_1.addLayout(self.horizontalLayout_2)
         self.c_stacked.addWidget(self.page_1)
-        self.page_2 = QtWidgets.QWidget()
-        self.page_2.setObjectName("page_2")
-        self.c_stacked.addWidget(self.page_2)
         self.lay_main.addWidget(self.c_stacked)
         self.c_progress = QtWidgets.QProgressBar(TaskRunner)
         self.c_progress.setProperty("value", 24)
@@ -103,13 +118,13 @@ class Ui_TaskRunner:
         self.lay_main.addWidget(self.c_progress)
         self.lay_button_box = QtWidgets.QHBoxLayout()
         self.lay_button_box.setObjectName("lay_button_box")
-        spacerItem = QtWidgets.QSpacerItem(
+        spacerItem1 = QtWidgets.QSpacerItem(
             40,
             20,
             QtWidgets.QSizePolicy.Expanding,
             QtWidgets.QSizePolicy.Minimum,
         )
-        self.lay_button_box.addItem(spacerItem)
+        self.lay_button_box.addItem(spacerItem1)
         self.c_main_button = QtWidgets.QPushButton(TaskRunner)
         self.c_main_button.setObjectName("c_main_button")
         self.lay_button_box.addWidget(self.c_main_button)
@@ -120,11 +135,13 @@ class Ui_TaskRunner:
         self.lbl_db_connection.setBuddy(self.c_db_connection)
 
         self.retranslate_ui(TaskRunner)
+        self.c_stacked.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(TaskRunner)
 
     def retranslate_ui(self, TaskRunner):
         _translate = QtCore.QCoreApplication.translate
         TaskRunner.setWindowTitle(_translate("TaskRunner", "TaskRunner"))
+        self.c_task_tab.setText(_translate("TaskRunner", "Task"))
         self.lbl_description.setText(_translate("TaskRunner", "Description"))
         self.lbl_db_connection.setText(
             _translate("TaskRunner", "Database Connection:")
@@ -135,10 +152,10 @@ class Ui_TaskRunner:
     def enum_controls(self):
         """Enumerate the controls in the form."""
         return [
+            self.c_task_tab,
             self.c_stacked,
             self.page_1,
             self.c_db_connection,
-            self.page_2,
             self.c_progress,
             self.c_main_button,
             self.c_cancel_button,

@@ -59,7 +59,7 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
         **kwargs,
     ) -> None:
 
-        # Initialize logging and instance variables.
+        # Initialize instance variables.
         logger.log(1, "DrfSelOneEditor.__init__")
         self._in_editing = True
         self._clear_action = None

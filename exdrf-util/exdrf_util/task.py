@@ -1,8 +1,10 @@
 import logging
+from collections import OrderedDict, defaultdict
 from enum import StrEnum
-from typing import TYPE_CHECKING, Any, Callable, List, Optional
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Literal, Optional
 
 from attrs import define, field
+from exdrf.field import ExFieldBase
 
 if TYPE_CHECKING:
     from exdrf_qt.context import QtContext
@@ -42,11 +44,11 @@ def on_progress_changed(obj: "Task", attr, other: int) -> Any:
     if not isinstance(other, int):
         logger.error("Progress must be an integer. %s", other)
         return other
-    if other < 0 or other > 100:
+    if not -1 <= other <= 100:
         logger.error("Progress must be between 0 and 100. %s", other)
         return other
 
-    logger.debug("Progress changed to %s", other)
+    logger.log(1, "Progress changed to %s", other)
 
     for callback in obj.on_progress_changed:
         callback(obj, other)
@@ -54,11 +56,45 @@ def on_progress_changed(obj: "Task", attr, other: int) -> Any:
 
 
 @define(slots=True, kw_only=True)
+class TaskParameter(ExFieldBase):
+    value: Any = field(default=None, repr=False)
+    config: Dict[str, Any] = field(factory=dict, repr=False)
+
+
+@define(slots=True, kw_only=True)
 class Task:
-    """A task to be run."""
+    """A task to be run.
+
+    Attributes:
+        title: The title of the task.
+        description: The description of the task.
+        parameters: The parameters of the task that the user needs to fill in
+            before the task can be run.
+        should_stop: Whether the task should stop. The inner logic of the task
+            should periodically check this flag and stop if it is set to True.
+        state: The state of the task.
+        on_state_changed: The callbacks to call when the state of the task
+            changes.
+        progress: The progress of the task in the range of 0 to 100.
+        on_progress_changed: The callbacks to call when the progress of the
+            task changes.
+        step: The current step of the task.
+        max_steps: The maximum number of steps in the task. This is usually
+            computed in the prepare function. If greater than zero the default
+            implementation will calculate the progress based on the step and the
+            max_steps.
+        global_session: Whether to use a global session for the task. If True,
+            the prepare, execute and cleanup functions will be wrapped in a
+            same_session context manager.
+        data: The data of the task. The task can use this to store data that
+            needs to be persisted between the steps of the task.
+    """
 
     title: str
     description: str = field(default="", repr=False)
+    parameters: Dict[str, "TaskParameter"] = field(
+        factory=OrderedDict, repr=False
+    )
     should_stop: bool = field(default=False, repr=False, init=False)
 
     state: TaskState = field(
@@ -78,6 +114,10 @@ class Task:
     )
 
     step: int = field(default=-1, repr=False)
+    max_steps: int = field(default=-1, repr=False)
+
+    global_session: bool = field(default=True, repr=False)
+    data: Dict[str, Any] = field(factory=dict, repr=False)
 
     def get_success_message(self, ctx: "QtContext") -> str:
         """Get the success message for the task."""
@@ -99,10 +139,19 @@ class Task:
         """Execute one step in the task."""
         raise NotImplementedError("Subclasses must implement this method.")
 
-    def handle_exception(self, e: Exception) -> bool:
+    def handle_exception(
+        self,
+        ctx: "QtContext",
+        e: Exception,
+        stage: Literal["prepare", "execute", "cleanup"],
+    ) -> bool:
         """Handle an exception that occurred during the task execution."""
         logger.error(
-            "Error executing task %s: %s", self.title, e, exc_info=True
+            "Error executing task %s in stage %s: %s",
+            self.title,
+            stage,
+            e,
+            exc_info=True,
         )
         return False
 
@@ -114,53 +163,58 @@ class Task:
         self.progress = -1
         self.step = -1
 
+        if self.global_session:
+            with ctx.same_session():
+                self._execute(ctx)
+        else:
+            self._execute(ctx)
+
+        self.progress = 100
+        logger.debug("Task %s finished with state %s", self.title, self.state)
+
+    def _execute(self, ctx: "QtContext") -> Any:
+        # Initialization stage.
         try:
             prepare_result = self.prepare(ctx)
         except Exception as e:
-            logger.error(
-                "Exception while preparing the task %s: %s",
-                self.title,
-                e,
-                exc_info=True,
-            )
-            prepare_result = False
-
+            prepare_result = self.handle_exception(ctx, e, "prepare")
         if not prepare_result:
             self.state = TaskState.FAILED
-            self.progress = 100
             return
 
+        # Execution stage.
         while not self.should_stop:
             try:
                 self.step += 1
                 self.execute_step(ctx)
+                if self.max_steps > 0:
+                    self.progress = int(self.step / self.max_steps * 100)
             except Exception as e:
-                if self.handle_exception(e):
+                if self.handle_exception(ctx, e, "execute"):
                     continue
 
                 self.state = TaskState.FAILED
-                self.progress = 100
                 return
 
+        # Cleanup stage.
         try:
             cleanup_result = self.cleanup(ctx)
         except Exception as e:
-            logger.error(
-                "Exception while cleaning up the task %s: %s",
-                self.title,
-                e,
-                exc_info=True,
-            )
-            cleanup_result = False
-
+            cleanup_result = self.handle_exception(ctx, e, "cleanup")
         if not cleanup_result:
             self.state = TaskState.FAILED
-            self.progress = 100
             return
 
         self.state = TaskState.COMPLETED
-        self.progress = 100
-        logger.debug("Task %s completed", self.title)
+
+    def params_by_category(
+        self,
+    ) -> Dict[str, OrderedDict[str, "TaskParameter"]]:
+        """Get the parameters split into categories."""
+        result = defaultdict(OrderedDict)
+        for parameter in self.parameters.values():
+            result[parameter.category][parameter.name] = parameter
+        return result
 
 
 @define(slots=True, kw_only=True)
@@ -219,3 +273,29 @@ class FuncTask(Task):
     def execute_step(self, ctx: "QtContext") -> None:
         """Execute one step in the task."""
         self.step_func(self, ctx)
+
+    def handle_exception(
+        self,
+        ctx: "QtContext",
+        e: Exception,
+        stage: Literal["prepare", "execute", "cleanup"],
+    ) -> bool:
+        """Handle an exception that occurred during the task execution."""
+        source_title: str
+        if stage == "prepare":
+            source_title = ctx.t("task.prepare.error", "Initializing")
+        elif stage == "execute":
+            source_title = ctx.t("task.execute.error", "Executing")
+        elif stage == "cleanup":
+            source_title = ctx.t("task.cleanup.error", "Cleaning up")
+        else:
+            raise ValueError(f"Invalid stage: {stage}")
+        message = ctx.t(
+            "task.error",
+            "An error occurred while {source_title} the task: {error}.",
+            source_title=source_title,
+            error=e,
+        )
+        logger.error(message, exc_info=True)
+        self.failed_message = message
+        return False

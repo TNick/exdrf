@@ -29,7 +29,19 @@ if TYPE_CHECKING:
 
 
 @define
-class ExField:
+class ExFieldBase:
+    """The minimal set of attributes for a field."""
+
+    name: str = field(default="")
+    title: str = field(default="")
+    description: str = field(default="")
+    category: str = field(default="")
+    type_name: str = field(default="")
+    nullable: bool = field(default=True)
+
+
+@define
+class ExField(ExFieldBase):
     """A class representing a field in a resource.
 
     Attributes:
@@ -65,20 +77,13 @@ class ExField:
             the fk_from field is `parent_id`).
     """
 
-    name: str = field(default="")
     resource: "ExResource" = field(default=None)
     src: Any = field(default=None)
-    title: str = field(default="")
-    description: str = field(default="")
-    category: str = field(default="")
-
-    type_name: str = field(default="")
 
     is_list: bool = field(default=False)
     primary: bool = field(default=False)
     visible: bool = field(default=True)
     read_only: bool = field(default=False)
-    nullable: bool = field(default=True)
     sortable: bool = field(default=True)
     filterable: bool = field(default=True)
     exportable: bool = field(default=True)
