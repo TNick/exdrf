@@ -24,7 +24,17 @@ class DurationConfig(TypedDict, total=False):
 
 
 class DurationParam(QDoubleSpinBox, ParamWidget):
-    """Widget for duration parameters."""
+    """Widget for duration parameters.
+
+    Attributes:
+        ctx: The Qt context.
+        runner: The task runner that contains this widget.
+        param: The task parameter this widget represents.
+    """
+
+    ctx: "QtContext"
+    runner: "TaskRunner"
+    param: "TaskParameter"
 
     def __init__(
         self,
@@ -33,6 +43,14 @@ class DurationParam(QDoubleSpinBox, ParamWidget):
         runner: "TaskRunner",
         parent: Optional[QDoubleSpinBox] = None,
     ):
+        """Initialize the duration parameter widget.
+
+        Args:
+            ctx: The Qt context.
+            param: The task parameter this widget represents.
+            runner: The task runner that contains this widget.
+            parent: The parent widget.
+        """
         super().__init__(parent)
         self.ctx = ctx
         self.runner = runner
@@ -40,6 +58,7 @@ class DurationParam(QDoubleSpinBox, ParamWidget):
 
         config: DurationConfig = cast(DurationConfig, param.config)
 
+        # Set minimum and maximum values if configured.
         min_val = config.get("min")
         max_val = config.get("max")
         if min_val is not None:
@@ -47,8 +66,11 @@ class DurationParam(QDoubleSpinBox, ParamWidget):
         if max_val is not None:
             self.setMaximum(max_val)
 
+        # Set the initial value if provided.
         if param.value is not None:
             self.setValue(float(param.value))
+
+        # Connect signals.
         self.valueChanged.connect(self._on_value_changed)
         self.valueChanged.connect(self.runner._on_state_changed)
 
@@ -57,7 +79,11 @@ class DurationParam(QDoubleSpinBox, ParamWidget):
         self.param.value = self.value()
 
     def validate_param(self) -> Optional[str]:
-        """Validate the current value."""
+        """Validate the current value.
+
+        Returns:
+            An error message if the value is invalid, None if valid.
+        """
         error = super().validate_param()
         if error:
             return error
@@ -68,12 +94,15 @@ class DurationParam(QDoubleSpinBox, ParamWidget):
         min_val = config.get("min")
         max_val = config.get("max")
 
+        # Check minimum duration constraint.
         if min_val is not None and self.param.value < min_val:
             return self.t(
                 "task_runner.validation.duration_min",
                 "Duration must be at least {min}",
                 min=min_val,
             )
+
+        # Check maximum duration constraint.
         if max_val is not None and self.param.value > max_val:
             return self.t(
                 "task_runner.validation.duration_max",

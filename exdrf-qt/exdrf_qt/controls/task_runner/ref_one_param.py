@@ -28,7 +28,17 @@ class RefConfig(TypedDict, total=False):
 
 
 class RefOneToOneParam(DrfSelOneEditor, ParamWidget):
-    """Widget for one-to-one reference parameters (single selection)."""
+    """Widget for one-to-one reference parameters (single selection).
+
+    Attributes:
+        ctx: The Qt context.
+        runner: The task runner that contains this widget.
+        param: The task parameter this widget represents.
+    """
+
+    ctx: "QtContext"
+    runner: "TaskRunner"
+    param: "TaskParameter"
 
     def __init__(
         self,
@@ -37,11 +47,20 @@ class RefOneToOneParam(DrfSelOneEditor, ParamWidget):
         runner: "TaskRunner",
         parent: Optional[DrfSelOneEditor] = None,
     ):
+        """Initialize the one-to-one reference parameter widget.
+
+        Args:
+            ctx: The Qt context.
+            param: The task parameter this widget represents.
+            runner: The task runner that contains this widget.
+            parent: The parent widget.
+        """
         config: RefConfig = cast(RefConfig, param.config)
         qt_model = config.get("qt_model")
         editor_class = config.get("editor_class")
         super_hack = config.get("super_hack")
 
+        # Build arguments for the parent constructor.
         args = {
             "nullable": param.nullable,
             "description": param.description,
@@ -54,6 +73,7 @@ class RefOneToOneParam(DrfSelOneEditor, ParamWidget):
         if editor_class is not None:
             args["editor_class"] = editor_class
 
+        # Initialize the parent class.
         if super_hack:
             super_hack(self, **args)
         else:
@@ -69,22 +89,16 @@ class RefOneToOneParam(DrfSelOneEditor, ParamWidget):
         self.runner = runner
         self.param = param
 
+        # Set initial value if provided.
         if param.value is not None:
             self.change_field_value(param.value)
         elif self.field_value is not None:
             param.value = self.field_value
 
+        # Connect signals.
         self.controlChanged.connect(self._on_value_changed)
         self.controlChanged.connect(self.runner._on_state_changed)
 
     def _on_value_changed(self):
         """Update param.value when field_value changes."""
         self.param.value = self.field_value
-
-    def validate_param(self) -> Optional[str]:
-        """Validate the current value."""
-        error = super().validate_param()
-        if error:
-            return error
-        # Reference values are always valid if not None (or if nullable).
-        return None

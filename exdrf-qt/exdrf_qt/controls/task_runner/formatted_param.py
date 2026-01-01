@@ -22,7 +22,17 @@ class FormattedConfig(TypedDict, total=False):
 
 
 class FormattedParam(QTextEdit, ParamWidget):
-    """Widget for formatted parameters (JSON, HTML, XML)."""
+    """Widget for formatted parameters (JSON, HTML, XML).
+
+    Attributes:
+        ctx: The Qt context.
+        runner: The task runner that contains this widget.
+        param: The task parameter this widget represents.
+    """
+
+    ctx: "QtContext"
+    runner: "TaskRunner"
+    param: "TaskParameter"
 
     def __init__(
         self,
@@ -31,6 +41,14 @@ class FormattedParam(QTextEdit, ParamWidget):
         runner: "TaskRunner",
         parent: Optional[QTextEdit] = None,
     ):
+        """Initialize the formatted parameter widget.
+
+        Args:
+            ctx: The Qt context.
+            param: The task parameter this widget represents.
+            runner: The task runner that contains this widget.
+            parent: The parent widget.
+        """
         super().__init__(parent)
         self.ctx = ctx
         self.runner = runner
@@ -39,6 +57,7 @@ class FormattedParam(QTextEdit, ParamWidget):
         config: FormattedConfig = cast(FormattedConfig, param.config)
         format_type = config.get("format", "json")
 
+        # Set the initial text value based on format type.
         if param.value is not None:
             if isinstance(param.value, str):
                 self.setPlainText(param.value)
@@ -53,17 +72,10 @@ class FormattedParam(QTextEdit, ParamWidget):
         else:
             self.setPlainText("")
 
+        # Connect signals.
         self.textChanged.connect(self._on_value_changed)
         self.textChanged.connect(self.runner._on_state_changed)
 
     def _on_value_changed(self):
         """Update param.value when text changes."""
         self.param.value = self.toPlainText()
-
-    def validate_param(self) -> Optional[str]:
-        """Validate the current value."""
-        error = super().validate_param()
-        if error:
-            return error
-        # Formatted text is always valid if not None (or if nullable).
-        return None

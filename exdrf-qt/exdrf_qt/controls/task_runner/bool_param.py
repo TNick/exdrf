@@ -24,7 +24,17 @@ class BoolConfig(TypedDict, total=False):
 
 
 class BoolParam(QCheckBox, ParamWidget):
-    """Widget for boolean parameters."""
+    """Widget for boolean parameters.
+
+    Attributes:
+        ctx: The Qt context.
+        runner: The task runner that contains this widget.
+        param: The task parameter this widget represents.
+    """
+
+    ctx: "QtContext"
+    runner: "TaskRunner"
+    param: "TaskParameter"
 
     def __init__(
         self,
@@ -33,11 +43,20 @@ class BoolParam(QCheckBox, ParamWidget):
         runner: "TaskRunner",
         parent: Optional[QCheckBox] = None,
     ):
+        """Initialize the boolean parameter widget.
+
+        Args:
+            ctx: The Qt context.
+            param: The task parameter this widget represents.
+            runner: The task runner that contains this widget.
+            parent: The parent widget.
+        """
         super().__init__(parent)
         self.ctx = ctx
         self.runner = runner
         self.param = param
 
+        # Configure tristate mode and connect signals.
         self.setTristate(param.nullable)
         self.stateChanged.connect(self._on_value_changed)
         self.stateChanged.connect(self.runner._on_state_changed)
@@ -49,11 +68,3 @@ class BoolParam(QCheckBox, ParamWidget):
             self.param.value = None
         else:
             self.param.value = state == 1  # Qt.CheckState.Checked
-
-    def validate_param(self) -> Optional[str]:
-        """Validate the current value."""
-        error = super().validate_param()
-        if error:
-            return error
-        # Boolean values are always valid if not None (or if nullable).
-        return None

@@ -22,7 +22,17 @@ class EnumConfig(TypedDict, total=False):
 
 
 class EnumParam(QComboBox, ParamWidget):
-    """Widget for enum parameters."""
+    """Widget for enum parameters.
+
+    Attributes:
+        ctx: The Qt context.
+        runner: The task runner that contains this widget.
+        param: The task parameter this widget represents.
+    """
+
+    ctx: "QtContext"
+    runner: "TaskRunner"
+    param: "TaskParameter"
 
     def __init__(
         self,
@@ -31,6 +41,14 @@ class EnumParam(QComboBox, ParamWidget):
         runner: "TaskRunner",
         parent: Optional[QComboBox] = None,
     ):
+        """Initialize the enum parameter widget.
+
+        Args:
+            ctx: The Qt context.
+            param: The task parameter this widget represents.
+            runner: The task runner that contains this widget.
+            parent: The parent widget.
+        """
         super().__init__(parent)
         self.ctx = ctx
         self.runner = runner
@@ -39,14 +57,17 @@ class EnumParam(QComboBox, ParamWidget):
         config: EnumConfig = cast(EnumConfig, param.config)
         enum_values = config.get("enum_values", [])
 
+        # Populate the combo box with enum values.
         for value, display_name in enum_values:
             self.addItem(display_name, value)
 
+        # Set the initial selection if a value is provided.
         if param.value is not None:
             index = self.findData(param.value)
             if index >= 0:
                 self.setCurrentIndex(index)
 
+        # Connect signals.
         self.currentIndexChanged.connect(self._on_value_changed)
         self.currentIndexChanged.connect(self.runner._on_state_changed)
 
@@ -59,7 +80,11 @@ class EnumParam(QComboBox, ParamWidget):
             self.param.value = None
 
     def validate_param(self) -> Optional[str]:
-        """Validate the current value."""
+        """Validate the current value.
+
+        Returns:
+            An error message if the value is invalid, None if valid.
+        """
         error = super().validate_param()
         if error:
             return error

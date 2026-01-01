@@ -30,7 +30,21 @@ class IntConfig(TypedDict, total=False):
 
 
 class IntParam(QSpinBox, ParamWidget):
-    """Widget for integer parameters."""
+    """Widget for integer parameters.
+
+    Attributes:
+        ctx: The Qt context.
+        runner: The task runner that contains this widget.
+        param: The task parameter this widget represents.
+        _enum_widget: The combo box widget if enum values are configured,
+            None otherwise.
+    """
+
+    ctx: "QtContext"
+    runner: "TaskRunner"
+    param: "TaskParameter"
+
+    _enum_widget: Optional[QComboBox]
 
     def __init__(
         self,
@@ -46,6 +60,7 @@ class IntParam(QSpinBox, ParamWidget):
 
         config: IntConfig = cast(IntConfig, param.config)
 
+        # Check if enum values are configured.
         enum_values = config.get("enum_values", [])
         if enum_values:
             combo = QComboBox(parent)
@@ -59,6 +74,7 @@ class IntParam(QSpinBox, ParamWidget):
             combo.currentIndexChanged.connect(self.runner._on_state_changed)
             self._enum_widget = combo
         else:
+            # Configure the spin box with min/max values.
             min_val = config.get("min")
             max_val = config.get("max")
             if min_val is not None:
@@ -86,7 +102,11 @@ class IntParam(QSpinBox, ParamWidget):
             self.param.value = None
 
     def validate_param(self) -> Optional[str]:
-        """Validate the current value."""
+        """Validate the current value.
+
+        Returns:
+            An error message if the value is invalid, None if valid.
+        """
         error = super().validate_param()
         if error:
             return error
@@ -97,12 +117,15 @@ class IntParam(QSpinBox, ParamWidget):
         min_val = config.get("min")
         max_val = config.get("max")
 
+        # Check minimum value constraint.
         if min_val is not None and self.param.value < min_val:
             return self.t(
                 "task_runner.validation.int_min",
                 "Value must be at least {min}",
                 min=min_val,
             )
+
+        # Check maximum value constraint.
         if max_val is not None and self.param.value > max_val:
             return self.t(
                 "task_runner.validation.int_max",
@@ -112,7 +135,11 @@ class IntParam(QSpinBox, ParamWidget):
         return None
 
     def get_widget(self):
-        """Get the actual widget to use."""
+        """Get the actual widget to use.
+
+        Returns:
+            The enum widget if configured, otherwise self.
+        """
         if self._enum_widget:
             return self._enum_widget
         return self

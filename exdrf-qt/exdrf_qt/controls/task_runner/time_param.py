@@ -28,7 +28,17 @@ class TimeConfig(TypedDict, total=False):
 
 
 class TimeParam(QTimeEdit, ParamWidget):
-    """Widget for time parameters."""
+    """Widget for time parameters.
+
+    Attributes:
+        ctx: The Qt context.
+        runner: The task runner that contains this widget.
+        param: The task parameter this widget represents.
+    """
+
+    ctx: "QtContext"
+    runner: "TaskRunner"
+    param: "TaskParameter"
 
     def __init__(
         self,
@@ -44,6 +54,7 @@ class TimeParam(QTimeEdit, ParamWidget):
 
         config: TimeConfig = cast(TimeConfig, param.config)
 
+        # Set minimum and maximum times if configured.
         min_val = config.get("min")
         max_val = config.get("max")
         if min_val is not None:
@@ -55,9 +66,11 @@ class TimeParam(QTimeEdit, ParamWidget):
                 QTime.fromString(max_val.isoformat(), "HH:mm:ss")
             )
 
+        # Set the display format.
         time_format = config.get("format", "HH:mm:ss")
         self.setDisplayFormat(time_format)
 
+        # Set the initial time value.
         if param.value is not None:
             if isinstance(param.value, time):
                 self.setTime(
@@ -68,6 +81,7 @@ class TimeParam(QTimeEdit, ParamWidget):
         else:
             self.setTime(QTime.currentTime())
 
+        # Connect signals.
         self.timeChanged.connect(self._on_value_changed)
         self.timeChanged.connect(self.runner._on_state_changed)
 
@@ -77,7 +91,11 @@ class TimeParam(QTimeEdit, ParamWidget):
         self.param.value = time(qtime.hour(), qtime.minute(), qtime.second())
 
     def validate_param(self) -> Optional[str]:
-        """Validate the current value."""
+        """Validate the current value.
+
+        Returns:
+            An error message if the value is invalid, None if valid.
+        """
         error = super().validate_param()
         if error:
             return error
@@ -88,12 +106,15 @@ class TimeParam(QTimeEdit, ParamWidget):
         min_val = config.get("min")
         max_val = config.get("max")
 
+        # Check minimum time constraint.
         if min_val is not None and self.param.value < min_val:
             return self.t(
                 "task_runner.validation.time_min",
                 "Time must be on or after {min}",
                 min=min_val.isoformat(),
             )
+
+        # Check maximum time constraint.
         if max_val is not None and self.param.value > max_val:
             return self.t(
                 "task_runner.validation.time_max",

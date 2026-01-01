@@ -28,7 +28,17 @@ class DateTimeConfig(TypedDict, total=False):
 
 
 class DateTimeParam(QDateTimeEdit, ParamWidget):
-    """Widget for date-time parameters."""
+    """Widget for date-time parameters.
+
+    Attributes:
+        ctx: The Qt context.
+        runner: The task runner that contains this widget.
+        param: The task parameter this widget represents.
+    """
+
+    ctx: "QtContext"
+    runner: "TaskRunner"
+    param: "TaskParameter"
 
     def __init__(
         self,
@@ -37,6 +47,14 @@ class DateTimeParam(QDateTimeEdit, ParamWidget):
         runner: "TaskRunner",
         parent: Optional[QDateTimeEdit] = None,
     ):
+        """Initialize the date-time parameter widget.
+
+        Args:
+            ctx: The Qt context.
+            param: The task parameter this widget represents.
+            runner: The task runner that contains this widget.
+            parent: The parent widget.
+        """
         super().__init__(parent)
         self.ctx = ctx
         self.runner = runner
@@ -44,6 +62,7 @@ class DateTimeParam(QDateTimeEdit, ParamWidget):
 
         config: DateTimeConfig = cast(DateTimeConfig, param.config)
 
+        # Set minimum and maximum date-times if configured.
         min_val = config.get("min")
         max_val = config.get("max")
         if min_val is not None:
@@ -57,9 +76,11 @@ class DateTimeParam(QDateTimeEdit, ParamWidget):
             )
             self.setMaximumDateTime(qdt)
 
+        # Set the display format.
         date_format = config.get("format", "DD-MM-YYYY HH:mm:ss")
         self.setDisplayFormat(date_format)
 
+        # Set the initial date-time value.
         if param.value is not None:
             if isinstance(param.value, datetime):
                 qdt = QDateTime.fromString(
@@ -71,6 +92,7 @@ class DateTimeParam(QDateTimeEdit, ParamWidget):
         else:
             self.setDateTime(QDateTime.currentDateTime())
 
+        # Connect signals.
         self.dateTimeChanged.connect(self._on_value_changed)
         self.dateTimeChanged.connect(self.runner._on_state_changed)
 
@@ -87,7 +109,11 @@ class DateTimeParam(QDateTimeEdit, ParamWidget):
         )
 
     def validate_param(self) -> Optional[str]:
-        """Validate the current value."""
+        """Validate the current value.
+
+        Returns:
+            An error message if the value is invalid, None if valid.
+        """
         error = super().validate_param()
         if error:
             return error
@@ -98,12 +124,15 @@ class DateTimeParam(QDateTimeEdit, ParamWidget):
         min_val = config.get("min")
         max_val = config.get("max")
 
+        # Check minimum date-time constraint.
         if min_val is not None and self.param.value < min_val:
             return self.t(
                 "task_runner.validation.datetime_min",
                 "DateTime must be on or after {min}",
                 min=min_val.isoformat(),
             )
+
+        # Check maximum date-time constraint.
         if max_val is not None and self.param.value > max_val:
             return self.t(
                 "task_runner.validation.datetime_max",

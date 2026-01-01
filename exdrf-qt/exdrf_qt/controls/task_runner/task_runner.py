@@ -1,3 +1,5 @@
+import re
+import threading
 from collections import OrderedDict
 from typing import TYPE_CHECKING, List, Optional, Tuple, cast
 
@@ -60,8 +62,37 @@ class QThreadVehicle(QThread):
         """The state has changed."""
         self.stateChanged.emit(state)
 
+    def _sanitize_thread_name(self, name: str) -> str:
+        """Sanitize a thread name to ensure valid characters."""
+        if not name:
+            return "TaskThread"
+
+        # Remove null bytes and replace control characters with space
+        sanitized = re.sub(r"[\x00-\x1f\x7f-\x9f]", " ", name)
+
+        # Split on spaces, underscores, hyphens, and other separators
+        words = re.split(r"[\s_\-]+", sanitized)
+
+        # Title-case each word and join without separators
+        tc_words = [word.title() for word in words if word]
+        sanitized = "".join(tc_words)
+
+        # Limit length to 100 characters
+        sanitized = sanitized[:100]
+
+        # Ensure it's not empty after sanitization
+        if not sanitized:
+            return "TaskThread"
+
+        return sanitized
+
     def run(self):
         """Execute the task."""
+
+        thread_name = self._sanitize_thread_name(self.task.title)
+        self.setObjectName(thread_name)
+        threading.current_thread().name = thread_name
+
         self.task.on_progress_changed.append(self._on_progress_changed)
         self.task.on_state_changed.append(self._on_state_changed)
         try:

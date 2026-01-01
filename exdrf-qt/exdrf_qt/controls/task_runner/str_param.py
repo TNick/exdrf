@@ -6,6 +6,7 @@ from exdrf_qt.controls.task_runner.param_widget import ParamWidget
 
 if TYPE_CHECKING:
     from exdrf_util.task import TaskParameter
+    from PyQt5.QtWidgets import QComboBox
 
     from exdrf_qt.context import QtContext
     from exdrf_qt.controls.task_runner.task_runner import TaskRunner
@@ -28,7 +29,24 @@ class StrConfig(TypedDict, total=False):
 
 
 class StrParam(QLineEdit, ParamWidget):
-    """Widget for string parameters."""
+    """Widget for string parameters.
+
+    Attributes:
+        ctx: The Qt context.
+        runner: The task runner that contains this widget.
+        param: The task parameter this widget represents.
+        _multiline_widget: The text edit widget if multiline is configured,
+            None otherwise.
+        _enum_widget: The combo box widget if enum values are configured,
+            None otherwise.
+    """
+
+    ctx: "QtContext"
+    runner: "TaskRunner"
+    param: "TaskParameter"
+
+    _multiline_widget: Optional[QTextEdit]
+    _enum_widget: Optional["QComboBox"]
 
     def __init__(
         self,
@@ -44,6 +62,7 @@ class StrParam(QLineEdit, ParamWidget):
 
         config: StrConfig = cast(StrConfig, param.config)
 
+        # Create multiline text edit if configured.
         if config.get("multiline", False):
             text_edit = QTextEdit(parent)
             text_edit.setPlainText(str(param.value) if param.value else "")
@@ -56,6 +75,7 @@ class StrParam(QLineEdit, ParamWidget):
             self.textChanged.connect(self.runner._on_state_changed)
             self._multiline_widget = None
 
+        # Create enum combo box if configured.
         enum_values = config.get("enum_values", [])
         if enum_values:
             from PyQt5.QtWidgets import QComboBox
@@ -94,7 +114,11 @@ class StrParam(QLineEdit, ParamWidget):
             self.param.value = None
 
     def validate_param(self) -> Optional[str]:
-        """Validate the current value."""
+        """Validate the current value.
+
+        Returns:
+            An error message if the value is invalid, None if valid.
+        """
         error = super().validate_param()
         if error:
             return error
@@ -105,6 +129,7 @@ class StrParam(QLineEdit, ParamWidget):
         min_length = config.get("min_length")
         max_length = config.get("max_length")
 
+        # Check minimum length constraint.
         value_str = str(self.param.value)
         if min_length is not None and len(value_str) < min_length:
             return self.t(
@@ -112,6 +137,8 @@ class StrParam(QLineEdit, ParamWidget):
                 "String must be at least {min} characters",
                 min=min_length,
             )
+
+        # Check maximum length constraint.
         if max_length is not None and len(value_str) > max_length:
             return self.t(
                 "task_runner.validation.str_max_length",
@@ -121,7 +148,12 @@ class StrParam(QLineEdit, ParamWidget):
         return None
 
     def get_widget(self):
-        """Get the actual widget to use."""
+        """Get the actual widget to use.
+
+        Returns:
+            The enum widget if configured, otherwise the multiline widget
+            if configured, otherwise self.
+        """
         if self._enum_widget:
             return self._enum_widget
         if self._multiline_widget:

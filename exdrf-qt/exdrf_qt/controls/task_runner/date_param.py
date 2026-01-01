@@ -28,7 +28,17 @@ class DateConfig(TypedDict, total=False):
 
 
 class DateParam(QDateEdit, ParamWidget):
-    """Widget for date parameters."""
+    """Widget for date parameters.
+
+    Attributes:
+        ctx: The Qt context.
+        runner: The task runner that contains this widget.
+        param: The task parameter this widget represents.
+    """
+
+    ctx: "QtContext"
+    runner: "TaskRunner"
+    param: "TaskParameter"
 
     def __init__(
         self,
@@ -37,6 +47,14 @@ class DateParam(QDateEdit, ParamWidget):
         runner: "TaskRunner",
         parent: Optional[QDateEdit] = None,
     ):
+        """Initialize the date parameter widget.
+
+        Args:
+            ctx: The Qt context.
+            param: The task parameter this widget represents.
+            runner: The task runner that contains this widget.
+            parent: The parent widget.
+        """
         super().__init__(parent)
         self.ctx = ctx
         self.runner = runner
@@ -44,6 +62,7 @@ class DateParam(QDateEdit, ParamWidget):
 
         config: DateConfig = cast(DateConfig, param.config)
 
+        # Set minimum and maximum dates if configured.
         min_val = config.get("min")
         max_val = config.get("max")
         if min_val is not None:
@@ -55,9 +74,11 @@ class DateParam(QDateEdit, ParamWidget):
                 QDate.fromString(max_val.isoformat(), "yyyy-MM-dd")
             )
 
+        # Set the display format.
         date_format = config.get("format", "DD-MM-YYYY")
         self.setDisplayFormat(date_format)
 
+        # Set the initial date value.
         if param.value is not None:
             if isinstance(param.value, date):
                 self.setDate(
@@ -68,6 +89,7 @@ class DateParam(QDateEdit, ParamWidget):
         else:
             self.setDate(QDate.currentDate())
 
+        # Connect signals.
         self.dateChanged.connect(self._on_value_changed)
         self.dateChanged.connect(self.runner._on_state_changed)
 
@@ -77,7 +99,11 @@ class DateParam(QDateEdit, ParamWidget):
         self.param.value = date(qdate.year(), qdate.month(), qdate.day())
 
     def validate_param(self) -> Optional[str]:
-        """Validate the current value."""
+        """Validate the current value.
+
+        Returns:
+            An error message if the value is invalid, None if valid.
+        """
         error = super().validate_param()
         if error:
             return error
@@ -88,12 +114,15 @@ class DateParam(QDateEdit, ParamWidget):
         min_val = config.get("min")
         max_val = config.get("max")
 
+        # Check minimum date constraint.
         if min_val is not None and self.param.value < min_val:
             return self.t(
                 "task_runner.validation.date_min",
                 "Date must be on or after {min}",
                 min=min_val.isoformat(),
             )
+
+        # Check maximum date constraint.
         if max_val is not None and self.param.value > max_val:
             return self.t(
                 "task_runner.validation.date_max",
