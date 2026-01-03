@@ -313,6 +313,9 @@ class CheckManager(
 
         self.c_result_details.setOpenExternalLinks(False)
         self.c_result_details.setHtml("")
+        self.c_result_details.anchorClicked.connect(
+            self._on_result_link_clicked
+        )
 
     def _setup_tab_group(self) -> None:
         """Set up the button group that controls ``c_stacked`` navigation."""
@@ -606,6 +609,20 @@ class CheckManager(
             )
         r_params_html = "<br/>".join(r_param_lines)
 
+        # Build links HTML if present.
+        links_html = ""
+        links_data = entry.result.get("links", [])
+        if links_data:
+            link_parts = []
+            for link in links_data:
+                if len(link) >= 4:
+                    # link is (resource_name, record_id, label, address)
+                    label = html_escape(str(link[2]))
+                    address = html_escape(str(link[3]))
+                    link_parts.append(f'<a href="{address}">{label}</a>')
+            if link_parts:
+                links_html = f"<h4>Links</h4>" f"<p>{', '.join(link_parts)}</p>"
+
         html_text = (
             f"<h3>{html_escape(entry.check_category)}</h3>"
             f"<h4>{html_escape(entry.check_title)}</h4>"
@@ -616,8 +633,29 @@ class CheckManager(
             f"<p>{html_escape(res_text)}</p>"
             f"<h4>Result parameters</h4>"
             f"<p>{r_params_html}</p>"
+            f"{links_html}"
         )
         self.c_result_details.setHtml(html_text)
+
+    def _on_result_link_clicked(self, url) -> None:
+        """Handle link clicks in the result details panel.
+
+        Args:
+            url: The URL that was clicked (QUrl object).
+        """
+        url_str = url.toString()
+        if url_str:
+            try:
+                self.ctx.router.route(url_str)
+            except Exception as e:
+                logger.error("Failed to route to %s: %s", url_str, e)
+                self.ctx.show_error(
+                    self.t(
+                        "checks.link.error",
+                        "Failed to navigate to link: {error}",
+                        error=str(e),
+                    )
+                )
 
     # ------------------------------------------------------------------
     # State machine (run/reset)
@@ -1064,7 +1102,9 @@ class CheckManager(
                     {
                         "state": "passed",
                         "t_key": "checks.no_results",
-                        "description": "No records were identified by this check",
+                        "description": (
+                            "No records were identified by this check"
+                        ),
                         "params": {},
                     }
                 )

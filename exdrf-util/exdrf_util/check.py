@@ -9,6 +9,7 @@ from typing import (
     List,
     Literal,
     Optional,
+    Tuple,
     TypeVar,
     Union,
 )
@@ -71,6 +72,11 @@ class CheckResult:
             but additional information can be added here. Note that these
             are NOT the parameters of the check.
         description: A description of the result.
+        links: A list of links related to this result. Each link is a tuple of
+            (resource_name, record_id, label, address) where resource_name is
+            the name of the resource, record_id is either an int or a tuple of
+            ints, label is the text to display for the link, and address is
+            the URL/path to navigate to when the link is clicked.
     """
 
     check_id: str
@@ -79,6 +85,9 @@ class CheckResult:
     t_key: str = field(default="", repr=False)
     params: Dict[str, Any] = field(factory=dict)
     description: str = field(default="", repr=False)
+    links: List[Tuple[str, Union[int, Tuple[int, ...]], str, str]] = field(
+        factory=list, repr=False
+    )
 
 
 @define(slots=True, kw_only=True)

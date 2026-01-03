@@ -51,6 +51,8 @@ class SerializedResultDict(TypedDict):
         description: Description of the result, computed by applying the
             translation key and parameters through the context's
             translation function.
+        links: Links associated with the result. Each link is a list of
+            [resource_name, record_id, label, address].
     """
 
     check_id: str
@@ -59,6 +61,7 @@ class SerializedResultDict(TypedDict):
     t_key: str
     params: Dict[str, Any]
     description: str
+    links: List[List[Any]]
 
 
 class ProgressMessage(TypedDict):
@@ -134,6 +137,7 @@ def _serialize_result(result) -> SerializedResultDict:
         "t_key": result.t_key,
         "params": dict(result.params),
         "description": result.description,
+        "links": [list(link) for link in getattr(result, "links", [])],
     }
 
 
