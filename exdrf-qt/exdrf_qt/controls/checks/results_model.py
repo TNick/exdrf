@@ -440,15 +440,24 @@ class ResultsModel(QAbstractItemModel, QtUseContext):
             by_cat.setdefault(category, {}).setdefault(e.check_id, []).append(e)
 
         for category in sorted(by_cat.keys(), key=lambda x: x.lower()):
-            cat_node = _Node(kind="category", title=category, parent=self._root)
+            # Count total results in this category.
+            cat_result_count = sum(len(v) for v in by_cat[category].values())
+            cat_title = f"{category} ({cat_result_count})"
+            cat_node = _Node(
+                kind="category", title=cat_title, parent=self._root
+            )
             self._root.children.append(cat_node)
 
             checks_map = by_cat[category]
             for check_id in sorted(checks_map.keys(), key=lambda x: x.lower()):
                 first = checks_map[check_id][0]
+                result_count = len(checks_map[check_id])
+                check_title = (
+                    f"{first.check_title or check_id} ({result_count})"
+                )
                 check_node = _Node(
                     kind="check",
-                    title=first.check_title or check_id,
+                    title=check_title,
                     parent=cat_node,
                 )
                 cat_node.children.append(check_node)

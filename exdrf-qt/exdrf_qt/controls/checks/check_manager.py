@@ -434,6 +434,23 @@ class CheckManager(
         menu.addAction(act_flat)
         menu.addSeparator()
 
+        # Expand/collapse actions (only enabled in grouped view).
+        act_expand_all = QAction(
+            self.t("results.expand_all", "Expand all"),
+            self,
+        )
+        act_collapse_all = QAction(
+            self.t("results.collapse_all", "Collapse all"),
+            self,
+        )
+        act_expand_all.triggered.connect(self.c_results.expandAll)
+        act_collapse_all.triggered.connect(self.c_results.collapseAll)
+        act_expand_all.setEnabled(mode == ResultsViewMode.GROUPED)
+        act_collapse_all.setEnabled(mode == ResultsViewMode.GROUPED)
+        menu.addAction(act_expand_all)
+        menu.addAction(act_collapse_all)
+        menu.addSeparator()
+
         act_sort_asc = QAction(
             self.t("results.sort.asc", "Sort ascending"),
             self,
@@ -1041,6 +1058,17 @@ class CheckManager(
             for r in res_list:
                 results.append(dict(r))
 
+            # If no results, add a synthetic "passed" entry indicating this.
+            if not results:
+                results.append(
+                    {
+                        "state": "passed",
+                        "t_key": "checks.no_results",
+                        "description": "No records were identified by this check",
+                        "params": {},
+                    }
+                )
+
             self.results_model.add_results(
                 check_id=check_id,
                 check_title=check_title,
@@ -1189,6 +1217,23 @@ class CheckManager(
         menu.addAction(act_flat)
         menu.addSeparator()
 
+        # Expand/collapse actions (only enabled in category view).
+        act_expand_all = QAction(
+            self.t("checks.expand_all", "Expand all"),
+            self,
+        )
+        act_collapse_all = QAction(
+            self.t("checks.collapse_all", "Collapse all"),
+            self,
+        )
+        act_expand_all.triggered.connect(self.c_available.expandAll)
+        act_collapse_all.triggered.connect(self.c_available.collapseAll)
+        act_expand_all.setEnabled(mode == ChecksViewMode.CATEGORY)
+        act_collapse_all.setEnabled(mode == ChecksViewMode.CATEGORY)
+        menu.addAction(act_expand_all)
+        menu.addAction(act_collapse_all)
+        menu.addSeparator()
+
         # Sorting.
         act_sort_asc = QAction(
             self.t("checks.sort.asc", "Sort by title (A→Z)"),
@@ -1244,6 +1289,23 @@ class CheckManager(
         )
         menu.addAction(act_category)
         menu.addAction(act_flat)
+        menu.addSeparator()
+
+        # Expand/collapse actions (only enabled in category view).
+        act_expand_all = QAction(
+            self.t("checks.expand_all", "Expand all"),
+            self,
+        )
+        act_collapse_all = QAction(
+            self.t("checks.collapse_all", "Collapse all"),
+            self,
+        )
+        act_expand_all.triggered.connect(self.c_selected.expandAll)
+        act_collapse_all.triggered.connect(self.c_selected.collapseAll)
+        act_expand_all.setEnabled(mode == ChecksViewMode.CATEGORY)
+        act_collapse_all.setEnabled(mode == ChecksViewMode.CATEGORY)
+        menu.addAction(act_expand_all)
+        menu.addAction(act_collapse_all)
         menu.addSeparator()
 
         # Sorting.

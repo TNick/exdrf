@@ -195,7 +195,7 @@ class Task:
         while not self.should_stop:
             try:
                 self.step += 1
-                if self.max_steps > 0 and self.step >= self.max_steps:
+                if self.max_steps > -1 and self.step >= self.max_steps:
                     break
                 self.prepare_step(ctx)
                 self.execute_step(ctx)
