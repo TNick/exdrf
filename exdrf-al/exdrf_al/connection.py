@@ -155,7 +155,7 @@ class DbConn:
 
     @contextmanager
     def session(self, auto_commit=False, add_to_stack: bool = True):
-        """Creates a new session which it then closes after use.
+        """Creates a new session which it then closed after use.
 
         The session is added to the internal stack on creation and removed on
         closing. If auto_commit is True, the session is committed after use.
@@ -320,8 +320,16 @@ class DbConn:
         )
         if not final_mig_loc:
             raise ValueError("Migration location is not set.")
+
+        # SQLite (and similar dialects) do not support schemas. Passing a schema
+        # causes Alembic to look for e.g. "public.alembic_version".
+        schema = (
+            self.schema
+            if self.engine.dialect.name in dialects_with_schema
+            else None
+        )
         return DbVer(
             engine=self.engine,
             migrations=final_mig_loc,
-            schema=self.schema,
+            schema=schema,
         )

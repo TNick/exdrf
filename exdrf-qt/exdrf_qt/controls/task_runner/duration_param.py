@@ -1,14 +1,16 @@
 from typing import TYPE_CHECKING, Optional, TypedDict, cast
 
-from PyQt5.QtWidgets import QDoubleSpinBox
+from PyQt5.QtWidgets import QDoubleSpinBox, QWidget
 
-from exdrf_qt.controls.task_runner.param_widget import ParamWidget
+from exdrf_qt.controls.task_runner.param_widget import (
+    HasParamRunner,
+    ParamWidget,
+)
 
 if TYPE_CHECKING:
     from exdrf_util.task import TaskParameter
 
     from exdrf_qt.context import QtContext
-    from exdrf_qt.controls.task_runner.task_runner import TaskRunner
 
 
 class DurationConfig(TypedDict, total=False):
@@ -33,15 +35,15 @@ class DurationParam(QDoubleSpinBox, ParamWidget):
     """
 
     ctx: "QtContext"
-    runner: "TaskRunner"
+    runner: "HasParamRunner"
     param: "TaskParameter"
 
     def __init__(
         self,
         ctx: "QtContext",
         param: "TaskParameter",
-        runner: "TaskRunner",
-        parent: Optional[QDoubleSpinBox] = None,
+        runner: "HasParamRunner",
+        parent: Optional[QWidget] = None,
     ):
         """Initialize the duration parameter widget.
 

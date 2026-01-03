@@ -1,33 +1,13 @@
 import re
 import threading
 from collections import OrderedDict
-from typing import TYPE_CHECKING, List, Optional, Tuple, cast
+from typing import TYPE_CHECKING, List, Optional, Tuple
 
-from exdrf.constants import (
-    FIELD_TYPE_BLOB,
-    FIELD_TYPE_BOOL,
-    FIELD_TYPE_DATE,
-    FIELD_TYPE_DT,
-    FIELD_TYPE_DURATION,
-    FIELD_TYPE_ENUM,
-    FIELD_TYPE_FLOAT,
-    FIELD_TYPE_FLOAT_LIST,
-    FIELD_TYPE_FORMATTED,
-    FIELD_TYPE_INT_LIST,
-    FIELD_TYPE_INTEGER,
-    FIELD_TYPE_REF_ONE_TO_MANY,
-    FIELD_TYPE_REF_ONE_TO_ONE,
-    FIELD_TYPE_STRING,
-    FIELD_TYPE_STRING_LIST,
-    FIELD_TYPE_TIME,
-)
 from exdrf_util.task import Task, TaskState
-from PyQt5.QtCore import Qt, QThread, pyqtSignal
+from PyQt5.QtCore import QThread, pyqtSignal
 from PyQt5.QtWidgets import (
     QButtonGroup,
     QDialog,
-    QFormLayout,
-    QLabel,
     QMessageBox,
     QPushButton,
     QVBoxLayout,
@@ -35,6 +15,7 @@ from PyQt5.QtWidgets import (
 )
 
 from exdrf_qt.context_use import QtUseContext
+from exdrf_qt.controls.param_controls import TaskParameterControlsMixin
 from exdrf_qt.controls.task_runner.task_runner_ui import Ui_TaskRunner
 
 if TYPE_CHECKING:
@@ -102,7 +83,9 @@ class QThreadVehicle(QThread):
             self.task.on_state_changed.remove(self._on_state_changed)
 
 
-class TaskRunner(QWidget, QtUseContext, Ui_TaskRunner):
+class TaskRunner(
+    QWidget, QtUseContext, Ui_TaskRunner, TaskParameterControlsMixin
+):
     """A widget that allows the user to run a task."""
 
     task: "Task"
@@ -295,164 +278,16 @@ class TaskRunner(QWidget, QtUseContext, Ui_TaskRunner):
             self.create_page_for_category(category, parameters, b_index)
             b_index += 1
 
-    def create_bool_control(self, param: "TaskParameter") -> QWidget:
-        """Create a control for a boolean parameter."""
-        from exdrf_qt.controls.task_runner.bool_param import BoolParam
+    def _register_parameter_widget(
+        self, param: "TaskParameter", widget: QWidget
+    ) -> None:
+        """Track created parameter widgets for later validation.
 
-        return BoolParam(ctx=self.ctx, param=param, runner=self, parent=self)
-
-    def create_string_control(self, param: "TaskParameter") -> QWidget:
-        """Create a control for a string parameter."""
-        from exdrf_qt.controls.task_runner.str_param import StrParam
-
-        widget = StrParam(ctx=self.ctx, param=param, runner=self, parent=self)
-        return widget.get_widget()
-
-    def create_integer_control(self, param: "TaskParameter") -> QWidget:
-        """Create a control for an integer parameter."""
-        from exdrf_qt.controls.task_runner.int_param import IntParam
-
-        widget = IntParam(ctx=self.ctx, param=param, runner=self, parent=self)
-        return widget.get_widget()
-
-    def create_float_control(self, param: "TaskParameter") -> QWidget:
-        """Create a control for a float parameter."""
-        from exdrf_qt.controls.task_runner.float_param import FloatParam
-
-        widget = FloatParam(ctx=self.ctx, param=param, runner=self, parent=self)
-        return widget.get_widget()
-
-    def create_date_control(self, param: "TaskParameter") -> QWidget:
-        """Create a control for a date parameter."""
-        from exdrf_qt.controls.task_runner.date_param import DateParam
-
-        return DateParam(ctx=self.ctx, param=param, runner=self, parent=self)
-
-    def create_dt_control(self, param: "TaskParameter") -> QWidget:
-        """Create a control for a datetime parameter."""
-        from exdrf_qt.controls.task_runner.datetime_param import DateTimeParam
-
-        return DateTimeParam(
-            ctx=self.ctx, param=param, runner=self, parent=self
-        )
-
-    def create_time_control(self, param: "TaskParameter") -> QWidget:
-        """Create a control for a time parameter."""
-        from exdrf_qt.controls.task_runner.time_param import TimeParam
-
-        return TimeParam(ctx=self.ctx, param=param, runner=self, parent=self)
-
-    def create_duration_control(self, param: "TaskParameter") -> QWidget:
-        """Create a control for a duration parameter."""
-        from exdrf_qt.controls.task_runner.duration_param import DurationParam
-
-        return DurationParam(
-            ctx=self.ctx, param=param, runner=self, parent=self
-        )
-
-    def create_enum_control(self, param: "TaskParameter") -> QWidget:
-        """Create a control for an enum parameter."""
-        from exdrf_qt.controls.task_runner.enum_param import EnumParam
-
-        return EnumParam(ctx=self.ctx, param=param, runner=self, parent=self)
-
-    def create_formatted_control(self, param: "TaskParameter") -> QWidget:
-        """Create a control for a formatted parameter."""
-        from exdrf_qt.controls.task_runner.formatted_param import FormattedParam
-
-        return FormattedParam(
-            ctx=self.ctx, param=param, runner=self, parent=self
-        )
-
-    def create_blob_control(self, param: "TaskParameter") -> QWidget:
-        """Create a control for a blob parameter."""
-        from exdrf_qt.controls.task_runner.blob_param import BlobParam
-
-        return BlobParam(ctx=self.ctx, param=param, runner=self, parent=self)
-
-    def create_string_list_control(self, param: "TaskParameter") -> QWidget:
-        """Create a control for a string list parameter."""
-        from exdrf_qt.controls.task_runner.str_list_param import StrListParam
-
-        return StrListParam(ctx=self.ctx, param=param, runner=self, parent=self)
-
-    def create_int_list_control(self, param: "TaskParameter") -> QWidget:
-        """Create a control for an integer list parameter."""
-        from exdrf_qt.controls.task_runner.int_list_param import IntListParam
-
-        return IntListParam(ctx=self.ctx, param=param, runner=self, parent=self)
-
-    def create_float_list_control(self, param: "TaskParameter") -> QWidget:
-        """Create a control for a float list parameter."""
-        from exdrf_qt.controls.task_runner.float_list_param import (
-            FloatListParam,
-        )
-
-        return FloatListParam(
-            ctx=self.ctx, param=param, runner=self, parent=self
-        )
-
-    def create_ref_one_to_one_control(self, param: "TaskParameter") -> QWidget:
-        """Create a control for a one-to-one reference parameter."""
-        from exdrf_qt.controls.task_runner.ref_one_param import (
-            RefOneToOneParam,
-        )
-
-        return RefOneToOneParam(
-            ctx=self.ctx, param=param, runner=self, parent=self
-        )
-
-    def create_ref_one_to_many_control(self, param: "TaskParameter") -> QWidget:
-        """Create a control for a one-to-many reference parameter."""
-        from exdrf_qt.controls.task_runner.ref_many_param import (
-            RefOneToManyParam,
-        )
-
-        return RefOneToManyParam(
-            ctx=self.ctx, param=param, runner=self, parent=self
-        )
-
-    def create_control_for_parameter(
-        self, param: "TaskParameter", parent: Optional[QWidget] = None
-    ):
-        """Create a control for a parameter."""
-        if param.type_name == FIELD_TYPE_BOOL:
-            w = self.create_bool_control(param)
-        elif param.type_name == FIELD_TYPE_STRING:
-            w = self.create_string_control(param)
-        elif param.type_name == FIELD_TYPE_INTEGER:
-            w = self.create_integer_control(param)
-        elif param.type_name == FIELD_TYPE_FLOAT:
-            w = self.create_float_control(param)
-        elif param.type_name == FIELD_TYPE_DATE:
-            w = self.create_date_control(param)
-        elif param.type_name == FIELD_TYPE_DT:
-            w = self.create_dt_control(param)
-        elif param.type_name == FIELD_TYPE_TIME:
-            w = self.create_time_control(param)
-        elif param.type_name == FIELD_TYPE_DURATION:
-            w = self.create_duration_control(param)
-        elif param.type_name == FIELD_TYPE_ENUM:
-            w = self.create_enum_control(param)
-        elif param.type_name == FIELD_TYPE_FORMATTED:
-            w = self.create_formatted_control(param)
-        elif param.type_name == FIELD_TYPE_BLOB:
-            w = self.create_blob_control(param)
-        elif param.type_name == FIELD_TYPE_REF_ONE_TO_MANY:
-            w = self.create_ref_one_to_many_control(param)
-        elif param.type_name == FIELD_TYPE_REF_ONE_TO_ONE:
-            w = self.create_ref_one_to_one_control(param)
-        elif param.type_name == FIELD_TYPE_STRING_LIST:
-            w = self.create_string_list_control(param)
-        elif param.type_name == FIELD_TYPE_INT_LIST:
-            w = self.create_int_list_control(param)
-        elif param.type_name == FIELD_TYPE_FLOAT_LIST:
-            w = self.create_float_list_control(param)
-        else:
-            raise ValueError(f"Invalid type: {param.type_name}")
-
-        self.params.append((param, w))
-        return w
+        Args:
+            param: The parameter definition.
+            widget: The created widget.
+        """
+        self.params.append((param, widget))
 
     def create_page_for_category(
         self,
@@ -461,40 +296,8 @@ class TaskRunner(QWidget, QtUseContext, Ui_TaskRunner):
         b_index: int,
     ):
         """Create a page and its tab button for a category."""
-        # The page to be inserted in the stack and its layout.
-        page = QWidget()
-        lay = QFormLayout()
-        lay.setContentsMargins(2, 2, 2, 2)
-        lay.setSpacing(2)
-        page.setLayout(lay)
-
-        label_font = None
-
-        for parameter in controls.values():
-            lay.addRow(
-                parameter.title, self.create_control_for_parameter(parameter)
-            )
-            if parameter.description:
-                # Add the description right beneath the control.
-                lbl = QLabel(parameter.description, self)
-                lbl.setTextInteractionFlags(
-                    cast(
-                        "Qt.TextInteractionFlags",
-                        Qt.TextInteractionFlag.TextSelectableByMouse
-                        | Qt.TextInteractionFlag.TextSelectableByKeyboard,
-                    )
-                )
-                lbl.setWordWrap(True)
-
-                # Set italic font
-                if label_font is None:
-                    label_font = lbl.font()
-                    label_font.setItalic(True)
-                lbl.setFont(label_font)
-
-                # Add 2px margin beneath the label
-                lbl.setContentsMargins(0, 0, 0, 2)
-                lay.addRow(lbl)
+        # The page to be inserted in the stack.
+        page = self.create_parameters_page(controls)
 
         # The tab button for the page.
         btn = QPushButton(title, self)

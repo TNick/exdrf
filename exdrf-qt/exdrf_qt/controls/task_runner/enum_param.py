@@ -1,14 +1,16 @@
 from typing import TYPE_CHECKING, List, Optional, Tuple, TypedDict, cast
 
-from PyQt5.QtWidgets import QComboBox
+from PyQt5.QtWidgets import QComboBox, QWidget
 
-from exdrf_qt.controls.task_runner.param_widget import ParamWidget
+from exdrf_qt.controls.task_runner.param_widget import (
+    HasParamRunner,
+    ParamWidget,
+)
 
 if TYPE_CHECKING:
     from exdrf_util.task import TaskParameter
 
     from exdrf_qt.context import QtContext
-    from exdrf_qt.controls.task_runner.task_runner import TaskRunner
 
 
 class EnumConfig(TypedDict, total=False):
@@ -31,15 +33,15 @@ class EnumParam(QComboBox, ParamWidget):
     """
 
     ctx: "QtContext"
-    runner: "TaskRunner"
+    runner: "HasParamRunner"
     param: "TaskParameter"
 
     def __init__(
         self,
         ctx: "QtContext",
         param: "TaskParameter",
-        runner: "TaskRunner",
-        parent: Optional[QComboBox] = None,
+        runner: "HasParamRunner",
+        parent: Optional[QWidget] = None,
     ):
         """Initialize the enum parameter widget.
 

@@ -254,6 +254,12 @@ class QtModel(
         The function clears the cache and resets the total count.
         """
         self.beginResetModel()
+
+        # Clear any pending requests so late callbacks from previous state are
+        # ignored after the cache is reset.
+        self.requests.clear()
+        self.uniq_gen = 0
+
         self.cache.clear()
         self._db_to_row = {}
         self._total_count = -1
@@ -586,8 +592,27 @@ class QtModel(
                 str(work.error),
             )
         else:
+
+            # Clamp the number of items to what we actually received to avoid
+            # indexing past the result list when the backend returns fewer rows
+            # than requested (e.g. concurrent resets or changes in selection).
+            available = min(
+                req.count,
+                len(work.result),
+                max(0, len(self.cache) - req.start),
+            )
+            if available < req.count:
+                logger.debug(
+                    "Request %s returned fewer rows than requested "
+                    "(asked=%d, got=%d, cache=%d).",
+                    req.uniq_id,
+                    req.count,
+                    len(work.result),
+                    len(self.cache),
+                )
+
             loaded_update = 0
-            for i in range(req.start, req.start + req.count):
+            for i in range(req.start, req.start + available):
                 old_record = cast("QtRecord", self.cache[i])
                 new_record = cast("QtRecord", work.result[i - req.start])
                 if not old_record.loaded:
@@ -607,7 +632,7 @@ class QtModel(
         self.dataChanged.emit(
             self.createIndex(req.start, 0),
             self.createIndex(
-                req.start + req.count - 1, len(self.column_fields) - 1
+                req.start + available - 1, len(self.column_fields) - 1
             ),
         )
 

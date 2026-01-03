@@ -10,13 +10,15 @@ from PyQt5.QtWidgets import (
 )
 
 from exdrf_qt.controls.task_runner.int_param import IntConfig
-from exdrf_qt.controls.task_runner.param_widget import ParamWidget
+from exdrf_qt.controls.task_runner.param_widget import (
+    HasParamRunner,
+    ParamWidget,
+)
 
 if TYPE_CHECKING:
     from exdrf_util.task import TaskParameter
 
     from exdrf_qt.context import QtContext
-    from exdrf_qt.controls.task_runner.task_runner import TaskRunner
 
 
 class IntListParam(QWidget, ParamWidget):
@@ -33,7 +35,7 @@ class IntListParam(QWidget, ParamWidget):
     """
 
     ctx: "QtContext"
-    runner: "TaskRunner"
+    runner: "HasParamRunner"
     param: "TaskParameter"
 
     _list: QListWidget
@@ -45,7 +47,7 @@ class IntListParam(QWidget, ParamWidget):
         self,
         ctx: "QtContext",
         param: "TaskParameter",
-        runner: "TaskRunner",
+        runner: "HasParamRunner",
         parent: Optional[QWidget] = None,
     ):
         """Initialize the integer list parameter widget.

@@ -9,13 +9,15 @@ from PyQt5.QtWidgets import (
     QWidget,
 )
 
-from exdrf_qt.controls.task_runner.param_widget import ParamWidget
+from exdrf_qt.controls.task_runner.param_widget import (
+    HasParamRunner,
+    ParamWidget,
+)
 
 if TYPE_CHECKING:
     from exdrf_util.task import TaskParameter
 
     from exdrf_qt.context import QtContext
-    from exdrf_qt.controls.task_runner.task_runner import TaskRunner
 
 
 class StrListParam(QWidget, ParamWidget):
@@ -32,7 +34,7 @@ class StrListParam(QWidget, ParamWidget):
     """
 
     ctx: "QtContext"
-    runner: "TaskRunner"
+    runner: "HasParamRunner"
     param: "TaskParameter"
 
     _list: QListWidget
@@ -44,7 +46,7 @@ class StrListParam(QWidget, ParamWidget):
         self,
         ctx: "QtContext",
         param: "TaskParameter",
-        runner: "TaskRunner",
+        runner: "HasParamRunner",
         parent: Optional[QWidget] = None,
     ):
         super().__init__(parent)

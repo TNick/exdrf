@@ -36,6 +36,9 @@ if TYPE_CHECKING:
     from sqlalchemy import Select  # noqa: F401
     from sqlalchemy.orm import Session
 
+    from exdrf_qt.utils.t_collector import TranslateCollector
+
+
 # Default logging configuration
 DEFAULT_LOGGING = {
     "version": 1,
@@ -78,7 +81,119 @@ DEFAULT_LOGGING = {
 
 
 @define
-class QtContext(DbConn):
+class QtMinContext(DbConn):
+    """A bare-metal context.
+
+    Attributes:
+        stg: The local read-write settings.
+        data: A dictionary of general-purpose data. Provided to the templates
+            via the `api_point` variable.
+    """
+
+    stg: LocalSettings = field(factory=LocalSettings)
+    data: AttrDict = field(factory=AttrDict)
+
+    def __attrs_post_init__(self):
+        self.setup_logging()
+
+        # Attempt to load the last used connection from settings before
+        # notifying plugins, so they can find an initialized DB context.
+        if not self.c_string:
+            try:
+                self._load_last_used_db_config()
+            except Exception as e:
+                logging.getLogger(__name__).error(
+                    "Failed to load last used DB config: %s", e, exc_info=True
+                )
+
+    def setup_logging(self):
+        """Setup logging."""
+        log_stg = self.stg.get_setting("logging")
+        if log_stg is None:
+            log_stg = DEFAULT_LOGGING.copy()
+            log_stg["handlers"]["file"]["filename"] = os.path.join(
+                os.path.dirname(self.stg.settings_file()), "exdrf.log"
+            )
+            self.stg.set_setting("logging", log_stg)
+
+        # Apply the configuration
+        logging.config.dictConfig(thaw(log_stg))
+
+        logger = logging.getLogger(__name__)
+        logger.debug("Logging has been setup")
+
+    # Internal helpers
+    def _load_last_used_db_config(self) -> None:
+        """Load last used DB connection from settings into the context.
+
+        Looks up the id saved under `exdrf.db.crt_connection`, finds the
+        matching entry in `exdrf.db.c_strings`, and if present applies its
+        connection string and schema.
+        """
+        # Read the last used connection id
+        last_id = self.stg.get_setting("exdrf.db.crt_connection")
+        if not last_id:
+            return
+
+        # Search the configured connections
+        try:
+            for item in self.stg.get_db_configs():
+                if item.get("id") == last_id:
+                    c_string = item.get("c_string", "")
+                    schema = item.get("schema", "public")
+                    if c_string:
+                        self.set_db_string(c_string=c_string, schema=schema)
+                    return
+        except Exception as e:
+            logging.getLogger(__name__).error(
+                "Error while loading saved DB config: %s", e, exc_info=True
+            )
+
+    def set_db_string(self, c_string: str, schema: str = "public") -> None:
+        """Sets the database connection string.
+
+        All current connections will be closed. The worker thread will be
+        asked to stop and a new relay will be created.
+
+        Args:
+            c_string: The database connection string.
+        """
+        self.close()
+
+        self.c_string = c_string  # type: ignore
+        self.schema = schema  # type: ignore
+        logging.getLogger(__name__).debug(
+            "Database connection string set to %s with schema %s",
+            self.c_string,
+            self.schema,
+        )
+
+    def t(self, key: str, d: str, **kwargs: Any) -> str:
+        """Translates a string using the context.
+
+        The default implementation does not perform any translation. It simply
+        formats the default string with the given arguments.
+
+        Args:
+            key: The translation key.
+            d: The default string if translation is not found.
+            **kwargs: Additional arguments for translation string.
+
+        Returns:
+            The translated string.
+        """
+        return d.format(**kwargs)
+
+    def bootstrap(self) -> bool:
+        """Prepare the database for use."""
+        from exdrf_al.base import Base
+
+        self.create_all_tables(Base)
+        return True
+
+
+@define
+class QtContext(QtMinContext):
     """Provides a context for Qt application classes.
 
     It is used to manage the database and the application state.
@@ -93,8 +208,6 @@ class QtContext(DbConn):
         overrides: A dictionary of general-purpose overrides. You add values
             through the `set_ovr` method and retrieve them through the
             `get_ovr` method.
-        data: A dictionary of general-purpose data. Passes into the
-            api_point variable to the templates.
         router: The router for the application. Provides the ability for
             the application to open widgets using only a string url.
     """
@@ -102,29 +215,27 @@ class QtContext(DbConn):
     top_widget: "QWidget" = cast("QWidget", None)
     work_relay: Optional[Relay] = None
     asset_sources: List[str] = field(factory=lambda: ["exdrf_qt.assets"])
-    stg: LocalSettings = field(factory=LocalSettings)
     _overrides: Dict[str, Any] = field(factory=dict)
-    data: AttrDict = field(factory=AttrDict)
     router: "ExdrfRouter" = field(default=None)
+    t_collector: "TranslateCollector" = field(default=None)
 
     def __attrs_post_init__(self):
+        super().__attrs_post_init__()
+
         if self.router is None:
             self.router = ExdrfRouter(
                 ctx=self,
                 base_path="exdrf://navigation/resource",
             )
 
-        self.setup_logging()
+        # Collect strings to translate.
+        collect_file_path = os.environ.get(
+            "EXDRF_TRANSLATE_COLLECTOR_FILE", None
+        )
+        if collect_file_path:
+            from exdrf_qt.utils.t_collector import TranslateCollector
 
-        # Attempt to load the last used connection from settings before
-        # notifying plugins, so they can find an initialized DB context.
-        if not self.c_string:
-            try:
-                self._load_last_used_db_config()
-            except Exception as e:
-                logging.getLogger(__name__).error(
-                    "Failed to load last used DB config: %s", e, exc_info=True
-                )
+            self.t_collector = TranslateCollector()
 
         # Inform plugins that the context has been created.
         safe_hook_call(exdrf_qt_pm.hook.context_created, context=self)
@@ -179,6 +290,24 @@ class QtContext(DbConn):
                 self.top_widget.mdi_area.setActiveSubWindow(subwindow)
                 break
 
+    def t(self, key: str, d: str, **kwargs: Any) -> str:
+        """Translates a string using the context.
+
+        The default implementation does not perform any translation. It simply
+        formats the default string with the given arguments.
+
+        Args:
+            key: The translation key.
+            d: The default string if translation is not found.
+            **kwargs: Additional arguments for translation string.
+
+        Returns:
+            The translated string.
+        """
+        if self.t_collector:
+            return self.t_collector.t(key, d, **kwargs)
+        return d.format(**kwargs)
+
     def set_db_string(self, c_string: str, schema: str = "public") -> None:
         """Sets the database connection string.
 
@@ -217,10 +346,6 @@ class QtContext(DbConn):
             logging.getLogger(__name__).error(
                 "Failed to persist current DB config id: %s", e, exc_info=True
             )
-
-    def db_config_id(self) -> str:
-        """Get the ID of the current database configuration."""
-        return self.stg.get_db_configs()[0]["id"]
 
     @overload
     def push_work(self, work: "Work") -> "Work": ...
@@ -351,45 +476,6 @@ class QtContext(DbConn):
             f"Icon file `{name}.png` not found in any asset source"
         )
 
-    def t(self, key: str, d: str, **kwargs: Any) -> str:
-        """Translates a string using the context.
-
-        The default implementation does not perform any translation. It simply
-        formats the default string with the given arguments.
-
-        Args:
-            key: The translation key.
-            d: The default string if translation is not found.
-            **kwargs: Additional arguments for translation string.
-
-        Returns:
-            The translated string.
-        """
-        return d.format(**kwargs)
-
-    def bootstrap(self) -> bool:
-        """Prepare the database for use."""
-        from exdrf_al.base import Base
-
-        self.create_all_tables(Base)
-        return True
-
-    def setup_logging(self):
-        """Setup logging."""
-        log_stg = self.stg.get_setting("logging")
-        if log_stg is None:
-            log_stg = DEFAULT_LOGGING.copy()
-            log_stg["handlers"]["file"]["filename"] = os.path.join(
-                os.path.dirname(self.stg.settings_file()), "exdrf.log"
-            )
-            self.stg.set_setting("logging", log_stg)
-
-        # Apply the configuration
-        logging.config.dictConfig(thaw(log_stg))
-
-        logger = logging.getLogger(__name__)
-        logger.debug("Logging has been setup")
-
     def get_ovr(
         self,
         key: str,
@@ -462,33 +548,6 @@ class QtContext(DbConn):
             schema=self.schema,
             create=True,
         )
-
-    # Internal helpers
-    def _load_last_used_db_config(self) -> None:
-        """Load last used DB connection from settings into the context.
-
-        Looks up the id saved under `exdrf.db.crt_connection`, finds the
-        matching entry in `exdrf.db.c_strings`, and if present applies its
-        connection string and schema.
-        """
-        # Read the last used connection id
-        last_id = self.stg.get_setting("exdrf.db.crt_connection")
-        if not last_id:
-            return
-
-        # Search the configured connections
-        try:
-            for item in self.stg.get_db_configs():
-                if item.get("id") == last_id:
-                    c_string = item.get("c_string", "")
-                    schema = item.get("schema", "public")
-                    if c_string:
-                        self.set_db_string(c_string=c_string, schema=schema)
-                    return
-        except Exception as e:
-            logging.getLogger(__name__).error(
-                "Error while loading saved DB config: %s", e, exc_info=True
-            )
 
 
 @contextmanager

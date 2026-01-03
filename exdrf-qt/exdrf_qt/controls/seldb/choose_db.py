@@ -27,6 +27,11 @@ class ChooseDb(QComboBox, QtUseContext):
         """Populate the combobox with database connections."""
         model = self.model()
         assert isinstance(model, DbConfigModel)
-        model.populate_db_connections()
+        current_id = model.populate_db_connections()
+
+        if current_id:
+            index = model.find_config_index(current_id)
+            if index is not None:
+                self.setCurrentIndex(index.row())
 
         return model

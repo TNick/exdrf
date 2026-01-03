@@ -1,14 +1,16 @@
 from typing import TYPE_CHECKING, List, Optional, Tuple, TypedDict, cast
 
-from PyQt5.QtWidgets import QComboBox, QSpinBox
+from PyQt5.QtWidgets import QComboBox, QSpinBox, QWidget
 
-from exdrf_qt.controls.task_runner.param_widget import ParamWidget
+from exdrf_qt.controls.task_runner.param_widget import (
+    HasParamRunner,
+    ParamWidget,
+)
 
 if TYPE_CHECKING:
     from exdrf_util.task import TaskParameter
 
     from exdrf_qt.context import QtContext
-    from exdrf_qt.controls.task_runner.task_runner import TaskRunner
 
 
 class IntConfig(TypedDict, total=False):
@@ -41,7 +43,7 @@ class IntParam(QSpinBox, ParamWidget):
     """
 
     ctx: "QtContext"
-    runner: "TaskRunner"
+    runner: "HasParamRunner"
     param: "TaskParameter"
 
     _enum_widget: Optional[QComboBox]
@@ -50,8 +52,8 @@ class IntParam(QSpinBox, ParamWidget):
         self,
         ctx: "QtContext",
         param: "TaskParameter",
-        runner: "TaskRunner",
-        parent: Optional[QSpinBox] = None,
+        runner: "HasParamRunner",
+        parent: Optional[QWidget] = None,
     ):
         super().__init__(parent)
         self.ctx = ctx

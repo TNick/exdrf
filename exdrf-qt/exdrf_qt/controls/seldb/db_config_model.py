@@ -165,8 +165,12 @@ class DbConfigModel(QStandardItemModel, QtUseContext):
                 return index
         return None
 
-    def populate_db_connections(self):
-        """Populate the combobox with database connections."""
+    def populate_db_connections(self) -> Optional[str]:
+        """Populate the combobox with database connections.
+
+        Returns:
+            The ID of the current connection if it was added, otherwise None.
+        """
         from exdrf_qt.controls.seldb.utils import parse_sqlalchemy_conn_str
 
         self.clear()
@@ -181,10 +185,10 @@ class DbConfigModel(QStandardItemModel, QtUseContext):
                 self.ctx.c_string, self.ctx.schema
             )
             if not found:
-
+                found = "current"
                 current_config = {
                     **parse_sqlalchemy_conn_str(self.ctx.c_string),
-                    "id": "current",
+                    "id": found,
                     "name": self.ctx.t(
                         "excel.dialog.current_connection", "Current"
                     ),
@@ -214,3 +218,5 @@ class DbConfigModel(QStandardItemModel, QtUseContext):
                 # Set config data
                 item.setData(current_config, Qt.ItemDataRole.UserRole)
                 self.insertRow(0, item)
+            return found
+        return None

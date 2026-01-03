@@ -1,14 +1,16 @@
 from typing import TYPE_CHECKING, List, Optional, Tuple, TypedDict, cast
 
-from PyQt5.QtWidgets import QComboBox, QDoubleSpinBox
+from PyQt5.QtWidgets import QComboBox, QDoubleSpinBox, QWidget
 
-from exdrf_qt.controls.task_runner.param_widget import ParamWidget
+from exdrf_qt.controls.task_runner.param_widget import (
+    HasParamRunner,
+    ParamWidget,
+)
 
 if TYPE_CHECKING:
     from exdrf_util.task import TaskParameter
 
     from exdrf_qt.context import QtContext
-    from exdrf_qt.controls.task_runner.task_runner import TaskRunner
 
 
 class FloatConfig(TypedDict, total=False):
@@ -45,7 +47,7 @@ class FloatParam(QDoubleSpinBox, ParamWidget):
     """
 
     ctx: "QtContext"
-    runner: "TaskRunner"
+    runner: "HasParamRunner"
     param: "TaskParameter"
 
     _enum_widget: Optional[QComboBox]
@@ -54,8 +56,8 @@ class FloatParam(QDoubleSpinBox, ParamWidget):
         self,
         ctx: "QtContext",
         param: "TaskParameter",
-        runner: "TaskRunner",
-        parent: Optional[QDoubleSpinBox] = None,
+        runner: "HasParamRunner",
+        parent: Optional[QWidget] = None,
     ):
         """Initialize the float parameter widget.
 

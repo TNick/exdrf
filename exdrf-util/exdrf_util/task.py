@@ -7,7 +7,7 @@ from attrs import define, field
 from exdrf.field import ExFieldBase
 
 if TYPE_CHECKING:
-    from exdrf_qt.context import QtContext
+    from exdrf_util.typedefs import HasBasicContext, HasTranslate
 
 logger = logging.getLogger(__name__)
 
@@ -119,29 +119,35 @@ class Task:
     global_session: bool = field(default=True, repr=False)
     data: Dict[str, Any] = field(factory=dict, repr=False)
 
-    def get_success_message(self, ctx: "QtContext") -> str:
+    def get_success_message(self, ctx: "HasTranslate") -> str:
         """Get the success message for the task."""
         return ctx.t("task.success", "Task completed successfully.")
 
-    def get_failed_message(self, ctx: "QtContext") -> str:
+    def get_failed_message(self, ctx: "HasTranslate") -> str:
         """Get the failed message for the task."""
         return ctx.t("task.failed", "Task failed.")
 
-    def prepare(self, ctx: "QtContext") -> bool:
+    def prepare_task(self, ctx: "HasTranslate") -> bool:
         """Prepare the task."""
         return True
 
-    def cleanup(self, ctx: "QtContext") -> bool:
+    def cleanup_task(self, ctx: "HasTranslate") -> bool:
         """Cleanup the task."""
         return True
 
-    def execute_step(self, ctx: "QtContext") -> Any:
+    def prepare_step(self, ctx: "HasTranslate") -> None:
+        """Prepare the task."""
+
+    def cleanup_step(self, ctx: "HasTranslate") -> None:
+        """Cleanup the task."""
+
+    def execute_step(self, ctx: "HasTranslate") -> Any:
         """Execute one step in the task."""
         raise NotImplementedError("Subclasses must implement this method.")
 
     def handle_exception(
         self,
-        ctx: "QtContext",
+        ctx: "HasTranslate",
         e: Exception,
         stage: Literal["prepare", "execute", "cleanup"],
     ) -> bool:
@@ -155,7 +161,7 @@ class Task:
         )
         return False
 
-    def execute(self, ctx: "QtContext") -> Any:
+    def execute(self, ctx: "HasBasicContext") -> None:
         """Execute the task."""
         logger.debug("Executing task %s", self.title)
 
@@ -172,11 +178,14 @@ class Task:
         self.progress = 100
         logger.debug("Task %s finished with state %s", self.title, self.state)
 
-    def _execute(self, ctx: "QtContext") -> Any:
+    def _execute(self, ctx: "HasTranslate") -> Any:
         # Initialization stage.
         try:
-            prepare_result = self.prepare(ctx)
+            prepare_result = self.prepare_task(ctx)
         except Exception as e:
+            logger.error(
+                "Error preparing task %s: %s", self.title, e, exc_info=True
+            )
             prepare_result = self.handle_exception(ctx, e, "prepare")
         if not prepare_result:
             self.state = TaskState.FAILED
@@ -186,10 +195,23 @@ class Task:
         while not self.should_stop:
             try:
                 self.step += 1
+                if self.max_steps > 0 and self.step >= self.max_steps:
+                    break
+                self.prepare_step(ctx)
                 self.execute_step(ctx)
+                self.cleanup_step(ctx)
                 if self.max_steps > 0:
                     self.progress = int(self.step / self.max_steps * 100)
+            except IndexError:
+                break
             except Exception as e:
+                logger.error(
+                    "Error executing step %s of task %s: %s",
+                    self.step,
+                    self.title,
+                    e,
+                    exc_info=True,
+                )
                 if self.handle_exception(ctx, e, "execute"):
                     continue
 
@@ -198,8 +220,11 @@ class Task:
 
         # Cleanup stage.
         try:
-            cleanup_result = self.cleanup(ctx)
+            cleanup_result = self.cleanup_task(ctx)
         except Exception as e:
+            logger.error(
+                "Error cleaning up task %s: %s", self.title, e, exc_info=True
+            )
             cleanup_result = self.handle_exception(ctx, e, "cleanup")
         if not cleanup_result:
             self.state = TaskState.FAILED
@@ -234,17 +259,17 @@ class FuncTask(Task):
 
     success_message: str = field(default="", repr=False)
     failed_message: str = field(default="", repr=False)
-    prepare_func: Optional[Callable[["FuncTask", "QtContext"], bool]] = field(
-        default=None, repr=False
+    prepare_func: Optional[Callable[["FuncTask", "HasTranslate"], bool]] = (
+        field(default=None, repr=False)
     )
-    cleanup_func: Optional[Callable[["FuncTask", "QtContext"], bool]] = field(
-        default=None, repr=False
+    cleanup_func: Optional[Callable[["FuncTask", "HasTranslate"], bool]] = (
+        field(default=None, repr=False)
     )
-    step_func: Callable[["FuncTask", "QtContext"], Any] = field(
+    step_func: Callable[["FuncTask", "HasTranslate"], Any] = field(
         default=None, repr=False
     )
 
-    def get_success_message(self, ctx: "QtContext") -> str:
+    def get_success_message(self, ctx: "HasTranslate") -> str:
         """Get the success message for the task."""
         return (
             self.success_message
@@ -252,7 +277,7 @@ class FuncTask(Task):
             else super().get_success_message(ctx)
         )
 
-    def get_failed_message(self, ctx: "QtContext") -> str:
+    def get_failed_message(self, ctx: "HasTranslate") -> str:
         """Get the failed message for the task."""
         return (
             self.failed_message
@@ -260,23 +285,23 @@ class FuncTask(Task):
             else super().get_failed_message(ctx)
         )
 
-    def prepare(self, ctx: "QtContext") -> bool:
+    def prepare(self, ctx: "HasTranslate") -> bool:
         """Prepare the task."""
         if self.prepare_func:
             return self.prepare_func(self, ctx)
         return True
 
-    def cleanup(self, ctx: "QtContext") -> bool:
+    def cleanup(self, ctx: "HasTranslate") -> bool:
         """Cleanup the task."""
         return self.cleanup_func(self, ctx) if self.cleanup_func else True
 
-    def execute_step(self, ctx: "QtContext") -> None:
+    def execute_step(self, ctx: "HasTranslate") -> None:
         """Execute one step in the task."""
         self.step_func(self, ctx)
 
     def handle_exception(
         self,
-        ctx: "QtContext",
+        ctx: "HasTranslate",
         e: Exception,
         stage: Literal["prepare", "execute", "cleanup"],
     ) -> bool:

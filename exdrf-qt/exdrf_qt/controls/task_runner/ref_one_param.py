@@ -1,13 +1,17 @@
 from typing import TYPE_CHECKING, Any, Callable, Optional, TypedDict, cast
 
-from exdrf_qt.controls.task_runner.param_widget import ParamWidget
+from PyQt5.QtWidgets import QWidget
+
+from exdrf_qt.controls.task_runner.param_widget import (
+    HasParamRunner,
+    ParamWidget,
+)
 from exdrf_qt.field_ed.fed_sel_one import DrfSelOneEditor
 
 if TYPE_CHECKING:
     from exdrf_util.task import TaskParameter
 
     from exdrf_qt.context import QtContext
-    from exdrf_qt.controls.task_runner.task_runner import TaskRunner
     from exdrf_qt.models import QtModel
 
 
@@ -37,15 +41,15 @@ class RefOneToOneParam(DrfSelOneEditor, ParamWidget):
     """
 
     ctx: "QtContext"
-    runner: "TaskRunner"
+    runner: "HasParamRunner"
     param: "TaskParameter"
 
     def __init__(
         self,
         ctx: "QtContext",
         param: "TaskParameter",
-        runner: "TaskRunner",
-        parent: Optional[DrfSelOneEditor] = None,
+        runner: "HasParamRunner",
+        parent: Optional[QWidget] = None,
     ):
         """Initialize the one-to-one reference parameter widget.
 

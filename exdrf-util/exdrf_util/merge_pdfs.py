@@ -40,8 +40,8 @@ def merge_pdf_files(
         doc: fitz.Document = fitz.open(file_path)
         doc_len = len(doc)
 
-        # The input list can also contain page interval (0 based) and rotation angle.
-        # first > last means reversing the order of pages
+        # The input list can also contain page interval (0 based) and rotation
+        # angle. first > last means reversing the order of pages
         if isinstance(file_path, (list, tuple)):
             file_path, first, last, rot, bookmark = file_path
         else:
