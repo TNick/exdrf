@@ -45,6 +45,7 @@ class FieldsList:
         self._s_fields = []
         self._c_fields = []
         self._e_fields = []
+        self._pk_fields = []
         for f in value:
             if isinstance(f, type) or callable(f):
                 f = f(ctx=self.ctx, resource=self)  # type: ignore
@@ -64,6 +65,9 @@ class FieldsList:
 
             if f.exportable:
                 self._e_fields.append(f)
+
+            if f.primary:
+                self._pk_fields.append(f)
 
     def get_field(
         self, key: str, raise_e: Optional[bool] = True
@@ -210,3 +214,28 @@ class FieldsList:
         """
         self._e_fields = [f for f in self._e_fields if f.name != field]
         return self._e_fields
+
+    @property
+    def primary_key_fields(self) -> List["QtField"]:
+        """Return the fields that are primary keys."""
+        return self._pk_fields
+
+    @primary_key_fields.setter
+    def primary_key_fields(self, value: List[str]):
+        """Set the fields that are primary keys.
+
+        Args:
+            value: The list of fields.
+        """
+        self._pk_fields = [self._fields[f] for f in value]
+
+    def remove_from_pkf(self, field: str):
+        """Remove a field from the primary key fields.
+
+        Args:
+            field: The name of the field to remove.
+
+        Returns:
+            The updated list of primary key fields.
+        """
+        self._pk_fields = [f for f in self._pk_fields if f.name != field]

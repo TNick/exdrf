@@ -14,8 +14,9 @@ from PyQt5.QtCore import (
     QModelIndex,
     QPoint,
     Qt,
+    pyqtSignal,
 )
-from PyQt5.QtGui import QResizeEvent
+from PyQt5.QtGui import QMouseEvent, QResizeEvent
 from PyQt5.QtWidgets import (
     QAbstractItemView,
     QAction,
@@ -42,9 +43,20 @@ DBM = TypeVar("DBM", bound="DrfSelBase")
 DBM_O = TypeVar("DBM_O", bound="DrfSelOneEditor")
 
 
+class ClickableLineEdit(QLineEdit):
+    """A QLineEdit that emits a clicked signal when clicked."""
+
+    clicked = pyqtSignal()
+
+    def mousePressEvent(self, event: QMouseEvent) -> None:  # type: ignore
+        """Handle mouse press events and emit clicked signal."""
+        super().mousePressEvent(event)
+        self.clicked.emit()
+
+
 class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
     popup: "PopupWidget[DBM]"
-    line_edit: QLineEdit
+    line_edit: ClickableLineEdit
     _in_editing: bool
     _clear_action: Optional[QAction]
     _dropdown_action: QAction
@@ -147,17 +159,18 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
         if self.popup and self.popup.isVisible():
             self.popup.resize(self.width(), 150)
 
-    def create_line_edit(self) -> QLineEdit:
+    def create_line_edit(self) -> ClickableLineEdit:
         """Creates a line edit for the field."""
         # Return existing line edit if already created.
         if self.line_edit is not None:
             return self.line_edit
 
         # Create and configure a read-only line edit widget.
-        line_edit = QLineEdit(parent=self)
+        line_edit = ClickableLineEdit(parent=self)
         line_edit.setReadOnly(True)
         line_edit.setPlaceholderText(self.t("cmn.NULL", "NULL"))
         line_edit.setClearButtonEnabled(False)
+        line_edit.clicked.connect(self.show_popup)
         self.line_edit = line_edit
         return line_edit
 

@@ -76,6 +76,8 @@ class DrfLineEditor(LineBase, EditorWithChoices):
                 )
             )
             return None
+        if len(text) == 0 and self.nullable:
+            return None
         return text
 
     def _on_text_changed(self, text: str, final: bool):

@@ -1303,6 +1303,34 @@ class QtModel(
         if len(text) == 0:
             return []
 
+        # We allow for ID:NNN,NNN,NNN format to filter by primary key.
+        simplified = text.upper().strip().replace(" ", "")
+        if simplified.startswith("ID:"):
+            if len(simplified) == 3:
+                # The user just typed the marker, we wait for more characters.
+                return []
+            id_parts = simplified[3:].split(",")
+            try:
+                id_parts = [int(part) for part in id_parts]
+                pk_fields = self.primary_key_fields
+                if len(pk_fields) == len(id_parts):
+                    filters = [
+                        {
+                            "fld": f.name,
+                            "op": "==",
+                            "vl": id_parts[i],
+                        }
+                        for i, f in enumerate(pk_fields)
+                    ]
+                    if len(filters) > 1:
+                        return [
+                            "AND",  # type: ignore
+                            filters,
+                        ]
+                    return filters  # type: ignore
+            except ValueError:
+                pass
+
         if not exact:
             text = text.replace(" ", "%")
             if "*" not in text:

@@ -183,6 +183,8 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
     _prevent_render: bool
     _prevent_save: bool
 
+    _override_content: Optional[str]
+
     def __init__(
         self,
         ctx: "QtContext",
@@ -197,6 +199,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
         prevent_render: bool = False,
         var_model: Optional["VarModel"] = None,
         highlight_code: bool = True,
+        override_content: Optional[str] = None,
     ):
         """Initialize the template viewer.
 
@@ -225,6 +228,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
         self._auto_save_to = None
         self.view_mode = ViewMode.RENDERED
         self._use_edited_text = False
+        self._override_content = override_content
         super().__init__(parent)
 
         # Prepare the model.
@@ -473,6 +477,17 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
         if crt_item.isValid():
             return self.model.var_bag.fields[crt_item.row()]
         return None
+
+    @property
+    def override_content(self) -> Optional[str]:
+        """The override content of the template viewer."""
+        return self._override_content
+
+    @override_content.setter
+    def override_content(self, value: Optional[str]):
+        """Set the override content of the template viewer."""
+        self._override_content = value
+        self.render_template()
 
     def on_copy_key(self):
         """Copy the key of the currently selected variable to the clipboard."""
@@ -1103,7 +1118,10 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
             return
 
         try:
-            if self._current_template is not None:
+            if self._override_content:
+                logger.log(1, "Rendering override content...")
+                html = self._override_content
+            elif self._current_template is not None:
                 logger.log(
                     1, "Rendering template %s...", self._current_template
                 )
@@ -1490,49 +1508,75 @@ DBM = TypeVar("DBM")
 class RecordTemplViewer(TemplViewer, Generic[DBM]):
     """A template viewer that displays a database record."""
 
-    record_id: RecIdType
+    record_id: Optional[RecIdType]
     db_model: Type[DBM]
 
-    ac_new: OpenCreatePac
+    ac_new: Union[OpenCreatePac, None]
     ac_rem: Union[OpenDeletePac, None]
-    ac_edit: OpenEditPac
+    ac_edit: Union[OpenEditPac, None]
 
     def __init__(
         self,
-        record_id: RecIdType,
         db_model: Type[DBM],
+        record_id: Optional[RecIdType] = None,
+        has_new_action: bool = True,
+        has_delete_action: bool = True,
+        has_edit_action: bool = True,
         **kwargs,
     ):
-        self.record_id = record_id
+        self.record_id = None
         self.db_model = db_model
         super().__init__(var_bag=VarBag(), prevent_render=True, **kwargs)
-        self.create_crud_actions()
-        self.populate()
-        self.ctx.set_window_title(self, self.windowTitle())
+        self.create_crud_actions(
+            has_new_action=has_new_action,
+            has_delete_action=has_delete_action,
+            has_edit_action=has_edit_action,
+        )
+        self.change_record(record_id)
 
-        # Unblock the rendering.
-        self._prevent_render = False
-        self.render_template()
+    def change_record(self, record_id: Optional[RecIdType]) -> bool:
+        """Change the record."""
+        with self.prevent_render():
+            self.record_id = record_id
+            has_record = record_id is not None
 
-    def populate(self):
+            if has_record:
+                result = self.populate()
+            else:
+                self.on_no_record()
+                result = False
+
+            self.ctx.set_window_title(self, self.windowTitle())
+        # The rendering happens automatically in the prevent_render exit.
+        return result
+
+    def on_no_record(self):
+        if self.ac_edit is not None:
+            self.ac_edit.setEnabled(False)
+        if self.ac_rem is not None:
+            self.ac_rem.setEnabled(False)
+
+    def on_with_record(self):
+        if self.ac_edit is not None:
+            self.ac_edit.setEnabled(True)
+        if self.ac_rem is not None:
+            self.ac_rem.setEnabled(True)
+
+    def populate(self) -> bool:
         """Populate the variable bag with the fields of the database record."""
         with self.ctx.same_session() as session:
             record = self.read_record(session)
             if record is None:
-                self.ac_edit.setEnabled(False)
-                if self.ac_rem is not None:
-                    self.ac_rem.setEnabled(False)
-                return
+                self.on_no_record()
+                return False
 
-            # Populate the Ids.
-            self.ac_edit.setEnabled(True)
-            if self.ac_rem is not None:
-                self.ac_rem.setEnabled(True)
+            self.on_with_record()
 
             # Populate the variable bag.
             self.model.beginResetModel()
             try:
                 self._populate_from_record(record)
+                result = True
             except Exception as e:
                 logger.error(
                     "Error populating variable bag: %s",
@@ -1540,7 +1584,9 @@ class RecordTemplViewer(TemplViewer, Generic[DBM]):
                     exc_info=True,
                 )
                 self.show_exception(e, traceback.format_exc())
+                result = False
             self.model.endResetModel()
+            return result
 
     def _populate_from_record(self, record: DBM):
         """Populate the variable bag with the fields of the database record."""
@@ -1551,7 +1597,9 @@ class RecordTemplViewer(TemplViewer, Generic[DBM]):
         assert self._current_template is not None
         self._ensure_fresh_template()
         with self.ctx.same_session() as session:
-            record = self.read_record(session)
+            record = (
+                None if self.record_id is None else self.read_record(session)
+            )
             if record is None:
                 return self.t(
                     "templ.render.no-record",
@@ -1647,11 +1695,14 @@ class RecordTemplViewer(TemplViewer, Generic[DBM]):
         self.add_other_view_actions(menu)
         menu.addAction(self.ac_switch_mode)
         menu.addAction(self.ac_toggle_vars)
-        menu.addSeparator()
-        menu.addAction(self.ac_new)
-        if self.ac_rem is not None:
-            menu.addAction(self.ac_rem)
-        menu.addAction(self.ac_edit)
+        if None not in (self.ac_new, self.ac_rem, self.ac_edit):
+            menu.addSeparator()
+            if self.ac_new is not None:
+                menu.addAction(self.ac_new)
+            if self.ac_rem is not None:
+                menu.addAction(self.ac_rem)
+            if self.ac_edit is not None:
+                menu.addAction(self.ac_edit)
         menu.addSeparator()
         menu.addAction(self.ac_save_as_html)
         menu.addAction(self.ac_save_as_pdf)
@@ -1671,7 +1722,12 @@ class RecordTemplViewer(TemplViewer, Generic[DBM]):
             m_name = "unknown"
         return f"exdrf://navigation/resource/{m_name}"
 
-    def create_crud_actions(self):
+    def create_crud_actions(
+        self,
+        has_new_action: bool = True,
+        has_delete_action: bool = True,
+        has_edit_action: bool = True,
+    ):
         """Create the CRUD actions."""
         try:
             self.get_deletion_function()
@@ -1682,13 +1738,17 @@ class RecordTemplViewer(TemplViewer, Generic[DBM]):
         except Exception:
             has_delete = True
 
-        self.ac_new = OpenCreatePac(
-            label=self.t("sq.common.new", "New"),
-            ctx=self.ctx,
-            provider=self,
-            menu_or_parent=self,
+        self.ac_new = (
+            OpenCreatePac(
+                label=self.t("sq.common.new", "New"),
+                ctx=self.ctx,
+                provider=self,
+                menu_or_parent=self,
+            )
+            if has_new_action
+            else None
         )
-        if has_delete:
+        if has_delete and has_delete_action:
             self.ac_rem = OpenDeletePac(
                 label=self.t("sq.common.del", "Remove"),
                 ctx=self.ctx,
@@ -1698,11 +1758,15 @@ class RecordTemplViewer(TemplViewer, Generic[DBM]):
         else:
             self.ac_rem = None
 
-        self.ac_edit = OpenEditPac(
-            label=self.t("sq.common.edit", "Edit"),
-            ctx=self.ctx,
-            provider=self,
-            menu_or_parent=self,
+        self.ac_edit = (
+            OpenEditPac(
+                label=self.t("sq.common.edit", "Edit"),
+                ctx=self.ctx,
+                provider=self,
+                menu_or_parent=self,
+            )
+            if has_edit_action
+            else None
         )
 
     def get_list_route(self) -> Union[None, str]:
