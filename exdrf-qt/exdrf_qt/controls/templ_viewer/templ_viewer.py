@@ -29,7 +29,7 @@ from exdrf.var_bag import VarBag
 from exdrf_al.tools import count_relationship
 from exdrf_gen.jinja_support import jinja_env, recreate_global_env
 from jinja2 import Environment, Template
-from PyQt5.QtCore import QPoint, Qt, QTimer, QUrl
+from PyQt5.QtCore import QPoint, Qt, QThread, QTimer, QUrl, pyqtSignal
 from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtWebEngineWidgets import QWebEnginePage
 from PyQt5.QtWidgets import (
@@ -76,6 +76,49 @@ class CountField(ExField):
 
 
 logger = logging.getLogger(__name__)
+
+
+class TemplateRenderWorker(QThread):
+    """Worker thread for rendering templates.
+
+    Attributes:
+        render_func: The function to call for rendering.
+        render_kwargs: Keyword arguments to pass to the render function.
+        ctx: The Qt context for creating sessions in the worker thread.
+    """
+
+    rendered = pyqtSignal(str)
+    error = pyqtSignal(Exception, str)
+
+    def __init__(
+        self,
+        render_func: Callable[..., str],
+        render_kwargs: Dict[str, Any],
+        ctx: Optional["QtContext"] = None,
+        parent=None,
+    ):
+        """Initialize the template render worker.
+
+        Args:
+            render_func: The function to call for rendering the template.
+            render_kwargs: Keyword arguments to pass to the render function.
+            ctx: The Qt context for creating sessions in the worker thread.
+            parent: The parent QObject.
+        """
+        super().__init__(parent)
+        self.render_func = render_func
+        self.render_kwargs = render_kwargs
+        self.ctx = ctx
+
+    def run(self):
+        """Execute the template rendering in the worker thread."""
+        try:
+            html = self.render_func(**self.render_kwargs)
+            self.rendered.emit(html)
+        except Exception as e:
+            self.error.emit(e, traceback.format_exc())
+
+
 snippets = {
     "templ.snp.var_name": ("Insert variable", "{{ $(name) }}"),
     "templ.snp.for_loop": (
@@ -184,6 +227,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
     _prevent_save: bool
 
     _override_content: Optional[str]
+    _render_worker: Optional["TemplateRenderWorker"]
 
     def __init__(
         self,
@@ -229,6 +273,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
         self.view_mode = ViewMode.RENDERED
         self._use_edited_text = False
         self._override_content = override_content
+        self._render_worker = None
         super().__init__(parent)
 
         # Prepare the model.
@@ -1117,23 +1162,30 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
             )
             return
 
+        # Cancel any existing render worker
+        if self._render_worker is not None and self._render_worker.isRunning():
+            logger.log(1, "Cancelling previous render worker")
+            self._render_worker.terminate()
+            self._render_worker.wait(1000)
+
         try:
             if self._override_content:
                 logger.log(1, "Rendering override content...")
                 html = self._override_content
+                # For override content, render immediately (no threading needed)
+                if not self._is_webview_valid():
+                    logger.warning(
+                        "WebView became invalid during template rendering, "
+                        "skipping setHtml"
+                    )
+                    return
+                self._queue_set_html(html)
             elif self._current_template is not None:
                 logger.log(
                     1, "Rendering template %s...", self._current_template
                 )
-                html = self._render_template(**kwargs)
-                html_len = len(html) if isinstance(html, str) else 0
-                if html_len == 0 or (
-                    isinstance(html, str) and not html.strip()
-                ):
-                    logger.warning("Rendered HTML is empty/blank")
-                else:
-                    logger.log(1, "Rendered HTML length=%d", html_len)
-                logger.log(1, "The template has been rendered")
+                # Render in a separate thread
+                self._render_template_async(**kwargs)
             else:
                 html = self.t(
                     "templ.render.none",
@@ -1142,17 +1194,13 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
                     "</p>",
                 )
                 logger.debug("No template loaded, using default message")
-
-            # Double-check WebView validity before setting HTML
-            if not self._is_webview_valid():
-                logger.warning(
-                    "WebView became invalid during template rendering, "
-                    "skipping setHtml"
-                )
-                return
-
-            # Coalesce setHtml invocations; schedule a single update shortly.
-            self._queue_set_html(html)
+                if not self._is_webview_valid():
+                    logger.warning(
+                        "WebView became invalid during template rendering, "
+                        "skipping setHtml"
+                    )
+                    return
+                self._queue_set_html(html)
         except RuntimeError as e:
             if "wrapped C/C++ object" in str(e) and "deleted" in str(e):
                 logger.warning(
@@ -1165,6 +1213,104 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
         except Exception as e:
             logger.error("Error rendering template: %s", e, exc_info=True)
             self.show_exception(e, traceback.format_exc())
+
+    def _get_loading_html(self) -> str:
+        """Get HTML with a circular progress indicator.
+
+        Returns:
+            HTML string with a centered circular spinner.
+        """
+        return """
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #ffffff;
+            font-family: Arial, sans-serif;
+        }
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="spinner"></div>
+</body>
+</html>
+"""
+
+    def _render_template_async(self, **kwargs):
+        """Render the template asynchronously in a worker thread."""
+        # Show loading indicator in web view
+        if self._is_webview_valid():
+            loading_html = self._get_loading_html()
+            self._queue_set_html(loading_html)
+
+        # Create worker thread
+        self._render_worker = TemplateRenderWorker(
+            render_func=self._render_template,
+            render_kwargs=kwargs,
+            ctx=self.ctx,
+            parent=self,
+        )
+
+        # Connect signals
+        self._render_worker.rendered.connect(self._on_template_rendered)
+        self._render_worker.error.connect(self._on_template_render_error)
+        self._render_worker.finished.connect(self._on_render_worker_finished)
+
+        # Start the worker
+        self._render_worker.start()
+
+    def _on_template_rendered(self, html: str):
+        """Handle successful template rendering."""
+        html_len = len(html) if isinstance(html, str) else 0
+        if html_len == 0 or (isinstance(html, str) and not html.strip()):
+            logger.warning("Rendered HTML is empty/blank")
+        else:
+            logger.log(1, "Rendered HTML length=%d", html_len)
+        logger.log(1, "The template has been rendered")
+
+        # Double-check WebView validity before setting HTML
+        if not self._is_webview_valid():
+            logger.warning(
+                "WebView became invalid during template rendering, "
+                "skipping setHtml"
+            )
+            return
+
+        # Coalesce setHtml invocations; schedule a single update shortly.
+        self._queue_set_html(html)
+
+    def _on_template_render_error(self, e: Exception, formatted: str):
+        """Handle template rendering error."""
+        logger.error("Error rendering template: %s", e, exc_info=True)
+
+        # Show exception in viewer
+        self.show_exception(e, formatted)
+
+    def _on_render_worker_finished(self):
+        """Handle worker thread completion."""
+        if self._render_worker is not None:
+            self._render_worker.deleteLater()
+            self._render_worker = None
 
     def _snapshot_page_html(self, seq: int) -> None:
         """Log a small snapshot/length of the current page HTML for seq.
@@ -1592,74 +1738,107 @@ class RecordTemplViewer(TemplViewer, Generic[DBM]):
         """Populate the variable bag with the fields of the database record."""
         raise NotImplementedError("Not implemented")
 
-    def _render_template(self, **kwargs):
+    def _render_template(self, **kwargs) -> str:
         """The actual rendering of the template."""
         assert self._current_template is not None
         self._ensure_fresh_template()
-        with self.ctx.same_session() as session:
-            record = (
-                None if self.record_id is None else self.read_record(session)
-            )
-            if record is None:
-                return self.t(
-                    "templ.render.no-record",
-                    "<p style='color: grey; font-style: italic;'>"
-                    "No record found"
-                    "</p>",
-                )
 
-            # Refresh the variable bag with the fields of the database record.
-            for fld in self.model.var_bag.fields:
-                if fld.name == "record":
-                    self.model.var_bag[fld.name] = record
-                elif isinstance(fld, CountField):
-                    continue
-                else:
-                    attr_value = getattr(record, fld.name)
-                    self.model.var_bag[fld.name] = attr_value
-                    logger.debug(
-                        "fld.name: %s, type: %s",
-                        fld.name,
-                        type(getattr(record, fld.name)),
+        # Create a wrapper function that handles the session
+        # This ensures the session is created in the worker thread
+        def render_with_session():
+            # Use new_session instead of same_session to ensure we get a
+            # fresh session in the worker thread
+            with self.ctx.new_session(add_to_stack=False) as session:
+                record = (
+                    None
+                    if self.record_id is None
+                    else self.read_record(session)
+                )
+                if record is None:
+                    return self.t(
+                        "templ.render.no-record",
+                        "<p style='color: grey; font-style: italic;'>"
+                        "No record found"
+                        "</p>",
                     )
-                    if isinstance(
-                        attr_value, (InstrumentedList, InstrumentedSet)
-                    ):
+
+                # Build a dictionary of values to pass to the template.
+                # We need to access all relationship attributes within the
+                # session context to ensure they're loaded.
+                template_vars = {}
+                template_vars.update(self.model.var_bag.as_dict)
+
+                # Refresh the variable bag with the fields of the database
+                # record. Access all attributes within the session context.
+                # Ensure the record is bound to this session.
+                session.merge(record)
+                for fld in self.model.var_bag.fields:
+                    if fld.name == "record":
+                        template_vars[fld.name] = record
+                    elif isinstance(fld, CountField):
+                        continue
+                    else:
                         try:
-                            count = count_relationship(
-                                session, record, fld.name
+                            # Access the attribute within the session context
+                            # This will trigger lazy loading if needed
+                            attr_value = getattr(record, fld.name)
+                            # Convert relationships to lists to detach from
+                            # session
+                            if isinstance(
+                                attr_value, (InstrumentedList, InstrumentedSet)
+                            ):
+                                # Convert to list to ensure it's loaded and
+                                # detached from session. This will trigger
+                                # lazy loading if not already loaded.
+                                attr_value = list(attr_value)
+                                try:
+                                    count = count_relationship(
+                                        session, record, fld.name
+                                    )
+                                except Exception as e:
+                                    logger.error(
+                                        "Error counting relation %s in model "
+                                        "%s: %s",
+                                        fld.name,
+                                        record.__class__.__name__,
+                                        e,
+                                        exc_info=True,
+                                    )
+                                    count = 0
+                                count_name = f"{fld.name}_count"
+                                template_vars[count_name] = count
+                            template_vars[fld.name] = attr_value
+                            logger.debug(
+                                "fld.name: %s, type: %s",
+                                fld.name,
+                                type(attr_value),
                             )
                         except Exception as e:
                             logger.error(
-                                "Error counting relation %s in model %s: %s",
+                                "Error accessing field %s: %s",
                                 fld.name,
-                                record.__class__.__name__,
                                 e,
                                 exc_info=True,
                             )
-                            count = 0
-                        count_name = f"{fld.name}_count"
-                        if count_name not in self.model.var_bag:
-                            self.model.var_bag.add_field(
-                                CountField(name=count_name),
-                                count,
-                            )
-                        else:
-                            self.model.var_bag[count_name] = count
+                            # Set to None if we can't access it
+                            template_vars[fld.name] = None
 
-            # Render the template.
-            return self._current_template.render(
-                **self.model.var_bag.as_dict,
-                **self.extra_context,
-                record=record,
-                api_point=self.ctx.data,  # type: ignore
-                list_route=self.get_list_route(),
-                create_route=self.get_create_route(),
-                edit_route=self.get_edit_route(),
-                view_route=self.get_view_route(),
-                delete_route=self.get_delete_route(),
-                **kwargs,
-            )
+                # Render the template with all variables loaded.
+                assert self._current_template is not None
+                return self._current_template.render(
+                    **template_vars,
+                    **self.extra_context,
+                    record=record,
+                    api_point=self.ctx.data,  # type: ignore
+                    list_route=self.get_list_route(),
+                    create_route=self.get_create_route(),
+                    edit_route=self.get_edit_route(),
+                    view_route=self.get_view_route(),
+                    delete_route=self.get_delete_route(),
+                    **kwargs,
+                )
+
+        return render_with_session()
 
     def read_record(self, session: "Session") -> Union[None, DBM]:
         """Read the database record indicated by the record ID.
