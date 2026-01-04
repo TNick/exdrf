@@ -94,79 +94,101 @@ class JoinLoad:
         level: int = 0,
         lines: Optional[List[str]] = None,
         parents: Optional[List["JoinLoad"]] = None,
+        scalar_strategy: str = "joinedload",
+        nested_scalar_strategy: Optional[str] = None,
     ) -> str:
-        if parents is None:
-            parents = []
-        if lines is None:
-            lines = []
+        """Stringify the join tree to SQLAlchemy ORM loader options.
 
+        The output is Python code (as a string) intended to be embedded inside
+        a `.options(...)` call.
+
+        Args:
+            indent: Indentation level for the generated code.
+            level: Kept for backward compatibility; ignored.
+            lines: Kept for backward compatibility; ignored.
+            parents: Kept for backward compatibility; ignored.
+            scalar_strategy: The strategy to use for non-list relationships at
+                the first hop from the root.
+            nested_scalar_strategy: The strategy to use for non-list
+                relationships after the first hop from the root. If not set,
+                `scalar_strategy` is used.
+
+        Returns:
+            A string containing one or more SQLAlchemy loader option
+            expressions, each terminated with a comma, and ending with a
+            newline.
+        """
+        del level, lines, parents
+
+        # Collect "leaf" loader option specs. We must NOT chain siblings, so we
+        # output one loader option per leaf path (plus one per node that has
+        # load_only columns).
+        option_specs: List[
+            tuple[List["JoinLoad"], Optional[List[FieldRef]]]
+        ] = []
+
+        def collect_specs(
+            node: "JoinLoad", parent_path: List["JoinLoad"]
+        ) -> None:
+            # Emit an option for this node if it specifies load_only columns.
+            if node.load_only:
+                option_specs.append((parent_path + [node], node.load_only))
+
+            # If the node has no children, it is a leaf join, so it still needs
+            # a loader option to ensure the relationship is eagerly loaded.
+            if not node.children and not node.load_only:
+                option_specs.append((parent_path + [node], None))
+                return
+
+            # Recurse into children (each child is a separate relationship
+            # branch).
+            for child in node.children:
+                collect_specs(child, parent_path + [node])
+
+        collect_specs(self, [])
+
+        # Format specs to code.
         s_indent_1 = " " * (indent + 4)
         s_indent_2 = " " * (indent + 8)
+        out_lines: List[str] = []
 
-        if self.load_only:
-            for i_p, parent in enumerate(parents):
-                dot = "" if i_p == 0 else "."
-                st = parent.container.strategy
-                lines.append(f"{s_indent_1}{dot}{st}(")
-                lines.append(f"{s_indent_2}Db{repr(parent.container)},")
-                # Chain with next call (next parent or self)
-                next_st = (
-                    parents[i_p + 1].container.strategy
-                    if i_p < len(parents) - 1
-                    else self.container.strategy
+        for path_nodes, load_only_cols in option_specs:
+            # Defensive: should never happen, but keep output valid.
+            if not path_nodes:
+                continue
+
+            # Start the chain with the first relationship.
+            first = path_nodes[0]
+            first_st = (
+                "selectinload" if first.container.is_list else scalar_strategy
+            )
+            out_lines.append(f"{s_indent_1}{first_st}(")
+            out_lines.append(f"{s_indent_2}Db{repr(path_nodes[0].container)},")
+
+            # Continue chaining for deeper relationships.
+            for node in path_nodes[1:]:
+                node_st = (
+                    "selectinload"
+                    if node.container.is_list
+                    else (
+                        nested_scalar_strategy
+                        if nested_scalar_strategy is not None
+                        else scalar_strategy
+                    )
                 )
-                lines.append(f"{s_indent_1}).{next_st}(")
-            # Output self if no parents, or continue chain from last parent
-            if not parents:
-                st = self.container.strategy
-                lines.append(f"{s_indent_1}{st}(")
-                lines.append(f"{s_indent_2}Db{repr(self.container)},")
+                out_lines.append(f"{s_indent_1}).{node_st}(")
+                out_lines.append(f"{s_indent_2}Db{repr(node.container)},")
+
+            # Terminate with load_only(...) if needed, otherwise close chain.
+            if load_only_cols:
+                out_lines.append(f"{s_indent_1}).load_only(")
+                for lo in load_only_cols:
+                    out_lines.append(f"{s_indent_2}Db{repr(lo)},")
+                out_lines.append(f"{s_indent_1}),")
             else:
-                # Already started the call in the loop above
-                lines.append(f"{s_indent_2}Db{repr(self.container)},")
-            lines.append(f"{s_indent_1}).load_only(")
-            for lo in self.load_only:
-                lines.append(f"{s_indent_2}Db{repr(lo)},")
-            lines.append(f"{s_indent_1}),")
-        elif level == 0 and not self.children:
-            # Output the basic joinedload if no children and no load_only
-            st = self.container.strategy
-            lines.append(f"{s_indent_1}{st}(")
-            lines.append(f"{s_indent_2}Db{repr(self.container)},")
-            lines.append(f"{s_indent_1})")
+                out_lines.append(f"{s_indent_1}),")
 
-        for c in self.children:
-            # Children process themselves, outputting parents if they have
-            # load_only
-            if c.load_only:
-                # Child has load_only, it will output the chain including
-                # parents
-                c.stringify(
-                    indent=indent,
-                    level=level + 1,
-                    lines=lines,
-                    parents=parents + [self],
-                )
-            elif level == 0:
-                # Child without load_only at root level, chain after root
-                if not self.load_only and not any(
-                    ch.load_only for ch in self.children if ch != c
-                ):
-                    # Only output root if we haven't already
-                    if not lines or not lines[-1].endswith(")"):
-                        st = self.container.strategy
-                        lines.append(f"{s_indent_1}{st}(")
-                        lines.append(f"{s_indent_2}Db{repr(self.container)},")
-                        lines.append(f"{s_indent_1})")
-                # Chain the child
-                dot = "."
-                st = c.container.strategy
-                lines.append(f"{s_indent_1}{dot}{st}(")
-                lines.append(f"{s_indent_2}Db{repr(c.container)},")
-                lines.append(f"{s_indent_1})")
-
-        result = "\n".join(lines) if level == 0 else ""
-        return result + "\n" if result and level == 0 else result
+        return "\n".join(out_lines) + ("\n" if out_lines else "")
 
     def load(self, sub_fld_name: str, related_model: "ExResource"):
         """Add a field to the tree.
@@ -178,16 +200,23 @@ class JoinLoad:
         """
         parts = sub_fld_name.split(".")
 
-        # Make sure that this is a leaf field, not a relation.
+        # Split the path into relationship hops and a final leaf column.
+        #
+        # Example: "annex.name" means join "annex" then load_only("name") on the
+        # Annex entity, not on the Validation entity.
+        join_parts: List[str] = []
         crt_model = related_model
         m_key = parts[-1]
-        i_p = len(parts) - 1
-        for i_p, part in enumerate(parts[:-1]):
-            try:
-                crt_model = cast("RefBaseField", crt_model[part]).ref
-            except AttributeError:
+        for part in parts[:-1]:
+            fld = crt_model[part]
+            if not getattr(fld, "is_ref_type", False):
+                # Early leaf - treat this part as the leaf column name.
                 m_key = part
                 break
+            join_parts.append(part)
+            crt_model = cast("RefBaseField", fld).ref
+
+        # Make sure that this is a leaf field, not a relation.
         src_field = crt_model[m_key]
         if src_field.is_ref_type:
             return
@@ -196,7 +225,7 @@ class JoinLoad:
         # last one generates a load_only.
         crt_join = self
         join_model = related_model
-        for part in parts[:i_p]:
+        for part in join_parts:
             crt_join = crt_join.get_join(join_model, part)
             join_model = cast("RefBaseField", join_model[part]).ref
 
@@ -222,7 +251,10 @@ class RootJoinLoad(JoinLoad):
         level: int = 0,
         lines: Optional[List[str]] = None,
         parents: Optional[List["JoinLoad"]] = None,
+        scalar_strategy: str = "joinedload",
+        nested_scalar_strategy: Optional[str] = None,
     ) -> str:
+        del level, lines, parents, scalar_strategy, nested_scalar_strategy
         s_indent_1 = " " * (indent + 4)
         s_indent_2 = " " * (indent + 8)
         result = s_indent_1 + "load_only(\n"

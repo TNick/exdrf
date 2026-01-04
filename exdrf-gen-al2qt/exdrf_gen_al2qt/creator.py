@@ -1,3 +1,4 @@
+import os
 from datetime import date, datetime
 from typing import (
     TYPE_CHECKING,
@@ -202,6 +203,36 @@ def generate_qt_from_alchemy(
         **kwargs: Additional keyword arguments to pass to the generator.
     """
     click.echo("Generating Qt from exdrf...")
+
+    # Loader strategy policy for generated default selections.
+    #
+    # We default to selectinload for nested scalar relationships because it is
+    # usually faster for deep graphs and avoids producing very wide joins.
+    # The behavior is opt-out.
+    disable_nested_scalar_selectinload = os.getenv(
+        "EXDRF_AL2QT_DISABLE_SELECTINLOAD_FOR_NESTED_SCALARS", ""
+    ).strip().lower() in ("1", "true", "yes")
+    legacy_enable_value = os.getenv(
+        "EXDRF_AL2QT_USE_SELECTINLOAD_FOR_NESTED_SCALARS", ""
+    ).strip()
+    if legacy_enable_value:
+        # Backward-compatible override: if the legacy env var is set, respect
+        # its boolean value.
+        use_selectinload_for_nested_scalars = legacy_enable_value.lower() in (
+            "1",
+            "true",
+            "yes",
+        )
+    else:
+        use_selectinload_for_nested_scalars = (
+            not disable_nested_scalar_selectinload
+        )
+
+    # Allow explicit override via kwargs (highest priority).
+    if "use_selectinload_for_nested_scalars" in kwargs:
+        use_selectinload_for_nested_scalars = bool(
+            kwargs.pop("use_selectinload_for_nested_scalars")
+        )
     # Only allow our templates to be used.
     env.loader.paths = list(
         filter(  # type: ignore
@@ -359,5 +390,6 @@ def generate_qt_from_alchemy(
         sorted_resources_for_ui=sr_for_ui,
         sorted_fields_for_ui=sf_for_ui,
         read_only_fields=read_only_fields,
+        use_selectinload_for_nested_scalars=use_selectinload_for_nested_scalars,
         **kwargs,
     )

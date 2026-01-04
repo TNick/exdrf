@@ -114,8 +114,8 @@ class ListDbHeader(QHeaderView, QtUseContext, Generic[DBM]):
     def on_section_resized(
         self, logical_index: int, old_size: int, new_size: int
     ):
-        logger.debug(
-            "sectionResized: %s, %s, %s", logical_index, old_size, new_size
+        logger.log(
+            1, "sectionResized: %s, %s, %s", logical_index, old_size, new_size
         )
         if new_size < 1:
             return
@@ -125,23 +125,23 @@ class ListDbHeader(QHeaderView, QtUseContext, Generic[DBM]):
                 self.ctx.stg.set_setting(key, new_size)
 
     def on_section_count_changed(self, old_count: int, new_count: int):
-        logger.debug("sectionCountChanged: %s, %s", old_count, new_count)
+        logger.log(1, "sectionCountChanged: %s, %s", old_count, new_count)
 
     def on_section_clicked(self, logical_index: int):
-        logger.debug("sectionClicked: %s", logical_index)
+        logger.log(1, "sectionClicked: %s", logical_index)
 
     def on_section_double_clicked(self, logical_index: int):
-        logger.debug("sectionDoubleClicked: %s", logical_index)
+        logger.log(1, "sectionDoubleClicked: %s", logical_index)
         self.show_search_line(logical_index)
 
     def on_section_entered(self, logical_index: int):
-        logger.debug("sectionEntered: %s", logical_index)
+        logger.log(1, "sectionEntered: %s", logical_index)
 
     def on_section_handle_double_clicked(self, logical_index: int):
-        logger.debug("sectionHandleDoubleClicked: %s", logical_index)
+        logger.log(1, "sectionHandleDoubleClicked: %s", logical_index)
 
     def on_section_pressed(self, logical_index: int):
-        logger.debug("sectionPressed: %s", logical_index)
+        logger.log(1, "sectionPressed: %s", logical_index)
 
     def on_sort_indicator_changed(
         self, logical_index: int, order: Qt.SortOrder

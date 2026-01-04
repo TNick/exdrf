@@ -13,6 +13,12 @@ class DummyField:
         self.is_list = is_list
 
 
+class DummyScalarField:
+    def __init__(self):
+        self.is_list = False
+        self.is_ref_type = False
+
+
 class DummyModel:
     def __init__(self, name, fields):
         self.name = name
@@ -189,7 +195,7 @@ class TestJoinLoad:
             expected = (
                 "                joinedload(\n"
                 "                    DbR.f,\n"
-                "                )\n"
+                "                ),\n"
             )
             assert result == expected
 
@@ -212,7 +218,7 @@ class TestJoinLoad:
                 "                    DbRoot.fld,\n"
                 "                ).load_only(\n"
                 "                    DbLo.x,\n"
-                "                )\n"
+                "                ),\n"
             )
             assert result == expected
 
@@ -243,6 +249,92 @@ class TestJoinLoad:
                 "                    DbChild.fld2,\n"
                 "                ).load_only(\n"
                 "                    DbChild.sub,\n"
-                "                )\n"
+                "                ),\n"
             )
             assert result == expected
+
+        def test_with_sibling_children_no_load_only(self):
+            root_res = DummyResource("Root")
+            mid_res = DummyResource("Mid")
+            a_res = DummyResource("A")
+            b_res = DummyResource("B")
+
+            root = JoinLoad(
+                container=FieldRef(
+                    resource=root_res, name="mid", is_list=False  # type: ignore
+                )
+            )
+            child_a = JoinLoad(
+                container=FieldRef(
+                    resource=mid_res, name="a", is_list=False  # type: ignore
+                )
+            )
+            child_b = JoinLoad(
+                container=FieldRef(
+                    resource=mid_res, name="b", is_list=False  # type: ignore
+                )
+            )
+
+            # Add leaf joins under each sibling.
+            leaf_a = JoinLoad(
+                container=FieldRef(
+                    resource=a_res, name="x", is_list=False  # type: ignore
+                )
+            )
+            leaf_b = JoinLoad(
+                container=FieldRef(
+                    resource=b_res, name="y", is_list=False  # type: ignore
+                )
+            )
+            child_a.children.append(leaf_a)
+            child_b.children.append(leaf_b)
+            root.children.extend([child_a, child_b])
+
+            result = root.stringify()
+            expected = (
+                "                joinedload(\n"
+                "                    DbRoot.mid,\n"
+                "                ).joinedload(\n"
+                "                    DbMid.a,\n"
+                "                ).joinedload(\n"
+                "                    DbA.x,\n"
+                "                ),\n"
+                "                joinedload(\n"
+                "                    DbRoot.mid,\n"
+                "                ).joinedload(\n"
+                "                    DbMid.b,\n"
+                "                ).joinedload(\n"
+                "                    DbB.y,\n"
+                "                ),\n"
+            )
+            assert result == expected
+
+    class TestLoad:
+        def test_load_creates_intermediate_join_for_nested_field(self):
+            # Validation.annex is a relationship, Annex.name is a leaf column.
+            annex = DummyModel("Annex", {"name": DummyScalarField()})
+            validation = DummyModel(
+                "Validation",
+                {"annex": DummyField(is_list=False)},
+            )
+            # Monkey-patch the relationship field to look like a RefBaseField.
+            validation._fields["annex"].is_ref_type = True
+            validation._fields["annex"].ref = annex
+
+            root = JoinLoad(
+                container=FieldRef(
+                    resource=DummyModel("PropertyTitle", {}),
+                    name="validations",
+                    is_list=True,
+                )
+            )
+
+            root.load("annex.name", validation)  # type: ignore
+
+            # Ensure we created a child join for annex and attached load_only
+            # there, not on the root join.
+            assert root.load_only == []
+            assert len(root.children) == 1
+            assert root.children[0].container.name == "annex"
+            assert root.children[0].load_only[0].res_name == "Annex"
+            assert root.children[0].load_only[0].name == "name"
