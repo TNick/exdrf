@@ -21,6 +21,7 @@ import sqlparse
 from attrs import define, field
 from exdrf.constants import RecIdType
 from exdrf.filter import FieldFilter, FilterType, validate_filter
+from exdrf_al.utils import DelChoice
 from PyQt5.QtCore import QAbstractItemModel, QModelIndex, Qt, QTimer, pyqtSignal
 from sqlalchemy import case, func, select, tuple_
 from sqlalchemy.exc import SQLAlchemyError
@@ -33,7 +34,6 @@ from exdrf_qt.models.record import QtRecord
 from exdrf_qt.models.requests import RecordRequestManager
 from exdrf_qt.models.selector import Selector
 from exdrf_qt.worker import Work
-from exdrf_al.utils import DelChoice
 
 if TYPE_CHECKING:
     from PyQt5.QtCore import QObject  # noqa: F401
@@ -221,6 +221,7 @@ class QtModel(
     _wait_before_request: int
     _soft_delete_field_name: Union[str, None]
     _del_choice: DelChoice
+    _save_settings: bool
 
     totalCountChanged = pyqtSignal(int)
     checkedChanged = pyqtSignal()
@@ -241,6 +242,8 @@ class QtModel(
         wait_before_request: int = 100,
         soft_delete_field_name: Union[str, None] = "deleted",
         del_choice: DelChoice = DelChoice.ACTIVE,
+        load_settings: bool = True,
+        save_settings: bool = True,
     ):
         """Initialize the model.
 
@@ -264,6 +267,12 @@ class QtModel(
                 included. The default is ACTIVE. This option changes the
                 filter applied to the model by the Selector but only if the
                 get_soft_delete_field() returns a valid field.
+            load_settings: If True, the settings (like what field to search when
+                simple searching) are loaded from the context and applied to
+                the model.
+            save_settings: If True, when some of the setting (like what field
+                to search when simple searching) are changed, the new settings
+                are saved to the context.
         """
         # super().__init__(parent=parent)
         QAbstractItemModel.__init__(self, parent=parent)
@@ -286,11 +295,15 @@ class QtModel(
         self.sort_by = []
         self.prioritized_ids = None
         self._filters = []
+        self._save_settings = save_settings
         self.batch_size = batch_size
         self.cache = SparseList(lambda: QtRecord(model=self, db_id=-1))
 
         self._total_count = -1
         self._loaded_count = 0
+
+        if load_settings:
+            self.load_settings()
 
         # Compute the total count.
         self._total_count = (
@@ -608,6 +621,8 @@ class QtModel(
     @del_choice.setter
     def del_choice(self, value: DelChoice) -> None:
         """Set the choice of deleted records to include in the model."""
+        if value == self._del_choice:
+            return
         self._del_choice = value
         self.reset_model()
 
@@ -1657,3 +1672,48 @@ class QtModel(
             "M: %s Record inserted into model.",
             self.name,
         )
+
+    @property
+    def settings_key(self) -> str:
+        """Return the key for the settings."""
+        return f"model_{self.name}_settings"
+
+    def load_settings(self) -> None:
+        """Load the settings from the context."""
+
+        spl_src_fields = self.simple_search_fields
+        spl_src_fields_stg = self.ctx.stg.get_setting(
+            f"{self.settings_key}.simple_search_fields", default=None
+        )
+        if spl_src_fields_stg is not None:
+            if len(spl_src_fields_stg) > len(spl_src_fields):
+                spl_src_fields_stg = spl_src_fields_stg[: len(spl_src_fields)]
+            elif len(spl_src_fields_stg) < len(spl_src_fields):
+                spl_src_fields_stg = spl_src_fields_stg + [True] * (
+                    len(spl_src_fields) - len(spl_src_fields_stg)
+                )
+            if not all(isinstance(i, bool) for i in spl_src_fields_stg):
+                spl_src_fields_stg = [True] * len(spl_src_fields)
+                logger.warning(
+                    "M: %s Simple search fields settings are invalid, "
+                    "resetting to default.",
+                    self.name,
+                )
+            self._s_s_enabled = spl_src_fields_stg
+
+    def set_simple_search_field_states(self, values: List[bool]):
+        """Set the state of each field for simple search.
+
+        Args:
+            values: The list of states.
+        """
+        if len(values) != len(self._s_s_fields):
+            raise ValueError(
+                "The number of states must match the number of fields."
+            )
+        self._s_s_enabled = values
+        if self._save_settings:
+            self.ctx.stg.set_setting(
+                f"{self.settings_key}.simple_search_fields",
+                values,
+            )

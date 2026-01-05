@@ -1,5 +1,5 @@
 from collections import OrderedDict as OrDi
-from typing import TYPE_CHECKING, List, Optional, OrderedDict
+from typing import TYPE_CHECKING, List, Optional, OrderedDict, Tuple
 
 if TYPE_CHECKING:
     from exdrf_qt.models.field import QtField  # noqa: F401
@@ -27,6 +27,8 @@ class FieldsList:
     _c_fields: List["QtField"]
     _e_fields: List["QtField"]
 
+    _s_s_enabled: List[bool]
+
     @property
     def fields(self) -> List["QtField"]:
         """Return the list of all fields."""
@@ -39,8 +41,19 @@ class FieldsList:
         Args:
             value: The list of fields.
         """
+        # Attempt to preserve the active/inactive state of the simple
+        # search fields.
+        if hasattr(self, "_s_s_enabled"):
+            previous_active_state = {
+                fld.name: self._s_s_enabled[i]
+                for i, fld in enumerate(self._s_s_fields)
+            }
+        else:
+            previous_active_state = {}
+
         self._fields = OrDi()
         self._s_s_fields = []
+        self._s_s_enabled = []
         self._f_fields = []
         self._s_fields = []
         self._c_fields = []
@@ -53,6 +66,9 @@ class FieldsList:
 
             if f.qsearch:
                 self._s_s_fields.append(f)
+                self._s_s_enabled.append(
+                    previous_active_state.get(f.name, True)
+                )
 
             if f.filterable:
                 self._f_fields.append(f)
@@ -98,6 +114,20 @@ class FieldsList:
             value: The list of fields.
         """
         self._s_s_fields = [self._fields[f] for f in value]
+
+    @property
+    def simple_search_enabled_fields(self) -> List["QtField"]:
+        """Return the fields that are active for simple search."""
+        return [
+            fld
+            for fld, enabled in zip(self._s_s_fields, self._s_s_enabled)
+            if enabled
+        ]
+
+    @property
+    def simple_search_field_states(self) -> List[Tuple[bool, "QtField"]]:
+        """Return the state of each field for simple search."""
+        return list(zip(self._s_s_enabled, self._s_s_fields))
 
     def remove_from_ssf(self, field: str):
         """Remove a field from the simple search fields.

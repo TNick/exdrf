@@ -1,12 +1,14 @@
-from typing import List, TYPE_CHECKING, Optional, Union
-from PyQt5.QtWidgets import QAction
+import logging
+from typing import TYPE_CHECKING, Optional, Union
+
 from exdrf_al.utils import DelChoice
 from PyQt5.QtCore import QObject
-import logging
+from PyQt5.QtWidgets import QAction, QActionGroup
 
 if TYPE_CHECKING:
-    from exdrf_qt.models.model import QtModel
     from exdrf_util.typedefs import HasTranslate
+
+    from exdrf_qt.models.model import QtModel
 
 
 NAME_PREFIX = "del_choice_"
@@ -16,51 +18,55 @@ logger = logging.getLogger(__name__)
 
 def create_del_actions(
     ctx: "HasTranslate", qt_model: "QtModel", parent: Optional[QObject] = None
-) -> List[QAction]:
+) -> Union[QActionGroup, None]:
     """Create the actions for the deleted choice menu.
 
     Args:
         ctx: The context to use for translation.
         qt_model: The model to create the actions for.
+        parent: The parent object for the actions.
 
     Returns:
         A list of QActions for selecting the deleted choice.
     """
-    actions = []
-    if qt_model.has_soft_delete_field:
-        del_choice = qt_model.del_choice
+    if not qt_model.has_soft_delete_field:
+        return None
 
-        ac_not_deleted = QAction(
-            ctx.t("cmn.del_choice.not_deleted", "Not Deleted"),
-            parent,
-        )
-        ac_not_deleted.setObjectName(f"{NAME_PREFIX}{DelChoice.ACTIVE.name}")
-        ac_not_deleted.setCheckable(True)
-        ac_not_deleted.setChecked(del_choice == DelChoice.ACTIVE)
-        actions.append(ac_not_deleted)
+    del_choice = qt_model.del_choice
 
-        ac_deleted = QAction(
-            ctx.t("cmn.del_choice.deleted", "Deleted"),
-            parent,
-        )
-        ac_deleted.setObjectName(f"{NAME_PREFIX}{DelChoice.DELETED.name}")
-        ac_deleted.setCheckable(True)
-        ac_deleted.setChecked(del_choice == DelChoice.DELETED)
-        actions.append(ac_deleted)
+    ac_group = QActionGroup(parent)
 
-        ac_all = QAction(
-            ctx.t("cmn.del_choice.all", "All"),
-            parent,
-        )
-        ac_all.setObjectName(f"{NAME_PREFIX}{DelChoice.ALL.name}")
-        ac_all.setCheckable(True)
-        ac_all.setChecked(del_choice == DelChoice.ALL)
-        actions.append(ac_all)
-    return actions
+    ac_not_deleted = QAction(
+        ctx.t("cmn.del_choice.not_deleted", "Not Deleted"),
+        parent,
+    )
+    ac_not_deleted.setObjectName(f"{NAME_PREFIX}{DelChoice.ACTIVE.name}")
+    ac_not_deleted.setCheckable(True)
+    ac_not_deleted.setChecked(del_choice == DelChoice.ACTIVE)
+    ac_group.addAction(ac_not_deleted)
+
+    ac_deleted = QAction(
+        ctx.t("cmn.del_choice.deleted", "Deleted"),
+        parent,
+    )
+    ac_deleted.setObjectName(f"{NAME_PREFIX}{DelChoice.DELETED.name}")
+    ac_deleted.setCheckable(True)
+    ac_deleted.setChecked(del_choice == DelChoice.DELETED)
+    ac_group.addAction(ac_deleted)
+
+    ac_all = QAction(
+        ctx.t("cmn.del_choice.all", "All"),
+        parent,
+    )
+    ac_all.setObjectName(f"{NAME_PREFIX}{DelChoice.ALL.name}")
+    ac_all.setCheckable(True)
+    ac_all.setChecked(del_choice == DelChoice.ALL)
+    ac_group.addAction(ac_all)
+    return ac_group
 
 
 def apply_del_action(
-    action: Union[QAction, None], qt_model: "QtModel"
+    ac_group: Union[QActionGroup, None], qt_model: "QtModel"
 ) -> Union[DelChoice, None]:
     """Apply the deleted choice to the model.
 
@@ -78,9 +84,14 @@ def apply_del_action(
     Returns:
         The deleted/non-deleted/all choice.
     """
-    if action is None:
+    if ac_group is None:
         return None
-    name = action.objectName()
+
+    active_ac = ac_group.checkedAction()
+    if active_ac is None:
+        return None
+
+    name = active_ac.objectName()
     if not name.startswith(NAME_PREFIX):
         return None
     name = name.removeprefix(NAME_PREFIX)

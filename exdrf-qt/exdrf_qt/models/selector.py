@@ -14,9 +14,8 @@ from typing import (
 
 from attrs import define, field
 from exdrf.filter import FieldFilter, FilterType
-from sqlalchemy import ColumnElement, and_, not_, or_
-
 from exdrf_al.utils import DelChoice
+from sqlalchemy import ColumnElement, and_, not_, or_
 
 if TYPE_CHECKING:
     from sqlalchemy import Select  # noqa: F401

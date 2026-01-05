@@ -1,17 +1,19 @@
+import heapq
 import logging
 import threading
 import time
+from collections import deque
 from queue import Empty
 from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    Deque,
     Dict,
+    Hashable,
     List,
     Optional,
     overload,
-    Deque,
-    Hashable,
 )
 from uuid import uuid4
 
@@ -19,8 +21,6 @@ import sqlparse
 from attrs import define, field
 from PyQt5.QtCore import QObject, QThread, pyqtSignal
 from sqlalchemy import Select
-import heapq
-from collections import deque
 
 if TYPE_CHECKING:
     from exdrf_al.connection import DbConn

@@ -23,7 +23,6 @@ from PyQt5.QtWidgets import (
     QHBoxLayout,
     QLineEdit,
     QWidget,
-    QMenu,
 )
 
 from exdrf_qt.controls.popup_list import PopupWidget
@@ -207,7 +206,7 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
         # Create and configure the action.
         action = QAction(self)
         action.setIcon(self.get_icon("wrench"))
-        action.triggered.connect(self.show_settings)
+        action.triggered.connect(self.on_show_settings)
         self.line_edit.addAction(
             action, QLineEdit.ActionPosition.TrailingPosition
         )
@@ -429,17 +428,22 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
         raise NotImplementedError("Subclasses must implement this method")
 
     @top_level_handler
-    def show_settings(self):
+    def on_show_settings(self):
         """Show the settings menu for the control."""
         from exdrf_qt.utils.del_actions import (
-            create_del_actions,
             apply_del_action,
+            create_del_actions,
         )
+        from exdrf_qt.utils.flt_acts import (
+            apply_simple_filtering_action,
+            create_simple_filtering_actions,
+        )
+        from exdrf_qt.utils.stay_open_menu import StayOpenMenu
 
         logger.log(1, "%s.show_settings()", self.__class__.__name__)
 
         # Create a menu and add actions.
-        menu = QMenu(self)
+        menu = StayOpenMenu(self)
 
         # Get the model to configure.
         qt_model = self.qt_model
@@ -448,10 +452,21 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
             return
 
         # Show the tree actions that control the way deleted records are shown.
+        ac_group_del = None
         if qt_model.has_soft_delete_field:
-            actions = create_del_actions(self.ctx, qt_model, parent=menu)
-            for action in actions:
-                menu.addAction(action)
+            ac_group_del = create_del_actions(self.ctx, qt_model, parent=menu)
+            if ac_group_del is not None:
+                for action in ac_group_del.actions():
+                    menu.addAction(action)
+
+        # Show the simple search fields that are active.
+        if not menu.isEmpty():
+            menu.addSeparator()
+        spl_src_acts = create_simple_filtering_actions(
+            self.ctx, qt_model, parent=menu
+        )
+        for action in spl_src_acts:
+            menu.addAction(action)
 
         # Show the menu with its right edge aligned with the right edge
         # of the line edit.
@@ -461,11 +476,13 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
         menu_pos = action_widget.mapToGlobal(action_widget.rect().bottomRight())
         menu_size = menu.sizeHint()
         menu_pos.setX(menu_pos.x() - menu_size.width())
-        result = menu.exec_(menu_pos)
-        if result is not None:
-            # Handle delete choice.
-            if apply_del_action(result, qt_model) is not None:
-                return
+        menu.exec_(menu_pos)
+
+        # Handle simple filtering.
+        apply_simple_filtering_action(spl_src_acts, qt_model)
+
+        # Handle delete choice.
+        apply_del_action(ac_group_del, qt_model)
 
 
 class DrfSelOneEditor(DrfSelBase[DBM_O]):

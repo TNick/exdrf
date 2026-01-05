@@ -1,7 +1,7 @@
 import logging
 from typing import TYPE_CHECKING
 
-from sqlalchemy import func, select, inspect, and_, literal_column
+from sqlalchemy import and_, func, inspect, literal_column, select
 from sqlalchemy.orm import (
     InstrumentedAttribute,
     RelationshipProperty,
@@ -9,8 +9,8 @@ from sqlalchemy.orm import (
 )
 
 if TYPE_CHECKING:
-    from sqlalchemy.orm.session import Session
     from exdrf.constants import RecIdType
+    from sqlalchemy.orm.session import Session
 
 
 logger = logging.getLogger(__name__)
