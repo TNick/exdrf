@@ -16,6 +16,8 @@ from attrs import define, field
 from exdrf.filter import FieldFilter, FilterType
 from sqlalchemy import ColumnElement, and_, not_, or_
 
+from exdrf_al.utils import DelChoice
+
 if TYPE_CHECKING:
     from sqlalchemy import Select  # noqa: F401
 
@@ -265,13 +267,40 @@ class Selector(Generic[DBM]):
             The SQLAlchemy select statement with joins and filters applied.
             Returns the base selection if no filters are provided.
         """
+        base = self.base
+
+        # See if the model has a deleted field and apply that.
+        if self.qt_model is not None:
+            del_field = self.qt_model.get_soft_delete_field()
+            if del_field is not None:
+                del_choice = self.qt_model.del_choice
+                if del_choice == DelChoice.DELETED:
+                    base = base.where(del_field.is_(True))
+                elif del_choice == DelChoice.ACTIVE:
+                    base = base.where(
+                        del_field.is_(None) | del_field.is_(False)
+                    )
+                elif del_choice == DelChoice.ALL:
+                    logger.log(
+                        1,
+                        "M: %s DelChoice.ALL, so no del filter applied",
+                        self.qt_model.name,
+                    )
+                else:
+                    assert False, f"Invalid DelChoice {del_choice}"
+            else:
+                logger.log(
+                    1,
+                    "No soft delete field found for model %s",
+                    self.qt_model.name,
+                )
+
         components = self.apply_subset(filters)
         if not components:
             # No filters to apply.
-            return self.base
+            return base
 
         # Apply the joins to the base selection.
-        base = self.base
         for join in self.joins:
             if isinstance(join, (tuple, list)):
                 if isinstance(join[-1], dict):

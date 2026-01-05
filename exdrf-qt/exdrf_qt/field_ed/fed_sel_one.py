@@ -23,10 +23,12 @@ from PyQt5.QtWidgets import (
     QHBoxLayout,
     QLineEdit,
     QWidget,
+    QMenu,
 )
 
 from exdrf_qt.controls.popup_list import PopupWidget
 from exdrf_qt.field_ed.base import DrfFieldEd
+from exdrf_qt.utils.tlh import top_level_handler
 
 if TYPE_CHECKING:
     from exdrf.constants import RecIdType
@@ -44,7 +46,10 @@ DBM_O = TypeVar("DBM_O", bound="DrfSelOneEditor")
 
 
 class ClickableLineEdit(QLineEdit):
-    """A QLineEdit that emits a clicked signal when clicked."""
+    """A QLineEdit that emits a clicked signal when clicked.
+
+    It is used as the resting-phase control for DrfSelBase.
+    """
 
     clicked = pyqtSignal()
 
@@ -60,6 +65,7 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
     _in_editing: bool
     _clear_action: Optional[QAction]
     _dropdown_action: QAction
+    _settings_action: QAction
     _editor_class: Optional[Type["ExdrfEditor"]]
 
     def __init__(
@@ -76,6 +82,7 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
         self._in_editing = True
         self._clear_action = None
         self._dropdown_action = None  # type: ignore
+        self._settings_action = None  # type: ignore
         self.line_edit = None  # type: ignore
         self._editor_class = editor_class
 
@@ -89,6 +96,7 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
         # Create UI components.
         self.create_line_edit()
         self.create_drop_down_action()
+        self.create_settings_action()
         self.create_clear_action()
 
         # Set up the layout with the line edit.
@@ -188,6 +196,22 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
             action, QLineEdit.ActionPosition.TrailingPosition
         )
         self._dropdown_action = action
+        return action
+
+    def create_settings_action(self) -> QAction:
+        """Creates an action that allows the user to configure the control."""
+        # Return existing action if already created.
+        if self._settings_action is not None:
+            return self._settings_action
+
+        # Create and configure the action.
+        action = QAction(self)
+        action.setIcon(self.get_icon("wrench"))
+        action.triggered.connect(self.show_settings)
+        self.line_edit.addAction(
+            action, QLineEdit.ActionPosition.TrailingPosition
+        )
+        self._settings_action = action
         return action
 
     def create_clear_action(self) -> QAction:
@@ -403,6 +427,45 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
     def on_record_saved(self, record: DBM) -> None:
         """The record has been saved."""
         raise NotImplementedError("Subclasses must implement this method")
+
+    @top_level_handler
+    def show_settings(self):
+        """Show the settings menu for the control."""
+        from exdrf_qt.utils.del_actions import (
+            create_del_actions,
+            apply_del_action,
+        )
+
+        logger.log(1, "%s.show_settings()", self.__class__.__name__)
+
+        # Create a menu and add actions.
+        menu = QMenu(self)
+
+        # Get the model to configure.
+        qt_model = self.qt_model
+        if qt_model is None:
+            logger.error("No model set")
+            return
+
+        # Show the tree actions that control the way deleted records are shown.
+        if qt_model.has_soft_delete_field:
+            actions = create_del_actions(self.ctx, qt_model, parent=menu)
+            for action in actions:
+                menu.addAction(action)
+
+        # Show the menu with its right edge aligned with the right edge
+        # of the line edit.
+        if menu.isEmpty():
+            return
+        action_widget = self.line_edit
+        menu_pos = action_widget.mapToGlobal(action_widget.rect().bottomRight())
+        menu_size = menu.sizeHint()
+        menu_pos.setX(menu_pos.x() - menu_size.width())
+        result = menu.exec_(menu_pos)
+        if result is not None:
+            # Handle delete choice.
+            if apply_del_action(result, qt_model) is not None:
+                return
 
 
 class DrfSelOneEditor(DrfSelBase[DBM_O]):

@@ -11,8 +11,14 @@ if TYPE_CHECKING:
     from exdrf_qt.models.model import QtModel  # noqa: F401
 
 LOADING_BRUSH = QBrush(QColor("lightgray"), Qt.BrushStyle.Dense4Pattern)
-ERROR_BRUSH = QBrush(QColor("lightred"), Qt.BrushStyle.SolidPattern)
+
+# Light yellow background brush for records with errors and red text.
+ERROR_BRUSH = QBrush(QColor(246, 226, 172), Qt.BrushStyle.SolidPattern)
 ERROR_COLOR = QColor("red")
+
+# Light red background brush for deleted records and normal text.
+DEL_BRUSH = QBrush(QColor("lightred"), Qt.BrushStyle.SolidPattern)
+DEL_COLOR = QColor("red")
 
 
 @define
@@ -26,6 +32,7 @@ class QtRecord:
             Column data consists of a dictionary that maps the role to the data.
         loaded: A flag that indicates if the record has been loaded from the
             database or not. Stubs have this flag set to false.
+        soft_del: A flag that indicates if the record is a soft deleted record.
     """
 
     model: "QtModel" = field(repr=False)
@@ -33,6 +40,7 @@ class QtRecord:
     values: Dict[int, Dict[Qt.ItemDataRole, Any]] = field(
         factory=dict, repr=False
     )
+    soft_del: bool = field(default=False)
     _loaded: bool = field(default=False)
     _error: bool = field(default=False)
 
@@ -102,6 +110,13 @@ class QtRecord:
                 return (
                     Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter
                 )
+
+        if self.soft_del:
+            if role == Qt.ItemDataRole.BackgroundRole:
+                return DEL_BRUSH
+            elif role == Qt.ItemDataRole.ForegroundRole:
+                return DEL_COLOR
+
         column_data = self.values.get(column, None)
         if column_data is None:
             return None

@@ -33,6 +33,7 @@ from exdrf_qt.models.record import QtRecord
 from exdrf_qt.models.requests import RecordRequestManager
 from exdrf_qt.models.selector import Selector
 from exdrf_qt.worker import Work
+from exdrf_al.utils import DelChoice
 
 if TYPE_CHECKING:
     from PyQt5.QtCore import QObject  # noqa: F401
@@ -171,7 +172,22 @@ class QtModel(
             cache (does not include top_cache items).
         _wait_before_request: The number of milliseconds to wait before issuing
             a request for items.
-
+        _soft_delete_field_name: The name of the field in the model that
+            indicates if a record is normally hidden (soft delete). This only
+            indicates the name of the field to be searched in the database
+            model; the value here should not be taken to indicate that
+            the database model actually has this field. Use the
+            has_soft_delete_field property to check if the model has a soft
+            delete field and get_soft_delete_field() to get the field.
+            To prevent the model from applying deletion filtering you
+            can set this value to None.
+        _del_choice: The choice of deleted records to include in the model.
+            ACTIVE means only records that are not marked as deleted will be
+            included. DELETED means only records that are marked as deleted
+            will be included. ALL means all records will be included. The
+            default is ACTIVE. This option changes the filter applied to the
+            model by the Selector but only if the get_soft_delete_field()
+            returns a valid field.
     Signals:
         totalCountChanged: Emitted when a change iin the total count is
             detected by the recalculate_total_count method.
@@ -203,6 +219,8 @@ class QtModel(
     _checked: Optional[Set[RecIdType]] = None
     _db_to_row: Dict[RecIdType, int]
     _wait_before_request: int
+    _soft_delete_field_name: Union[str, None]
+    _del_choice: DelChoice
 
     totalCountChanged = pyqtSignal(int)
     checkedChanged = pyqtSignal()
@@ -221,6 +239,8 @@ class QtModel(
         prevent_total_count: Optional[bool] = False,
         batch_size: int = DEFAULT_CHUNK_SIZE,
         wait_before_request: int = 100,
+        soft_delete_field_name: Union[str, None] = "deleted",
+        del_choice: DelChoice = DelChoice.ACTIVE,
     ):
         """Initialize the model.
 
@@ -233,6 +253,17 @@ class QtModel(
             prevent_total_count: If True, the total count is not computed
                 in the constructor.
             batch_size: The number of items to load at once.
+            wait_before_request: The number of milliseconds to wait before
+                issuing a request for items.
+            soft_delete_field_name: The name of the field in the model that
+                indicates if a record is normally hidden (soft delete).
+            del_choice: The choice of deleted records to include in the model.
+                ACTIVE means only records that are not marked as deleted will
+                be included. DELETED means only records that are marked as
+                deleted will be included. ALL means all records will be
+                included. The default is ACTIVE. This option changes the
+                filter applied to the model by the Selector but only if the
+                get_soft_delete_field() returns a valid field.
         """
         # super().__init__(parent=parent)
         QAbstractItemModel.__init__(self, parent=parent)
@@ -244,6 +275,8 @@ class QtModel(
         self.top_cache = []
         self._wait_before_request = wait_before_request
         self._db_to_row = {}
+        self._soft_delete_field_name = soft_delete_field_name
+        self._del_choice = del_choice
         self.db_model = db_model
         self.fields = cast(Any, fields if fields is not None else [])
         self.selection = (
@@ -547,6 +580,36 @@ class QtModel(
             self.name,
             reset_model,
         )
+
+    def get_soft_delete_field(self) -> Union[Any, None]:
+        """Return the field in the model that indicates if a record is
+        normally hidden (soft delete).
+
+        The default implementation simply looks for a field named "deleted".
+
+        Returns None if the model has no soft delete field of the model
+        attribute from the database model.
+        """
+        assert self.db_model is not None
+        if not self._soft_delete_field_name:
+            return None
+        return getattr(self.db_model, self._soft_delete_field_name, None)
+
+    @property
+    def has_soft_delete_field(self) -> bool:
+        """Return True if the model has a soft delete field."""
+        return self.get_soft_delete_field() is not None
+
+    @property
+    def del_choice(self) -> DelChoice:
+        """Return the choice of deleted records to include in the model."""
+        return self._del_choice
+
+    @del_choice.setter
+    def del_choice(self, value: DelChoice) -> None:
+        """Set the choice of deleted records to include in the model."""
+        self._del_choice = value
+        self.reset_model()
 
     def ensure_stubs(self, new_total: int) -> None:
         """Populate the cache with stubs so that the model can be used.
@@ -860,6 +923,13 @@ class QtModel(
                     Qt.ItemDataRole.EditRole: str(e),
                 }
                 result.error = True
+
+        # Deal with soft delete.
+        del_field = self.get_soft_delete_field()
+        if del_field is not None:
+            del_value = getattr(item, del_field.name)
+            result.soft_del = bool(del_value)
+
         result.loaded = True
         return result
 
