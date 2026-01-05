@@ -1,9 +1,14 @@
-from typing import Dict
+from typing import Dict, Optional, TYPE_CHECKING
 
 from attrs import define, field
 
+if TYPE_CHECKING:
+    from exdrf_qt.models.model import ModelWork
 
-@define
+MERGE_LIMIT = 50
+
+
+@define(slots=True)
 class RecordRequest:
     """A class that represents a request for items from the database.
 
@@ -17,7 +22,12 @@ class RecordRequest:
     start: int = field(hash=True)
     count: int = field(hash=True)
     uniq_id: int = field(hash=True, init=False)
-    pushed: bool = field(default=False, init=False)
+    pushed: bool = field(default=False, init=False, hash=False)
+    work: Optional["ModelWork"] = field(
+        default=None, init=False, repr=False, hash=False
+    )
+    _cancelled: bool = field(default=False, init=False, hash=False)
+    priority: int = field(default=0, init=False, hash=False)
 
     def __hash__(self) -> int:
         """Return the hash of the request.
@@ -26,6 +36,20 @@ class RecordRequest:
             A hash value based on start, count, and uniq_id.
         """
         return hash((self.start, self.count, self.uniq_id))
+
+    @property
+    def cancelled(self) -> bool:
+        """Return whether the request has been cancelled."""
+        if self._cancelled:
+            return True
+        return self.work is not None and self.work.cancelled
+
+    @cancelled.setter
+    def cancelled(self, value: bool) -> None:
+        """Set whether the request has been cancelled."""
+        if self.work is not None:
+            self.work.cancelled = value
+        self._cancelled = value
 
 
 class RecordRequestManager:
@@ -65,6 +89,7 @@ class RecordRequestManager:
         uniq_id = self.uniq_gen
         self.uniq_gen += 1
         req.uniq_id = uniq_id
+        req.priority = uniq_id
         self.requests[uniq_id] = req
 
     def trim_request(self, req: "RecordRequest") -> bool:
@@ -90,6 +115,7 @@ class RecordRequestManager:
                 if other_end >= req_end:
                     # The new request is completely inside the old one.
                     req.count = 0
+                    other.priority = max(other.priority, req.priority)
                     return False
 
                 req.count = req_end - other_end
@@ -110,12 +136,17 @@ class RecordRequestManager:
                         other.start = req.start
                         other.count = req.count
                         req.count = 0
+                        other.priority = max(other.priority, req.priority)
                         return False
+                    else:
+                        other.priority = max(other.priority, req.priority)
                 else:
                     req.count = other.start - req.start
+                    other.priority = max(other.priority, req.priority)
+                    req.priority = other.priority
                     assert req.count >= 0, (
-                        f"Request count should be positive, but got {req.count}. "
-                        f"Request: {req}, Other: {other}."
+                        "Request count should be positive, but got "
+                        f"{req.count}. Request: {req}, Other: {other}."
                     )
             if req.count == 0:
                 return False
@@ -125,8 +156,9 @@ class RecordRequestManager:
         # the limits are exactly equal.
         for other in self.requests.values():
             if other.pushed:
+                other.priority = max(other.priority, req.priority)
                 continue
-            if other.count > 50:
+            if other.count > MERGE_LIMIT:
                 # Don't join requests that are too big.
                 continue
             if other.start == req.start + req.count:
@@ -134,6 +166,7 @@ class RecordRequestManager:
                 other.count += req.count
                 other.start = req.start
                 req.count = 0
+                other.priority = max(other.priority, req.priority)
                 assert other.count > 0, (
                     f"Request count should be positive, but got {other.count}. "
                     f"Request: {req}, Other: {other}."
@@ -143,6 +176,7 @@ class RecordRequestManager:
                 # Append the request to the other one.
                 other.count += req.count
                 req.count = 0
+                other.priority = max(other.priority, req.priority)
                 assert other.count > 0, (
                     f"Request count should be positive, but got {other.count}. "
                     f"Request: {req}, Other: {other}."

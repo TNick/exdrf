@@ -24,7 +24,6 @@ from exdrf.filter import FieldFilter, FilterType, validate_filter
 from PyQt5.QtCore import QAbstractItemModel, QModelIndex, Qt, QTimer, pyqtSignal
 from sqlalchemy import case, func, select, tuple_
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm.exc import DetachedInstanceError
 from unidecode import unidecode
 
 from exdrf_qt.context_use import QtUseContext
@@ -45,7 +44,8 @@ if TYPE_CHECKING:
     from exdrf_qt.models.requests import RecordRequest  # noqa: F401
 
 
-DEFAULT_CHUNK_SIZE = 8
+DEFAULT_CHUNK_SIZE = 24
+MODEL_LOG_LEVEL = logging.INFO
 DBM = TypeVar("DBM")
 logger = logging.getLogger(__name__)
 
@@ -78,26 +78,31 @@ def compare_filters(f1: "FilterType", f2: "FilterType") -> bool:
         return f1 == f2
 
 
-@define
+@define(slots=True)
 class ModelWork(Work):
 
-    model: "QtModel" = field(kw_only=True)
+    model: "QtModel" = field(kw_only=True, repr=False)
+    cancelled: bool = field(default=False, init=False)
 
     def perform(self, session: "Session") -> None:
         """Perform the work."""
+        self.result = []
+        if self.cancelled:
+            return
+
         if self.use_unique:
             tmp_result = list(session.scalars(self.statement).unique().all())
         else:
             tmp_result = list(session.scalars(self.statement))
 
-        self.result = []
         for i, db_rec in enumerate(tmp_result):
             qt_rec = QtRecord(model=self.model)
             try:
                 self.model.db_item_to_record(db_rec, qt_rec)
             except Exception as e:
                 logger.error(
-                    "Error converting item %d to record: %s",
+                    "M: %s Error converting item %d to record: %s",
+                    self.model.name,
                     i,
                     e,
                     exc_info=e,
@@ -106,6 +111,17 @@ class ModelWork(Work):
             self.result.append(qt_rec)
 
         session.expunge_all()
+
+    def get_category(self) -> str:
+        """The category for the priority queue.
+
+        We want to process the newest requests first for the same model.
+        """
+        return str(id(self.model))
+
+    def get_priority(self) -> int:
+        """The priority for the priority queue."""
+        return self.req_id[1].priority
 
 
 class QtModel(
@@ -253,12 +269,15 @@ class QtModel(
 
         The function clears the cache and resets the total count.
         """
+        logger.log(MODEL_LOG_LEVEL, "M: %s Resetting model...", self.name)
         self.beginResetModel()
 
         # Clear any pending requests so late callbacks from previous state are
         # ignored after the cache is reset.
+        for req in self.requests.values():
+            req.cancelled = True
         self.requests.clear()
-        self.uniq_gen = 0
+        # self.uniq_gen = 0
 
         self.cache.clear()
         self._db_to_row = {}
@@ -266,6 +285,7 @@ class QtModel(
         self._loaded_count = 0
         self.recalculate_total_count()
         self.endResetModel()
+        logger.log(MODEL_LOG_LEVEL, "M: %s Model reset complete.", self.name)
 
     def recalculate_total_count(self) -> int:
         """Recalculate the total number of items in the selection.
@@ -283,6 +303,12 @@ class QtModel(
             )
             count = cast(int, session.scalar(count_query))
             self.total_count = count
+            logger.log(
+                MODEL_LOG_LEVEL,
+                "M: %s Total count recalculated: %d",
+                self.name,
+                count,
+            )
             return count
 
     @property
@@ -301,13 +327,30 @@ class QtModel(
         The argument should not include the number of items in the top cache.
         """
         if value != self._total_count:
+            logger.log(
+                MODEL_LOG_LEVEL,
+                "M: %s Setting total count to %d",
+                self.name,
+                value,
+            )
             self.ensure_stubs(value)
             self._total_count = value
-            self.totalCountChanged.emit(value)
+            true_value = value + len(self.top_cache)
+            self.totalCountChanged.emit(true_value)
+            logger.log(
+                MODEL_LOG_LEVEL,
+                "M: %s Total count set to %d (true value: %d)",
+                self.name,
+                value,
+                true_value,
+            )
 
     @property
     def loaded_count(self) -> int:
-        """Return the number of items loaded from the database."""
+        """Return the number of items loaded from the database.
+
+        This value does NOT include the number of items in the top cache.
+        """
         return self._loaded_count
 
     @loaded_count.setter
@@ -315,8 +358,16 @@ class QtModel(
         """Set the number of items loaded from the database.
 
         Also emits the `loadedCountChanged` signal if the value changes.
+
+        The argument should not include the number of items in the top cache.
         """
         if value != self._loaded_count:
+            logger.log(
+                MODEL_LOG_LEVEL,
+                "M: %s Setting loaded count to %d",
+                self.name,
+                value,
+            )
             self._loaded_count = value
             self.loadedCountChanged.emit(value)
 
@@ -333,15 +384,19 @@ class QtModel(
     @filters.setter
     def filters(self, value: FilterType) -> None:
         """Set the filters."""
+        logger.log(
+            MODEL_LOG_LEVEL, "M: %s Setting filters to %s", self.name, value
+        )
         validate_result = validate_filter(value)
         if validate_result:
             error = (
                 f"Invalid filters: {validate_result[0]} "
                 f"{'->'.join(validate_result[1:])}"
             )
-            logger.error(error)
+            logger.error("M: %s %s", self.name, error)
             raise ValueError(error)
         self._filters = value
+        logger.log(MODEL_LOG_LEVEL, "M: %s Filters set to %s", self.name, value)
 
     @property
     def filtered_selection(self) -> "Select":
@@ -362,7 +417,8 @@ class QtModel(
             )
         except Exception:
             logger.error(
-                "Error while computing the filtered selection",
+                "M: %s Error while computing the filtered selection",
+                self.name,
                 exc_info=True,
             )
             return self.selection
@@ -398,16 +454,16 @@ class QtModel(
                         fld = self.get_field(field_key)
                         if fld is None:
                             logger.warning(
-                                "Sorting field %s not found in model %s",
-                                field_key,
+                                "M: %s Sorting field %s not found",
                                 self.name,
+                                field_key,
                             )
                             continue
                         if not fld.sortable:
                             logger.warning(
-                                "Sorting field %s not sortable in model %s",
-                                field_key,
+                                "M: %s Sorting field %s not sortable",
                                 self.name,
+                                field_key,
                             )
                             continue
                         tmp = fld.apply_sorting(order == "asc")
@@ -415,14 +471,17 @@ class QtModel(
                             order_by_clauses.append(tmp)
 
                 except Exception:
-                    logger.error("Error applying sorting", exc_info=True)
+                    logger.error(
+                        "M: %s Error applying sorting", self.name, exc_info=True
+                    )
                     return self.filtered_selection
 
             if order_by_clauses:
                 return self.filtered_selection.order_by(*order_by_clauses)
         except Exception:
             logger.error(
-                "Error while computing the sorted selection",
+                "M: %s Error while computing the sorted selection",
+                self.name,
                 exc_info=True,
             )
         return self.filtered_selection
@@ -440,6 +499,12 @@ class QtModel(
     @checked_ids.setter
     def checked_ids(self, value: Optional[Set[RecIdType]]) -> None:
         """Set the list of checked items."""
+        logger.log(
+            MODEL_LOG_LEVEL,
+            "M: %s Setting checked ids to %s...",
+            self.name,
+            value,
+        )
         reset_model = False
         if value is None:
             if self._checked is None:
@@ -453,7 +518,7 @@ class QtModel(
             value = set(value)
             if self._checked is None:
                 # Changing from non-checked mode to checked mode.
-                self._checked = set()
+                self._checked = value
                 reset_model = True
             elif self._checked == value:
                 return
@@ -476,6 +541,12 @@ class QtModel(
 
         if reset_model:
             self.reset_model()
+        logger.log(
+            MODEL_LOG_LEVEL,
+            "M: %s Checked items were set. Reset model: %s.",
+            self.name,
+            reset_model,
+        )
 
     def ensure_stubs(self, new_total: int) -> None:
         """Populate the cache with stubs so that the model can be used.
@@ -486,6 +557,12 @@ class QtModel(
         Args:
             new_total: The new total count to set for the cache size.
         """
+        logger.log(
+            MODEL_LOG_LEVEL,
+            "M: %s Ensuring stubs for %d items...",
+            self.name,
+            new_total,
+        )
         self.cache.set_size(new_total)
 
         # If the cache is empty, we post a request for items.
@@ -496,9 +573,15 @@ class QtModel(
             old_total = self._total_count
             try:
                 self._total_count = new_total
-                count = min(self.batch_size * 2, new_total)
+                count = min(self.batch_size * 8, new_total)
                 if count > 0:
                     self.request_items(0, count)
+                logger.log(
+                    MODEL_LOG_LEVEL,
+                    "M: %s Requested %d items.",
+                    self.name,
+                    count,
+                )
             finally:
                 # Restore old value - it will be set correctly by the setter
                 self._total_count = old_total
@@ -516,10 +599,24 @@ class QtModel(
         if start + count > self._total_count:
             count = self._total_count - start
         if count <= 0:
+            logger.log(
+                MODEL_LOG_LEVEL,
+                "M: %s Requested %d items, but count is 0 or negative.",
+                self.name,
+                start,
+                count,
+            )
             return
         req = self.new_request(start, count)
         if not self.trim_request(req):
             # There are already requests in progress that overlap with this one.
+            logger.log(
+                MODEL_LOG_LEVEL,
+                "M: %s Request %d-%d overlaps with existing requests.",
+                self.name,
+                start,
+                start + count,
+            )
             return
 
         # Save to internal list.
@@ -530,7 +627,20 @@ class QtModel(
             QTimer.singleShot(
                 self._wait_before_request, lambda: self.execute_request(req)
             )
+            logger.log(
+                MODEL_LOG_LEVEL,
+                "M: %s Waiting %d milliseconds before executing request %s.",
+                self.name,
+                self._wait_before_request,
+                req.uniq_id,
+            )
         else:
+            logger.log(
+                MODEL_LOG_LEVEL,
+                "M: %s Executing request %s immediately.",
+                self.name,
+                req.uniq_id,
+            )
             self.execute_request(req)
 
     def execute_request(self, req: "RecordRequest") -> None:
@@ -540,29 +650,63 @@ class QtModel(
         multiple requests to be accumulated. The function pushes the
         request to the worker thread and emits the `requestIssued` signal.
         """
+        if req.cancelled:
+            logger.log(
+                MODEL_LOG_LEVEL,
+                "M: %s Request %s was cancelled",
+                self.name,
+                req.uniq_id,
+            )
+            return
+        logger.log(
+            MODEL_LOG_LEVEL,
+            "M: %s Executing request %s.",
+            self.name,
+            req.uniq_id,
+        )
+
         # Prevent merges into this request.
         req.pushed = True
-
-        self.ctx.push_work(
-            ModelWork(
-                model=self,
-                statement=(
-                    self.sorted_selection.offset(req.start).limit(req.count)
-                ),
-                callback=self._load_items_2,  # type: ignore
-                req_id=(id(self), req),
-            )
+        req.work = ModelWork(
+            model=self,
+            statement=(
+                self.sorted_selection.offset(req.start).limit(req.count)
+            ),
+            callback=self._load_items,  # type: ignore
+            req_id=(id(self), req),
         )
+
+        self.ctx.push_work(req.work)
 
         # Inform interested parties that a request has been issued.
         try:
             self.requestIssued.emit(
                 req.uniq_id, req.start, req.count, len(self.requests)
             )
+            logger.log(
+                MODEL_LOG_LEVEL,
+                "M: %s Request %s issued. Start: %d, Count: %d, Requests: %d.",
+                self.name,
+                req.uniq_id,
+                req.start,
+                req.count,
+                len(self.requests),
+            )
         except RuntimeError:
-            logger.error("RuntimeError in requestIssued signal", exc_info=True)
+            logger.error(
+                "M: %s RuntimeError in requestIssued signal",
+                self.name,
+                exc_info=True,
+            )
 
-    def _load_items_2(self, work: "ModelWork") -> None:
+    def _load_items(self, work: "ModelWork") -> None:
+        logger.log(
+            MODEL_LOG_LEVEL,
+            "M: %s Loading items for request %s.",
+            self.name,
+            work.req_id,
+        )
+
         # Locate the request in the list of requests.
         # work.req_id is a tuple (id(self), req), so work.req_id[1] is the
         # request object
@@ -571,18 +715,35 @@ class QtModel(
         else:
             # Fallback for different req_id formats
             req = None
+
+        if work.cancelled:
+            logger.log(
+                MODEL_LOG_LEVEL,
+                "M: %s Request was %s cancelled",
+                self.name,
+                work.req_id,
+            )
+            return
+
         if req is None:
-            logger.debug("Request %s not found in requests", work.req_id)
+            logger.error(
+                "M: %s Request %s not found in requests", self.name, work.req_id
+            )
             return
 
         # If this request generated an error mark those requests as such.
+        available = 0
         if work.error:
             for i in range(req.start, req.start + req.count):
                 record = self.cache[i]
                 record.db_id = -1
                 record.error = True
-            logger.debug(
-                "Request %d generated an error: %s", work.req_id, work.error
+            logger.log(
+                MODEL_LOG_LEVEL,
+                "M: %s Request %d generated an error: %s",
+                self.name,
+                work.req_id,
+                work.error,
             )
             self.requestError.emit(
                 req.uniq_id,
@@ -602,9 +763,11 @@ class QtModel(
                 max(0, len(self.cache) - req.start),
             )
             if available < req.count:
-                logger.debug(
-                    "Request %s returned fewer rows than requested "
-                    "(asked=%d, got=%d, cache=%d).",
+                logger.log(
+                    MODEL_LOG_LEVEL,
+                    "M: %s Request %s returned fewer rows than requested "
+                    "(asked=%d, got=%d, len(cache)=%d).",
+                    self.name,
                     req.uniq_id,
                     req.count,
                     len(work.result),
@@ -622,6 +785,16 @@ class QtModel(
                 # The row is the index of the item in the cache
                 # without the top cache.
                 self._db_to_row[new_record.db_id] = i
+            logger.log(
+                MODEL_LOG_LEVEL,
+                "M: %s Request %s completed. "
+                "Start: %d, Count: %d, Requests: %d.",
+                self.name,
+                req.uniq_id,
+                req.start,
+                req.count,
+                len(self.requests),
+            )
             self.requestCompleted.emit(
                 req.uniq_id,
                 req.start,
@@ -633,88 +806,6 @@ class QtModel(
             self.createIndex(req.start, 0),
             self.createIndex(
                 req.start + available - 1, len(self.column_fields) - 1
-            ),
-        )
-
-    def _load_items(self, work: "Work") -> None:
-        """We are informed that a batch of items has been loaded."""
-        # Locate the request in the list of requests.
-        # work.req_id is a tuple (id(self), req), so work.req_id[1] is the
-        # request object
-        if isinstance(work.req_id, tuple) and len(work.req_id) >= 2:
-            req = self.requests.pop(work.req_id[1].uniq_id, None)
-        else:
-            # Fallback for different req_id formats
-            req = None
-        if req is None:
-            logger.debug("Request %s not found in requests", work.req_id)
-            return
-
-        # If this request generated an error mark those requests as such.
-        if work.error:
-            for i in range(req.start, req.start + req.count):
-                record = self.cache[i]
-                record.db_id = -1
-                record.error = True
-            logger.debug(
-                "Request %d generated an error: %s", work.req_id, work.error
-            )
-            self.requestError.emit(
-                req.uniq_id,
-                req.start,
-                req.count,
-                len(self.requests),
-                str(work.error),
-            )
-        else:
-            with self.ctx.same_session() as session:
-                loaded_update = 0
-                for i in range(req.start, req.start + req.count):
-                    record = self.cache[i]
-                    if not record.loaded:
-                        loaded_update = loaded_update + 1
-                    try:
-                        self.db_item_to_record(
-                            work.result[i - req.start], record
-                        )
-                    except DetachedInstanceError:
-                        session.add(work.result[i - req.start])
-                        try:
-                            self.db_item_to_record(
-                                work.result[i - req.start], record
-                            )
-                        except Exception as e:
-                            logger.error(
-                                "Error converting item %d to record: %s",
-                                i - req.start,
-                                e,
-                                exc_info=e,
-                            )
-                            record.error = True
-
-                    except Exception as e:
-                        logger.error(
-                            "Error converting item %d to record: %s",
-                            i - req.start,
-                            e,
-                            exc_info=e,
-                        )
-                        record.error = True
-
-                    # The row is the index of the item in the cache
-                    # without the top cache.
-                    self._db_to_row[record.db_id] = i
-                self.requestCompleted.emit(
-                    req.uniq_id,
-                    req.start,
-                    req.count,
-                    len(self.requests),
-                )
-                self.loaded_count = self._loaded_count + loaded_update
-        self.dataChanged.emit(
-            self.createIndex(req.start, 0),
-            self.createIndex(
-                req.start + req.count - 1, len(self.column_fields) - 1
             ),
         )
 
@@ -752,7 +843,9 @@ class QtModel(
                 result.values[f_index] = fld.values(item)
             except Exception as e:
                 logger.error(
-                    "Error converting item %d to record using field '%s': %s",
+                    "M: %s Error converting item %d to record "
+                    "using field '%s': %s",
+                    self.name,
                     f_index,
                     fld.name,
                     e,
@@ -760,7 +853,7 @@ class QtModel(
 
                 import traceback
 
-                logger.error(traceback.format_exc())
+                logger.error("M: %s %s", self.name, traceback.format_exc())
 
                 result.values[f_index] = {
                     Qt.ItemDataRole.DisplayRole: str(e),
@@ -894,11 +987,11 @@ class QtModel(
                 yield session.scalar(selector)
             except SQLAlchemyError as e:
                 logger.error(
-                    "SqlAlchemy error '%s' getting item by ID '%s' in QtModel "
-                    "'%s' with statement:\n%s",
+                    "M: %s SqlAlchemy error '%s' getting item by ID '%s' "
+                    "with statement:\n%s",
+                    self.name,
                     e,
                     rec_id,
-                    self.name,
                     sqlparse.format(
                         str(selector), reindent=True, keyword_case="upper"
                     ),
@@ -939,6 +1032,7 @@ class QtModel(
         The function copies most of the attributes of the model. The cache
         starts up empty and the total count is recalculated.
         """
+        logger.log(MODEL_LOG_LEVEL, "M: %s Cloning model...", self.name)
         result = self.__class__(
             ctx=self.ctx,
             db_model=self.db_model,
@@ -966,6 +1060,7 @@ class QtModel(
         # Recalculate total count, which will trigger ensure_stubs()
         # and request initial items using the correct sorted/filtered selection
         result.recalculate_total_count()
+        logger.log(MODEL_LOG_LEVEL, "M: %s Model cloned.", self.name)
         return result
 
     def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
@@ -1098,7 +1193,9 @@ class QtModel(
             and not item.loaded
             and not item.error
         ):
-            self.request_items(row, self.batch_size)
+            self.request_items(
+                max(0, row - self.batch_size), self.batch_size * 2
+            )
 
         if role == Qt.ItemDataRole.CheckStateRole:
             # Checkboxes are only shown if the model is in checkable mode
@@ -1232,7 +1329,9 @@ class QtModel(
             ]
             self.reset_model()
         except Exception as e:
-            logger.error("Error sorting model: %s", e, exc_info=True)
+            logger.error(
+                "M: %s Error sorting model: %s", self.name, e, exc_info=True
+            )
 
     def apply_filter(self, filter: Union[FilterType, None]) -> None:
         """Apply a filter to the model.
@@ -1260,7 +1359,9 @@ class QtModel(
                 if compare_filters(filter, previous):
                     return
         except Exception as e:
-            logger.error("Error applying filter: %s", e, exc_info=True)
+            logger.error(
+                "M: %s Error applying filter: %s", self.name, e, exc_info=True
+            )
 
         # Make sure that the filter is valid.
         if filter:
@@ -1272,7 +1373,13 @@ class QtModel(
                 )
 
         self._filters = filter if filter else []
-        logger.debug("Changing filters from %s to %s", previous, self._filters)
+        logger.log(
+            MODEL_LOG_LEVEL,
+            "M: %s Changing filters from %s to %s",
+            self.name,
+            previous,
+            self._filters,
+        )
         self.reset_model()
 
     def text_to_filter(
@@ -1418,7 +1525,65 @@ class QtModel(
         Args:
             ids: The list of IDs to prioritize, or None to clear prioritization.
         """
+        logger.log(
+            MODEL_LOG_LEVEL,
+            "M: %s Setting prioritized ids to %s...",
+            self.name,
+            ids,
+        )
         if self.prioritized_ids == ids:
             return
         self.prioritized_ids = ids
+        logger.log(
+            MODEL_LOG_LEVEL,
+            "M: %s Prioritized ids set to %s. Resetting model.",
+            self.name,
+            ids,
+        )
         self.reset_model()
+
+    def find_qt_record_by_id(
+        self, rec_id: RecIdType
+    ) -> Tuple[Optional[int], Optional[QtRecord]]:
+        """Find a database record by its ID.
+
+        Args:
+            id: The ID of the record to find.
+
+        Returns:
+            The record, or None if not found.
+        """
+        # Attempt to find the record in the regular cache.
+        row = self._db_to_row.get(rec_id, None)
+        if row is None:
+            # See if the record is in the top cache.
+            for t_row in range(len(self.top_cache)):
+                if self.top_cache[t_row].db_id == rec_id:
+                    return t_row, self.top_cache[t_row]
+            return None, None
+
+        # Adjust the row index to account for the top cache.
+        row = row + len(self.top_cache)
+        return row, self.cache[row]
+
+    def insert_db_record(self, db_item: DBM) -> None:
+        """Insert a database record into the model.
+
+        The record is not placed into the normal cache. It is placed into a
+        special cache that always reports its items first, before other items.
+        """
+        logger.log(
+            MODEL_LOG_LEVEL,
+            "M: %s Inserting record into model...",
+            self.name,
+        )
+        parent_idx = QModelIndex()
+        self.rowsAboutToBeInserted.emit(parent_idx, 0, 0)
+        self.top_cache.insert(0, self.db_item_to_record(db_item))
+        self.rowsInserted.emit(parent_idx, 0, 0)
+        self.totalCountChanged.emit(self.total_count)
+        logger.log(
+            MODEL_LOG_LEVEL,
+            "M: %s Record inserted into model.",
+            self.name,
+        )

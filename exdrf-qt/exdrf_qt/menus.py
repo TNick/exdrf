@@ -197,7 +197,7 @@ class NewMenus(QtUseContext):
             default_menu: The menu where actions without a parent will be added.
             existing: A dictionary of existing menus to use, keyed by menu key.
         """
-        logger.debug("collect_and_create menus starts")
+        logger.log(1, "collect_and_create menus starts")
         self.pre_create(ctx, top_parent, default_menu, existing)
 
         # Populate the existing menus.
@@ -217,7 +217,7 @@ class NewMenus(QtUseContext):
                 plugin_name,
                 error,
             )
-        logger.debug("result_map has %d items", len(result_map))
+        logger.log(1, "result_map has %d items", len(result_map))
 
         # Add the definitions to the class.
         for plugin_name, defs in result_map.items():
@@ -241,7 +241,8 @@ class NewMenus(QtUseContext):
             for def_item in self.defs.values()
             if isinstance(def_item, ActionDef)
         ]
-        logger.debug(
+        logger.log(
+            1,
             "%d menu definitions, %d action definitions",
             len(menu_defs),
             len(action_defs),
@@ -254,7 +255,7 @@ class NewMenus(QtUseContext):
         self._create_actions(action_defs, top_parent, default_menu)
 
         self.post_create(ctx, top_parent, default_menu, existing)
-        logger.debug("collect_and_create done")
+        logger.log(1, "collect_and_create done")
 
     def _create_menus(
         self,

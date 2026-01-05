@@ -466,7 +466,7 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
         self.ac_clone.setEnabled(False)
 
     def get_selected_db_id(self) -> Optional[RecIdType]:
-        """ "Get the selected item ID."""
+        """Get the selected item ID."""
         model = self.qt_model
         selected_indexes = self.selectedIndexes()
         if not selected_indexes:

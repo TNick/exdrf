@@ -41,7 +41,7 @@ class SearchLine(QLineEdit, QtUseContext):
         add_button: bool = False,
     ):
         logger.log(
-            10,
+            1,
             "SearchLine.__init__(delay=%s)",
             delay,
         )

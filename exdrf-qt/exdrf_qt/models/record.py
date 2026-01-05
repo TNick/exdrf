@@ -28,7 +28,7 @@ class QtRecord:
             database or not. Stubs have this flag set to false.
     """
 
-    model: "QtModel"
+    model: "QtModel" = field(repr=False)
     db_id: RecIdType = field(default=None)
     values: Dict[int, Dict[Qt.ItemDataRole, Any]] = field(
         factory=dict, repr=False
