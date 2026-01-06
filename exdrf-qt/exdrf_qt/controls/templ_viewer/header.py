@@ -18,7 +18,9 @@ class VarHeader(ListDbHeader):
         viewer: "TemplViewer",
         **kwargs,
     ):
-        super().__init__(save_settings=False, **kwargs)  # type: ignore
+        super().__init__(
+            save_settings=False, qt_model=None, **kwargs  # type: ignore
+        )  # type: ignore
         self.viewer = viewer
 
     @property
