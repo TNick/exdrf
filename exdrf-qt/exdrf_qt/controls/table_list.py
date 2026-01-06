@@ -276,7 +276,9 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
         self.create_actions(other_actions)
 
         # Use custom header
-        header: ListDbHeader = ListDbHeader(parent=self, ctx=ctx)
+        header: ListDbHeader = ListDbHeader(
+            parent=self, ctx=ctx, qt_model=self.qt_model
+        )
         self.setHeader(header)
 
     @property
@@ -330,6 +332,7 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
 
         header = self.header()
         if isinstance(header, ListDbHeader):
+            header.qt_model = self.qt_model
             header.load_sections_from_settings()
 
     def create_actions(

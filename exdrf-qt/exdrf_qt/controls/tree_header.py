@@ -22,7 +22,6 @@ from exdrf_qt.models import QtModel
 
 if TYPE_CHECKING:
     from exdrf_qt.context import QtContext  # noqa: F401
-    from exdrf_qt.controls.table_list import TreeViewDb  # noqa: F401
 
 DBM = TypeVar("DBM")
 logger = logging.getLogger(__name__)
@@ -50,15 +49,21 @@ class ListDbHeader(QHeaderView, QtUseContext, Generic[DBM]):
     filtered_sections: Set[int]
     save_settings: bool
     _no_stg_write: bool
+    qt_model: "QtModel[DBM]"
 
     def __init__(
-        self, parent: "TreeViewDb", ctx: "QtContext", save_settings: bool = True
+        self,
+        parent: "QTreeView",
+        ctx: "QtContext",
+        qt_model: "QtModel[DBM]",
+        save_settings: bool = True,
     ):
         super().__init__(Qt.Orientation.Horizontal, parent)
         self._no_stg_write = True
         self.save_settings = save_settings
         self.ctx = ctx
         self.search_line = None
+        self.qt_model = qt_model
         self.search_section = None
         self.filtered_sections = set()
         self.setMouseTracking(True)
@@ -149,11 +154,6 @@ class ListDbHeader(QHeaderView, QtUseContext, Generic[DBM]):
         logger.debug("sortIndicatorChanged: %s, %s", logical_index, order)
 
     @property
-    def qt_model(self) -> "QtModel[DBM]":
-        """The model that is used to present the data in the list."""
-        return cast("QtModel[DBM]", cast("QTreeView", self.parent()).model())
-
-    @property
     def treeview(self) -> "QTreeView":
         """The tree view that is used to present the data in the list.
 
@@ -162,53 +162,6 @@ class ListDbHeader(QHeaderView, QtUseContext, Generic[DBM]):
         parent = self.parent()
         assert isinstance(parent, QTreeView), "Parent should be a QTreeView"
         return parent
-
-    # def mouseMoveEvent(self, e: Optional[QMouseEvent]):
-    #     """Works but seems to be annoying."""
-    #     assert e is not None
-    #     section = self.logicalIndexAt(e.pos())
-    #     if section >= 0:
-    #         # Compute the location of the activation area.
-    #         w = self.sectionSize(section)
-    #         h = self.height()
-    #         x = self.sectionPosition(section) + w - h
-    #         full_size = QRect(x, 0, w, h)
-
-    #         # Adjust for horizontal scroll position
-    #         h_scroll = self.treeview.horizontalScrollBar()
-    #         assert h_scroll is not None
-    #         scroll_offset = h_scroll.value()
-    #         full_size.moveLeft(x - scroll_offset)
-
-    #         # Check if the mouse is inside the activation area.
-    #         if full_size.contains(e.pos()):
-    #             self.show_search_line(section)
-    #             if self.search_line is not None:
-    #                 self.search_line.permanent = False
-    #     elif (
-    #         self.search_line is not None
-    #         and not self.search_line.permanent
-    #         and self.search_line.geometry().contains(e.pos())
-    #     ):
-    #         self.hide_search_line()
-    #     super().mouseMoveEvent(e)
-
-    # def leaveEvent(self, e: Optional[QEvent]) -> None:  # type: ignore
-    #     """Handle mouse leaving the header widget.
-
-    #     This ensures we hide the search line when mouse moves outside the
-    #     header, since mouseMoveEvent won't fire once outside the widget
-    #     bounds.
-    #     """
-    #     if (
-    #         self.search_line is not None
-    #         and not self.search_line.permanent
-    #         and not self.rect().contains(
-    #             self.mapFromGlobal(self.cursor().pos())
-    #         )
-    #     ):
-    #         self.hide_search_line()
-    #     super().leaveEvent(e)
 
     def create_sort_actions(self, section: int):
         # Sort ascending

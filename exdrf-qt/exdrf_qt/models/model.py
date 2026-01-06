@@ -46,7 +46,7 @@ if TYPE_CHECKING:
 
 
 DEFAULT_CHUNK_SIZE = 24
-MODEL_LOG_LEVEL = logging.INFO
+MODEL_LOG_LEVEL = 1
 DBM = TypeVar("DBM")
 logger = logging.getLogger(__name__)
 

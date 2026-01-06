@@ -22,10 +22,6 @@ class VarHeader(ListDbHeader):
         self.viewer = viewer
 
     @property
-    def qt_model(self):
-        return self.viewer.model
-
-    @property
     def treeview(self) -> "QTreeView":
         return self.viewer.c_vars
 
