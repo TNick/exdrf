@@ -310,6 +310,11 @@ class QtModel(
             -1 if prevent_total_count else self.recalculate_total_count()
         )
 
+    @property
+    def partially_initialized(self) -> bool:
+        """Return True if the model is partially initialized."""
+        return self._total_count == -1
+
     def reset_model(self) -> None:
         """Reset the model.
 
@@ -585,8 +590,10 @@ class QtModel(
                             self.createIndex(row, len(self.column_fields) - 1),
                         )
 
-        if reset_model:
+        # Respect the partially-initialized state.
+        if reset_model and self._total_count != -1:
             self.reset_model()
+
         logger.log(
             MODEL_LOG_LEVEL,
             "M: %s Checked items were set. Reset model: %s.",
@@ -624,6 +631,11 @@ class QtModel(
         if value == self._del_choice:
             return
         self._del_choice = value
+
+        # Respect the partially-initialized state.
+        if self._total_count == -1:
+            return
+
         self.reset_model()
 
     def ensure_stubs(self, new_total: int) -> None:
@@ -1412,6 +1424,11 @@ class QtModel(
                     "asc" if order == Qt.SortOrder.AscendingOrder else "desc",
                 )
             ]
+
+            # Respect the partially-initialized state.
+            if self._total_count == -1:
+                return
+
             self.reset_model()
         except Exception as e:
             logger.error(
@@ -1465,6 +1482,11 @@ class QtModel(
             previous,
             self._filters,
         )
+
+        # Respect the partially-initialized state.
+        if self._total_count == -1:
+            return
+
         self.reset_model()
 
     def text_to_filter(
@@ -1625,6 +1647,11 @@ class QtModel(
             self.name,
             ids,
         )
+
+        # Respect the partially-initialized state.
+        if self._total_count == -1:
+            return
+
         self.reset_model()
 
     def find_qt_record_by_id(

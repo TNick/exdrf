@@ -66,6 +66,8 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
     _dropdown_action: QAction
     _settings_action: QAction
     _editor_class: Optional[Type["ExdrfEditor"]]
+    _qt_model: "QtModel[DBM]"
+    _add_kb: Optional[Callable[[str], None]]
 
     def __init__(
         self,
@@ -79,6 +81,8 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
         # Initialize instance variables.
         logger.log(1, "DrfSelOneEditor.__init__")
         self._in_editing = True
+        self._qt_model = qt_model
+        self._add_kb = add_kb
         self._clear_action = None
         self._dropdown_action = None  # type: ignore
         self._settings_action = None  # type: ignore
@@ -106,23 +110,19 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
         # Create and connect the popup widget for record selection.
         if not add_kb and self._editor_class is not None:
             add_kb = self.auto_create_new
-        self.popup = PopupWidget(
-            parent=self,
-            ctx=ctx,
-            qt_model=qt_model,
-            add_kb=add_kb,
-        )
+        self.popup = None
 
         self.post_init()
 
     @property
     def qt_model(self) -> "QtModel[DBM]":
         """Return the model."""
-        return self.popup.qt_model  # type: ignore
+        return self._qt_model  # type: ignore
 
     @qt_model.setter
     def qt_model(self, value: "QtModel[DBM]") -> None:
         """Set the model."""
+        self._qt_model = value
         self.popup.qt_model = value
 
     def show_popup(self):
@@ -135,6 +135,18 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
                 self.__class__.__name__,
             )
             return
+        if self.popup is None:
+            if self._qt_model.partially_initialized:
+                # This happens when the model is constructed with the
+                # prevent_total_count flag set to True.
+                self._qt_model.recalculate_total_count()
+            self.popup = PopupWidget(
+                parent=self,
+                ctx=self.ctx,
+                qt_model=self._qt_model,
+                add_kb=self._add_kb,
+            )
+            self.post_popup_init()
 
         # Position and display the popup below the line edit.
         logger.log(1, "%s.show_popup()", self.__class__.__name__)
@@ -149,6 +161,9 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
 
     def post_init(self):
         """Perform additional initialization after the widget is created."""
+
+    def post_popup_init(self):
+        """Perform additional initialization after the popup is constructed."""
 
     def on_item_selected(self, item: "QtRecord"):
         """The item has been selected from the popup."""
@@ -526,7 +541,7 @@ class DrfSelOneEditor(DrfSelBase[DBM_O]):
         _dropdown_action: Action button for opening the selection popup.
     """
 
-    def post_init(self):
+    def post_popup_init(self):
         tree = cast("TreeView", self.popup.tree)
         tree.itemSelected.connect(self.on_item_selected)
         tree.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)

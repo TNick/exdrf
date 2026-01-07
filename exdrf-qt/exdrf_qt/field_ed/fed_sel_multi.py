@@ -66,12 +66,13 @@ class DrfSelMultiEditor(DrfSelBase[DBM_M]):
         _dropdown_action: Action button for opening the selection popup.
     """
 
-    def post_init(self):
+    def post_popup_init(self):
         tree = cast("TreeView", self.popup.tree)
         tree.itemsSelected.connect(self.on_items_selected)
         tree.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
 
     def on_show_popup(self):
+
         tree = cast("TreeView", self.popup.tree)
         sm = tree.selectionModel()
         if sm is None:

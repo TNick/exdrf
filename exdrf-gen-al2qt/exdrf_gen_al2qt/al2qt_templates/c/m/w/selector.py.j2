@@ -43,6 +43,7 @@ class Qt{{ ResPascal }}SiSe(DrfSelOneEditor):
                 "{{ out_module }}.{{ categories[0] }}.{{ res_p_snake }}.selector.model",
                 Qt{{ ResPascal }}NaMo,
                 ctx=ctx,
+                prevent_total_count=True,
             )),
             editor_class=kwargs.pop("editor_class", ctx.get_ovr(
                 "{{ out_module }}.{{ categories[0] }}.{{ res_p_snake }}.selector.editor",
@@ -90,6 +91,7 @@ class Qt{{ ResPascal }}MuSe(DrfSelMultiEditor):
                 "{{ out_module }}.{{ categories[0] }}.{{ res_p_snake }}.selector.model",
                 Qt{{ ResPascal }}NaMo,
                 ctx=ctx,
+                prevent_total_count=True,
             )),
             editor_class=kwargs.pop("editor_class", ctx.get_ovr(
                 "{{ out_module }}.{{ categories[0] }}.{{ res_p_snake }}.selector.editor",
