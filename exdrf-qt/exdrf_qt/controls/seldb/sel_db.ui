@@ -143,7 +143,7 @@
       </attribute>
       <layout class="QVBoxLayout" name="verticalLayout_3">
        <item>
-        <widget class="QTreeWidget" name="c_list">
+        <widget class="QTreeView" name="c_list">
          <property name="editTriggers">
           <set>QAbstractItemView::DoubleClicked|QAbstractItemView::EditKeyPressed</set>
          </property>
@@ -156,24 +156,6 @@
          <property name="sortingEnabled">
           <bool>true</bool>
          </property>
-         <property name="columnCount">
-          <number>3</number>
-         </property>
-         <column>
-          <property name="text">
-           <string notr="true">1</string>
-          </property>
-         </column>
-         <column>
-          <property name="text">
-           <string notr="true">2</string>
-          </property>
-         </column>
-         <column>
-          <property name="text">
-           <string notr="true">3</string>
-          </property>
-         </column>
         </widget>
        </item>
       </layout>
@@ -183,7 +165,7 @@
    <item>
     <widget class="QLabel" name="label_8">
      <property name="text">
-      <string>To avoid seeing this dialog set the EXDRF_DB_CONN_STRING and EXDRF_DB_SCHEMA environment variables.</string>
+      <string>To avoid seeing this dialog at startup, set the EXDRF_DB_CONN_STRING and EXDRF_DB_SCHEMA environment variables.</string>
      </property>
      <property name="wordWrap">
       <bool>true</bool>

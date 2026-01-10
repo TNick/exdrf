@@ -54,7 +54,7 @@ class Ui_SelectDatabase:
     c_schema: "QtWidgets.QLineEdit"
     tab_manage: "QtWidgets.QWidget"
     verticalLayout_3: "QtWidgets.QVBoxLayout"
-    c_list: "QtWidgets.QTreeWidget"
+    c_list: "QtWidgets.QTreeView"
     label_8: "QtWidgets.QLabel"
     bbox: "QtWidgets.QDialogButtonBox"
 
@@ -169,18 +169,15 @@ class Ui_SelectDatabase:
         self.tab_manage.setObjectName("tab_manage")
         self.verticalLayout_3 = QtWidgets.QVBoxLayout(self.tab_manage)
         self.verticalLayout_3.setObjectName("verticalLayout_3")
-        self.c_list = QtWidgets.QTreeWidget(self.tab_manage)
+        self.c_list = QtWidgets.QTreeView(self.tab_manage)
         self.c_list.setEditTriggers(
             QtWidgets.QAbstractItemView.DoubleClicked
             | QtWidgets.QAbstractItemView.EditKeyPressed
         )
         self.c_list.setRootIsDecorated(False)
         self.c_list.setUniformRowHeights(True)
-        self.c_list.setColumnCount(3)
+        self.c_list.setSortingEnabled(True)
         self.c_list.setObjectName("c_list")
-        self.c_list.headerItem().setText(0, "1")
-        self.c_list.headerItem().setText(1, "2")
-        self.c_list.headerItem().setText(2, "3")
         self.verticalLayout_3.addWidget(self.c_list)
         self.main_tab.addTab(self.tab_manage, "")
         self.verticalLayout.addWidget(self.main_tab)
@@ -226,7 +223,6 @@ class Ui_SelectDatabase:
             self.main_tab.indexOf(self.tab_remote),
             _translate("SelectDatabase", "Remote"),
         )
-        self.c_list.setSortingEnabled(True)
         self.main_tab.setTabText(
             self.main_tab.indexOf(self.tab_manage),
             _translate("SelectDatabase", "Manage"),
@@ -234,7 +230,9 @@ class Ui_SelectDatabase:
         self.label_8.setText(
             _translate(
                 "SelectDatabase",
-                "To avoid seeing this dialog set the EXDRF_DB_CONN_STRING and EXDRF_DB_SCHEMA environment variables.",
+                "To avoid seeing this dialog at startup, set the "
+                "EXDRF_DB_CONN_STRING and EXDRF_DB_SCHEMA environment "
+                "variables.",
             )
         )
 

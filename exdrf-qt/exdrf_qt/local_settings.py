@@ -157,9 +157,25 @@ class LocalSettings:
         self["exdrf.db.c_strings"] = freeze(stg_list)
 
     def add_db_config(
-        self, id: str, name: str, kind: str, c_string: str, schema: str
+        self,
+        id: str,
+        name: str,
+        kind: str,
+        c_string: str,
+        schema: str,
+        created_at: Optional[str] = None,
     ):
-        """Add a database configuration to the settings."""
+        """Add a database configuration to the settings.
+
+        Args:
+            id: The unique identifier for the configuration.
+            name: The name of the configuration.
+            kind: The type/kind of the configuration.
+            c_string: The connection string.
+            schema: The schema name.
+            created_at: Optional ISO format datetime string for when the
+                configuration was created.
+        """
         setting = {
             "id": id,
             "name": name,
@@ -167,12 +183,20 @@ class LocalSettings:
             "c_string": c_string,
             "schema": schema,
         }
+        if created_at is not None:
+            setting["created_at"] = created_at
         stg_list = thaw(self["exdrf.db.c_strings"]) or []
         stg_list.append(setting)
         self["exdrf.db.c_strings"] = freeze(stg_list)
 
     def update_db_config(
-        self, id: str, name: str, kind: str, c_string: str, schema: str
+        self,
+        id: str,
+        name: str,
+        kind: str,
+        c_string: str,
+        schema: str,
+        created_at: Optional[str] = None,
     ):
         """Update a database configuration in the settings.
 
@@ -186,18 +210,26 @@ class LocalSettings:
                 Not used by the logic; is simply shows in the UI.
             c_string: The connection string of the database configuration.
             schema: The schema of the database configuration.
+            created_at: Optional ISO format datetime string for when the
+                configuration was created. If None, preserves existing value.
         """
         stg_list: List[Dict[str, Any]] = thaw(self["exdrf.db.c_strings"]) or []
         new_list = []
         for stg in stg_list:
             if stg["id"] == id:
-                stg = {
+                new_stg = {
                     "id": id,
                     "name": name,
                     "type": kind,
                     "c_string": c_string,
                     "schema": schema,
                 }
+                # Preserve created_at if it exists, or set it if provided
+                if "created_at" in stg:
+                    new_stg["created_at"] = stg["created_at"]
+                elif created_at is not None:
+                    new_stg["created_at"] = created_at
+                stg = new_stg
             else:
                 stg = stg.copy()
             new_list.append(stg)

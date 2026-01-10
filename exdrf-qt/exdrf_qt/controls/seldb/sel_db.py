@@ -1,9 +1,9 @@
 import logging
 import os
-from typing import TYPE_CHECKING, Any, Tuple, Union
+from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Union
 from uuid import uuid4
 
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import QModelIndex, Qt
 from PyQt5.QtWidgets import (
     QAction,
     QDialog,
@@ -11,27 +11,27 @@ from PyQt5.QtWidgets import (
     QFileDialog,
     QMessageBox,
     QPushButton,
-    QTreeWidgetItem,
 )
 
 from exdrf_qt.context_use import QtUseContext
+from exdrf_qt.controls.seldb.db_version_worker import DbVersionCheckerWorker
+from exdrf_qt.controls.seldb.manage_model import (
+    COL_NAME,
+    DatabaseConfigModel,
+    DbVersionInfo,
+)
 from exdrf_qt.controls.seldb.sel_db_ui import Ui_SelectDatabase
 from exdrf_qt.controls.seldb.utils import (
     CON_TYPE_LOCAL,
     CON_TYPE_REMOTE,
 )
+from exdrf_qt.utils.tlh import top_level_handler
 
 if TYPE_CHECKING:
     from exdrf_qt.context import QtContext  # noqa: F401
 
 
 logger = logging.getLogger(__name__)
-
-
-COL_NAME = 0
-COL_TYPE = 1
-COL_SCHEMA = 2
-COL_C_STRING = 3
 
 
 class SelectDatabaseDlg(QDialog, Ui_SelectDatabase, QtUseContext):
@@ -42,6 +42,7 @@ class SelectDatabaseDlg(QDialog, Ui_SelectDatabase, QtUseContext):
     ac_remove: QAction
     save_btn: QPushButton
     ok_btn: QPushButton
+    _config_model: DatabaseConfigModel
 
     def __init__(self, ctx: "QtContext", **kwargs):
         """Initialize the editor widget."""
@@ -72,19 +73,21 @@ class SelectDatabaseDlg(QDialog, Ui_SelectDatabase, QtUseContext):
         )
         assert self.btn_bootstrap is not None
         self.btn_bootstrap.setIcon(self.get_icon("sitemap_application_blue"))
-        self.btn_bootstrap.clicked.connect(self.bootstrap)  # type: ignore
+        self.btn_bootstrap.clicked.connect(self.on_bootstrap)  # type: ignore
 
         # Notice changes by the user.
-        self.c_db_name.textChanged.connect(self.content_changed)
-        self.c_file_path.textChanged.connect(self.content_changed)
-        self.c_host.textChanged.connect(self.content_changed)
-        self.c_pass.textChanged.connect(self.content_changed)
-        self.c_port.textChanged.connect(self.content_changed)
-        self.c_schema.textChanged.connect(self.content_changed)
-        self.c_username.textChanged.connect(self.content_changed)
-        self.main_tab.currentChanged.connect(self.content_changed)
-        self.c_backend.currentIndexChanged.connect(self.content_changed)
-        self.c_list.currentItemChanged.connect(self.content_changed)
+        self.c_db_name.textChanged.connect(self.on_content_changed)
+        self.c_file_path.textChanged.connect(self.on_content_changed)
+        self.c_host.textChanged.connect(self.on_content_changed)
+        self.c_pass.textChanged.connect(self.on_content_changed)
+        self.c_port.textChanged.connect(self.on_content_changed)
+        self.c_schema.textChanged.connect(self.on_content_changed)
+        self.c_username.textChanged.connect(self.on_content_changed)
+        self.main_tab.currentChanged.connect(self.on_content_changed)
+        self.c_backend.currentIndexChanged.connect(self.on_content_changed)
+        self.c_list.selectionModel().selectionChanged.connect(
+            self.on_content_changed
+        )
 
     def _setup_backend_combo(self):
         self.c_backend.addItem(
@@ -97,15 +100,9 @@ class SelectDatabaseDlg(QDialog, Ui_SelectDatabase, QtUseContext):
         )
 
     def _setup_manager(self):
-        self.c_list.setColumnCount(4)
-        self.c_list.setHeaderLabels(
-            [
-                self.t("cmn.db.name", "Name"),
-                self.t("cmn.db.type", "Type"),
-                self.t("cmn.db.schema", "Schema"),
-                self.t("cmn.db.c_string", "Connection String"),
-            ]
-        )
+        # Create and set the model
+        self._config_model = DatabaseConfigModel(self.ctx, self)
+        self.c_list.setModel(self._config_model)
 
         self.ac_load = QAction(
             self.get_icon("folder"),
@@ -135,91 +132,124 @@ class SelectDatabaseDlg(QDialog, Ui_SelectDatabase, QtUseContext):
             Qt.ContextMenuPolicy.ActionsContextMenu
         )
 
-        for item in self.ctx.stg.get_db_configs():
-            tree_item = QTreeWidgetItem(
-                [
-                    item["name"],
-                    item["type"],
-                    item.get("schema", ""),
-                    item["c_string"],
-                ]
-            )
-            # Set the item flags to make it editable
-            tree_item.setFlags(tree_item.flags() | Qt.ItemFlag.ItemIsEditable)
-            tree_item.setData(COL_NAME, Qt.ItemDataRole.UserRole, item["id"])
-            self.c_list.addTopLevelItem(tree_item)
-
         self.save_btn = QPushButton(self.t("cmn.save", "Save"))
         self.bbox.addButton(
             self.save_btn, QDialogButtonBox.ButtonRole.ActionRole
         )
         self.save_btn.setEnabled(False)
-        self.save_btn.clicked.connect(self.save_crt)
+        self.save_btn.clicked.connect(self.on_save_crt)
         self.save_btn.setIcon(self.get_icon("file_save_as"))
 
-        self.c_list.currentItemChanged.connect(self.on_mng_current_changed)
-        self.c_list.itemChanged.connect(self.on_mng_item_changed)
+        # Connect selection model signals
+        self.c_list.selectionModel().selectionChanged.connect(
+            self.on_mng_current_changed
+        )
+        # Connect model dataChanged signal
+        self._config_model.dataChanged.connect(self.on_mng_item_changed)
 
-    def on_mng_item_changed(self):
-        """Handle the item changed event."""
-        item = self.c_list.currentItem()
-        if not item:
+        # Start version checker
+        self._start_version_checker()
+
+    def _start_version_checker(self):
+        """Start the background thread to check database versions."""
+        migrations_dir = os.environ.get("EXDRF_DB_MIGRATIONS_DIR", None)
+        if not migrations_dir:
+            # If migrations dir is not set, we can't check versions
             return
 
-        item_id = item.data(COL_NAME, Qt.ItemDataRole.UserRole)
-        item_name = item.text(COL_NAME)
-        item_schema = item.text(COL_SCHEMA)
-        item_c_string = item.text(COL_C_STRING)
+        # Get all configs from the model
+        configs = []
+        for i in range(self._config_model.rowCount()):
+            index = self._config_model.index(i, 0)
+            config = self._config_model.get_config(index)
+            if config:
+                configs.append(config)
 
-        # Update the settings
-        self.ctx.stg.update_db_config(
-            id=item_id,
-            name=item_name,
-            kind=item.text(COL_TYPE),
-            c_string=item_c_string,
-            schema=item_schema,
+        # Create and start the worker thread
+        self._version_worker = DbVersionCheckerWorker(
+            configs=configs,
+            migrations_dir=migrations_dir,
+            parent=self,
         )
+        self._version_worker.version_checked.connect(self._on_version_checked)
+        self._version_worker.start()
 
+    def _on_version_checked(
+        self, config_id: str, version_info: "DbVersionInfo"
+    ):
+        """Handle version check result from worker thread.
+
+        Args:
+            config_id: The configuration ID.
+            version_info: Dictionary with version information.
+        """
+        self._config_model.update_db_version_info(config_id, version_info)
+
+    @top_level_handler
+    def on_mng_item_changed(
+        self,
+        top_left: QModelIndex,
+        bottom_right: QModelIndex,
+        roles: Optional[List[int]] = None,
+    ):
+        """Handle the item changed event.
+
+        Args:
+            top_left: Top-left index of changed items.
+            bottom_right: Bottom-right index of changed items.
+            roles: List of data roles that changed.
+        """
+        # The model already updates the settings in setData, so we don't
+        # need to do anything here. This method is kept for potential
+        # future use or side effects.
+
+    @top_level_handler
     def on_mng_current_changed(self):
         """Handle the current item changed event.
 
         We disable the actions when there is no current item.
         """
-        item = self.c_list.currentItem()
-        self.ac_load.setEnabled(item is not None)
-        self.ac_rename.setEnabled(item is not None)
-        self.ac_remove.setEnabled(item is not None)
+        index = self._get_current_index()
+        has_selection = index.isValid()
+        self.ac_load.setEnabled(has_selection)
+        self.ac_rename.setEnabled(has_selection)
+        self.ac_remove.setEnabled(has_selection)
 
+    @top_level_handler
     def on_mng_load(self):
         """Load the connection from the settings manager."""
-        item = self.c_list.currentItem()
-        if not item:
+        index = self._get_current_index()
+        if not index.isValid():
             return
-        c_string = item.text(COL_C_STRING)
-        schema = item.text(COL_SCHEMA)
-        self.set_con_str(c_string)
-        self.c_schema.setText(schema)
+        config = self._config_model.get_config(index)
+        if config:
+            self.set_con_str(config["c_string"])
+            self.c_schema.setText(config.get("schema", ""))
 
+    @top_level_handler
     def on_mng_rename(self):
         """Rename the current connection."""
-        item = self.c_list.currentItem()
-        if not item:
+        index = self._get_current_index()
+        if not index.isValid():
             return
 
         # Start editing the first column
-        self.c_list.editItem(item, COL_NAME)
+        name_index = self._config_model.index(index.row(), COL_NAME)
+        self.c_list.edit(name_index)
 
+    @top_level_handler
     def on_mng_remove(self):
         """Remove the current connection."""
-
-        item = self.c_list.currentItem()
-        if not item:
+        index = self._get_current_index()
+        if not index.isValid():
             return
 
-        item_id = item.data(COL_NAME, Qt.ItemDataRole.UserRole)
+        config = self._config_model.get_config(index)
+        if not config:
+            return
 
         # Get the current name
-        old_name = item.text(COL_NAME)
+        old_name = config.get("name", "")
 
         # Ask for confirmation
         reply = QMessageBox.question(
@@ -232,13 +262,11 @@ class SelectDatabaseDlg(QDialog, Ui_SelectDatabase, QtUseContext):
             ),
         )
         if reply == QMessageBox.StandardButton.Yes:
-            # Remove the item from the list
-            self.c_list.takeTopLevelItem(self.c_list.indexOfTopLevelItem(item))
+            # Remove the item from the model (which also updates settings)
+            self._config_model.remove_config(index)
 
-            # Remove the item from the settings
-            self.ctx.stg.remove_db_config(item_id)
-
-    def save_crt(self):
+    @top_level_handler
+    def on_save_crt(self):
         """Save the current connection to the settings."""
         if self.is_local:
             self._save_crt(local=True, c_string=self.local_con_str)
@@ -257,16 +285,9 @@ class SelectDatabaseDlg(QDialog, Ui_SelectDatabase, QtUseContext):
         schema = self.c_schema.text().strip()
         config_id = str(uuid4())
 
-        # Create a new tree item.
-        item = QTreeWidgetItem([name, kind, schema, c_string])
-        item.setFlags(item.flags() | Qt.ItemFlag.ItemIsEditable)
-        item.setData(COL_NAME, Qt.ItemDataRole.UserRole, config_id)
-        item.setData(COL_TYPE, Qt.ItemDataRole.UserRole, local)
-        self.c_list.addTopLevelItem(item)
-
-        # Update the settings.
-        self.ctx.stg.add_db_config(
-            id=config_id,
+        # Add the configuration to the model (which also updates settings)
+        new_index = self._config_model.add_config(
+            config_id=config_id,
             name=name,
             kind=kind,
             c_string=c_string,
@@ -276,10 +297,12 @@ class SelectDatabaseDlg(QDialog, Ui_SelectDatabase, QtUseContext):
         # Make the management tab the current tab.
         self.main_tab.setCurrentWidget(self.tab_manage)
 
-        # Begin editing the new item.
-        self.c_list.editItem(item, COL_NAME)
+        # Select the new item and begin editing
+        self.c_list.setCurrentIndex(new_index)
+        self.c_list.edit(new_index)
 
-    def content_changed(self):
+    @top_level_handler
+    def on_content_changed(self):
         """Handle the content changed event from all controls."""
         if self.is_local:
             valid = len(self.c_file_path.text().strip()) > 0
@@ -323,20 +346,21 @@ class SelectDatabaseDlg(QDialog, Ui_SelectDatabase, QtUseContext):
     @property
     def selected_id(self) -> str:
         if self.is_manager:
-            item = self.c_list.currentItem()
-            if item:
-                return item.data(COL_NAME, Qt.ItemDataRole.UserRole)
+            index = self._get_current_index()
+            if index.isValid():
+                item_id = self._config_model.data(
+                    index, Qt.ItemDataRole.UserRole
+                )
+                if item_id:
+                    return str(item_id)
         return ""
 
     @property
     def selected_config(self) -> Union[None, dict[str, Any]]:
-        configs = self.ctx.stg.get_db_configs()
-        selected_id = self.selected_id
-        if selected_id:
-            for config in configs:
-                if config["id"] == selected_id:
-                    return config
-
+        if self.is_manager:
+            index = self._get_current_index()
+            if index.isValid():
+                return self._config_model.get_config(index)
         return None
 
     @property
@@ -398,6 +422,22 @@ class SelectDatabaseDlg(QDialog, Ui_SelectDatabase, QtUseContext):
         else:
             self.c_schema.clear()
 
+    def _get_current_index(self) -> QModelIndex:
+        """Get the current selected index from the tree view.
+
+        Returns:
+            The current model index, or an invalid index if nothing is
+            selected.
+        """
+        selection_model = self.c_list.selectionModel()
+        if not selection_model:
+            return QModelIndex()
+        indexes = selection_model.selectedIndexes()
+        if indexes:
+            # Return the first selected index (row, column 0)
+            return self._config_model.index(indexes[0].row(), 0)
+        return QModelIndex()
+
     def set_con_str(self, con_str: str):
         """Set the connection string."""
         from exdrf_qt.controls.seldb.utils import parse_sqlalchemy_conn_str
@@ -427,6 +467,7 @@ class SelectDatabaseDlg(QDialog, Ui_SelectDatabase, QtUseContext):
                 ),
             )
 
+    @top_level_handler
     def on_browse_file(self):
         """Browse for a file."""
 
@@ -451,7 +492,8 @@ class SelectDatabaseDlg(QDialog, Ui_SelectDatabase, QtUseContext):
         if filename:
             self.c_file_path.setText(filename)
 
-    def bootstrap(self, suppress_success_message: bool = False) -> bool:
+    @top_level_handler
+    def on_bootstrap(self, suppress_success_message: bool = False) -> bool:
         """Bootstrap the database."""
         local_ctx = self.ctx.__class__(  # type: ignore
             c_string=self.con_str,

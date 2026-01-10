@@ -292,7 +292,10 @@ class DbVer:
                     )
                 # Use schema-qualified table name if schema is set.
                 if self.schema:
-                    table_name = f"{self.schema}.{alembic_version_table}"
+                    # Quote schema name to handle identifiers starting
+                    # with digits or special characters
+                    quoted_schema = f'"{self.schema}"'
+                    table_name = f"{quoted_schema}.{alembic_version_table}"
                 else:
                     table_name = alembic_version_table
                 result = conn.execute(
