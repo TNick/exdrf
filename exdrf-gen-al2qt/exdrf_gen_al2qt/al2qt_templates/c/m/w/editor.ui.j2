@@ -57,7 +57,12 @@
          # The name may include a single dot, with first part representing the
          # resource name and the second part representing the field name. If
          # the dot is not present, the field is matched by name across all
-         # resources.
+         # resources. The name can also include the type of the related
+         # resource after the name so the full spec for name is:
+         #     resource.field:related_resource
+         #
+         # get_read_only_field_data parses this string and returns the
+         # read-only fields for the current resource.
          #
          # The value is a dictionary that indicate how to deal with the field.
          # We use ui_xml here, which contains the XML for the field in the .ui
@@ -65,7 +70,7 @@
          # set to true.
          #}
         {%- set read_only_data = get_read_only_field_data(field) %}
-        {%- if len(read_only_data) %}
+        {%- if read_only_data is not None %}
         {%- if read_only_data.get("ui_xml", None) %}
         {{ read_only_data["ui_xml"].format(field=field.name) }}
         {%- else %}{# if read_only_data.get("ui_xml", None) #}
@@ -114,9 +119,8 @@
  <customwidgets>
  {%- set seen_widgets = set() %}
  {%- for field in r.sorted_fields() %}
-  {%-
-      set read_only_data = get_read_only_field_data(field)
-  %}
+  {%- set read_only_data = get_read_only_field_data(field) %}
+  {%- if read_only_data is not None %}
   {%- set b_ui = read_only_data.get("custom_ui_xml", base_ui_class(field)) %}
   {%- if b_ui not in seen_widgets %}
   <customwidget>
@@ -131,7 +135,8 @@
     {%- endif %}
   </customwidget>
   {%- set _ = seen_widgets.add(b_ui) %}
-  {%- endif %}
+  {%- endif %} {# if b_ui not in seen_widgets #}
+  {%- endif %} {# if read_only_data is not None #}
  {%- endfor %}
  </customwidgets>
  <resources/>

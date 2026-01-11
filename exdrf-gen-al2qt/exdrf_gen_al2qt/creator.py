@@ -10,6 +10,7 @@ from typing import (
     Tuple,
     Union,
     cast,
+    Optional,
 )
 import logging
 import click
@@ -308,62 +309,67 @@ def generate_qt_from_alchemy(
     def enum_values_to_prop(values: Any) -> str:
         return ",".join((str(a) + ":" + str(b)) for a, b in values)
 
-    def get_res_ro_field_data(res: "ExResource") -> "Dict[str, Any]":
-        result = {}
+    def parse_ro_key(
+        ro_key: str, res: "ExResource"
+    ) -> "Tuple[str, str, Optional[str]]":
+        level_1_pair = ro_key.split(".", 1)
+        if len(level_1_pair) == 2:
+            res_name, rest = level_1_pair
+        else:
+            res_name, rest = res.name, ro_key
+
+        level_2_pair = rest.split(":", 1)
+        if len(level_2_pair) == 2:
+            field_name, related_resource = level_2_pair
+        else:
+            field_name, related_resource = rest, None
+
+        return res_name, field_name, related_resource
+
+    def get_res_ro_field_data(
+        res: "ExResource",
+    ) -> "Dict[str, Tuple[ExField, Dict[str, Any]]]":
+        result: Dict[str, Tuple[ExField, Dict[str, Any]]] = {}
 
         for ro_key, ro_data in read_only_fields.items():
-            level_1_pair = ro_key.split(".", 1)
-            if len(level_1_pair) == 2:
-                res_name, rest = level_1_pair
-            else:
-                res_name, rest = res.name, ro_key
-
-            level_2_pair = rest.split(":", 1)
-            if len(level_2_pair) == 2:
-                field_name = level_2_pair[0]
-            else:
-                field_name = rest
-
+            res_name, field_name, _ = parse_ro_key(ro_key, res)
             if res_name == res.name and field_name in res:
                 field = res[field_name]
                 result[field.name] = (field, ro_data)
+
         return result
 
-    def get_read_only_field_data(field: "ExField") -> "Dict[str, Any]":
-        field_rr = (
-            field.related_resource.name
-            if field.related_resource
-            else "-no-related-resource-"
-        )
-        r = field.resource
-        assert r is not None
+    def get_read_only_field_data(field: "ExField") -> "Dict[str, Any] | None":
+        assert field.resource is not None
+        assert field.name is not None
 
-        result = read_only_fields.get(
-            r.name + "." + field.name + ":" + field_rr,
-            read_only_fields.get(
-                r.name + "." + field.name + ":" + field.type_name,
-                read_only_fields.get(
-                    r.name + "." + field.name,
-                    read_only_fields.get(
-                        field.name + ":" + field_rr,
-                        read_only_fields.get(
-                            field.name + ":" + field.type_name,
-                            read_only_fields.get(field.name, None),
-                        ),
-                    ),
-                ),
-            ),
-        )
-        logger.log(
-            1,
-            "Getting read-only field data for field %s in resource "
-            "%s with related resource %s: %s",
-            field.name,
-            r.name,
-            field_rr,
-            result,
-        )
-        return result if result is not None else {}
+        rr = field.related_resource
+
+        # if field.resource.name == 'Email':
+        #     breakpoint()
+        candidates = []
+        for ro_key, ro_data in read_only_fields.items():
+            res_name, field_name, related = parse_ro_key(ro_key, field.resource)
+            if res_name != field.resource.name:
+                continue
+            if field_name != field.name:
+                continue
+            explicit = ro_key.startswith(res_name)
+            score = 4 if explicit else 3
+
+            # If the definition has an explicit type only consider the related
+            # resource if it is the same as the one in the field.
+            if related is not None:
+                if rr is not None and rr.name == related:
+                    candidates.append((ro_data, score + 1))
+                continue
+
+            candidates.append((ro_data, score))
+        if not candidates:
+            return None
+        if len(candidates) > 1:
+            candidates.sort(key=lambda x: x[1], reverse=True)
+        return candidates[0][0]
 
     generator = TopDir(
         comp=[
