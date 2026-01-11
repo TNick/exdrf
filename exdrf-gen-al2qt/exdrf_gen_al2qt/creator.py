@@ -286,13 +286,24 @@ def generate_qt_from_alchemy(
                 "fk_to",
                 "fk_from",
             ):
-                type_name = part.type.__name__  # type: ignore
-                if type_name == "List":
-                    type_name = (
-                        "List["
-                        + part.type.__args__[0].__name__  # type: ignore
-                        + "]"
-                    )
+                type_name = str(part.type)
+                if "typing." in type_name:
+                    type_name = type_name.replace("typing.", "")
+                else:
+                    type_name = part.type.__name__  # type: ignore
+                # type_name = part.type.__name__  # type: ignore
+                # if type_name == "List":
+                #     type_name = (
+                #         "List["
+                #         + part.type.__args__[0].__name__  # type: ignore
+                #         + "]"
+                #     )
+                # elif type_name == "Optional":
+                #     type_name = (
+                #         "Optional["
+                #         + str(part.type.__args__[0].__name__  # type: ignore
+                #         + "]"
+                #     )
                 new_value = fld_attrs.get(part.name, None)
                 default_value = part.default
                 if new_value != default_value:
