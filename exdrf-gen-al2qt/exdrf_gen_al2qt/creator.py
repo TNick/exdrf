@@ -356,8 +356,6 @@ def generate_qt_from_alchemy(
 
         rr = field.related_resource
 
-        # if field.resource.name == 'Email':
-        #     breakpoint()
         candidates = []
         for ro_key, ro_data in read_only_fields.items():
             res_name, field_name, related = parse_ro_key(ro_key, field.resource)

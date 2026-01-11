@@ -97,9 +97,10 @@ class Qt{{ ResPascal }}Editor(
         {%- if rec_to_str %}
         {{ rec_to_str.format(field=ro_field.name) }}
         {%- elif ro_field.primary or not ro_field.fk_to %}
-        self.c_{{ ro_field.name }}.setText(
-            str(record.{{ ro_field.name }}) if record else ""
-        )
+        if hasattr(self, 'c_{{ ro_field.name }}'):
+            self.c_{{ ro_field.name }}.setText(
+                str(record.{{ ro_field.name }}) if record else ""
+            )
         {%- endif%}  {#- if rec_to_str #}
         {%- endfor %}  {#- for ro_field, ro_data in get_res_ro_field_data(r).values() #}
         self._populate(record, ignore=[

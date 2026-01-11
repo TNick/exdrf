@@ -119,8 +119,7 @@
  <customwidgets>
  {%- set seen_widgets = set() %}
  {%- for field in r.sorted_fields() %}
-  {%- set read_only_data = get_read_only_field_data(field) %}
-  {%- if read_only_data is not None %}
+  {%- set read_only_data = get_read_only_field_data(field) or {} %}
   {%- set b_ui = read_only_data.get("custom_ui_xml", base_ui_class(field)) %}
   {%- if b_ui not in seen_widgets %}
   <customwidget>
@@ -136,8 +135,7 @@
   </customwidget>
   {%- set _ = seen_widgets.add(b_ui) %}
   {%- endif %} {# if b_ui not in seen_widgets #}
-  {%- endif %} {# if read_only_data is not None #}
- {%- endfor %}
+ {%- endfor %} {# for field in r.sorted_fields() #}
  </customwidgets>
  <resources/>
  <connections/>
