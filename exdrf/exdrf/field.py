@@ -27,6 +27,8 @@ if TYPE_CHECKING:
     from exdrf.resource import ExResource  # noqa: F401
     from exdrf.visitor import ExVisitor  # noqa: F401
 
+NO_DIACRITICS = "no_diacritics"
+
 
 @define
 class ExFieldBase:
@@ -75,6 +77,11 @@ class ExField(ExFieldBase):
         fk_from: if this field points to a resource, this property is the
             field representing the foreign key (if this field is `parent`,
             the fk_from field is `parent_id`).
+        derived: If the field is derived from another field, this property
+            holds the name of that field and the type of derivation.
+            For now the only supported type is NO_DIACRITICS which indicates
+            that the value of this field results from the text value of another
+            field without diacritics (unidecode is used to convert the text).
     """
 
     resource: "ExResource" = field(default=None)
@@ -91,6 +98,7 @@ class ExField(ExFieldBase):
     resizable: bool = field(default=True)
     fk_to: Optional["ExField"] = field(default=None)
     fk_from: Optional["ExField"] = field(default=None)
+    derived: Optional[Tuple[str, str]] = field(default=None)
 
     def field_properties(self, explicit: bool = False) -> dict[str, Any]:
         """Get the properties of the field.
@@ -118,6 +126,7 @@ class ExField(ExFieldBase):
                 "resizable": self.resizable,
                 "fk_to": self.fk_to.name if self.fk_to else None,
                 "fk_from": self.fk_from.name if self.fk_from else None,
+                "derived": self.derived,
             }
         else:
             result: dict[str, Any] = {
@@ -154,6 +163,8 @@ class ExField(ExFieldBase):
                 result["fk_to"] = self.fk_to.name
             if self.fk_from:
                 result["fk_from"] = self.fk_from.name
+            if self.derived:
+                result["derived"] = self.derived
             return result
 
     def __hash__(self):
@@ -276,6 +287,42 @@ class ExField(ExFieldBase):
             True if the field is a many-to-one type, False otherwise.
         """
         return self.type_name == FIELD_TYPE_REF_MANY_TO_ONE
+
+    @property
+    def related_resource(self) -> Optional["ExResource"]:
+        """Get the resource that this field is related to.
+
+        Returns:
+            The resource that this field is related to.
+        """
+        return self.ref if hasattr(self, "ref") else None  # type: ignore
+
+    @property
+    def is_derived(self) -> bool:
+        """Check if the field is derived from another field.
+
+        Returns:
+            True if the field is derived from another field, False otherwise.
+        """
+        return self.derived is not None
+
+    @property
+    def derived_from(self) -> Optional[str]:
+        """Get the name of the field that this field is derived from.
+
+        Returns:
+            The name of the field that this field is derived from.
+        """
+        return self.derived[0] if self.derived else None
+
+    @property
+    def derived_type(self) -> Optional[str]:
+        """Get the type of derivation of the field.
+
+        Returns:
+            The type of derivation of the field.
+        """
+        return self.derived[1] if self.derived else None
 
     def visit(self: "ExField", visitor: "ExVisitor") -> bool:
         """Visit the resource and its fields.
@@ -440,6 +487,7 @@ class FieldInfo(BaseModel):
     exportable: Optional[bool] = None
     qsearch: Optional[bool] = None
     resizable: Optional[bool] = None
+    derived: Optional[Tuple[str, str]] = None
 
     @staticmethod
     def validate_enum_with_type(v, value_type: type) -> List[Tuple[Any, str]]:

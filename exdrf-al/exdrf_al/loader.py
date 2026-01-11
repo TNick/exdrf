@@ -293,6 +293,9 @@ def dataset_from_sqlalchemy(
     Returns:
         The populated dataset.
     """
+    from exdrf.field import NO_DIACRITICS
+    from exdrf.constants import FIELD_TYPE_STRING
+
     models_by_name: Dict[str, "ExResource"] = {}
     ResClass: Type["ExResource"] = d_set.res_class
 
@@ -345,7 +348,20 @@ def dataset_from_sqlalchemy(
     # Iterate all models and create resources and fields for columns.
     Visitor.run(base=base)
 
-    # Iterate again to create fields from resources.
+    # Iterate again to create fields from relationships.
     VisitorRel.run(base=base)
+
+    # Detect derived fields. For now we only support diacritics-less fields.
+    for res in d_set.resources:
+        for f_iter in res.fields:
+            if not f_iter.name.startswith("ua_"):
+                continue
+            f_base = f_iter.name[3:]
+            if f_base not in res:
+                continue
+            base_field = res[f_base]
+            if base_field.type_name != FIELD_TYPE_STRING:
+                continue
+            f_iter.derived = (f_base, NO_DIACRITICS)
 
     return d_set

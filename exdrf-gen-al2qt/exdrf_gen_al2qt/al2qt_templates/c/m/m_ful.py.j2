@@ -14,9 +14,11 @@ from sqlalchemy import select
 from sqlalchemy.orm import joinedload, selectinload, load_only
 
 {% for field in fields %}
+{%- if not field.is_derived  %}
 from {{ out_module }}.{{ r.categories[0] }}.{{ r.snake_case_name_plural }}.fields.fld_{{field.name}} import (
     {{ field.pascal_case_name }}Field
 )
+{%- endif %}
 {%- endfor %}
 
 # exdrf-keep-start other_imports ----------------------------------------------
@@ -111,7 +113,9 @@ class Qt{{ ResPascal }}FuMo(QtModel["{{ ResPascal }}"]):
             fields=fields if fields is not None
             else [
                 {%- for field in sorted_fields_for_ui(dset, r, fields) %}
+                {%- if not field.is_derived  %}
                 {{ field.pascal_case_name }}Field,
+                {%- endif %}
                 {%- endfor %}
             ],
             **kwargs

@@ -246,7 +246,9 @@ def _sort_key_db_version(config: "DatabaseConfig") -> str:
     """
     db_version_info = config.get("_db_version_info", {})
     status = db_version_info.get("status", "checking")
-    if status == "checking":
+    if status == "new":
+        return "zzz_new"  # Sort to end
+    elif status == "checking":
         return "zzz_checking"  # Sort to end
     elif status == "failed":
         return "zzz_failed"
@@ -524,7 +526,9 @@ class DatabaseConfigModel(QAbstractItemModel):
             elif index.column() == COL_DB_VERSION:
                 db_version_info = config.get("_db_version_info", {})
                 status = db_version_info.get("status", "checking")
-                if status == "checking":
+                if status == "new":
+                    return "new"
+                elif status == "checking":
                     return "..."
                 elif status == "failed":
                     return "failed to connect"
@@ -618,7 +622,9 @@ class DatabaseConfigModel(QAbstractItemModel):
                 if tooltip:
                     return tooltip
                 status = db_version_info.get("status", "checking")
-                if status == "checking":
+                if status == "new":
+                    return "New connection - version check pending"
+                elif status == "checking":
                     return "Checking database version..."
                 elif status == "failed":
                     return "Failed to connect to the database"
@@ -918,7 +924,7 @@ class DatabaseConfigModel(QAbstractItemModel):
             "created_at": created_at,
             "_parsed": parsed,
             "_db_version_info": {
-                "status": "checking",
+                "status": "new",
                 "version": "",
                 "color_status": None,
                 "tooltip": None,

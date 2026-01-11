@@ -496,8 +496,7 @@ class ExdrfEditor(ExdrfEditorBase, Generic[DBM]):
             The record that is currently being edited.
         """
         logger.debug(
-            "Getting the record that is currently being edited",
-            "save=%s",
+            "Getting the record that is currently being edited (save=%s)",
             save,
         )
         try:

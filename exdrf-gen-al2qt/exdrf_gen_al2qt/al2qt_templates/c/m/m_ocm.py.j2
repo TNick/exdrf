@@ -17,9 +17,11 @@ from {{ out_module }}.{{ r.categories[0] }}.{{ r.snake_case_name_plural }}.field
     LabelField
 )
 {% for field in fields %}
+{%- if not field.is_derived  %}
 from {{ out_module }}.{{ r.categories[0] }}.{{ r.snake_case_name_plural }}.fields.fld_{{field.name}} import (
     {{ field.pascal_case_name }}Field
 )
+{%- endif %}
 {%- endfor %}
 
 # exdrf-keep-start other_imports ----------------------------------------------
@@ -105,7 +107,9 @@ class Qt{{ ResPascal }}NaMo(Qt{{ ResPascal }}FuMo):
             fields=fields if fields is not None
             else [
                 {%- for field in fields %}
+                {%- if not field.is_derived  %}
                 {{ field.pascal_case_name }}Field,
+                {%- endif %}
                 {%- endfor %}
                 LabelField,
             ],

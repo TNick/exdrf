@@ -1,11 +1,13 @@
 <h1>{{ ResPascal }}</h1>
 <table>
 {%- for field in sorted_fields_for_ui(dset, r, fields) %}
+{%- if not field.is_derived  %}
 {%- if not field.__class__.__name__ in ('BlobField', 'FormattedField', 'FilterField', 'SortField') %}
     <tr>
         <td>{{ field.name }}</td>
         <td>{{ '{{' }} record.{{ field.name }} {{ '}}' }}</td>
     </tr>
+{%- endif %}
 {%- endif %}
 {%- endfor %}
 </table>

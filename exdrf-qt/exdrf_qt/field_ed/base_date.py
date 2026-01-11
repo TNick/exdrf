@@ -77,13 +77,13 @@ class DateBase(LineBase):
             result = self.formatter.validate(self.text(), self.t)
             if result.is_invalid:
                 return
-            prev_pos = self.cursorPosition()
+            prev_pos = self.c_line.cursorPosition()
             assert result.value is not None
             new_value = self.formatter.apply_offset(
                 result.value, prev_pos, delta
             )
             self.change_field_value(new_value)
-            self.setCursorPosition(prev_pos)
+            self.c_line.setCursorPosition(prev_pos)
 
     def create_calendar_action(self):
         """Creates a calendar action for the line edit."""

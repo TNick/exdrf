@@ -115,7 +115,7 @@ class Qt{{ ResPascal }}Tv(RecordTemplViewer):
             return None
         else:
             try:
-                label =self.t(
+                label = self.t(
                     "{{ res_snake }}.tv.title-found",
                     "{{ r.text_name }}: view {name}",
                     name={{ res_snake }}_label(result)
@@ -134,9 +134,13 @@ class Qt{{ ResPascal }}Tv(RecordTemplViewer):
             (
                 {{ field.__class__.__name__ }}(
                     name="{{ field.name }}",
-                    title="{{ field.title }}",
+                    title=self.t(
+                        "{{ res_snake }}.tv.{{ field.name }}.t",
+                        "{{ field.title }}"
+                    ),
                     {%- if field.description %}
-                    description=(
+                    description=self.t(
+                        "{{ res_snake }}.tv.{{ field.name }}.d",
                         {%- for line in field.doc_lines %}
                         "{{ line }}"
                         {%- endfor %}

@@ -11,7 +11,7 @@ from typing import (
     Union,
     cast,
 )
-
+import logging
 import click
 import exdrf_qt.models.fields as base_classes
 from attrs import Attribute
@@ -31,6 +31,8 @@ if TYPE_CHECKING:
     from exdrf.field_types.str_field import StrField
     from exdrf.resource import ExResource
     from jinja2 import Environment
+
+logger = logging.getLogger(__name__)
 
 
 def get_field_value(value) -> str:
@@ -234,7 +236,7 @@ def generate_qt_from_alchemy(
             kwargs.pop("use_selectinload_for_nested_scalars")
         )
     # Only allow our templates to be used.
-    env.loader.paths = list(
+    env.loader.paths = list(  # type: ignore
         filter(  # type: ignore
             lambda x: x.endswith("al2qt_templates"),
             env.loader.paths,  # type: ignore
@@ -257,6 +259,13 @@ def generate_qt_from_alchemy(
     def get_changed_parts(
         field: "ExField", fld_attrs: Dict[str, Any], fld_base_class: str
     ) -> Generator[Tuple[str, str, Any], None, None]:
+        logger.log(
+            1,
+            "Getting changed parts for field %s in resource %s",
+            field.name,
+            field.resource.name,
+        )
+
         # Get the base class name.
         model = getattr(base_classes, f"Qt{fld_base_class}Field")
 
@@ -298,6 +307,63 @@ def generate_qt_from_alchemy(
 
     def enum_values_to_prop(values: Any) -> str:
         return ",".join((str(a) + ":" + str(b)) for a, b in values)
+
+    def get_res_ro_field_data(res: "ExResource") -> "Dict[str, Any]":
+        result = {}
+
+        for ro_key, ro_data in read_only_fields.items():
+            level_1_pair = ro_key.split(".", 1)
+            if len(level_1_pair) == 2:
+                res_name, rest = level_1_pair
+            else:
+                res_name, rest = res.name, ro_key
+
+            level_2_pair = rest.split(":", 1)
+            if len(level_2_pair) == 2:
+                field_name = level_2_pair[0]
+            else:
+                field_name = rest
+
+            if res_name == res.name and field_name in res:
+                field = res[field_name]
+                result[field.name] = (field, ro_data)
+        return result
+
+    def get_read_only_field_data(field: "ExField") -> "Dict[str, Any]":
+        field_rr = (
+            field.related_resource.name
+            if field.related_resource
+            else "-no-related-resource-"
+        )
+        r = field.resource
+        assert r is not None
+
+        result = read_only_fields.get(
+            r.name + "." + field.name + ":" + field_rr,
+            read_only_fields.get(
+                r.name + "." + field.name + ":" + field.type_name,
+                read_only_fields.get(
+                    r.name + "." + field.name,
+                    read_only_fields.get(
+                        field.name + ":" + field_rr,
+                        read_only_fields.get(
+                            field.name + ":" + field.type_name,
+                            read_only_fields.get(field.name, None),
+                        ),
+                    ),
+                ),
+            ),
+        )
+        logger.log(
+            1,
+            "Getting read-only field data for field %s in resource "
+            "%s with related resource %s: %s",
+            field.name,
+            r.name,
+            field_rr,
+            result,
+        )
+        return result if result is not None else {}
 
     generator = TopDir(
         comp=[
@@ -390,6 +456,8 @@ def generate_qt_from_alchemy(
         sorted_resources_for_ui=sr_for_ui,
         sorted_fields_for_ui=sf_for_ui,
         read_only_fields=read_only_fields,
+        get_read_only_field_data=get_read_only_field_data,
+        get_res_ro_field_data=get_res_ro_field_data,
         use_selectinload_for_nested_scalars=use_selectinload_for_nested_scalars,
         **kwargs,
     )

@@ -19,18 +19,17 @@
      <property name="currentIndex">
       <number>0</number>
      </property>
-     {% for c_name, c_fields in r.sorted_fields_and_categories().items() %}
+     {# Exclude fields that are foreign keys to other resources because
+      # there is a relation that uses that foreign key and that will be
+      # used to edit the items.
+      #}
+     {% for c_name, c_fields in r.sorted_fields_and_categories(exclude_derived=True, exclude_fk_to=True).items() %}
      <widget class="QWidget" name="tab_{{ c_name if c_name else "general" }}">
       <attribute name="title">
        <string>{{ (c_name if c_name else "general")| title }}</string>
       </attribute>
       <layout class="QFormLayout" name="formLayout">
      {%- for f_i, field in enumerate(sorted_fields_for_ui(dset, r, c_fields)) %}
-     {# Exclude fields that are foreign keys to other resources because
-      # there is a relation that uses that foreign key and that will be
-      # used to edit the items.
-      #}
-     {%- if not field.fk_to %}
        {#
         # This is the label for the field.
         #}
@@ -65,16 +64,8 @@
          # file of the editor; by default a line edit is created with readOnly
          # set to true.
          #}
-        {%-
-            set read_only_data = read_only_fields.get(
-              r.name + "." + field.name, 
-              read_only_fields.get(
-                field.name, 
-                None
-              )
-            )
-        %}
-        {%- if read_only_data is not none %}
+        {%- set read_only_data = get_read_only_field_data(field) %}
+        {%- if len(read_only_data) %}
         {%- if read_only_data.get("ui_xml", None) %}
         {{ read_only_data["ui_xml"].format(field=field.name) }}
         {%- else %}{# if read_only_data.get("ui_xml", None) #}
@@ -110,9 +101,8 @@
          </property>
          {%- endif %}{# if field.read_only #}
         </widget>
-        {%- endif %}{# if read_only_data is not none #}
+        {%- endif %}{# if len(read_only_data) #}
        </item>
-     {%- endif %}{# if not field.fk_to #}
      {% endfor %}
       </layout>
      </widget>
@@ -125,13 +115,7 @@
  {%- set seen_widgets = set() %}
  {%- for field in r.sorted_fields() %}
   {%-
-      set read_only_data = read_only_fields.get(
-        r.name + "." + field.name, 
-        read_only_fields.get(
-          field.name,
-          {}
-        )
-      )
+      set read_only_data = get_read_only_field_data(field)
   %}
   {%- set b_ui = read_only_data.get("custom_ui_xml", base_ui_class(field)) %}
   {%- if b_ui not in seen_widgets %}

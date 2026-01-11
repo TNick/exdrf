@@ -120,6 +120,11 @@ class ExResource:
         )
 
     @property
+    def derived_fields(self) -> List["ExField"]:
+        """Get the fields that are derived from other fields."""
+        return [fld for fld in self.fields if fld.is_derived]
+
+    @property
     def pascal_case_name(self) -> str:
         """Return the name of the resource in PascalCase."""
         return self.name
@@ -445,15 +450,37 @@ class ExResource:
             key=self.field_sort_key,
         )
 
-    def fields_by_category(self) -> Dict[str, List["ExField"]]:
+    def fields_by_category(
+        self,
+        exclude_names: Optional[Set[str]] = None,
+        exclude_derived: Optional[bool] = False,
+        exclude_ref_fields: Optional[bool] = False,
+        exclude_fk_to: Optional[bool] = False,
+        exclude_fk_from: Optional[bool] = False,
+    ) -> Dict[str, List["ExField"]]:
         """Get a dictionary that maps categories to fields.
 
         The keys of the dictionary are the categories and the values are lists
         of sorted fields in that category. The fields are sorted using the
         `field_sort_key()` key.
+
+        Args:
+            exclude_names: The names of the fields to exclude.
+            exclude_derived: If True, derived fields will not be included.
+            exclude_ref_fields: If True, reference fields will not be included.
         """
         categories: Dict[str, List["ExField"]] = {}
         for f in self.sorted_fields():
+            if exclude_names and f.name in exclude_names:
+                continue
+            if exclude_derived and f.is_derived:
+                continue
+            if exclude_ref_fields and f.is_ref_type:
+                continue
+            if exclude_fk_to and f.fk_to is not None:
+                continue
+            if exclude_fk_from and f.fk_from is not None:
+                continue
             category = f.category
             lst = categories.get(category, None)
             if lst is None:
@@ -480,14 +507,32 @@ class ExResource:
             return "a-" + cat
         return "z-" + cat
 
-    def sorted_fields_and_categories(self) -> OrderedDict[str, List["ExField"]]:
+    def sorted_fields_and_categories(
+        self,
+        exclude_names: Optional[Set[str]] = None,
+        exclude_derived: Optional[bool] = False,
+        exclude_ref_fields: Optional[bool] = False,
+        exclude_fk_to: Optional[bool] = False,
+        exclude_fk_from: Optional[bool] = False,
+    ) -> OrderedDict[str, List["ExField"]]:
         """Get a dictionary that maps categories to fields.
 
         Both the fields and the categories are sorted:
         - the fields are sorted using the `field_sort_key()` key.
         - the categories are sorted using the `category_sort_key()` function.
+
+        Args:
+            exclude_names: The names of the fields to exclude.
+            exclude_derived: If True, derived fields will not be included.
+            exclude_ref_fields: If True, reference fields will not be included.
         """
-        categories = self.fields_by_category()
+        categories = self.fields_by_category(
+            exclude_names=exclude_names,
+            exclude_derived=exclude_derived,
+            exclude_ref_fields=exclude_ref_fields,
+            exclude_fk_to=exclude_fk_to,
+            exclude_fk_from=exclude_fk_from,
+        )
         result = OrDict()
         for k in sorted(categories.keys(), key=self.category_sort_key):
             result[k] = categories[k]
