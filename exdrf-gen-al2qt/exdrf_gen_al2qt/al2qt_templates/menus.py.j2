@@ -91,6 +91,7 @@ class ExdrfMenus:
         # Create action definitions for each resource in this category.
         {% for res_name in sorted_resources_for_ui(dset, c_res) %}
         {%- set mdl = dset[res_name] %}
+        {%- if not mdl.is_join_table %}
         route_{{ mdl.snake_case_name }} = "exdrf://navigation/resource/{{ mdl.pascal_case_name }}"
         route_create_{{ mdl.snake_case_name }} = "exdrf://navigation/resource/{{ mdl.pascal_case_name }}/create"
         
@@ -126,8 +127,9 @@ class ExdrfMenus:
                 no_menu=True,
             )
         )
-        {%- endfor %}
-        {% endfor %}
+        {%- endif %}  {#- if not mdl.is_join_table #}
+        {%- endfor %}  {#- for res_name in sorted_resources_for_ui(dset, c_res) #}
+        {% endfor %}  {#- for res_name in sorted_resources_for_ui(dset, c_res) #}
 
         # Add connection settings action at the end of concerns menu.
         result.append(

@@ -3,12 +3,13 @@ import os
 from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Union
 from uuid import uuid4
 
-from PyQt5.QtCore import QModelIndex, Qt
+from PyQt5.QtCore import QModelIndex, QPoint, Qt
 from PyQt5.QtWidgets import (
     QAction,
     QDialog,
     QDialogButtonBox,
     QFileDialog,
+    QMenu,
     QMessageBox,
     QPushButton,
 )
@@ -40,6 +41,7 @@ class SelectDatabaseDlg(QDialog, Ui_SelectDatabase, QtUseContext):
     ac_load: QAction
     ac_rename: QAction
     ac_remove: QAction
+    ac_backup: QAction
     save_btn: QPushButton
     ok_btn: QPushButton
     _config_model: DatabaseConfigModel
@@ -51,6 +53,10 @@ class SelectDatabaseDlg(QDialog, Ui_SelectDatabase, QtUseContext):
         self.setup_ui(self)
         self._setup_backend_combo()
         self._setup_manager()
+
+        self.setWindowTitle(
+            self.ctx.t("resi.db.select-db-dlg.t", "Database Manager")
+        )
 
         ok_btn = self.bbox.button(QDialogButtonBox.StandardButton.Ok)
         assert ok_btn is not None
@@ -125,11 +131,16 @@ class SelectDatabaseDlg(QDialog, Ui_SelectDatabase, QtUseContext):
         )
         self.ac_remove.triggered.connect(self.on_mng_remove)
 
-        self.c_list.addAction(self.ac_load)
-        self.c_list.addAction(self.ac_rename)
-        self.c_list.addAction(self.ac_remove)
-        self.c_list.setContextMenuPolicy(
-            Qt.ContextMenuPolicy.ActionsContextMenu
+        self.ac_backup = QAction(
+            self.get_icon("briefcase"),
+            self.t("cmn.backup", "Backup"),
+            self.c_list,
+        )
+        self.ac_backup.triggered.connect(self.on_mng_backup)
+
+        self.c_list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.c_list.customContextMenuRequested.connect(
+            self.on_mng_custom_context_menu_requested
         )
 
         self.save_btn = QPushButton(self.t("cmn.save", "Save"))
@@ -264,6 +275,13 @@ class SelectDatabaseDlg(QDialog, Ui_SelectDatabase, QtUseContext):
         if reply == QMessageBox.StandardButton.Yes:
             # Remove the item from the model (which also updates settings)
             self._config_model.remove_config(index)
+
+    @top_level_handler
+    def on_mng_backup(self):
+        # TODO: Implement backup functionality.
+        self.show_error(
+            "This is not implemented yet.",
+        )
 
     @top_level_handler
     def on_save_crt(self):
@@ -432,10 +450,12 @@ class SelectDatabaseDlg(QDialog, Ui_SelectDatabase, QtUseContext):
         selection_model = self.c_list.selectionModel()
         if not selection_model:
             return QModelIndex()
+
         indexes = selection_model.selectedIndexes()
         if indexes:
             # Return the first selected index (row, column 0)
             return self._config_model.index(indexes[0].row(), 0)
+
         return QModelIndex()
 
     def set_con_str(self, con_str: str):
@@ -544,6 +564,22 @@ class SelectDatabaseDlg(QDialog, Ui_SelectDatabase, QtUseContext):
                 self.ctx.t("cmn.db.bootstrap-success", "Bootstrap successful!"),
             )
         return True
+
+    @top_level_handler
+    def on_mng_custom_context_menu_requested(self, pos: "QPoint"):
+        """Handle the custom context menu requested event."""
+        # Ge the current item in the list view.
+        index = self._get_current_index()
+        if not index.isValid():
+            return
+
+        menu = QMenu(self)
+        menu.addAction(self.ac_load)
+        menu.addAction(self.ac_rename)
+        menu.addAction(self.ac_remove)
+        menu.addSeparator()
+        menu.addAction(self.ac_backup)
+        menu.exec(self.c_list.viewport().mapToGlobal(pos))
 
     @classmethod
     def change_connection_str(cls, ctx: "QtContext") -> Tuple[str, str]:

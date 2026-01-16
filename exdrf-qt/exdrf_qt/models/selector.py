@@ -294,7 +294,9 @@ class Selector(Generic[DBM]):
                     self.qt_model.name,
                 )
 
-        components = self.apply_subset(filters)
+        components = self.apply_subset(
+            filters if isinstance(filters, (list, tuple)) else [filters]
+        )
         if not components:
             # No filters to apply.
             return base

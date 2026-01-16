@@ -319,3 +319,11 @@ class DrfFieldEd(QtUseContext):
         raise NotImplementedError(
             "create_ex_field() must be implemented in subclasses."
         )
+
+    def constraints_changed(self, concept_key: str, new_value: Any) -> None:
+        """React to the constraints being changed.
+
+        Args:
+            concept_key: The key of the concept that has changed.
+            new_value: The new value of the concept.
+        """

@@ -1,6 +1,7 @@
 import os
 import re
 from collections import OrderedDict as OrDict
+from functools import cached_property
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -9,13 +10,15 @@ from typing import (
     Optional,
     OrderedDict,
     Set,
+    Tuple,
     Union,
     cast,
 )
 
 from attrs import define, field
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
+from exdrf.constants import FIELD_TYPE_INTEGER
 from exdrf.label_dsl import (
     generate_python_code,
     generate_typescript_code,
@@ -40,6 +43,17 @@ class ExResource:
     either the name of the field or its index.
 
     Attributes:
+        name: The name of the resource.
+        dataset: The dataset that the resource is part of.
+        fields: The fields that are part of this resource.
+        categories: The categories of the resource.
+        description: The description of the resource.
+        src: The source of the resource. For sqlalchemy models this is the
+            SQLAlchemy model class. For pydantic models this is the pydantic
+            model class.
+        label_ast: describes how to construct the label of a record.
+        provides: The concepts that the resource provides.
+        depends_on: The concepts that the resource depends on.
     """
 
     name: str
@@ -49,6 +63,8 @@ class ExResource:
     description: str = ""
     src: Any = field(default=None)
     label_ast: "ASTNode" = field(default=None)
+    provides: List[str] = field(factory=list)
+    depends_on: List[Tuple[str, str]] = field(factory=list)
 
     def __attrs_post_init__(self):
         out = self.fields
@@ -104,7 +120,7 @@ class ExResource:
         # If the field is not found, raise an error.
         raise KeyError(f"No field found for key `{key}` in model `{self.name}`")
 
-    @property
+    @cached_property
     def ref_fields(self) -> List["RefBaseField"]:
         """Get the fields that are references to other resources.
 
@@ -119,17 +135,17 @@ class ExResource:
             [fld for fld in self.fields if fld.is_ref_type],
         )
 
-    @property
+    @cached_property
     def derived_fields(self) -> List["ExField"]:
         """Get the fields that are derived from other fields."""
         return [fld for fld in self.fields if fld.is_derived]
 
-    @property
+    @cached_property
     def pascal_case_name(self) -> str:
         """Return the name of the resource in PascalCase."""
         return self.name
 
-    @property
+    @cached_property
     def snake_case_name(self) -> str:
         """Return the name of the resource in snake_case.
 
@@ -141,7 +157,7 @@ class ExResource:
         """
         return re.sub(r"(?<!^)(?=[A-Z])", "_", self.name).lower()
 
-    @property
+    @cached_property
     def snake_case_name_plural(self) -> str:
         """Return the name of the resource in snake_case.
 
@@ -155,18 +171,18 @@ class ExResource:
             re.sub(r"(?<!^)(?=[A-Z])", "_", self.name).lower()  # type: ignore
         )
 
-    @property
+    @cached_property
     def camel_case_name(self) -> str:
         """Return the name of the resource in camelCase."""
         return self.name[0].lower() + self.name[1:]
 
-    @property
+    @cached_property
     def text_name(self) -> str:
         """Return the name of the resource in `Text case`."""
         tmp = re.sub(r"(?<!^)(?=[A-Z])", " ", self.name).lower()
         return tmp[0].upper() + tmp[1:]
 
-    @property
+    @cached_property
     def doc_lines(self) -> List[str]:
         """Get the docstring of the field as a set of lines.
 
@@ -320,7 +336,7 @@ class ExResource:
                 names.add(f.name)
         return [self[n] for n in sorted(names)]
 
-    @property
+    @cached_property
     def is_primary_simple(self) -> bool:
         """Check if the resource has a simple primary key.
 
@@ -330,13 +346,13 @@ class ExResource:
         """
         return len(self.primary_fields()) == 1
 
-    @property
+    @cached_property
     def is_primary_simple_id(self) -> bool:
         """Check if the resource has a single primary key called `id`."""
         pf = self.primary_fields()
         return len(pf) == 1 and pf[0] == "id"
 
-    @property
+    @cached_property
     def is_connection_resource(self) -> bool:
         """Check if the resource is a connection resource.
 
@@ -345,6 +361,24 @@ class ExResource:
         UI.
         """
         return all(f.primary for f in self.fields)
+
+    @cached_property
+    def is_join_table(self) -> bool:
+        """A table that only contains two foreign key fields."""
+        candidates = []
+        for f in self.fields:
+            if f.is_ref_type:
+                continue
+            if not f.primary:
+                return False
+            if f.type_name != FIELD_TYPE_INTEGER:
+                return False
+            if not f.name.endswith("_id"):
+                return False
+            candidates.append(f)
+        if len(candidates) != 2:
+            return False
+        return True
 
     def rel_import(
         self,
@@ -553,9 +587,18 @@ class ResExtraInfo(BaseModel):
     Attributes:
         label: The string definition of the layer composition function using
             layer_dsl syntax.
+        provides: The concepts that the resource provides. This can be used
+            to indicate that the control's value has a certain meaning.
+            This can be a hint that other resources that depend on this one
+            should be updated when the value representing this resource changes.
+        depends_on: The concepts that the resource depends on. A change
+            in a resource listed here would change the meaning of this
+            resource's value.
     """
 
     label: Optional[str] = None
+    provides: Optional[List[str]] = Field(default_factory=list)
+    depends_on: Optional[List[Tuple[str, str]]] = Field(default_factory=list)
 
     def get_layer_ast(self) -> "ASTNode":
         """Return the layer composition function using layer_dsl syntax."""

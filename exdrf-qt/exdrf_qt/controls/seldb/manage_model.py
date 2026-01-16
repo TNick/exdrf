@@ -380,11 +380,17 @@ class DatabaseConfigModel(QAbstractItemModel):
         self._ctx = ctx
         self._configs = []
 
+        crt_id = ctx.stg.locate_db_config(
+            c_string=ctx.c_string,
+            schema=ctx.schema,
+        )
+
         # Load initial configurations from settings and parse connection strings
         for item in self._ctx.stg.get_db_configs():
             config = item.copy()
             # Parse connection string components
             c_string = config.get("c_string", "")
+            c_id = config.get("id", "")
             if c_string:
                 parsed = parse_sqlalchemy_conn_str(c_string)
                 config["_parsed"] = parsed
@@ -397,6 +403,7 @@ class DatabaseConfigModel(QAbstractItemModel):
                 "color_status": None,
                 "tooltip": None,
             }
+            config["current"] = c_id is not None and c_id == crt_id
             self._configs.append(config)
 
     def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
@@ -480,15 +487,16 @@ class DatabaseConfigModel(QAbstractItemModel):
 
         config = self._configs[index.row()]
         parsed = config.get("_parsed", {})
+        column = index.column()
 
         if role == Qt.ItemDataRole.DisplayRole:
-            if index.column() == COL_NAME:
+            if column == COL_NAME:
                 return config.get("name", "")
-            elif index.column() == COL_TYPE:
+            elif column == COL_TYPE:
                 return config.get("type", "")
-            elif index.column() == COL_SCHEMA:
+            elif column == COL_SCHEMA:
                 return config.get("schema", "")
-            elif index.column() == COL_CREATED:
+            elif column == COL_CREATED:
                 created_at = config.get("created_at")
                 if created_at is None:
                     return ""
@@ -504,26 +512,26 @@ class DatabaseConfigModel(QAbstractItemModel):
                     return humanize.naturaltime(dt)
                 except (ValueError, AttributeError, TypeError):
                     return ""
-            elif index.column() == COL_SCHEME:
+            elif column == COL_SCHEME:
                 return parsed.get("scheme", "") or ""
-            elif index.column() == COL_USERNAME:
+            elif column == COL_USERNAME:
                 return parsed.get("username", "") or ""
-            elif index.column() == COL_PASSWORD:
+            elif column == COL_PASSWORD:
                 password = parsed.get("password", "")
                 return "****" if password else ""
-            elif index.column() == COL_HOST:
+            elif column == COL_HOST:
                 return parsed.get("host", "") or ""
-            elif index.column() == COL_PORT:
+            elif column == COL_PORT:
                 return parsed.get("port", "") or ""
-            elif index.column() == COL_DATABASE:
+            elif column == COL_DATABASE:
                 database = parsed.get("database", "") or ""
                 # If it looks like a file path, show only the filename
                 if database and os.sep in database:
                     return os.path.basename(database)
                 return database
-            elif index.column() == COL_PARAMS:
+            elif column == COL_PARAMS:
                 return parsed.get("params", "") or ""
-            elif index.column() == COL_DB_VERSION:
+            elif column == COL_DB_VERSION:
                 db_version_info = config.get("_db_version_info", {})
                 status = db_version_info.get("status", "checking")
                 if status == "new":
@@ -538,38 +546,38 @@ class DatabaseConfigModel(QAbstractItemModel):
                     return "malformed version table"
                 else:
                     return db_version_info.get("version", "")
-            elif index.column() == COL_C_STRING:
+            elif column == COL_C_STRING:
                 return config.get("c_string", "")
         elif role == Qt.ItemDataRole.EditRole:
-            if index.column() == COL_NAME:
+            if column == COL_NAME:
                 return config.get("name", "")
-            elif index.column() == COL_TYPE:
+            elif column == COL_TYPE:
                 return config.get("type", "")
-            elif index.column() == COL_SCHEMA:
+            elif column == COL_SCHEMA:
                 return config.get("schema", "")
-            elif index.column() == COL_CREATED:
+            elif column == COL_CREATED:
                 return config.get("created_at")
-            elif index.column() == COL_SCHEME:
+            elif column == COL_SCHEME:
                 return parsed.get("scheme", "") or ""
-            elif index.column() == COL_USERNAME:
+            elif column == COL_USERNAME:
                 return parsed.get("username", "") or ""
-            elif index.column() == COL_PASSWORD:
+            elif column == COL_PASSWORD:
                 return parsed.get("password", "") or ""
-            elif index.column() == COL_HOST:
+            elif column == COL_HOST:
                 return parsed.get("host", "") or ""
-            elif index.column() == COL_PORT:
+            elif column == COL_PORT:
                 return parsed.get("port", "") or ""
-            elif index.column() == COL_DATABASE:
+            elif column == COL_DATABASE:
                 return parsed.get("database", "") or ""
-            elif index.column() == COL_PARAMS:
+            elif column == COL_PARAMS:
                 return parsed.get("params", "") or ""
-            elif index.column() == COL_DB_VERSION:
+            elif column == COL_DB_VERSION:
                 db_version_info = config.get("_db_version_info", {})
                 return db_version_info.get("version", "")
-            elif index.column() == COL_C_STRING:
+            elif column == COL_C_STRING:
                 return config.get("c_string", "")
         elif role == Qt.ItemDataRole.BackgroundRole:
-            if index.column() == COL_DB_VERSION:
+            if column == COL_DB_VERSION:
                 db_version_info = config.get("_db_version_info", {})
                 color_status = db_version_info.get("color_status", None)
                 if color_status == "green":
@@ -580,7 +588,10 @@ class DatabaseConfigModel(QAbstractItemModel):
                     return QColor(255, 200, 200)  # Light red
                 return None
         elif role == Qt.ItemDataRole.DecorationRole:
-            if index.column() == COL_DB_VERSION:
+            if column == COL_NAME:
+                if config["current"]:
+                    return self._ctx.get_icon("resultset_next")
+            elif column == COL_DB_VERSION:
                 db_version_info = config.get("_db_version_info", {})
                 status = db_version_info.get("status", "checking")
                 color_status = db_version_info.get("color_status", None)
@@ -600,7 +611,7 @@ class DatabaseConfigModel(QAbstractItemModel):
                 # Checking or unknown
                 return None
         elif role == Qt.ItemDataRole.ToolTipRole:
-            if index.column() == COL_CREATED:
+            if column == COL_CREATED:
                 created_at = config.get("created_at")
                 if created_at is None:
                     return ""
@@ -616,7 +627,7 @@ class DatabaseConfigModel(QAbstractItemModel):
                     return dt.strftime("%Y-%m-%d %H:%M:%S %Z")
                 except (ValueError, AttributeError, TypeError):
                     return ""
-            elif index.column() == COL_DB_VERSION:
+            elif column == COL_DB_VERSION:
                 db_version_info = config.get("_db_version_info", {})
                 tooltip = db_version_info.get("tooltip", "")
                 if tooltip:
@@ -651,7 +662,7 @@ class DatabaseConfigModel(QAbstractItemModel):
                             "Status: Outside version chain (no upgrade path)"
                         )
                     return f"Version: {version}"
-            elif index.column() == COL_DATABASE:
+            elif column == COL_DATABASE:
                 # For database column, show full path in tooltip if it's a path
                 parsed = config.get("_parsed", {})
                 database = parsed.get("database", "") or ""
@@ -665,7 +676,7 @@ class DatabaseConfigModel(QAbstractItemModel):
                     return str(display_value)
                 return ""
         elif role == Qt.ItemDataRole.UserRole:
-            if index.column() == COL_NAME:
+            if column == COL_NAME:
                 return config.get("id", "")
 
         return None
@@ -929,6 +940,7 @@ class DatabaseConfigModel(QAbstractItemModel):
                 "color_status": None,
                 "tooltip": None,
             },
+            "current": False,
         }
         self._configs.append(config)
 

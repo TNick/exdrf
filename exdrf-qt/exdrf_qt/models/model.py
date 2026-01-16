@@ -1435,6 +1435,35 @@ class QtModel(
                 "M: %s Error sorting model: %s", self.name, e, exc_info=True
             )
 
+    def change_filter(
+        self,
+        fld: str,
+        op: str,
+        vl: Any,
+        trigger_reset: bool = True,
+    ):
+        """Changes a top level filter by matching the field and operation.
+
+        If the filter does not exist in the current filter, it is added.
+        If the filter exists in the current filter, it is replaced in place.
+
+        Args:
+            fld: The field to filter by.
+            op: The operation to perform.
+            vl: The value to compare against.
+        """
+        for filter in self._filters:
+            if isinstance(filter, FieldFilter):
+                if filter.fld == fld and filter.op == op:
+                    filter.op = op
+                    filter.vl = vl
+                    if trigger_reset and self.is_fully_loaded:
+                        self.reset_model()
+                    return
+        self._filters.append(FieldFilter(fld=fld, op=op, vl=vl))
+        if trigger_reset and self.is_fully_loaded:
+            self.reset_model()
+
     def apply_filter(self, filter: Union[FilterType, None]) -> None:
         """Apply a filter to the model.
 
@@ -1744,3 +1773,19 @@ class QtModel(
                 f"{self.settings_key}.simple_search_fields",
                 values,
             )
+
+    def constraints_changed(self, concept_key: str, new_value: Any) -> None:
+        """React to the constraints being changed.
+
+        The default implementation does nothing.
+
+        Args:
+            concept_key: The key of the concept that has changed.
+            new_value: The new value of the concept.
+        """
+
+    def get_constraint_filter(
+        self, concept_key: str, new_value: Any
+    ) -> Optional[Any]:
+        """Get the filter for a constraint."""
+        return None

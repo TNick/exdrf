@@ -207,6 +207,43 @@ class Qt{{ ResPascal }}FuMo(QtModel["{{ ResPascal }}"]):
             limit=limit,
         )
         return filters
+    
+    {%- if r.depends_on %}
+
+    def get_constraint_filter(
+        self, concept_key: str, new_value: Any
+    ) -> Optional[Any]:
+        """Get the filter for a constraint.
+        """
+        {%- for concept, target in r.depends_on %}
+        {%- if loop.first %}
+        if concept_key == "{{ concept }}":
+        {%- else %}
+        elif concept_key == "{{ concept }}":
+        {%- endif %}
+            return {
+                "fld": "{{ target }}",
+                "op": "eq",
+                "vl": new_value,
+            }
+        {%- endfor %}
+        return None
+
+    def constraints_changed(self, concept_key: str, new_value: Any) -> None:
+        {%- for concept, target in r.depends_on %}
+        {%- if loop.first %}
+        if concept_key == "{{ concept }}":
+        {%- else %}
+        elif concept_key == "{{ concept }}":
+        {%- endif %}
+            self.change_filter(
+                "{{ target }}",
+                "eq",
+                new_value,
+                trigger_reset=True
+            )
+        {%- endfor %}
+    {%- endif %}
 
         # exdrf-keep-start extra_init -----------------------------------------
 {{extra_init}}

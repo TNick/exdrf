@@ -24,6 +24,7 @@ from PyQt5.QtWidgets import (
     QLineEdit,
     QWidget,
 )
+from sqlalchemy import func, select
 
 from exdrf_qt.controls.popup_list import PopupWidget
 from exdrf_qt.field_ed.base import DrfFieldEd
@@ -498,6 +499,92 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
 
         # Handle delete choice.
         apply_del_action(ac_group_del, qt_model)
+
+    def constraints_changed(self, concept_key: str, new_value: Any) -> None:
+        """React to the constraints being changed.
+
+        Args:
+            concept_key: The key of the concept that has changed.
+            new_value: The new value of the concept.
+        """
+        from exdrf.filter import validate_filter
+
+        from exdrf_qt.models.selector import Selector
+
+        try:
+            if self._qt_model is None:
+                logger.error("No model set")
+                return
+
+            self._qt_model.constraints_changed(concept_key, new_value)
+            if self._field_value is None:
+                logger.log(1, "No field value set, nothing to check")
+                return
+
+            # If the model is initialized, the constraints_changed would
+            # have triggered a model reset which, in turn, would trigger
+            # an items count computation. If that value is 0, there's no
+            # point doing the check below as the field will be set to null.
+            if not self._qt_model.partially_initialized:
+                if self._qt_model.total_count == 0:
+                    logger.log(
+                        1,
+                        "Model is initialized and total count is 0, "
+                        "nothing to check",
+                    )
+                    return
+
+            # Compute the filter for this constraint.
+            flt = self._qt_model.get_constraint_filter(concept_key, new_value)
+            if not flt:
+                logger.debug("No filter found for concept %s", concept_key)
+                return
+
+            # Make sure that the filter is valid.
+            validate_result = validate_filter(flt)
+            if validate_result:
+                logger.error(
+                    "Invalid filter for concept %s: %s",
+                    concept_key,
+                    validate_result,
+                )
+                return
+
+            # Create a selector that uses this filter...
+            selector = Selector.from_qt_model(self._qt_model)
+            stm = selector.run(flt)
+            if stm is None:
+                logger.error("No selection found for concept %s", concept_key)
+                return
+
+            # ...and see if the current ID is in the selection.
+            stm = stm.where(
+                self._qt_model.get_id_filter(self._field_value),
+            )
+            with self.ctx.same_session() as session:
+                count_stmt = select(func.count()).select_from(stm.subquery())
+                result = session.scalar(count_stmt)
+
+                # If the current ID is not in the selection, set the field to
+                # null.
+                if not result:
+                    logger.error(
+                        "Current ID %s not found in selection for concept %s",
+                        self._field_value,
+                        concept_key,
+                    )
+                    self.set_to_null()
+                else:
+                    logger.debug(
+                        "Count for concept %s is %d", concept_key, result
+                    )
+        except Exception as e:
+            logger.error(
+                "Error in constraints_changed for concept %s: %s",
+                concept_key,
+                e,
+                exc_info=True,
+            )
 
 
 class DrfSelOneEditor(DrfSelBase[DBM_O]):

@@ -34,6 +34,7 @@ if TYPE_CHECKING:
     from sqlalchemy.orm import Session  # noqa: F401
 
     from exdrf_qt.context import QtContext  # noqa: F401
+    from exdrf_qt.controls.constraints.base import Constraints
 
 DBM = TypeVar("DBM")
 logger = logging.getLogger(__name__)
@@ -67,6 +68,7 @@ class ExdrfEditorBase(QWidget, QtUseContext):
     edit_fields: List["DrfFieldEd"]
     _is_dirty: bool = False
     _is_editing: bool = False
+    constraints: "Constraints"
 
     dirtyChanged = pyqtSignal(bool)
     editingChanged = pyqtSignal(bool)
@@ -78,11 +80,19 @@ class ExdrfEditorBase(QWidget, QtUseContext):
         self,
         ctx: "QtContext",
         parent: Optional["QWidget"] = None,
+        constraints: Optional["Constraints"] = None,
     ):
         logger.debug("__init__")
 
         self.ctx = ctx
         super().__init__(parent=parent)
+
+        # Ensure a constraints object is available.
+        if constraints is None:
+            from exdrf_qt.controls.constraints.base import Constraints
+
+            constraints = Constraints()
+        self.constraints = constraints
 
         # Prepare widgets loaded from UI file.
         if hasattr(self, "setup_ui"):

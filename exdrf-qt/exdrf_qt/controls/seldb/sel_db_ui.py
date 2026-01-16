@@ -231,8 +231,8 @@ class Ui_SelectDatabase:
             _translate(
                 "SelectDatabase",
                 "To avoid seeing this dialog at startup, set the "
-                "EXDRF_DB_CONN_STRING and EXDRF_DB_SCHEMA environment "
-                "variables.",
+                "EXDRF_DB_CONN_STRING and EXDRF_DB_SCHEMA "
+                "environment variables.",
             )
         )
 

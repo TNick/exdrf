@@ -15,6 +15,9 @@ from exdrf_qt.utils.plugins import safe_hook_call
 
 if TYPE_CHECKING:
     from exdrf_qt.context import QtContext  # noqa: F401
+    {%- if r.provides or r.depends_on %}
+    from exdrf_qt.controls.base_editor import ExdrfEditorBase
+    {%- endif %}
 
 # exdrf-keep-start other_globals ----------------------------------------------
 {{other_globals}}
@@ -36,6 +39,8 @@ class Qt{{ ResPascal }}SiSe(DrfSelOneEditor):
         from {{ out_module }}.{{ categories[0] }}.{{ res_p_snake }}.widgets.{{ res_snake }}_editor import (
             Qt{{ ResPascal }}Editor,
         )
+        {%- if r.provides or r.depends_on %}
+        {% endif %}
 
         DrfSelOneEditor.__init__(
             self,
@@ -64,6 +69,34 @@ class Qt{{ ResPascal }}SiSe(DrfSelOneEditor):
 {{extra_sise_init}}
         # exdrf-keep-end extra_sise_init -------------------------------------
     
+    {%- if r.provides or r.depends_on %}
+
+    def set_form(self, form: "ExdrfEditorBase"):
+        super().set_form(form)
+
+        {%- if r.provides %}
+
+        # Register providers for the concepts that this widget provides.
+        {%- for concept in r.provides %}
+        form.constraints.register_provider(
+            concept="{{ concept }}",
+            provider=self,
+        )
+        {%- endfor %}
+        {%- endif %}
+
+        {%- if r.depends_on %}
+
+        # Register subscribers for the concepts that this widget depends on.
+        {%- for concept, target in r.depends_on %}
+        form.constraints.register_subscriber(
+            concept="{{ concept }}",
+            subscriber=self,
+        )
+        {%- endfor %}
+        {%- endif %}
+    {%- endif %}
+
     # exdrf-keep-start extra_sise_content ------------------------------------
 {{extra_sise_content}}
     # exdrf-keep-end extra_sise_content --------------------------------------
@@ -111,6 +144,20 @@ class Qt{{ ResPascal }}MuSe(DrfSelMultiEditor):
         # exdrf-keep-start extra_muse_init -----------------------------------
 {{extra_muse_init}}
         # exdrf-keep-end extra_muse_init -------------------------------------
+
+    {%- if r.depends_on %}
+
+    def set_form(self, form: "ExdrfEditorBase"):
+        super().set_form(form)
+
+        # Register subscribers for the concepts that this widget depends on.
+        {%- for concept, target in r.depends_on %}
+        form.constraints.register_subscriber(
+            concept="{{ concept }}",
+            subscriber=self,
+        )
+        {%- endfor %}
+    {%- endif %}
 
     # exdrf-keep-start extra_muse_content ------------------------------------
 {{extra_muse_content}}

@@ -13,9 +13,14 @@ class RefBaseField(ExField):
 
     Attributes:
         ref: The related resource.
+        expect_lots: If true it indicates that the relation is expected to have
+            many items. This is only valid when the parent side is 'many'
+            (many-to-one or many-to-many relations from the parent's point of
+            view).
     """
 
     ref: "ExResource" = field(default=None, repr=False)
+    expect_lots: bool = field(default=False)
 
     def field_properties(self, explicit: bool = False) -> dict[str, Any]:
         result = super().field_properties(explicit)
@@ -37,7 +42,12 @@ class RelExtraInfo(FieldInfo):
             editable list of children where the children are added and removed.
             This is only valid when the parent side is 'one' (one-to-many or
             one-to-one relations from the parent's point of view).
+        expect_lots: If true it indicates that the relation is expected to have
+            many items. This is only valid when the parent side is 'many'
+            (many-to-one or many-to-many relations from the parent's point of
+            view).
     """
 
     direction: Optional[RelType] = None
     subordinate: Optional[bool] = None
+    expect_lots: Optional[bool] = False

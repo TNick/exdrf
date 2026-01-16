@@ -293,8 +293,8 @@ def dataset_from_sqlalchemy(
     Returns:
         The populated dataset.
     """
-    from exdrf.field import NO_DIACRITICS
     from exdrf.constants import FIELD_TYPE_STRING
+    from exdrf.field import NO_DIACRITICS
 
     models_by_name: Dict[str, "ExResource"] = {}
     ResClass: Type["ExResource"] = d_set.res_class
@@ -323,6 +323,8 @@ def dataset_from_sqlalchemy(
                 categories=self.category(model),
                 description="\n".join(doc_lines),
                 label_ast=label_ast,
+                provides=extra_info.provides,
+                depends_on=extra_info.depends_on,
             )
             self.res = rs
             models_by_name[rs.name] = rs

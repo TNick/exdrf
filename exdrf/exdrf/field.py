@@ -32,7 +32,18 @@ NO_DIACRITICS = "no_diacritics"
 
 @define
 class ExFieldBase:
-    """The minimal set of attributes for a field."""
+    """The minimal set of attributes for a field.
+
+    Attributes:
+        name: The name of the field inside the resource. This is expected to be
+            in snake_case.
+        title: A string suitable to be used as a title for the field.
+        description: A longer description of the field.
+        category: The category of the field. This should be a short
+            string; nested categories using the dot notation are not supported.
+        type_name: The unique type name of the field.
+        nullable: Whether the field is nullable.
+    """
 
     name: str = field(default="")
     title: str = field(default="")

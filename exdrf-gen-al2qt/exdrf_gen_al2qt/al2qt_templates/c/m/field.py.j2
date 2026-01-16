@@ -86,7 +86,6 @@ class {{ FldPascal }}Field(Qt{{ fld_bc }}Field["{{ ResPascal }}"]):
 
         predicate = filter_op_registry[item.op].predicate
         related_entity = getattr(self.resource.db_model, self.name)
-        # {{ field }}
         subq = related_entity.
         {%- if field.is_many_to_many_type or field.is_one_to_many_type -%}
             any
@@ -106,33 +105,6 @@ class {{ FldPascal }}Field(Qt{{ fld_bc }}Field["{{ ResPascal }}"]):
         )
         return subq
 
-
-        with_alias = aliased(Db{{ field.ref.name }})
-        predicate = filter_op_registry[item.op].predicate
-        selector.joins.append(
-            (
-                with_alias,
-                getattr(self.resource.db_model, self.name),
-                { 'isouter': True }
-            )
-        )
-
-        {% if len(field.ref.get_fields_for_ref_filtering()) == 1 -%}
-        return predicate(
-            with_alias.{{ field.ref.get_fields_for_ref_filtering()[0].name }},
-            item.vl,
-        )
-        {%- else %}
-        return or_(
-            {%- for other_f in field.ref.get_fields_for_ref_filtering() %}
-            predicate(
-                with_alias.{{ other_f.name }},
-                item.vl,
-            ),
-            {%- endfor %}
-        )
-        {%- endif %}
-
     {%- endif %}
     {#- Only for reference fields -#}
     {# --------------------------------------------------------------------- #}
@@ -140,7 +112,6 @@ class {{ FldPascal }}Field(Qt{{ fld_bc }}Field["{{ ResPascal }}"]):
     # exdrf-keep-start extra_field_content ------------------------------------
 {{extra_field_content}}
     # exdrf-keep-end extra_field_content --------------------------------------
-
 
 # exdrf-keep-start more_content -----------------------------------------------
 {{more_content}}

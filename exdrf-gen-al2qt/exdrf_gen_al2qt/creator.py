@@ -1,3 +1,4 @@
+import logging
 import os
 from datetime import date, datetime
 from typing import (
@@ -7,12 +8,12 @@ from typing import (
     Dict,
     Generator,
     List,
+    Optional,
     Tuple,
     Union,
     cast,
-    Optional,
 )
-import logging
+
 import click
 import exdrf_qt.models.fields as base_classes
 from attrs import Attribute
