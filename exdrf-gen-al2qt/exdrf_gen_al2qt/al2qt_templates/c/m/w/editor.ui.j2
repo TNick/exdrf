@@ -105,6 +105,16 @@
           <bool>false</bool>
          </property>
          {%- endif %}{# if field.read_only #}
+         {%- if field.provides %}
+         <property name="provides" stdset="0">
+          <string notr="true">{{ ",".join(field.provides) }}</string>
+         </property>
+         {%- endif %}{# if field.provides #}
+         {%- if field.depends_on %}
+         <property name="depends_on" stdset="0">
+          <string notr="true">{{ field.depends_on | map('join', ':') | join(',') }}</string>
+         </property>
+         {%- endif %}{# if field.depends_on #}
         </widget>
         {%- endif %}{# if len(read_only_data) #}
        </item>

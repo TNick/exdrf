@@ -4,6 +4,7 @@ from typing import (
     Any,
     Callable,
     Generic,
+    List,
     Optional,
     Type,
     TypeVar,
@@ -584,6 +585,57 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
                 concept_key,
                 e,
                 exc_info=True,
+            )
+
+    def get_provides(self, default: Optional[List[str]] = None) -> List[str]:
+        """Get the provides for the field.
+
+        Usually the resource will indicate the providers and that
+        list is available in default. That provider may be overridden at the
+        field level using the provides property.
+
+        Args:
+            default: The default provides for the field.
+
+        Returns:
+            The provides for the field.
+        """
+        prop_prov = self.property("provides")
+        if prop_prov is not None:
+            return prop_prov.split(",")
+        return default or []
+
+    def get_depends_on(self, default: Optional[List[str]] = None) -> List[str]:
+        """Get the depends on for the field."""
+        prop_deps = self.property("depends_on")
+        if prop_deps is not None:
+            result = []
+            for part in prop_deps.split(","):
+                if not part.strip():
+                    continue
+                concept, target = part.strip().split(":", maxsplit=1)
+                result.append((concept.strip(), target.strip()))
+            return result
+        return default or []
+
+    def integrate_concepts(self, provides: List[str], depends_on: List[str]):
+        """Helper for set_form that allows you to declare in one go
+        both the concept we provide and the ones that we depend on.
+        """
+        if not self.form:
+            logger.error("Form is not set for %s", self.__class__.__name__)
+            return
+
+        for concept in self.get_provides(provides):
+            self.form.constraints.register_provider(
+                concept=concept,
+                provider=self,
+            )
+
+        for concept in self.get_depends_on(depends_on):
+            self.form.constraints.register_subscriber(
+                concept=concept,
+                subscriber=self,
             )
 
 

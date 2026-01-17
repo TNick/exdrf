@@ -74,27 +74,26 @@ class Qt{{ ResPascal }}SiSe(DrfSelOneEditor):
     def set_form(self, form: "ExdrfEditorBase"):
         super().set_form(form)
 
-        {%- if r.provides %}
-
-        # Register providers for the concepts that this widget provides.
-        {%- for concept in r.provides %}
-        form.constraints.register_provider(
-            concept="{{ concept }}",
-            provider=self,
+        self.integrate_concepts(
+            {%- if r.provides %}
+            [
+                {%- for concept in r.provides %}
+                "{{ concept }}",
+                {%- endfor %}
+            ],
+            {%- else %}
+            [],
+            {%- endif %}
+            {%- if r.depends_on %}
+            [
+                {%- for concept, target in r.depends_on %}
+                "{{ concept }}",
+                {%- endfor %}
+            ],
+            {%- else %}
+            [],
+            {%- endif %}
         )
-        {%- endfor %}
-        {%- endif %}
-
-        {%- if r.depends_on %}
-
-        # Register subscribers for the concepts that this widget depends on.
-        {%- for concept, target in r.depends_on %}
-        form.constraints.register_subscriber(
-            concept="{{ concept }}",
-            subscriber=self,
-        )
-        {%- endfor %}
-        {%- endif %}
     {%- endif %}
 
     # exdrf-keep-start extra_sise_content ------------------------------------
@@ -144,19 +143,19 @@ class Qt{{ ResPascal }}MuSe(DrfSelMultiEditor):
         # exdrf-keep-start extra_muse_init -----------------------------------
 {{extra_muse_init}}
         # exdrf-keep-end extra_muse_init -------------------------------------
-
     {%- if r.depends_on %}
 
     def set_form(self, form: "ExdrfEditorBase"):
         super().set_form(form)
 
-        # Register subscribers for the concepts that this widget depends on.
-        {%- for concept, target in r.depends_on %}
-        form.constraints.register_subscriber(
-            concept="{{ concept }}",
-            subscriber=self,
+        self.integrate_concepts(
+            [],
+            [
+                {%- for concept, target in r.depends_on %}
+                "{{ concept }}",
+                {%- endfor %}
+            ],
         )
-        {%- endfor %}
     {%- endif %}
 
     # exdrf-keep-start extra_muse_content ------------------------------------

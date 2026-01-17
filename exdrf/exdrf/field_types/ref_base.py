@@ -1,6 +1,7 @@
-from typing import Any, Optional
+from typing import Any, List, Optional, Tuple
 
 from attrs import define, field
+from pydantic import Field, field_validator
 
 from exdrf.constants import RelType
 from exdrf.field import ExField, FieldInfo
@@ -17,10 +18,18 @@ class RefBaseField(ExField):
             many items. This is only valid when the parent side is 'many'
             (many-to-one or many-to-many relations from the parent's point of
             view).
+        provides: indicates the concept that this field provides. This is
+            usually set at the resource level but can be overridden at the field
+            level.
+        depends_on: indicates the concepts that this field depends on. This is
+            usually set at the resource level but can be overridden at the field
+            level.
     """
 
     ref: "ExResource" = field(default=None, repr=False)
     expect_lots: bool = field(default=False)
+    provides: List[str] = field(factory=list)
+    depends_on: List[str] = field(factory=list)
 
     def field_properties(self, explicit: bool = False) -> dict[str, Any]:
         result = super().field_properties(explicit)
@@ -46,8 +55,40 @@ class RelExtraInfo(FieldInfo):
             many items. This is only valid when the parent side is 'many'
             (many-to-one or many-to-many relations from the parent's point of
             view).
+        provides: indicates the concept that this field provides. This is
+            usually set at the resource level but can be overridden at the field
+            level.
+        depends_on: indicates the concepts that this field depends on. This is
+            usually set at the resource level but can be overridden at the field
+            level.
     """
 
     direction: Optional[RelType] = None
     subordinate: Optional[bool] = None
     expect_lots: Optional[bool] = False
+    provides: List[str] = Field(default_factory=list)
+    depends_on: List[Tuple[str, str]] = Field(default_factory=list)
+
+    @field_validator("provides", mode="before")
+    @classmethod
+    def parse_provides(cls, v):
+        if v is None:
+            return []
+        if isinstance(v, str):
+            return [item.strip() for item in v.split(",") if item.strip()]
+        return v
+
+    @field_validator("depends_on", mode="before")
+    @classmethod
+    def parse_depends_on(cls, v):
+        if v is None:
+            return []
+        if isinstance(v, str):
+            result = []
+            for part in v.split(","):
+                if not part.strip():
+                    continue
+                concept, target = part.strip().split(":", maxsplit=1)
+                result.append((concept.strip(), target.strip()))
+            return result
+        return v

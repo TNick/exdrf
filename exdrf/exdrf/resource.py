@@ -16,7 +16,7 @@ from typing import (
 )
 
 from attrs import define, field
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from exdrf.constants import FIELD_TYPE_INTEGER
 from exdrf.label_dsl import (
@@ -597,11 +597,35 @@ class ResExtraInfo(BaseModel):
     """
 
     label: Optional[str] = None
-    provides: Optional[List[str]] = Field(default_factory=list)
-    depends_on: Optional[List[Tuple[str, str]]] = Field(default_factory=list)
+    provides: List[str] = Field(default_factory=list)
+    depends_on: List[Tuple[str, str]] = Field(default_factory=list)
 
     def get_layer_ast(self) -> "ASTNode":
         """Return the layer composition function using layer_dsl syntax."""
         if not self.label:
             return []
         return parse_expr(self.label)
+
+    @field_validator("provides", mode="before")
+    @classmethod
+    def parse_provides(cls, v):
+        if v is None:
+            return []
+        if isinstance(v, str):
+            return [item.strip() for item in v.split(",") if item.strip()]
+        return v
+
+    @field_validator("depends_on", mode="before")
+    @classmethod
+    def parse_depends_on(cls, v):
+        if v is None:
+            return []
+        if isinstance(v, str):
+            result = []
+            for part in v.split(","):
+                if not part.strip():
+                    continue
+                concept, target = part.strip().split(":", maxsplit=1)
+                result.append((concept.strip(), target.strip()))
+            return result
+        return v
