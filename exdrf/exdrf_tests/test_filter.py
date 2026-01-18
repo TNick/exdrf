@@ -7,6 +7,7 @@ from exdrf.filter import (
     LogicAndType,
     LogicNotType,
     LogicOrType,
+    SearchType,
     insert_quick_search,
     validate_filter,
 )
@@ -252,7 +253,9 @@ def test_validate_filter_edge_cases() -> None:
 def test_insert_quick_search_basic() -> None:
     """Test basic quick search insertion."""
     # Test with None filter
-    result = insert_quick_search("name", "test")
+    result = insert_quick_search(
+        "name", "test", search_type=SearchType.EXTENDED
+    )
     assert isinstance(result, list)
     assert len(result) == 1
     assert isinstance(result[0], FieldFilter)
@@ -261,7 +264,9 @@ def test_insert_quick_search_basic() -> None:
     assert result[0].vl == "%test%"
 
     # Test with empty list
-    result = insert_quick_search("name", "test", cast(FilterType, []))
+    result = insert_quick_search(
+        "name", "test", cast(FilterType, []), search_type=SearchType.EXTENDED
+    )
     assert isinstance(result, list)
     assert len(result) == 1
     assert isinstance(result[0], FieldFilter)
@@ -271,7 +276,9 @@ def test_insert_quick_search_basic() -> None:
 
     # Test with existing filter
     existing_filter = cast(FilterType, [FieldFilter(fld="id", op="eq", vl=1)])
-    result = insert_quick_search("name", "test", existing_filter)
+    result = insert_quick_search(
+        "name", "test", existing_filter, search_type=SearchType.EXTENDED
+    )
     assert isinstance(result, list)
     assert len(result) == 2
     assert existing_filter[0] in result
@@ -284,33 +291,39 @@ def test_insert_quick_search_basic() -> None:
 def test_insert_quick_search_exact() -> None:
     """Test exact quick search insertion."""
     # Test exact search
-    result = insert_quick_search("name", "test", exact=True)
+    result = insert_quick_search("name", "test", search_type=SearchType.EXACT)
     assert isinstance(result, list)
     assert len(result) == 1
     assert isinstance(result[0], FieldFilter)
     assert result[0].fld == "name"
-    assert result[0].op == "ilike"
+    assert result[0].op == "eq"
     assert result[0].vl == "test"
 
 
 def test_insert_quick_search_wildcards() -> None:
     """Test quick search with wildcards and spaces."""
     # Test with spaces
-    result = insert_quick_search("name", "test value")
+    result = insert_quick_search(
+        "name", "test value", search_type=SearchType.EXTENDED
+    )
     assert isinstance(result, list)
     assert len(result) == 1
     assert isinstance(result[0], FieldFilter)
     assert result[0].vl == "%test%value%"
 
     # Test with asterisks
-    result = insert_quick_search("name", "test*value")
+    result = insert_quick_search(
+        "name", "test*value", search_type=SearchType.EXTENDED
+    )
     assert isinstance(result, list)
     assert len(result) == 1
     assert isinstance(result[0], FieldFilter)
     assert result[0].vl == "test%value"
 
     # Test with mixed wildcards
-    result = insert_quick_search("name", "test* value")
+    result = insert_quick_search(
+        "name", "test* value", search_type=SearchType.EXTENDED
+    )
     assert isinstance(result, list)
     assert len(result) == 1
     assert isinstance(result[0], FieldFilter)
@@ -323,7 +336,9 @@ def test_insert_quick_search_replace() -> None:
     existing_filter = cast(
         FilterType, [FieldFilter(fld="name", op="ilike", vl="%old%")]
     )
-    result = insert_quick_search("name", "new", existing_filter)
+    result = insert_quick_search(
+        "name", "new", existing_filter, search_type=SearchType.EXTENDED
+    )
     assert isinstance(result, list)
     assert len(result) == 1
     assert isinstance(result[0], FieldFilter)
@@ -340,7 +355,9 @@ def test_insert_quick_search_replace() -> None:
             ],
         ],
     )
-    result = insert_quick_search("name", "new", and_filter)
+    result = insert_quick_search(
+        "name", "new", and_filter, search_type=SearchType.EXTENDED
+    )
     assert isinstance(result, list)
     assert len(result) == 2
     assert result[0] == "and"
@@ -383,7 +400,9 @@ def test_insert_quick_search_edge_cases() -> None:
     dict_filter = cast(
         FilterType, [{"fld": "name", "op": "ilike", "vl": "%old%"}]
     )
-    result = insert_quick_search("name", "new", dict_filter)
+    result = insert_quick_search(
+        "name", "new", dict_filter, search_type=SearchType.EXTENDED
+    )
     assert isinstance(result, list)
     assert len(result) == 1
     assert isinstance(result[0], FieldFilter)
@@ -406,7 +425,9 @@ def test_insert_quick_search_edge_cases() -> None:
             ],
         ],
     )
-    result = insert_quick_search("name", "new", complex_filter)
+    result = insert_quick_search(
+        "name", "new", complex_filter, search_type=SearchType.EXTENDED
+    )
     assert isinstance(result, list)
     assert len(result) == 2
     assert result[0] == "and"

@@ -1,4 +1,5 @@
 import logging
+from functools import partial
 from typing import Any, Union
 
 from attrs import define, field
@@ -111,13 +112,17 @@ class RegexFiOp(FiOp):
 
     The provided pattern should match the target using regex.
 
+    The search is case insensitive (i) and we're using the
+    multi-line (m) flag (^ matches the start of each line, $ matches the end
+    of each line instead of them applying to the whole string).
+
     Attributes:
         uniq: The name of the operator, set to "regex".
         predicate: The regex match predicate function.
     """
 
     uniq: str = field(default="regex", init=False)
-    predicate: Any = field(default=regexp_match_op)
+    predicate: Any = field(default=partial(regexp_match_op, flags="im"))
 
 
 @comparison_op

@@ -286,6 +286,7 @@ def generate_qt_from_alchemy(
                 "formatter",
                 "fk_to",
                 "fk_from",
+                "no_dia_field",
             ):
                 type_name = str(part.type)
                 if "typing." in type_name:

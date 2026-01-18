@@ -9,19 +9,19 @@ This is how the filter is imagined to show in JSON format:
             {"fld": "name", "op": "eq", "vl": "This is a string"},
             {"fld": "name", "op": "ne", "vl": "This is a string"},
             [
-                "and",
+                "AND",
                 [
                     {"fld": "id", "op": "eq", "vl": 0},
                     {"fld": "id", "op": "ne", "vl": 0},
                     {"fld": "name", "op": "eq", "vl": "This is a string"},
                     {"fld": "name", "op": "ne", "vl": "This is a string"},
                     [
-                        "or",
+                        "OR",
                         [
-                            ["not", {"fld": "id", "op": "eq", "vl": 0}],
-                            ["not", {"fld": "id", "op": "ne", "vl": 0}],
+                            ["NOT", {"fld": "id", "op": "eq", "vl": 0}],
+                            ["NOT", {"fld": "id", "op": "ne", "vl": 0}],
                             [
-                                "not",
+                                "NOT",
                                 {
                                     "fld": "name",
                                     "op": "eq",
@@ -29,7 +29,7 @@ This is how the filter is imagined to show in JSON format:
                                 },
                             ],
                             [
-                                "not",
+                                "NOT",
                                 {
                                     "fld": "name",
                                     "op": "ne",
@@ -59,14 +59,26 @@ This is how the filter is imagined to show in JSON format:
 """
 
 import logging
-from typing import Any, List, Literal, Optional, Tuple, TypedDict, Union, cast
+from enum import StrEnum
+from typing import (
+    Any,
+    Iterator,
+    List,
+    Literal,
+    Optional,
+    Tuple,
+    TypedDict,
+    Union,
+    cast,
+)
 
-from attrs import define
+from attrs import define, field
+from unidecode import unidecode
 
 logger = logging.getLogger(__name__)
 
 
-@define
+@define(slots=True, kw_only=True)
 class FieldFilter:
     """Describes how the results should be filtered by one of the fields.
 
@@ -81,6 +93,58 @@ class FieldFilter:
     fld: str
     op: str
     vl: Any
+
+    _no_dia: Optional[Tuple[str, str]] = field(
+        default=None, repr=False, init=False
+    )
+
+    def __getitem__(self, key: str) -> Any:
+        if key == "fld":
+            return self.fld
+        elif key == "op":
+            return self.op
+        elif key == "vl":
+            return self.vl
+        else:
+            raise KeyError(f"Unknown field: {key}")
+
+    def __setitem__(self, key: str, value: Any):
+        if key == "fld":
+            self.fld = value
+        elif key == "op":
+            self.op = value
+        elif key == "vl":
+            self.vl = value
+        else:
+            raise KeyError(f"Unknown field: {key}")
+
+    def __iter__(self) -> Iterator[Any]:
+        yield "fld", self.fld
+        yield "op", self.op
+        yield "vl", self.vl
+
+    def __len__(self) -> int:
+        return 3
+
+    def __contains__(self, key: str) -> bool:
+        return key in ("fld", "op", "vl") or False
+
+    @property
+    def unidecoded(self) -> str:
+        if self.vl is None:
+            return ""
+        if self._no_dia is None:
+            ud = unidecode(self.vl)
+            self._no_dia = (self.vl, ud)
+            return ud
+        else:
+            old_vl, ud = self._no_dia
+            if old_vl == self.vl:
+                return ud
+            else:
+                ud = unidecode(self.vl)
+                self._no_dia = (self.vl, ud)
+                return ud
 
 
 class FieldFilterDict(TypedDict):
@@ -316,95 +380,244 @@ def validate_filter(filter: FilterType) -> List[str]:
     return []
 
 
+class SearchType(StrEnum):
+    """Used with selectors to indicate the type of search to perform.
+
+    EXACT: Exact search. The = operator is used, so the value must match
+        exactly, including case.
+    SIMPLE: Partial search. The ilike operator is used, and the input is
+        not altered in any way. The user can use the % wildcard to match any
+        number of characters.
+    EXTENDED: Extended search. The input is altered in the following ways:
+        - All spaces are replaced with %
+        - All * are replaced with %
+        - If the input contains no wildcards (%, *), then % is added to the
+          beginning and end of the input.
+    PATTERN: Pattern search. The input is considered to be a regular expression
+        pattern. It is not altered in any way.
+    """
+
+    EXACT = "exact"
+    SIMPLE = "partial"
+    EXTENDED = "extended"
+    PATTERN = "pattern"
+
+    def prepare_input(self, value: str) -> str:
+        """Prepare the input for the search.
+
+        Args:
+            input: The input to prepare.
+
+        Returns:
+            The prepared input.
+        """
+        if self == SearchType.EXTENDED:
+            if "%" not in value:
+                if "*" not in value:
+                    value = f"%{value}%"
+            else:
+                value = value.replace("*", "%")
+            value = value.replace(" ", "%")
+        return value
+
+    def create_filter(self, field: str, value: str) -> "FieldFilterDict":
+        """Create a filter for the search.
+
+        Args:
+            field: The field to filter on.
+            value: The value to filter on.
+
+        Returns:
+            A filter for the search.
+        """
+        value = self.prepare_input(value)
+        if self == SearchType.EXACT:
+            return {"fld": field, "op": "eq", "vl": value}
+        elif self == SearchType.SIMPLE:
+            return {"fld": field, "op": "ilike", "vl": value}
+        elif self == SearchType.EXTENDED:
+            return {"fld": field, "op": "ilike", "vl": value}
+        elif self == SearchType.PATTERN:
+            return {"fld": field, "op": "regex", "vl": value}
+        else:
+            raise ValueError(f"Invalid search type: {self}")
+
+
+def create_field_filters(
+    field_names: List[str],
+    term: str,
+    search_type: "SearchType",
+) -> List[FieldFilter]:
+    """Create filters for multiple fields with the same search term.
+
+    Args:
+        field_names: The list of field names to create filters for.
+        term: The search term to use.
+        search_type: The type of search to perform.
+
+    Returns:
+        A list of FieldFilter objects, one for each field.
+    """
+    filters = []
+    for field_name in field_names:
+        filter_dict = search_type.create_filter(field_name, term)
+        filters.append(
+            FieldFilter(
+                fld=filter_dict["fld"],
+                op=filter_dict["op"],
+                vl=filter_dict["vl"],
+            )
+        )
+    return filters
+
+
+def extract_field_filters(filter_obj: Any) -> List[FieldFilter]:
+    """Extract all FieldFilter objects from a filter structure.
+
+    Args:
+        filter_obj: The filter structure to extract filters from. Can be
+            FilterType or any component of it.
+
+    Returns:
+        A list of all FieldFilter objects found in the structure.
+    """
+    result: List[FieldFilter] = []
+
+    if isinstance(filter_obj, FieldFilter):
+        result.append(filter_obj)
+    elif isinstance(filter_obj, dict):
+        try:
+            result.append(FieldFilter(**filter_obj))
+        except Exception:
+            logger.error("Invalid field filter %s", filter_obj)
+    elif isinstance(filter_obj, list):
+        if len(filter_obj) == 0:
+            pass
+        elif len(filter_obj) == 2 and isinstance(filter_obj[0], str):
+            # Logic group (and/or/not)
+            if filter_obj[0].lower() in ("and", "or"):
+                if isinstance(filter_obj[1], list):
+                    for item in filter_obj[1]:
+                        result.extend(extract_field_filters(item))
+            elif filter_obj[0].lower() == "not":
+                result.extend(extract_field_filters(filter_obj[1]))
+        else:
+            # Implicit AND list
+            for item in filter_obj:
+                result.extend(extract_field_filters(item))
+
+    return result
+
+
+def create_multi_field_or_filter(
+    field_names: List[str],
+    term: str,
+    search_type: "SearchType",
+) -> FilterType:
+    """Create an OR filter for multiple fields with the same search term.
+
+    Args:
+        field_names: The list of field names to create filters for.
+        term: The search term to use.
+        search_type: The type of search to perform.
+
+    Returns:
+        A filter with OR logic combining filters for all fields. Returns
+        an empty list if no field names are provided or if the term is empty.
+    """
+    term = term.strip() if term else ""
+    if not term or not field_names:
+        return []
+
+    filters = create_field_filters(field_names, term, search_type)
+    if len(filters) == 0:
+        return []
+    if len(filters) == 1:
+        return [filters[0]]  # type: ignore
+    return ["or", filters]  # type: ignore
+
+
 def insert_quick_search(
     field_name: str,
-    value: str,
-    filter: Optional[FilterType] = None,
-    exact: bool = False,
+    term: str,
+    existing_filter: Optional[FilterType] = None,
+    search_type: "SearchType" = SearchType.EXACT,
 ) -> FilterType:
     """Insert a quick search into the filter.
 
     Args:
         field_name: The name of the field to search.
-        value: The value to search for.
-        filter: The filter to insert the quick search into.
-        exact: Whether the search should be exact.
+        term: The search term to search for.
+        existing_filter: The existing filter to insert the quick search into.
+        search_type: The type of search to perform.
 
     Returns:
         The filter with the quick search inserted.
     """
-    value = value.strip() if value else ""
-    if value and not exact:
-        if "*" not in value:
-            if "%" not in value:
-                value = f"%{value}%"
-        else:
-            value = value.replace("*", "%")
-        value = value.replace(" ", "%").replace("%%", "%")
+    term = term.strip() if term else ""
+    if not term:
+        inserted = None
+    else:
+        # Use helper function to create the filter
+        filters = create_field_filters([field_name], term, search_type)
+        inserted = filters[0] if filters else None
 
-    # Compute the value to insert.
-    inserted = (
-        FieldFilter(fld=field_name, op="ilike", vl=value) if value else None
-    )
-
-    if filter is None:
+    if existing_filter is None:
         return [inserted] if inserted else []
-    elif isinstance(filter, list):
-        if len(filter) == 0:
+    elif isinstance(existing_filter, list):
+        if len(existing_filter) == 0:
             return [inserted] if inserted else []
 
         # Logic group.
-        if len(filter) == 2 and isinstance(filter[0], str):
-            if filter[0] == "and":
-                if not isinstance(filter[1], list):
-                    raise ValueError(f"AND argument is not a list: {filter[1]}")
+        if len(existing_filter) == 2 and isinstance(existing_filter[0], str):
+            if existing_filter[0] == "and":
+                if not isinstance(existing_filter[1], list):
+                    raise ValueError(
+                        f"AND argument is not a list: {existing_filter[1]}"
+                    )
 
                 new_and_value: List[Any] = [inserted] if inserted else []
-                for part in filter[1]:
-                    if (
-                        isinstance(part, FieldFilter)
-                        and part.fld == field_name
-                        and part.op == "ilike"
-                    ):
+                for part in existing_filter[1]:
+                    # Remove any existing filter for the same field
+                    if isinstance(part, FieldFilter) and part.fld == field_name:
                         continue
                     if (
                         isinstance(part, dict)
-                        and part["fld"] == field_name
-                        and part["op"] == "ilike"
+                        and part.get("fld") == field_name  # type: ignore
                     ):
                         continue
                     new_and_value.append(part)
                 return cast(FilterType, ["and", new_and_value])
 
         new_and_value = [inserted] if inserted else []
-        for part in filter:
-            if (
-                isinstance(part, FieldFilter)
-                and part.fld == field_name
-                and part.op == "ilike"
-            ):
+        for part in existing_filter:
+            # Remove any existing filter for the same field
+            if isinstance(part, FieldFilter) and part.fld == field_name:
                 continue
             if (
                 isinstance(part, dict)
-                and part["fld"] == field_name  # type: ignore
-                and part["op"] == "ilike"  # type: ignore
+                and part.get("fld") == field_name  # type: ignore
             ):
                 continue
             new_and_value.append(part)
 
         # A list at the top level means an implicit and.
         return new_and_value
-    elif isinstance(filter, FieldFilter):
-        if filter.fld == field_name and filter.op == "ilike":
+    elif isinstance(existing_filter, FieldFilter):
+        if existing_filter.fld == field_name:
             # Get rid of the previous value.
             return [inserted] if inserted else []
-    elif isinstance(filter, dict):
-        if filter["fld"] == field_name and filter["op"] == "ilike":
+    elif isinstance(existing_filter, dict):
+        if existing_filter.get("fld") == field_name:  # type: ignore
             # Get rid of the previous value.
             return [inserted] if inserted else []
     else:
-        raise ValueError(f"Unknown filter type: {type(filter)}")
+        raise ValueError(f"Unknown filter type: {type(existing_filter)}")
 
     # We give up searching for the field. The old value of the filter
     # will be AND-ed together with the new value.
-    return [filter, inserted] if filter and inserted else []  # type: ignore
+    return (
+        [existing_filter, inserted]
+        if existing_filter and inserted
+        else []  # type: ignore
+    )

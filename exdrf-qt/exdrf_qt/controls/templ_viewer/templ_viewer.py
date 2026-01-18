@@ -60,12 +60,52 @@ from exdrf_qt.controls.templ_viewer.templ_viewer_ui import Ui_TemplViewer
 from exdrf_qt.controls.templ_viewer.view_page import (  # noqa: F401
     WebEnginePage,
 )
+from exdrf_qt.utils.tlh import top_level_handler
 
 if TYPE_CHECKING:
     from sqlalchemy import Select  # noqa: F401
     from sqlalchemy.orm import Session  # noqa: F401
 
     from exdrf_qt.context import QtContext  # noqa: F401
+    from exdrf_qt.controls import ExdrfEditor  # noqa: F401
+
+
+logger = logging.getLogger(__name__)
+LOADING_HTML = """
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #ffffff;
+            font-family: Arial, sans-serif;
+        }
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="spinner"></div>
+</body>
+</html>
+"""
 
 
 @define
@@ -73,9 +113,6 @@ class CountField(ExField):
     """A field that contains the count of a relationship."""
 
     type_name: str = FIELD_TYPE_INTEGER
-
-
-logger = logging.getLogger(__name__)
 
 
 class TemplateRenderWorker(QThread):
@@ -87,6 +124,11 @@ class TemplateRenderWorker(QThread):
         ctx: The Qt context for creating sessions in the worker thread.
     """
 
+    render_func: Callable[..., str]
+    render_kwargs: Dict[str, Any]
+    ctx: Optional["QtContext"]
+    data: Dict[str, Any]
+
     rendered = pyqtSignal(str)
     error = pyqtSignal(Exception, str)
 
@@ -96,6 +138,7 @@ class TemplateRenderWorker(QThread):
         render_kwargs: Dict[str, Any],
         ctx: Optional["QtContext"] = None,
         parent=None,
+        data: Optional[Dict[str, Any]] = None,
     ):
         """Initialize the template render worker.
 
@@ -109,6 +152,7 @@ class TemplateRenderWorker(QThread):
         self.render_func = render_func
         self.render_kwargs = render_kwargs
         self.ctx = ctx
+        self.data = data if data else {}
 
     def run(self):
         """Execute the template rendering in the worker thread."""
@@ -228,6 +272,8 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
 
     _override_content: Optional[str]
     _render_worker: Optional["TemplateRenderWorker"]
+    _render_later_timer: "QTimer"
+    _render_later_kwargs: Dict[str, Any]
 
     def __init__(
         self,
@@ -244,6 +290,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
         var_model: Optional["VarModel"] = None,
         highlight_code: bool = True,
         override_content: Optional[str] = None,
+        prevent_var_list: bool = False,
     ):
         """Initialize the template viewer.
 
@@ -306,7 +353,11 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
         self.c_editor.textChanged.connect(self.on_editor_text_changed)
 
         # Prepare the variables list.
-        self.prepare_vars_list()
+        if prevent_var_list:
+            self.c_vars.deleteLater()
+            self.c_vars = None
+        else:
+            self.prepare_vars_list()
 
         # Initialize the auto-save timer
         self._auto_save_timer = QTimer(self)
@@ -322,6 +373,13 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
         self._set_html_timer = QTimer(self)
         self._set_html_timer.setSingleShot(True)
         self._set_html_timer.timeout.connect(self._flush_pending_html)
+
+        # Debounce render_template_later calls when responding to controlChanged.
+        self._render_later_timer = QTimer(self)
+        self._render_later_timer.setSingleShot(True)
+        self._render_later_timer.setInterval(1500)  # 1.5 seconds
+        self._render_later_timer.timeout.connect(self._on_render_later_timeout)
+        self._render_later_kwargs: Dict[str, Any] = {}
 
         # Track last render to enable fallback loading on failures.
         self._last_render_html = None
@@ -534,6 +592,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
         self._override_content = value
         self.render_template()
 
+    @top_level_handler
     def on_copy_key(self):
         """Copy the key of the currently selected variable to the clipboard."""
         if not self.current_field:
@@ -544,6 +603,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
             return
         clipboard.setText(self.current_field.name)
 
+    @top_level_handler
     def on_copy_value(self):
         """Copy the value of the currently selected variable to the clipboard.
 
@@ -557,6 +617,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
             return
         clipboard.setText(str(self.model.var_bag[self.current_field.name]))
 
+    @top_level_handler
     def on_copy_keys(self):
         """Copy all keys to the clipboard.
 
@@ -567,6 +628,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
             return
         clipboard.setText("\n".join(self.model.var_bag.var_names))
 
+    @top_level_handler
     def on_copy_values(self):
         """Copy all values to the clipboard.
 
@@ -580,6 +642,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
             "\n".join(str(v) for v in self.model.var_bag.var_values)
         )
 
+    @top_level_handler
     def on_copy_all(self):
         """Copy all variables to the clipboard.
 
@@ -591,6 +654,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
         dct = self.model.var_bag.as_dict
         clipboard.setText(yaml.dump(dct, default_flow_style=False))
 
+    @top_level_handler
     def on_add(self):
         """Add a new variable.
 
@@ -605,11 +669,15 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
             if fld:
                 self.model.add_field(fld, value)
 
+    @top_level_handler
     def on_clear(self):
         """Clear the currently selected variable.
 
         The currently selected variable is removed from the model.
         """
+        if not self.c_vars:
+            return
+
         crt_item = self.c_vars.currentIndex()
         if crt_item.isValid():
             crt_field = self.model.var_bag.fields[crt_item.row()]
@@ -778,6 +846,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
             self.ac_save_as_html,
         ]
 
+    @top_level_handler
     def on_insert_snippet(self) -> None:
         """Insert a snippet into the editor."""
         ac = cast(QAction, self.sender())
@@ -803,6 +872,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
             )
             self.ac_switch_mode.setIcon(self.get_icon("blueprint"))
 
+    @top_level_handler
     def on_toggle_vars(self, checked: bool):
         """Toggle the visibility of the variable panel.
 
@@ -813,7 +883,12 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
         if w is None:
             return
         w.setVisible(checked)
+        self.side_panel_visibility_changed(checked)
 
+    def side_panel_visibility_changed(self, visible: bool):
+        """Called when the side panel is visible or hidden."""
+
+    @top_level_handler
     def on_vars_selection_changed(self):
         """Update the actions based on the selection of the variable list."""
         crt_item = self.c_vars.currentIndex()
@@ -821,6 +896,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
         self.ac_copy_key.setEnabled(valid)
         self.ac_copy_value.setEnabled(valid)
 
+    @top_level_handler
     def on_vars_double_clicked(self):
         """Insert the currently selected variable into the template editor."""
         crt_item = self.c_vars.currentIndex()
@@ -829,6 +905,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
                 "{{ " + self.model.var_bag.fields[crt_item.row()].name + " }}"
             )
 
+    @top_level_handler
     def on_vars_context_menu(self, pos: QPoint):
         """Context menu for the variable list."""
         menu = QMenu()
@@ -887,6 +964,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
 
         return menu
 
+    @top_level_handler
     def on_viewer_context_menu(self, pos: QPoint):
         """Context menu for the template renderer."""
         try:
@@ -920,6 +998,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
         except Exception as e:
             logger.error("Error showing context menu: %s", e, exc_info=True)
 
+    @top_level_handler
     def on_editor_context_menu(self, pos: QPoint):
         """Context menu for the template editor."""
         menu = self.c_editor.createStandardContextMenu()
@@ -935,6 +1014,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
 
         menu.exec_(self.c_editor.mapToGlobal(pos))
 
+    @top_level_handler
     def on_browse_templ_file(self):
         """Browse for the template file."""
         file_name, _ = QFileDialog.getOpenFileName(
@@ -999,6 +1079,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
                 self.c_templ.setToolTip(str(e))
                 self.show_exception(e, traceback.format_exc())
 
+    @top_level_handler
     def on_switch_mode(self, checked: bool):
         """Switch between source and rendered mode.
 
@@ -1070,7 +1151,8 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
         profile.cookieStore().deleteAllCookies()
 
         self.model = VarModel(self.ctx, self.var_bag)
-        self.c_vars.setModel(self.model)
+        if self.c_vars:
+            self.c_vars.setModel(self.model)
 
         if self._use_edited_text:
             self._current_template = self.jinja_env.from_string(
@@ -1104,6 +1186,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
 
     # -- WebEngine diagnostics -------------------------------------------------
 
+    @top_level_handler
     def _on_page_load_started(self) -> None:
         try:
             url = self.c_viewer.url().toString()  # type: ignore[attr-defined]
@@ -1114,6 +1197,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
     def _on_page_load_progress(self, p: int) -> None:
         logger.log(1, "WebEngine loadProgress=%d", p)
 
+    @top_level_handler
     def _on_page_load_finished(self, ok: bool) -> None:
         try:
             url = self.c_viewer.url().toString()  # type: ignore[attr-defined]
@@ -1128,6 +1212,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
                     self._last_render_html, self._last_render_seq
                 )
 
+    @top_level_handler
     def _on_page_url_changed(self, url: QUrl) -> None:
         try:
             s = url.toString()
@@ -1142,6 +1227,30 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
             status,
             exit_code,
         )
+
+    def render_template_later(self, **kwargs):
+        """Schedule a delayed render of the template.
+
+        This method debounces rapid calls to render_template by restarting
+        a timer. The actual render will happen 1.5 seconds after the last
+        call to this method.
+
+        Args:
+            **kwargs: Additional keyword arguments to pass to render_template.
+        """
+        # Store kwargs for later use
+        self._render_later_kwargs = kwargs
+        # Stop any existing timer
+        if self._render_later_timer.isActive():
+            self._render_later_timer.stop()
+        # Start the timer (will trigger render_template after 1.5 seconds)
+        self._render_later_timer.start()
+
+    def _on_render_later_timeout(self):
+        """Handle the timeout of the render_later timer."""
+        kwargs = self._render_later_kwargs.copy()
+        self._render_later_kwargs.clear()
+        self.render_template(**kwargs)
 
     def render_template(self, **kwargs):
         """Render the template.
@@ -1165,7 +1274,11 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
         # Cancel any existing render worker
         if self._render_worker is not None and self._render_worker.isRunning():
             logger.log(1, "Cancelling previous render worker")
+
+            # End the worker immediately.
             self._render_worker.terminate()
+
+            # The documentation recommends waiting for the worker to finish.
             self._render_worker.wait(1000)
 
         try:
@@ -1220,41 +1333,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
         Returns:
             HTML string with a centered circular spinner.
         """
-        return """
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            background-color: #ffffff;
-            font-family: Arial, sans-serif;
-        }
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #3498db;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-    </style>
-</head>
-<body>
-    <div class="spinner"></div>
-</body>
-</html>
-"""
+        return LOADING_HTML
 
     def _render_template_async(self, **kwargs):
         """Render the template asynchronously in a worker thread."""
@@ -1271,6 +1350,9 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
             parent=self,
         )
 
+        # Allow the subclasses to adjust the thread.
+        self._adjust_render_thread()
+
         # Connect signals
         self._render_worker.rendered.connect(self._on_template_rendered)
         self._render_worker.error.connect(self._on_template_render_error)
@@ -1278,6 +1360,9 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
 
         # Start the worker
         self._render_worker.start()
+
+    def _adjust_render_thread(self):
+        """Adjust the render thread."""
 
     def _on_template_rendered(self, html: str):
         """Handle successful template rendering."""
@@ -1507,6 +1592,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
         """Get the template content for saving."""
         return self.c_editor.toPlainText()
 
+    @top_level_handler
     def on_save_as_templ(self):
         """Save the template."""
         try:
@@ -1527,6 +1613,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
         except Exception as e:
             logger.error("Error saving template: %s", e, exc_info=True)
 
+    @top_level_handler
     def on_auto_save_templ(self):
         """Save the template."""
         try:
@@ -1545,6 +1632,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
         except Exception as e:
             logger.error("Error auto-saving template: %s", e, exc_info=True)
 
+    @top_level_handler
     def on_save_as_html(self) -> None:
         """Save the HTML."""
         page: "WebEnginePage" = cast("WebEnginePage", self.c_viewer.page())
@@ -1578,6 +1666,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
                 )
             )
 
+    @top_level_handler
     def on_saved_as_pdf(self, file_path: str, result: bool):
         """Handle the result of the PDF saving operation."""
         if not result:
@@ -1598,6 +1687,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
 
         QDesktopServices.openUrl(QUrl.fromLocalFile(file_path))
 
+    @top_level_handler
     def on_save_as_pdf(self) -> None:
         """Save the rendered content as a .pdf file."""
         page: "WebEnginePage" = cast("WebEnginePage", self.c_viewer.page())
@@ -1626,6 +1716,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
                         str(e),
                     )
 
+    @top_level_handler
     def on_save_as_docx(self) -> None:
         """Save the rendered content as a .docx file."""
         # from html4docx import HtmlToDocx  # type: ignore
@@ -1656,6 +1747,8 @@ class RecordTemplViewer(TemplViewer, Generic[DBM]):
 
     record_id: Optional[RecIdType]
     db_model: Type[DBM]
+    editor: Optional["ExdrfEditor"]
+    editor_ctor: Optional[Type["ExdrfEditor"]]
 
     ac_new: Union[OpenCreatePac, None]
     ac_rem: Union[OpenDeletePac, None]
@@ -1668,17 +1761,30 @@ class RecordTemplViewer(TemplViewer, Generic[DBM]):
         has_new_action: bool = True,
         has_delete_action: bool = True,
         has_edit_action: bool = True,
+        editor_ctor: Optional[Type["ExdrfEditor"]] = None,
         **kwargs,
     ):
         self.record_id = None
         self.db_model = db_model
-        super().__init__(var_bag=VarBag(), prevent_render=True, **kwargs)
+        self.editor_ctor = editor_ctor
+        self.editor = None
+        super().__init__(
+            var_bag=VarBag(),
+            prevent_render=True,
+            prevent_var_list=editor_ctor is not None,
+            **kwargs,
+        )
         self.create_crud_actions(
             has_new_action=has_new_action,
             has_delete_action=has_delete_action,
             has_edit_action=has_edit_action,
         )
         self.change_record(record_id)
+
+        if editor_ctor is not None:
+            self.ac_toggle_vars.setText(
+                self.t("templ.editor.toggle", "Toggle Editor")
+            )
 
     def change_record(self, record_id: Optional[RecIdType]) -> bool:
         """Change the record."""
@@ -1743,100 +1849,111 @@ class RecordTemplViewer(TemplViewer, Generic[DBM]):
         assert self._current_template is not None
         self._ensure_fresh_template()
 
+        def do_field(fld, template_vars, record, session):
+            try:
+                # Access the attribute within the session context
+                # This will trigger lazy loading if needed
+                attr_value = getattr(record, fld.name)
+                # Convert relationships to lists to detach from
+                # session
+                if isinstance(attr_value, (InstrumentedList, InstrumentedSet)):
+                    # Convert to list to ensure it's loaded and
+                    # detached from session. This will trigger
+                    # lazy loading if not already loaded.
+                    attr_value = list(attr_value)
+                    try:
+                        count = count_relationship(session, record, fld.name)
+                    except Exception as e:
+                        logger.error(
+                            "Error counting relation %s in model " "%s: %s",
+                            fld.name,
+                            record.__class__.__name__,
+                            e,
+                            exc_info=True,
+                        )
+                        count = 0
+                    count_name = f"{fld.name}_count"
+                    template_vars[count_name] = count
+                template_vars[fld.name] = attr_value
+                logger.debug(
+                    "fld.name: %s, type: %s",
+                    fld.name,
+                    type(attr_value),
+                )
+            except Exception as e:
+                logger.error(
+                    "Error accessing field %s: %s",
+                    fld.name,
+                    e,
+                    exc_info=True,
+                )
+                # Set to None if we can't access it
+                template_vars[fld.name] = None
+
         # Create a wrapper function that handles the session
         # This ensures the session is created in the worker thread
         def render_with_session():
+            data = (
+                self._render_worker.data
+                if self._render_worker is not None
+                else {}
+            )
+            existing = data.get("record", None)
+
             # Use new_session instead of same_session to ensure we get a
             # fresh session in the worker thread
             with self.ctx.new_session(add_to_stack=False) as session:
-                record = (
-                    None
-                    if self.record_id is None
-                    else self.read_record(session)
-                )
-                if record is None:
-                    return self.t(
-                        "templ.render.no-record",
-                        "<p style='color: grey; font-style: italic;'>"
-                        "No record found"
-                        "</p>",
-                    )
-
-                # Build a dictionary of values to pass to the template.
-                # We need to access all relationship attributes within the
-                # session context to ensure they're loaded.
-                template_vars = {}
-                template_vars.update(self.model.var_bag.as_dict)
-
-                # Refresh the variable bag with the fields of the database
-                # record. Access all attributes within the session context.
-                # Ensure the record is bound to this session.
-                session.merge(record)
-                for fld in self.model.var_bag.fields:
-                    if fld.name == "record":
-                        template_vars[fld.name] = record
-                    elif isinstance(fld, CountField):
-                        continue
+                with session.no_autoflush:
+                    if existing is None:
+                        record = (
+                            None
+                            if self.record_id is None
+                            else self.read_record(session)
+                        )
+                        if record is None:
+                            return self.t(
+                                "templ.render.no-record",
+                                "<p style='color: grey; font-style: italic;'>"
+                                "No record found"
+                                "</p>",
+                            )
                     else:
-                        try:
-                            # Access the attribute within the session context
-                            # This will trigger lazy loading if needed
-                            attr_value = getattr(record, fld.name)
-                            # Convert relationships to lists to detach from
-                            # session
-                            if isinstance(
-                                attr_value, (InstrumentedList, InstrumentedSet)
-                            ):
-                                # Convert to list to ensure it's loaded and
-                                # detached from session. This will trigger
-                                # lazy loading if not already loaded.
-                                attr_value = list(attr_value)
-                                try:
-                                    count = count_relationship(
-                                        session, record, fld.name
-                                    )
-                                except Exception as e:
-                                    logger.error(
-                                        "Error counting relation %s in model "
-                                        "%s: %s",
-                                        fld.name,
-                                        record.__class__.__name__,
-                                        e,
-                                        exc_info=True,
-                                    )
-                                    count = 0
-                                count_name = f"{fld.name}_count"
-                                template_vars[count_name] = count
-                            template_vars[fld.name] = attr_value
-                            logger.debug(
-                                "fld.name: %s, type: %s",
-                                fld.name,
-                                type(attr_value),
-                            )
-                        except Exception as e:
-                            logger.error(
-                                "Error accessing field %s: %s",
-                                fld.name,
-                                e,
-                                exc_info=True,
-                            )
-                            # Set to None if we can't access it
-                            template_vars[fld.name] = None
+                        # make_transient_to_detached(existing)
+                        # session.add(existing)
+                        # record = existing
+                        record = session.merge(existing, load=True)
 
-                # Render the template with all variables loaded.
-                assert self._current_template is not None
-                return self._current_template.render(
-                    **template_vars,
-                    **self.extra_context,
-                    record=record,
-                    api_point=self.ctx.data,  # type: ignore
-                    list_route=self.get_list_route(),
-                    create_route=self.get_create_route(),
-                    edit_route=self.get_edit_route(),
-                    view_route=self.get_view_route(),
-                    delete_route=self.get_delete_route(),
-                    **kwargs,
-                )
+                    # Build a dictionary of values to pass to the template.
+                    # We need to access all relationship attributes within the
+                    # session context to ensure they're loaded.
+                    template_vars = {}
+                    template_vars.update(self.model.var_bag.as_dict)
+
+                    # Refresh the variable bag with the fields of the database
+                    # record. Access all attributes within the session context.
+                    # Ensure the record is bound to this session.
+                    for fld in self.model.var_bag.fields:
+                        if fld.name == "record":
+                            template_vars[fld.name] = record
+                        elif isinstance(fld, CountField):
+                            continue
+                        else:
+                            do_field(fld, template_vars, record, session)
+
+                    # Render the template with all variables loaded.
+                    assert self._current_template is not None
+                    return self._current_template.render(
+                        **template_vars,
+                        **self.extra_context,
+                        record=record,
+                        api_point=self.ctx.data,  # type: ignore
+                        list_route=self.get_list_route(),
+                        create_route=self.get_create_route(),
+                        edit_route=self.get_edit_route(),
+                        view_route=self.get_view_route(),
+                        delete_route=self.get_delete_route(),
+                        **kwargs,
+                    )
 
         return render_with_session()
 
@@ -1984,3 +2101,33 @@ class RecordTemplViewer(TemplViewer, Generic[DBM]):
             "implementation of this function in order to be able to delete "
             "records"
         )
+
+    def side_panel_visibility_changed(self, visible: bool):
+        if not visible:
+            return
+
+        if self.editor_ctor is not None and self.editor is None:
+            editor = self.editor_ctor(
+                ctx=self.ctx,
+                db_model=self.db_model,
+                record_id=self.record_id,
+                parent=self,
+            )
+            self.editor = editor
+            self.lay_side_panel.insertWidget(0, self.editor)
+            editor.destroyed.connect(self.on_editor_destroyed)
+            editor.controlChanged.connect(self.render_template_later)
+
+    def on_editor_destroyed(self):
+        w = self.c_splitter.widget(1)
+        if w is not None:
+            w.setVisible(False)
+            return
+        self.editor = None
+
+    def _adjust_render_thread(self):
+        """Adjust the render thread."""
+        if self.editor is not None and self._render_worker is not None:
+            self._render_worker.data["record"] = self.editor.db_record(
+                save=False
+            )

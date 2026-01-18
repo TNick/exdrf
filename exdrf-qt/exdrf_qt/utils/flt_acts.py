@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 def create_simple_filtering_actions(
     ctx: "HasTranslate", qt_model: "QtModel", parent: Optional[QObject] = None
-):
+) -> List["QAction"]:
     """Create the simple filtering actions for the given model.
 
     Args:

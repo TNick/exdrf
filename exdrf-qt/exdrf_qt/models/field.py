@@ -1,10 +1,12 @@
-from typing import TYPE_CHECKING, Any, Dict, Generic, List, TypeVar
+from typing import TYPE_CHECKING, Any, Dict, Generic, List, Optional, TypeVar
 
 from attrs import define, field
 from exdrf.api import ExField
 from exdrf.filter import FieldFilter
 from PyQt5.QtCore import QSize, Qt
 from PyQt5.QtGui import QBrush, QColor, QFont
+from sqlalchemy.sql.operators import or_, regexp_match_op
+from unidecode import unidecode
 
 from exdrf_qt.context_use import QtUseContext
 from exdrf_qt.models.fi_op import filter_op_registry
@@ -90,7 +92,12 @@ class QtField(ExField, QtUseContext, Generic[DBM]):
         """Compute the filtering by this field."""
         raise NotImplementedError()
 
-    def apply_filter(self, item: "FieldFilter", selector: "Selector") -> Any:
+    def apply_filter(
+        self,
+        item: "FieldFilter",
+        selector: "Selector",
+        no_dia: Optional[str] = None,
+    ) -> Any:
         """Compute the filtering by this field.
 
         The default implementation is suitable for fields that map to columns.
@@ -104,12 +111,40 @@ class QtField(ExField, QtUseContext, Generic[DBM]):
             The SQLAlchemy filtering expression for this field. If you want the
             result to be ignored, return None.
         """
+        from exdrf.constants import FIELD_TYPE_STRING
+
         column = getattr(self.resource.db_model, self.name)
 
-        return filter_op_registry[item.op].predicate(
-            column,
-            item.vl,
-        )
+        # SQLite doesn't support the flags parameter for regexp_match_op.
+        # Instead, we need to embed the flags inline in the pattern using
+        # Python's inline flag syntax: (?im) for case-insensitive and
+        # multi-line matching.
+        if (
+            selector.dialect == "sqlite"
+            and item.op == "regex"
+            and isinstance(item.vl, str)
+        ):
+            # Prepend inline flags to the pattern for SQLite.
+            pattern = f"(?im){item.vl}".replace("(?im)(?im)", "(?im)")
+            return regexp_match_op(column, pattern, flags=None)
+
+        if self.type_name == FIELD_TYPE_STRING and no_dia:
+            ua_column = getattr(self.resource.db_model, no_dia)
+            return or_(
+                filter_op_registry[item.op].predicate(
+                    column,
+                    item.vl,
+                ),
+                filter_op_registry[item.op].predicate(
+                    ua_column,
+                    unidecode(item.vl),
+                ),
+            )
+        else:
+            return filter_op_registry[item.op].predicate(
+                column,
+                item.vl,
+            )
 
     def blob_values(self, value: bytes) -> Dict[Qt.ItemDataRole, Any]:
         """Return the values for a blob field.

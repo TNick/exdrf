@@ -16,8 +16,10 @@ class StrField(ExField):
         min_length: The minimum length of the string.
         max_length: The maximum length of the string.
         enum_values: The list of predefined (named) values for the field. The
-        first element of the tuple is the value, the second element is the
-        display name.
+            first element of the tuple is the value, the second element is the
+            display name.
+        no_dia_field: The name of the field that is used to store the value
+            of this field without diacritics.
     """
 
     type_name: str = field(default=FIELD_TYPE_STRING)
@@ -26,6 +28,8 @@ class StrField(ExField):
     min_length: int = field(default=None)
     max_length: int = field(default=None)
     enum_values: List[Tuple[str, str]] = field(factory=list)
+
+    no_dia_field: Optional["ExField"] = field(default=None)
 
     def __repr__(self) -> str:
         return f"StrF(" f"{self.resource.name}.{self.name})"

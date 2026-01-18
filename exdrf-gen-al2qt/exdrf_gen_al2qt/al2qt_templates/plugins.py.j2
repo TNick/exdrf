@@ -5,6 +5,7 @@ import logging
 from typing import TYPE_CHECKING, Optional
 
 from exdrf_qt.plugins import hook_spec
+from exdrf.filter import SearchType
 
 # exdrf-keep-start other_imports ----------------------------------------------
 {{other_imports}}
@@ -51,7 +52,7 @@ class {{ mdl.pascal_case_name }}Hooks:
         self,
         model: "Qt{{ mdl.pascal_case_name }}FuMo",
         text: str,
-        exact: Optional[bool],
+        search_type: Optional[SearchType],
         limit: Optional[str],
         filters: "FilterType",
     ) -> None:

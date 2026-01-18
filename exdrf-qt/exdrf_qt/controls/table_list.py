@@ -276,9 +276,7 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
         self.create_actions(other_actions)
 
         # Use custom header
-        header: ListDbHeader = ListDbHeader(
-            parent=self, ctx=ctx, qt_model=self.qt_model
-        )
+        header = ListDbHeader(parent=self, ctx=ctx, qt_model=self.qt_model)
         self.setHeader(header)
 
     @property
@@ -662,6 +660,7 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
                             error=str(e),
                         ),
                     )
+                    logger.exception("Error in ListDb.on_filter: bad filter")
         except Exception as e:
             logger.exception("Error in ListDb.on_filter")
             self.ctx.show_error(

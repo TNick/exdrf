@@ -49,7 +49,10 @@ DBM_O = TypeVar("DBM_O", bound="DrfSelOneEditor")
 class ClickableLineEdit(QLineEdit):
     """A QLineEdit that emits a clicked signal when clicked.
 
-    It is used as the resting-phase control for DrfSelBase.
+    It is used as the resting-phase control (the one normally shown, when the
+    user is not interacting with the widget) for DrfSelBase.
+
+    We subclass it so that we can show the popup when the user clicks on it.
     """
 
     clicked = pyqtSignal()
@@ -57,10 +60,29 @@ class ClickableLineEdit(QLineEdit):
     def mousePressEvent(self, event: QMouseEvent) -> None:  # type: ignore
         """Handle mouse press events and emit clicked signal."""
         super().mousePressEvent(event)
-        self.clicked.emit()
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.clicked.emit()
 
 
 class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
+    """Common base class for single-selection and multi-selection widgets.
+
+    Attributes:
+        popup: The popup widget. When the widget is constructed, the popup is
+            not created. It is created when the user clicks on the line edit.
+            When the popup is created, it is set to the model passed to the
+            constructor.
+        line_edit: The control shown when the user is not interacting with
+            the widget.
+        _in_editing: Whether the widget is in editing mode.
+        _clear_action: The clear action that we show inside the line edit.
+        _dropdown_action: The dropdown action that we show inside the line edit.
+        _settings_action: The settings action that we show inside the line edit.
+        _editor_class: The editor class.
+        _qt_model: The model.
+        _add_kb: The add keyboard action.
+    """
+
     popup: "PopupWidget[DBM]"
     line_edit: ClickableLineEdit
     _in_editing: bool
@@ -84,7 +106,6 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
         logger.log(1, "DrfSelOneEditor.__init__")
         self._in_editing = True
         self._qt_model = qt_model
-        self._add_kb = add_kb
         self._clear_action = None
         self._dropdown_action = None  # type: ignore
         self._settings_action = None  # type: ignore
@@ -112,6 +133,7 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
         # Create and connect the popup widget for record selection.
         if not add_kb and self._editor_class is not None:
             add_kb = self.auto_create_new
+        self._add_kb = add_kb
         self.popup = None
 
         self.post_init()
@@ -125,7 +147,8 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
     def qt_model(self, value: "QtModel[DBM]") -> None:
         """Set the model."""
         self._qt_model = value
-        self.popup.qt_model = value
+        if self.popup is not None:
+            self.popup.qt_model = value
 
     def show_popup(self):
         """Show the popup."""
@@ -420,19 +443,26 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
 
     def auto_create_new(self, text: str) -> None:
         """Create a new record."""
+        # No need for the popup anymore.
+        if self.popup.isVisible():
+            self.popup.hide()
+
+        # This should only be called when there's an editor class set.
         if self._editor_class is None:
             logger.error("No editor class set")
             return
+
+        # Create the editor widget and prepare it for creating a new record.
         editor = self._editor_class(
             ctx=self.ctx,
             db_model=self.qt_model.db_model,
             parent=self,
+            parent_form=self.form,
         )
         editor.on_create_new()
-        if self.popup.isVisible():
-            self.popup.hide()
         self.ctx.create_window(editor, title=editor.windowTitle())
 
+        # React to the record being saved.
         def _on_record_saved(record: DBM) -> None:
             """The record has been saved."""
             self.on_record_saved(record)
@@ -441,65 +471,24 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
         editor.recordSaved.connect(_on_record_saved)
 
     def on_record_saved(self, record: DBM) -> None:
-        """The record has been saved."""
+        """The record has been saved in the external editor."""
         raise NotImplementedError("Subclasses must implement this method")
 
     @top_level_handler
     def on_show_settings(self):
         """Show the settings menu for the control."""
-        from exdrf_qt.utils.del_actions import (
-            apply_del_action,
-            create_del_actions,
-        )
-        from exdrf_qt.utils.flt_acts import (
-            apply_simple_filtering_action,
-            create_simple_filtering_actions,
-        )
-        from exdrf_qt.utils.stay_open_menu import StayOpenMenu
-
-        logger.log(1, "%s.show_settings()", self.__class__.__name__)
-
-        # Create a menu and add actions.
-        menu = StayOpenMenu(self)
-
-        # Get the model to configure.
-        qt_model = self.qt_model
-        if qt_model is None:
+        if self.qt_model is None:
             logger.error("No model set")
             return
 
-        # Show the tree actions that control the way deleted records are shown.
-        ac_group_del = None
-        if qt_model.has_soft_delete_field:
-            ac_group_del = create_del_actions(self.ctx, qt_model, parent=menu)
-            if ac_group_del is not None:
-                for action in ac_group_del.actions():
-                    menu.addAction(action)
-
-        # Show the simple search fields that are active.
-        if not menu.isEmpty():
-            menu.addSeparator()
-        spl_src_acts = create_simple_filtering_actions(
-            self.ctx, qt_model, parent=menu
+        from exdrf_qt.controls.search_lines.model_settings import (
+            ModelSearchSettings,
         )
-        for action in spl_src_acts:
-            menu.addAction(action)
 
-        # Show the menu with its right edge aligned with the right edge
-        # of the line edit.
-        if menu.isEmpty():
-            return
-        action_widget = self.line_edit
-        menu_pos = action_widget.mapToGlobal(action_widget.rect().bottomRight())
-        menu_size = menu.sizeHint()
-        menu_pos.setX(menu_pos.x() - menu_size.width())
-        menu.exec_(menu_pos)
-
-        # Handle simple filtering.
-        apply_simple_filtering_action(spl_src_acts, qt_model)
-
-        # Handle delete choice.
-        apply_del_action(ac_group_del, qt_model)
+        model_settings = ModelSearchSettings(self.qt_model, self)
+        model_settings.create_del_actions()
+        model_settings.create_simple_filtering_actions()
+        model_settings.run()
 
     def constraints_changed(self, concept_key: str, new_value: Any) -> None:
         """React to the constraints being changed.
@@ -533,12 +522,14 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
                         "Model is initialized and total count is 0, "
                         "nothing to check",
                     )
+                    self.set_to_null()
                     return
 
             # Compute the filter for this constraint.
             flt = self._qt_model.get_constraint_filter(concept_key, new_value)
             if not flt:
                 logger.debug("No filter found for concept %s", concept_key)
+                self.set_to_null()
                 return
 
             # Make sure that the filter is valid.
@@ -549,13 +540,22 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
                     concept_key,
                     validate_result,
                 )
+                self.set_to_null()
                 return
 
             # Create a selector that uses this filter...
-            selector = Selector.from_qt_model(self._qt_model)
+            selector = Selector[DBM].from_qt_model(
+                self._qt_model,
+                dialect=(
+                    self.ctx.engine.dialect.name
+                    if self.ctx.engine is not None
+                    else None
+                ),
+            )
             stm = selector.run(flt)
             if stm is None:
                 logger.error("No selection found for concept %s", concept_key)
+                self.set_to_null()
                 return
 
             # ...and see if the current ID is in the selection.
@@ -602,7 +602,9 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
         """
         prop_prov = self.property("provides")
         if prop_prov is not None:
-            return prop_prov.split(",")
+            result = [p.strip() for p in prop_prov.split(",") if p.strip()]
+            if result:
+                return result
         return default or []
 
     def get_depends_on(self, default: Optional[List[str]] = None) -> List[str]:
@@ -615,7 +617,8 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
                     continue
                 concept, target = part.strip().split(":", maxsplit=1)
                 result.append((concept.strip(), target.strip()))
-            return result
+            if result:
+                return result
         return default or []
 
     def integrate_concepts(self, provides: List[str], depends_on: List[str]):

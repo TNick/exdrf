@@ -22,12 +22,13 @@ from PyQt5.QtWidgets import (
 )
 
 from exdrf_qt.context_use import QtUseContext
-from exdrf_qt.controls.new_search_line import SearchLine
+from exdrf_qt.controls.search_lines.base import BasicSearchLine
 from exdrf_qt.controls.tree_list import TreeView
 from exdrf_qt.models import QtModel
 
 if TYPE_CHECKING:
     from exdrf_qt.context import QtContext  # noqa: F401
+    from exdrf_qt.controls.search_lines.base import SearchData
 
 logger = logging.getLogger(__name__)
 
@@ -48,10 +49,11 @@ class PopupWidget(QWidget, Generic[DBM], QtUseContext):
     """
 
     tree: "TreeView"
-    filter_edit: "SearchLine"
+    filter_edit: "BasicSearchLine"
     qt_model: "QtModel[DBM]"
     progress: QProgressBar
     progress_timer: Optional[QTimer]
+    add_kb: Optional[Callable[[str], None]]
 
     def __init__(
         self,
@@ -67,6 +69,7 @@ class PopupWidget(QWidget, Generic[DBM], QtUseContext):
         self.ctx = ctx
         self.progress_timer = None
         self.progress = None  # type: ignore
+        self.add_kb = add_kb
 
         if qt_model is not None and not isinstance(qt_model, QtModel):
             qt_model = qt_model(ctx=ctx, db_model=None)  # type: ignore
@@ -76,14 +79,14 @@ class PopupWidget(QWidget, Generic[DBM], QtUseContext):
         self.setWindowFlags(Qt.WindowType.Popup)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
 
-        self.filter_edit = SearchLine(
+        self.filter_edit = BasicSearchLine(
             parent=self,
             ctx=ctx,
-            add_button=add_kb is not None,
+            add_button=(
+                self.on_add_button_clicked if add_kb is not None else False
+            ),
         )
-        self.filter_edit.searchTermChanged.connect(qt_model.apply_simple_search)
-        if add_kb is not None:
-            self.filter_edit.addButtonClicked.connect(add_kb)
+        self.filter_edit.searchDataChanged.connect(self.on_search_data_changed)
 
         self.create_tree()
         self.create_progress()
@@ -98,6 +101,18 @@ class PopupWidget(QWidget, Generic[DBM], QtUseContext):
         self.qt_model.requestIssued.connect(self.request_items_start)
         self.qt_model.requestCompleted.connect(self.request_items_ok)
         self.qt_model.requestError.connect(self.request_items_error)
+
+    def on_search_data_changed(self, search_data: "SearchData"):
+        if self.qt_model is None:
+            raise ValueError("qt_model is not set")
+        self.qt_model.apply_simple_search(
+            search_data.term, search_data.search_type
+        )
+
+    def on_add_button_clicked(self):
+        if self.add_kb is None:
+            raise ValueError("add_kb is not set")
+        self.add_kb(self.filter_edit.search_data.term or "")
 
     def create_tree(self):
         """Create the tree-view that shows search results."""

@@ -47,6 +47,9 @@ class {{ FldPascal }}Field(Qt{{ fld_bc }}Field["{{ ResPascal }}"]):
         {%- endfor %}
     ))
     {%- endif %}
+    {%- if field.no_dia_field %}
+    no_dia_field: Optional[str] = field(default="{{ field.no_dia_field.name }}", repr=False)
+    {%- endif %}
 
     {%- for part_name, part_class, part_default in gfp(field, fld_attrs, fld_bc) %}
     {%- if part_default.startswith('[') %}
@@ -81,7 +84,7 @@ class {{ FldPascal }}Field(Qt{{ fld_bc }}Field["{{ ResPascal }}"]):
         """Compute the label for one of the components of the field."""
         return {{ field.ref.label_to_python() }}
 
-    def apply_filter(self, item: "FieldFilter", selector: "Selector") -> Any:
+    def apply_filter(self, item: "FieldFilter", selector: "Selector", no_dia: Optional[str] = None) -> Any:
         from {{ db_module }}.{{ field.ref.categories[0] }}.api import {{ field.ref.name }} as Db{{ field.ref.name }}
 
         predicate = filter_op_registry[item.op].predicate
@@ -94,11 +97,22 @@ class {{ FldPascal }}Field(Qt{{ fld_bc }}Field["{{ ResPascal }}"]):
         {%- endif -%}
         (
         {%- if len(field.ref.get_fields_for_ref_filtering()) == 1 %}
-            predicate(Db{{ field.ref.name }}.{{ field.ref.get_fields_for_ref_filtering()[0].name }}, item.vl),
+            {%- set other_f = field.ref.get_fields_for_ref_filtering()[0] %}
+            {%- if other_f.no_dia_field %}
+            or_(
+                predicate(Db{{ field.ref.name }}.{{ other_f.name }}, item.vl),
+                predicate(Db{{ field.ref.name }}.{{ other_f.no_dia_field.name }}, item.unidecoded),
+            )
+            {%- else %}
+            predicate(Db{{ field.ref.name }}.{{ other_f.name }}, item.vl),
+            {%- endif %}
         {%- else %}
             or_(
                 {%- for other_f in field.ref.get_fields_for_ref_filtering() %}
                 predicate(Db{{ field.ref.name }}.{{ other_f.name }}, item.vl),
+                {%- if other_f.no_dia_field %}
+                predicate(Db{{ field.ref.name }}.{{ other_f.no_dia_field.name }}, item.unidecoded),
+                {%- endif %}
                 {%- endfor %}
             )
         {%- endif %}

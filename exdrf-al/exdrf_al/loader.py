@@ -355,15 +355,17 @@ def dataset_from_sqlalchemy(
 
     # Detect derived fields. For now we only support diacritics-less fields.
     for res in d_set.resources:
+        field_map = {f.name: f for f in res.fields}
         for f_iter in res.fields:
-            if not f_iter.name.startswith("ua_"):
-                continue
-            f_base = f_iter.name[3:]
-            if f_base not in res:
-                continue
-            base_field = res[f_base]
-            if base_field.type_name != FIELD_TYPE_STRING:
-                continue
-            f_iter.derived = (f_base, NO_DIACRITICS)
+            if f_iter.name.startswith("ua_"):
+                f_base = f_iter.name[3:]
+                if f_base not in res:
+                    continue
+                base_field = res[f_base]
+                if base_field.type_name != FIELD_TYPE_STRING:
+                    continue
+                f_iter.derived = (f_base, NO_DIACRITICS)
+
+            res.post_process_field(f_iter, field_map)
 
     return d_set

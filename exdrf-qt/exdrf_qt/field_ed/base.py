@@ -301,19 +301,6 @@ class DrfFieldEd(QtUseContext):
         """React to the read_only property being changed."""
         self.setEnabled(not value)  # type: ignore
 
-    def starting_new_dependent(self, editor: "ExdrfEditorBase") -> None:
-        """React to the starting of a new editor for creating a new resource
-        that will be related to current resource.
-
-        Default implementation sets the parent form of the editor to the form
-        that this field editor is part of.
-
-        Args:
-            editor: The editor that is starting.
-        """
-        if self.form is not None:
-            editor.on_create_new_dependent(self.form)
-
     def create_ex_field(self) -> "ExField":
         """Create an ExField object for this field."""
         raise NotImplementedError(

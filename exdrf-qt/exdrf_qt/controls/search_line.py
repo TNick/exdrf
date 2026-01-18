@@ -6,6 +6,7 @@ from PyQt5.QtGui import QFocusEvent, QKeyEvent, QMouseEvent
 from PyQt5.QtWidgets import QAction, QLineEdit, QWidget
 
 from exdrf_qt.context_use import QtUseContext
+from exdrf_qt.utils.tlh import top_level_handler
 
 # QIcon was imported but not used directly, assuming get_icon handles it.
 # If QIcon is directly needed later, it can be re-added.
@@ -22,12 +23,15 @@ logger = logging.getLogger(__name__)
 class SearchLine(QLineEdit, QtUseContext, Generic[DBM]):
     """A text line that is used to search a model.
 
+    Currently this is used with full table lists.
+
     Attributes:
         initial_text: The initial text of the search line.
         _search_timer: The timer that is used to delay the search.
         _callback: The callback that is called when the search term changes.
         _exact_search_enabled: Whether exact search is enabled.
         ac_exact: The action that is used to toggle exact search.
+        _settings_action: The action that is used to show the settings menu.
         permanent: Whether the search line is permanent. This class simply
             provides storage for this property. The parent can use it to
             only show the search line when the mouse hovers over the header,
@@ -51,6 +55,7 @@ class SearchLine(QLineEdit, QtUseContext, Generic[DBM]):
     _search_timer: Optional[QTimer]
     _callback: Callable[[str, bool], None]
     _exact_search_enabled: bool
+    _settings_action: QAction
     ac_exact: QAction
     initial_text: str
     permanent: bool
@@ -68,12 +73,14 @@ class SearchLine(QLineEdit, QtUseContext, Generic[DBM]):
         self._search_timer = None
         self._callback = callback
         self._exact_search_enabled = False
+        self._settings_action = None  # type: ignore
 
         label = self.t("cmn.search.term", "Enter search term")
         self.setPlaceholderText(label)
         self.setToolTip(label)
         self.setWhatsThis(label)
         self.setClearButtonEnabled(True)
+
         self.textChanged.connect(self.on_search_term_changed)
 
         # Exact search action
@@ -90,14 +97,27 @@ class SearchLine(QLineEdit, QtUseContext, Generic[DBM]):
                 self.get_icon("token_match_character_literally")
             )
             self.ac_exact.setToolTip(
-                self.t("cmn.search.exact_on", "Exact match is ON")
+                self.t(
+                    "cmn.search.exact_on",
+                    "<p><b>Exact match is ON.</b></p>"
+                    "<p>The text that you enter will be searched in the<br />"
+                    "database exactly as entered.</p>"
+                    "<p>You can include the <b>%</b> wildcard character<br />"
+                    "to match any number of characters.</p>",
+                )
             )
         else:
             self.ac_exact.setIcon(self.get_icon("asterisk_orange"))
             self.ac_exact.setToolTip(
                 self.t(
                     "cmn.search.exact_off",
-                    "Exact match is OFF (wildcards enabled)",
+                    "<p><b>Exact match is OFF.</b></p>"
+                    "<p>Any space in the text will be replaced with a % <br />"
+                    "wildcard character.</p>"
+                    "<p>Any <b>*</b> in the text will be replaced with <br />"
+                    "a % wildcard character.</p>"
+                    "<p>If you entered no * or % wildcards, the text <br />"
+                    "will be surrounded by % wildcards.</p>",
                 )
             )
 
@@ -109,6 +129,7 @@ class SearchLine(QLineEdit, QtUseContext, Generic[DBM]):
         # exists).
         self.on_search_term_changed(self.text())
 
+    @top_level_handler
     def on_search_term_changed(self, term: str) -> None:
         """Set the search term in the line edit for live timed updates.
 

@@ -40,7 +40,7 @@ from exdrf_qt.models.field import (
 )
 
 if TYPE_CHECKING:
-    from exdrf.api import FieldFilter
+    from exdrf.filter import FieldFilter
 
     from exdrf_qt.models.selector import Selector
 
@@ -376,6 +376,8 @@ class RefFilterByPart:
         self, item: "FieldFilter", selector: "Selector", path: List[str]
     ) -> Any:
         """Apply a sub-filter to this field."""
+        from sqlalchemy.sql.operators import regexp_match_op
+
         from exdrf_qt.models.fi_op import filter_op_registry
 
         if len(path) == 0:
@@ -383,7 +385,6 @@ class RefFilterByPart:
         if len(path) > 1:
             raise ValueError("Path is too long, only one part is supported")
 
-        predicate = filter_op_registry[item.op].predicate
         related_entity = getattr(
             self.resource.db_model, self.name  # type: ignore[attr-defined]
         )
@@ -393,9 +394,25 @@ class RefFilterByPart:
             .mapper.class_
         )
 
-        subq = related_entity.has(
-            predicate(getattr(other_model, path[0]), item.vl),
-        )
+        column = getattr(other_model, path[0])
+
+        # SQLite doesn't support the flags parameter for regexp_match_op.
+        # Instead, we need to embed the flags inline in the pattern using
+        # Python's inline flag syntax: (?im) for case-insensitive and
+        # multi-line matching.
+        if (
+            selector.dialect == "sqlite"
+            and item.op == "regex"
+            and isinstance(item.vl, str)
+        ):
+            # Prepend inline flags to the pattern for SQLite.
+            pattern = f"(?im){item.vl}".replace("(?im)(?im)", "(?im)")
+            predicate_result = regexp_match_op(column, pattern, flags=None)
+        else:
+            predicate = filter_op_registry[item.op].predicate
+            predicate_result = predicate(column, item.vl)
+
+        subq = related_entity.has(predicate_result)
         return subq
 
 

@@ -31,6 +31,7 @@ if TYPE_CHECKING:
     from exdrf.dataset import ExDataset
     from exdrf.field import ExField
     from exdrf.field_types.ref_base import RefBaseField
+    from exdrf.field_types.str_field import StrField
     from exdrf.label_dsl import ASTNode
     from exdrf.visitor import ExVisitor
 
@@ -71,6 +72,9 @@ class ExResource:
         self.fields = []
         for fld in out:
             self.add_field(fld)
+        field_map = {f.name: f for f in out}
+        for fld in out:
+            self.post_process_field(fld, field_map)
 
     def __str__(self) -> str:
         return self.__repr__()
@@ -197,6 +201,7 @@ class ExResource:
         Args:
             field: The field to add.
         """
+
         assert fld.name, "Field name must be set"
         assert fld.type_name, f"Field type must be set in {fld.name}"
 
@@ -205,6 +210,43 @@ class ExResource:
 
         if not fld.category:
             fld.category = self.get_default_field_category(fld)
+
+    def post_process_field(
+        self, fld: "ExField", field_map: Dict[str, "ExField"]
+    ) -> None:
+        """Tie fields together.
+
+        Args:
+            fld: The field to post-process.
+            field_map: A dictionary that maps field names to fields.
+        """
+        from exdrf.constants import FIELD_TYPE_STRING
+        from exdrf.field import NO_DIACRITICS
+
+        if fld.derived:
+            other_name, kind = fld.derived
+            if kind == NO_DIACRITICS:
+                if fld.type_name != FIELD_TYPE_STRING:
+                    raise ValueError("Only string types supports NO_DIACRITICS")
+            else:
+                return
+
+            other = field_map.get(other_name, None)
+            if other is None:
+                raise ValueError(
+                    f"The field {fld.name} depends on the field "
+                    f"{other_name}, which was not found in the current "
+                    "resource."
+                )
+
+            if other.type_name != FIELD_TYPE_STRING:
+                raise ValueError(
+                    "Only string types supports NO_DIACRITICS. "
+                    f"The target field {other_name} is a {other.type_name}"
+                )
+
+            other_str = cast("StrField", other)
+            other_str.no_dia_field = fld
 
     def get_default_field_category(self, fld: "ExField") -> str:
         """Get the default category for a field.
@@ -579,6 +621,19 @@ class ExResource:
     def label_to_typescript(self) -> str:
         """Convert a label to typescript code."""
         return generate_typescript_code(self.label_ast)
+
+    def get_no_dia_map(self) -> Dict[str, str]:
+        """Get a dictionary that maps field names to fields that are used to
+        compute the value of the field without diacritics.
+        """
+        result = {}
+        for fld in self.fields:
+            if (
+                hasattr(fld, "no_dia_field")
+                and fld.no_dia_field is not None  # type: ignore
+            ):
+                result[fld.name] = fld.no_dia_field.name  # type: ignore
+        return result
 
 
 class ResExtraInfo(BaseModel):

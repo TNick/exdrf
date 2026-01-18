@@ -47,6 +47,9 @@ class Qt{{ ResPascal }}Tv(RecordTemplViewer):
 
     def __init__(self, ctx: "QtContext", **kwargs):
         from {{ db_module }}.{{ r.categories[0] }}.api import {{ r.name }} as Db{{ r.name }}
+        from {{ out_module }}.{{ r.categories[0] }}.{{ r.snake_case_name_plural }}.widgets.{{ res_snake }}_editor import (
+            Qt{{ ResPascal }}Editor,
+        )
 
         super().__init__(
             db_model=kwargs.pop("db_model", ctx.get_ovr(
@@ -69,6 +72,10 @@ class Qt{{ ResPascal }}Tv(RecordTemplViewer):
                 None
             )),
             ctx=ctx,
+            editor_ctor=ctx.get_ovr(
+                "{{ out_module }}.{{ r.categories[0] }}.{{ res_p_snake }}.tv.editor_class",
+                Qt{{ ResPascal }}Editor
+            ),
             **kwargs
         )
         if not self.windowTitle():

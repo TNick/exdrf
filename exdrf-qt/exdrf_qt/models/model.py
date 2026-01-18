@@ -17,10 +17,16 @@ from typing import (
     cast,
 )
 
-import sqlparse
 from attrs import define, field
 from exdrf.constants import RecIdType
-from exdrf.filter import FieldFilter, FilterType, validate_filter
+from exdrf.filter import (
+    FieldFilter,
+    FilterType,
+    SearchType,
+    create_multi_field_or_filter,
+    extract_field_filters,
+    validate_filter,
+)
 from exdrf_al.utils import DelChoice
 from PyQt5.QtCore import QAbstractItemModel, QModelIndex, Qt, QTimer, pyqtSignal
 from sqlalchemy import case, func, select, tuple_
@@ -188,6 +194,12 @@ class QtModel(
             default is ACTIVE. This option changes the filter applied to the
             model by the Selector but only if the get_soft_delete_field()
             returns a valid field.
+        _no_dia_map: A dictionary that maps field names to fields that are
+            storing the value of the field without diacritics. This only
+            applies to string fields and is used whenever we need to create
+            filters. If the name of a local column is found in this
+            dictionary an OR filter is created with the original value and the
+            value without diacritics.
     Signals:
         totalCountChanged: Emitted when a change iin the total count is
             detected by the recalculate_total_count method.
@@ -222,6 +234,7 @@ class QtModel(
     _soft_delete_field_name: Union[str, None]
     _del_choice: DelChoice
     _save_settings: bool
+    _no_dia_map: Dict[str, str]
 
     totalCountChanged = pyqtSignal(int)
     checkedChanged = pyqtSignal()
@@ -244,6 +257,7 @@ class QtModel(
         del_choice: DelChoice = DelChoice.ACTIVE,
         load_settings: bool = True,
         save_settings: bool = True,
+        no_dia_map: Optional[Dict[str, str]] = None,
     ):
         """Initialize the model.
 
@@ -273,6 +287,9 @@ class QtModel(
             save_settings: If True, when some of the setting (like what field
                 to search when simple searching) are changed, the new settings
                 are saved to the context.
+            no_dia_map: A dictionary that maps field names to fields that are
+                storing the value of the field without diacritics. This only
+                applies to string fields.
         """
         # super().__init__(parent=parent)
         QAbstractItemModel.__init__(self, parent=parent)
@@ -282,6 +299,7 @@ class QtModel(
 
         self.ctx = ctx
         self.top_cache = []
+        self._no_dia_map = no_dia_map or {}
         self._wait_before_request = wait_before_request
         self._db_to_row = {}
         self._soft_delete_field_name = soft_delete_field_name
@@ -463,7 +481,14 @@ class QtModel(
         try:
             return (
                 Selector[DBM]
-                .from_qt_model(self)  # type: ignore
+                .from_qt_model(
+                    self,
+                    dialect=(
+                        self.ctx.engine.dialect.name
+                        if self.ctx.engine is not None
+                        else None
+                    ),
+                )  # type: ignore
                 .run(self._filters)
             )
         except Exception:
@@ -1083,6 +1108,8 @@ class QtModel(
             try:
                 yield session.scalar(selector)
             except SQLAlchemyError as e:
+                import sqlparse
+
                 logger.error(
                     "M: %s SqlAlchemy error '%s' getting item by ID '%s' "
                     "with statement:\n%s",
@@ -1521,7 +1548,7 @@ class QtModel(
     def text_to_filter(
         self,
         text: str,
-        exact: Optional[bool] = False,
+        search_type: Optional[SearchType] = SearchType.EXTENDED,
         limit: Optional[str] = None,
     ) -> FilterType:
         """Convert a text to a filter.
@@ -1531,19 +1558,14 @@ class QtModel(
 
         Args:
             text: The text to convert to a filter.
-            exact: If True, the text will not be modified. If false,
-                if the text includes at least a '*', all occurrences of '*'
-                will be replaced by '%'. If the text includes no '%'
-                then the text is surrounded by '%' characters. Spaces are
-                always replaced by '%' characters if exact is False.
-            limit: If False the computed filter is applied to all searchable
-                fields. If True the computed filter is applied to the given
-                field.
+            search_type: The type of search to perform.
+            limit: If provided, the search will be limited to the given field
+                name. If None, all simple_search_fields will be used.
 
         Returns:
             The filter.
         """
-        if len(text) == 0:
+        if not text or len(text.strip()) == 0:
             return []
 
         # We allow for ID:NNN,NNN,NNN format to filter by primary key.
@@ -1558,60 +1580,63 @@ class QtModel(
                 pk_fields = self.primary_key_fields
                 if len(pk_fields) == len(id_parts):
                     filters = [
-                        {
-                            "fld": f.name,
-                            "op": "==",
-                            "vl": id_parts[i],
-                        }
+                        FieldFilter(fld=f.name, op="==", vl=id_parts[i])
                         for i, f in enumerate(pk_fields)
                     ]
                     if len(filters) > 1:
-                        return [
-                            "AND",  # type: ignore
-                            filters,
-                        ]
-                    return filters  # type: ignore
+                        return ["and", filters]  # type: ignore
+                    return [filters[0]] if filters else []  # type: ignore
             except ValueError:
                 pass
 
-        if not exact:
-            text = text.replace(" ", "%")
-            if "*" not in text:
-                if "%" not in text:
-                    text = f"%{text}%"
-            else:
-                text = text.replace("*", "%")
-
-        ua_text = unidecode(text)
-
-        filters = [  # type: ignore
-            {  # type: ignore
-                "fld": f.name,  # type: ignore
-                "op": "ilike",  # type: ignore
-                "vl": text,  # type: ignore
-            }  # type: ignore
-            for f in self.simple_search_fields  # type: ignore
+        # Determine which fields to search
+        fields_to_search = [
+            f.name
+            for f in self.simple_search_fields
             if limit is None or f.name == limit
-        ]  # type: ignore
-        if ua_text != text:
-            filters = filters + [
-                {  # type: ignore
-                    "fld": f.name,  # type: ignore
-                    "op": "ilike",  # type: ignore
-                    "vl": ua_text,  # type: ignore
-                }  # type: ignore
-                for f in self.simple_search_fields  # type: ignore
-                if limit is None or f.name == limit
-            ]
-        return [  # type: ignore
-            "OR",  # type: ignore
-            filters,  # type: ignore
-        ]  # type: ignore
+        ]
+
+        if not fields_to_search:
+            return []
+
+        # Use SearchType to prepare the input (handles EXTENDED mode
+        # transformations)
+        if search_type is None:
+            search_type = SearchType.SIMPLE
+
+        # Prepare the text using SearchType
+        prepared_text = search_type.prepare_input(text)
+
+        # Create filters for the original text
+        filters = create_multi_field_or_filter(
+            fields_to_search, prepared_text, search_type
+        )
+
+        # Handle unidecode variants for text-based searches
+        ua_text = unidecode(prepared_text)
+        if ua_text != prepared_text:
+            # Create filters for uni-decoded text
+            ua_filters = create_multi_field_or_filter(
+                fields_to_search, ua_text, search_type
+            )
+
+            # Combine both sets of filters with OR
+            all_field_filters = extract_field_filters(filters)
+            all_field_filters.extend(extract_field_filters(ua_filters))
+
+            if len(all_field_filters) == 0:
+                return []
+            elif len(all_field_filters) == 1:
+                return [all_field_filters[0]]  # type: ignore
+            else:
+                return ["OR", all_field_filters]  # type: ignore
+
+        return filters
 
     def apply_simple_search(
         self,
         text: str,
-        exact: Optional[bool] = False,
+        search_type: "SearchType" = SearchType.SIMPLE,
         limit: Optional[str] = None,
     ) -> None:
         """Apply a simple search to the model.
@@ -1619,20 +1644,29 @@ class QtModel(
         The search is applied to the fields in the `simple_search_fields`
         property.
 
-        If exact is false you can use the `*` or `%` character to match any
-        number of characters. If neither is present, the text will be
-        surrounded by `%` characters. Spaces are always replaced by `%`
-        characters.
-
-        If exact is true, the text is searched for as is, without any
-        changes. In this case only `%` is allowed.
+        Search types:
+            - EXACT: Exact search. The = operator is used, so the value must
+                match exactly, including case.
+            - SIMPLE: Partial search. The ilike operator is used, and the
+                input is not altered in any way. The user can use the %
+                wildcard to match any number of characters.
+            - EXTENDED: Extended search. The input is altered in the
+                following ways:
+                - All spaces are replaced with %
+                - All * are replaced with %
+                - If the input contains no wildcards (%, *), then % is added
+                to the beginning and end of the input.
+            - PATTERN: Pattern search. The input is considered to be a
+                regular expression pattern. It is not altered in any way.
+                Will be applied using the i (case-insensitive) and m (
+                multi-line, ^ and $ apply to each line) flags.
 
         Args:
             text: The text to search for.
             exact: If True, the search will be exact.
             limit: If present, the search will be limited to the given field.
         """
-        filters = self.text_to_filter(text, exact, limit)
+        filters = self.text_to_filter(text, search_type, limit)
         self.apply_filter(filters)  # type: ignore
 
     def checked_rows(self) -> Optional[List[RecIdType]]:

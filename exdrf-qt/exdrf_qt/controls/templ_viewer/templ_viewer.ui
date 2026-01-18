@@ -13,7 +13,7 @@
   <property name="windowTitle">
    <string>Template with data</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout_4">
+  <layout class="QVBoxLayout" name="lay_main">
    <item>
     <widget class="QSplitter" name="c_splitter">
      <property name="frameShape">
@@ -39,7 +39,7 @@
        <number>1</number>
       </property>
       <widget class="QWidget" name="page_viewer">
-       <layout class="QVBoxLayout" name="verticalLayout_3">
+       <layout class="QVBoxLayout" name="lay_page_viewer">
         <property name="spacing">
          <number>0</number>
         </property>
@@ -56,12 +56,12 @@
          <number>0</number>
         </property>
         <item>
-         <widget class="WebView" name="c_viewer"/>
+         <widget class="WebView" name="c_viewer" native="true"/>
         </item>
        </layout>
       </widget>
       <widget class="QWidget" name="page_editor">
-       <layout class="QVBoxLayout" name="verticalLayout_2">
+       <layout class="QVBoxLayout" name="lay_page_editor">
         <property name="spacing">
          <number>0</number>
         </property>
@@ -84,12 +84,12 @@
       </widget>
      </widget>
      <widget class="QWidget" name="layoutWidget">
-      <layout class="QVBoxLayout" name="verticalLayout">
+      <layout class="QVBoxLayout" name="lay_side_panel">
        <item>
         <widget class="QTreeView" name="c_vars"/>
        </item>
        <item>
-        <layout class="QHBoxLayout" name="horizontalLayout">
+        <layout class="QHBoxLayout" name="lay_template_source">
          <item>
           <widget class="QLabel" name="c_var_label">
            <property name="text">

@@ -28,7 +28,7 @@ DBM = TypeVar("DBM")
 logger = logging.getLogger(__name__)
 
 
-@define
+@define(kw_only=True, slots=True)
 class Selector(Generic[DBM]):
     """A select constructor.
 
@@ -42,14 +42,19 @@ class Selector(Generic[DBM]):
         depth: The depth of logic (each and, or, not operator increases
             the depth).
         qt_model: The Qt model that requested this selection.
+        dialect: The SQLAlchemy dialect to use for the selection.
+            This should be the engine.dialect.name value or None if the engine
+            is not set.
     """
 
-    db_model: Type[DBM]
-    base: "Select"
-    joins: List[Any] = field(factory=list)
-    depth: int = field(default=0)
-    fields: Dict[str, "QtField[DBM]"] = field(factory=dict)
-    qt_model: Optional["QtModel"] = field(default=None)
+    db_model: Type[DBM] = field(repr=False)
+    base: "Select" = field(repr=False)
+    joins: List[Any] = field(factory=list, repr=False)
+    depth: int = field(default=0, repr=False)
+    fields: Dict[str, "QtField[DBM]"] = field(factory=dict, repr=False)
+    qt_model: Optional["QtModel"] = field(default=None, repr=False)
+    dialect: Optional[str] = field(default=None)
+    no_dia_map: Dict[str, str] = field(factory=dict, repr=False)
 
     def _single_def(self, definition: Any) -> Optional[ColumnElement]:
         """Process a single filter definition.
@@ -163,7 +168,11 @@ class Selector(Generic[DBM]):
             field = self.fields[f_item.fld]
 
             # Let the field apply the filter.
-            return field.apply_filter(item=f_item, selector=self)
+            return field.apply_filter(
+                item=f_item,
+                selector=self,
+                no_dia=self.no_dia_map.get(f_item.fld),
+            )
         else:
             field = self.fields[parts[0]]
             return field.apply_sub_filter(
@@ -261,7 +270,9 @@ class Selector(Generic[DBM]):
         Args:
             filters: The filters to apply. Can be empty, a list of field filters
                 (dict or FieldFilter instances), or complex logical operations.
-
+            no_dia_map: A dictionary that maps field names to fields that are
+                storing the value of the field without diacritics. This only
+                applies to string fields.
         Returns:
             The SQLAlchemy select statement with joins and filters applied.
             Returns the base selection if no filters are provided.
@@ -318,7 +329,9 @@ class Selector(Generic[DBM]):
         return base.where(*components)
 
     @classmethod
-    def from_qt_model(cls, qt_model: "QtModel[DBM]") -> "Selector":
+    def from_qt_model(
+        cls, qt_model: "QtModel[DBM]", **kwargs: Any
+    ) -> "Selector":
         """Create a selector from a Qt model.
 
         Args:
@@ -333,4 +346,6 @@ class Selector(Generic[DBM]):
             base=qt_model.base_selection,
             fields={f.name: f for f in qt_model.fields},
             qt_model=qt_model,
+            no_dia_map=qt_model._no_dia_map,
+            **kwargs,
         )

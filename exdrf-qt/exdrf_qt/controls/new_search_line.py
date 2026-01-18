@@ -15,6 +15,8 @@ logger = logging.getLogger(__name__)
 class SearchLine(QLineEdit, QtUseContext):
     """A text line that is used to search a model.
 
+    Currently this is used with single and multi selectors.
+
     Do not connect to the `textChanged` signal. Use the `searchTermChanged`
     signal instead as it debounces the search term changes.
 

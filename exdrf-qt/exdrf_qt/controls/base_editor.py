@@ -39,6 +39,8 @@ if TYPE_CHECKING:
 DBM = TypeVar("DBM")
 logger = logging.getLogger(__name__)
 
+PRP_PROTECT_FROM_NEW = "protectFromNew"
+
 
 class ExdrfEditorBase(QWidget, QtUseContext):
     """A widget that allows the user to edit a set of fields.
@@ -396,13 +398,19 @@ class ExdrfEditor(ExdrfEditorBase, Generic[DBM]):
         selection: Optional["Select"] = None,
         record_id: Union[RecIdType, None] = None,
         parent: Optional["QWidget"] = None,
+        parent_form: Optional["ExdrfEditor"] = None,
     ):
         logger.debug(
             "Creating an ExdrfEditor for %s(id=%s)",
             db_model.__name__,
             record_id,
         )
-        super().__init__(parent=parent, ctx=ctx)
+        super().__init__(
+            parent=parent,
+            ctx=ctx,
+            constraints=parent_form.constraints if parent_form else None,
+        )
+        self.parent_form = parent_form
         self.db_model = db_model
         self.selection = (
             selection if selection is not None else select(db_model)
@@ -613,6 +621,9 @@ class ExdrfEditor(ExdrfEditorBase, Generic[DBM]):
         for ed_fld in self.edit_fields:
             if ed_fld.name in ignore_s:
                 continue
+            if record is None:
+                if ed_fld.property(PRP_PROTECT_FROM_NEW):  # type: ignore
+                    continue
             ed_fld.load_value_from(record)
 
     def populate(self, record: Union[DBM, None]):
@@ -730,14 +741,6 @@ class ExdrfEditor(ExdrfEditorBase, Generic[DBM]):
             return
         self.is_editing = True
         self._clear_editor()
-
-    @top_level_handler
-    def on_create_new_dependent(self, parent_form: "ExdrfEditor"):
-        """Prepare the editor to create a new record that will be attached
-        to another record.
-        """
-        self.parent_form = parent_form
-        self.on_create_new()
 
     def create_button_box(self) -> QDialogButtonBox:
         """Create a button box for the editor."""

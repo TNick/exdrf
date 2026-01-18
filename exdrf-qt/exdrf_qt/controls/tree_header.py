@@ -3,8 +3,8 @@ from contextlib import contextmanager
 from typing import TYPE_CHECKING, Generic, Optional, Set, TypeVar, Union, cast
 
 from exdrf.filter import FieldFilter, FilterVisitor, insert_quick_search
-from PyQt5.QtCore import QRect, Qt
-from PyQt5.QtGui import QCursor, QPainter, QPen
+from PyQt5.QtCore import QPoint, QRect, Qt
+from PyQt5.QtGui import QPainter, QPen
 from PyQt5.QtWidgets import (
     QAction,
     QDialog,
@@ -17,7 +17,10 @@ from PyQt5.QtWidgets import (
 
 from exdrf_qt.context_use import QtUseContext
 from exdrf_qt.controls.column_sel.column_sel import ColumnSelDlg
-from exdrf_qt.controls.search_line import SearchLine
+from exdrf_qt.controls.search_lines.base import (
+    BasicSearchLine,
+    SearchData,
+)
 from exdrf_qt.models import QtModel
 
 if TYPE_CHECKING:
@@ -44,7 +47,7 @@ class ListDbHeader(QHeaderView, QtUseContext, Generic[DBM]):
     """
 
     ctx: "QtContext"
-    search_line: Optional[SearchLine[DBM]]
+    search_line: Optional[BasicSearchLine]
     search_section: Optional[int]
     filtered_sections: Set[int]
     save_settings: bool
@@ -97,7 +100,7 @@ class ListDbHeader(QHeaderView, QtUseContext, Generic[DBM]):
             self._no_stg_write = False
 
     def on_geometries_changed(self):
-        logger.debug("geometriesChanged")
+        logger.log(1, "geometriesChanged")
         self.setFirstSectionMovable(True)
 
     def on_section_moved(
@@ -254,7 +257,22 @@ class ListDbHeader(QHeaderView, QtUseContext, Generic[DBM]):
 
         if menu.isEmpty():
             return
-        menu.exec_(QCursor.pos())
+
+        # Get the visual rect of the section under the cursor
+        x = self.sectionPosition(section)
+        w = self.sectionSize(section)
+        menu_size = menu.sizeHint()
+
+        # Calculate the center of the section
+        section_center_x = x + w / 2
+        section_bottom_y = self.height()
+        section_center_local = QPoint(int(section_center_x), section_bottom_y)
+        section_center_global = self.mapToGlobal(section_center_local)
+
+        # Align the menu such that its center matches the section's center
+        menu_pos = section_center_global
+        menu_pos.setX(int(section_center_global.x() - menu_size.width() / 2))
+        menu.exec_(menu_pos)
 
     def on_choose_columns(self):
         """Show the dialog for choosing which columns to show."""
@@ -272,13 +290,18 @@ class ListDbHeader(QHeaderView, QtUseContext, Generic[DBM]):
 
         class Visitor(FilterVisitor):
             def visit_field(self, filter: FieldFilter):
-                if filter.fld == current_filter_fld and filter.op == "ilike":
+                if filter.fld == current_filter_fld and filter.op in (
+                    "ilike",
+                    "regex",
+                    "eq",
+                    "==",
+                ):
                     value = filter.vl
                     if isinstance(value, str):
                         if value.startswith("%") and value.endswith("%"):
                             value = value[1:-1]
                         assert search_line is not None
-                        search_line.setText(value)
+                        search_line.change_search_term(value, emit=False)
                         filtered_sections.add(section)
 
         Visitor(current_filter).run(current_filter)
@@ -311,18 +334,18 @@ class ListDbHeader(QHeaderView, QtUseContext, Generic[DBM]):
         self.search_section = section
 
         # Create the search line.
-        self.search_line = SearchLine(
+        self.search_line = BasicSearchLine(
             ctx=self.ctx,
-            callback=lambda text, exact: self.apply_filter(
-                section, text, exact
-            ),
             parent=parent,
+            delay=1000,
         )
         assert self.search_line is not None
         self.search_line.setFixedWidth(self.sectionSize(section))
         self.search_line.setFixedHeight(self.height() + 1)
         self.search_line.raise_()
-
+        self.search_line.searchDataChanged.connect(
+            lambda search_data: self.apply_filter(section, search_data)
+        )
         self.prepare_search_line(section)
 
         # Place just above the header
@@ -347,58 +370,52 @@ class ListDbHeader(QHeaderView, QtUseContext, Generic[DBM]):
         )
 
         # Connect the signals.
-        self.search_line.hide_and_apply_search.connect(
-            lambda text, exact: self.hide_search_line_and_apply(
-                section, text, exact
-            )
+        self.search_line.returnPressed.connect(
+            lambda: self.hide_search_line_and_apply(section)
         )
-        self.search_line.hide_and_cancel_search.connect(
-            lambda: self.hide_search_line()
-        )
+        self.search_line.escapePressed.connect(lambda: self.hide_search_line())
 
         # Show the search line and set focus. Sometimes the search line is
         # hidden for some reason after the show() cal (BUG?).
         self.search_line.show()
         if self.search_line is not None:
             self.search_line.setFocus()
-        self.search_line.permanent = True
 
     def hide_search_line(self):
         """Hide the search line if we have one."""
         if self.search_line is not None:
             try:
+                self.search_line.stop_timer()
                 self.search_line.hide()
                 self.search_line.deleteLater()
                 self.search_line = None
             except Exception:
                 pass
 
-    def hide_and_cancel_search(self):
-        """Hide the search line and cancel the search."""
-        self.hide_search_line()
-
-    def hide_search_line_and_apply(self, section: int, text: str, exact: bool):
+    def hide_search_line_and_apply(self, section: int):
         """Hide the search line and apply the filter.
 
         Args:
             section: The 0-based index of the section to apply the filter to.
-            text: The text to filter the data by.
-            exact: Whether the filter should be an exact match.
+            data: The search data to apply the filter to.
         """
-        self.apply_filter(section, text, exact)
+        if self.search_line is None:
+            return
+        data = self.search_line.search_data
         self.hide_search_line()
+        self.apply_filter(section, data)
 
-    def _apply_filter(self, section: int, text: str, exact: bool):
+    def _apply_filter(self, section: int, data: "SearchData"):
         self.qt_model.apply_filter(
             insert_quick_search(
                 self.qt_model.column_fields[section].name,
-                text,
+                data.term,
                 self.qt_model.filters,
-                exact,
+                search_type=data.search_type,
             )
         )  # type: ignore
 
-    def apply_filter(self, section: int, text: str, exact: bool):
+    def apply_filter(self, section: int, data: "SearchData"):
         """Apply a filter to the data.
 
         Args:
@@ -406,18 +423,20 @@ class ListDbHeader(QHeaderView, QtUseContext, Generic[DBM]):
             text: The text to filter the data by.
             exact: Whether the filter should be an exact match.
         """
-        text = text.strip()
+        text = data.term.strip()
         if text:
             self.filtered_sections.add(section)
         else:
             self.filtered_sections.discard(section)
 
-        assert self.search_line is not None
-        if text == self.search_line.initial_text:
-            return
-
         try:
-            self._apply_filter(section, text, exact)
+            self._apply_filter(
+                section,
+                SearchData(
+                    term=text,
+                    search_type=data.search_type,
+                ),
+            )
         except Exception as e:
             self.ctx.show_error(
                 title=self.t("cmn.error", "Error"),
@@ -427,7 +446,7 @@ class ListDbHeader(QHeaderView, QtUseContext, Generic[DBM]):
                     error=str(e),
                 ),
             )
-        self.search_line.initial_text = text
+            logger.exception("Error in ListDbHeader.apply_filter: bad filter")
 
     def paintSection(
         self,

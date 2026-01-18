@@ -42,14 +42,31 @@ class Constraints:
 
     def register_provider(self, concept: str, provider: "DrfFieldEd") -> None:
         """Register a provider for a concept."""
+        from exdrf_qt.controls.base_editor import PRP_PROTECT_FROM_NEW
+
         found = self.get_concept(concept)
 
         found.providers.append(provider)
         provider.controlChanged.connect(  # type: ignore
             partial(self.ping_subscribers, found.uniq, provider)
         )
+        provider.destroyed.connect(  # type: ignore
+            partial(self.unregister_provider, found.uniq, provider)
+        )
         if len(found.providers) == 1:
             self.ping_subscribers(found.uniq, provider)
+        else:
+            # There are already some providers for this concept, so set the
+            # value of the new provider to the value of the first provider.
+            provider.change_field_value(found.providers[0].field_value)
+            provider.setProperty(PRP_PROTECT_FROM_NEW, True)  # type: ignore
+
+    def unregister_provider(self, concept: str, provider: "DrfFieldEd") -> None:
+        """Unregister a provider for a concept."""
+        found = self.get_concept(concept)
+        found.providers.remove(provider)
+        if not found.providers and not found.subscribers:
+            del self.concepts[concept]
 
     def register_subscriber(
         self, concept: str, subscriber: "DrfFieldEd"
@@ -57,6 +74,15 @@ class Constraints:
         """Register a subscriber for a concept."""
         found = self.get_concept(concept)
         found.subscribers.append(subscriber)
+
+    def unregister_subscriber(
+        self, concept: str, subscriber: "DrfFieldEd"
+    ) -> None:
+        """Unregister a subscriber for a concept."""
+        found = self.get_concept(concept)
+        found.subscribers.remove(subscriber)
+        if not found.providers and not found.subscribers:
+            del self.concepts[concept]
 
     def ping_subscribers(
         self, concept_key: str, except_provider: "DrfFieldEd"

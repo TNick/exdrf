@@ -7,11 +7,15 @@ from functools import lru_cache
 import logging
 
 from exdrf.constants import RecIdType
+from exdrf.filter import SearchType
 from exdrf_qt.models import QtModel
 from exdrf_qt.plugins import exdrf_qt_pm
 from exdrf_qt.utils.plugins import safe_hook_call
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload, selectinload, load_only
+
+{%- set no_dia_map = r.get_no_dia_map() %}
+{%- set has_dia_map = len(no_dia_map) > 0 %}
 
 {% for field in fields %}
 {%- if not field.is_derived  %}
@@ -118,6 +122,13 @@ class Qt{{ ResPascal }}FuMo(QtModel["{{ ResPascal }}"]):
                 {%- endif %}
                 {%- endfor %}
             ],
+            {%- if has_dia_map %}
+            no_dia_map={
+                {%- for name, no_dia_name in no_dia_map.items() %}
+                "{{ name }}": "{{ no_dia_name }}",
+                {%- endfor %}
+            },
+            {%- endif %}
             **kwargs
         )
 
@@ -189,7 +200,7 @@ class Qt{{ ResPascal }}FuMo(QtModel["{{ ResPascal }}"]):
     def text_to_filter(
         self,
         text: str,
-        exact: Optional[bool] = False,
+        search_type: Optional[SearchType] = SearchType.EXTENDED,
         limit: Optional[str] = None,
     ) -> "FilterType":
         """Convert a text to a filter.
@@ -197,13 +208,13 @@ class Qt{{ ResPascal }}FuMo(QtModel["{{ ResPascal }}"]):
         The function converts a text to a filter. The text is converted to a
         filter using the `simple_search_fields` property.
         """
-        filters = super().text_to_filter(text, exact, limit)
+        filters = super().text_to_filter(text, search_type, limit)
         safe_hook_call(
             exdrf_qt_pm.hook.{{ res_snake }}_fumo_ttf,
             model=self,
             filters=filters,
             text=text,
-            exact=exact,
+            search_type=search_type,
             limit=limit,
         )
         return filters
