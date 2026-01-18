@@ -382,19 +382,36 @@ class RefFilterByPart:
 
         if len(path) == 0:
             raise ValueError("Path is empty")
-        if len(path) > 1:
-            raise ValueError("Path is too long, only one part is supported")
 
+        # Resolve the base relationship for this reference field.
+        base_mapper = class_mapper(
+            self.resource.db_model  # type: ignore[attr-defined]
+        )
+        base_property = base_mapper.get_property(
+            self.name  # type: ignore[attr-defined]
+        )
         related_entity = getattr(
             self.resource.db_model, self.name  # type: ignore[attr-defined]
         )
-        other_model = (
-            class_mapper(self.resource.db_model)  # type: ignore[attr-defined]
-            .get_property(self.name)  # type: ignore[attr-defined]
-            .mapper.class_
-        )
 
-        column = getattr(other_model, path[0])
+        # Build the chain of relationships to reach the target column.
+        relationship_chain = [(related_entity, base_property.uselist)]
+        current_model = base_property.mapper.class_
+
+        # Traverse nested relationships before the final column.
+        for part in path[:-1]:
+            rel_property = class_mapper(current_model).get_property(part)
+            if not hasattr(rel_property, "mapper"):
+                raise ValueError(
+                    f"Path part {part} is not a relationship property."
+                )
+            relationship_chain.append(
+                (getattr(current_model, part), rel_property.uselist)
+            )
+            current_model = rel_property.mapper.class_
+
+        # Resolve the target column on the final related model.
+        column = getattr(current_model, path[-1])
 
         # SQLite doesn't support the flags parameter for regexp_match_op.
         # Instead, we need to embed the flags inline in the pattern using
@@ -412,8 +429,14 @@ class RefFilterByPart:
             predicate = filter_op_registry[item.op].predicate
             predicate_result = predicate(column, item.vl)
 
-        subq = related_entity.has(predicate_result)
-        return subq
+        # Wrap the predicate through the relationship chain.
+        for rel_attr, rel_uselist in reversed(relationship_chain):
+            if rel_uselist:
+                predicate_result = rel_attr.any(predicate_result)
+            else:
+                predicate_result = rel_attr.has(predicate_result)
+
+        return predicate_result
 
 
 @define
