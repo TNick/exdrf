@@ -93,6 +93,14 @@ class ExField(ExFieldBase):
             For now the only supported type is NO_DIACRITICS which indicates
             that the value of this field results from the text value of another
             field without diacritics (unidecode is used to convert the text).
+        pos_hint: A hint for the position of the field in the UI. This is
+            used to determine the order of the fields in the UI. The value
+            is a string that may be used to map the field to a position in the
+            UI. After the sort value the string may also include
+            the [after:xxx] pattern and the [before:xxx] pattern, where xxx
+            is the name of another field in this resource.
+            By default the sort key used is the `category.field-name` string,
+            but pos_hint will replace the field-name part if provided.
     """
 
     resource: "ExResource" = field(default=None)
@@ -110,6 +118,7 @@ class ExField(ExFieldBase):
     fk_to: Optional["ExField"] = field(default=None)
     fk_from: Optional["ExField"] = field(default=None)
     derived: Optional[Tuple[str, str]] = field(default=None)
+    pos_hint: Optional[str] = field(default=None)
 
     def field_properties(self, explicit: bool = False) -> dict[str, Any]:
         """Get the properties of the field.
@@ -467,6 +476,14 @@ class FieldInfo(BaseModel):
             string; nested categories using the dot notation are not supported.
             For common cases the implementation may subclass the `Resource`
             class and reimplement the `get_default_category()` method.
+        pos_hint: A hint for the position of the field in the UI. This is
+            used to determine the order of the fields in the UI. The value
+            is a string that may be used to map the field to a position in the
+            UI. After the sort value the string may also include
+            the [after:xxx] pattern and the [before:xxx] pattern, where xxx
+            is the name of another field in this resource.
+            By default the sort key used is the `category.field-name` string,
+            but pos_hint will replace the field-name part if provided.
         type_name: The unique type name of the field. If provided, it overrides
             the internal logic that determines the type name of the field.
             It should be one of the `FIELD_TYPE_*` constants defined in the
@@ -488,6 +505,7 @@ class FieldInfo(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
     category: Optional[str] = None
+    pos_hint: Optional[str] = None
     type_name: Optional[str] = None
     primary: Optional[bool] = None
     visible: Optional[bool] = None

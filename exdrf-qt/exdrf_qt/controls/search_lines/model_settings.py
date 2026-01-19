@@ -2,9 +2,9 @@ import logging
 from typing import TYPE_CHECKING, Generic, List, Optional, TypeVar
 
 from PyQt5.QtCore import QPoint
+from exdrf.filter import SearchType
 
 if TYPE_CHECKING:
-    from exdrf.filter import SearchType
     from PyQt5.QtWidgets import QAction, QActionGroup, QWidget
 
     from exdrf_qt.models import QtModel
@@ -24,6 +24,7 @@ class ModelSearchSettings(Generic[DBM]):
     ac_group_del: Optional["QActionGroup"]
     ac_group_search: Optional["QActionGroup"]
     ac_simple: List["QAction"]
+    search_mode: "SearchType"
 
     def __init__(self, model: "QtModel[DBM]", parent: "QWidget") -> None:
         from exdrf_qt.utils.stay_open_menu import StayOpenMenu
@@ -34,6 +35,7 @@ class ModelSearchSettings(Generic[DBM]):
         self.ac_group_del = None
         self.ac_group_search = None
         self.ac_simple = []
+        self.search_mode = SearchType.EXACT
         logger.log(1, "%s.show_settings()", parent.__class__.__name__)
 
     def create_search_mode_actions(
@@ -54,6 +56,7 @@ class ModelSearchSettings(Generic[DBM]):
                 self.menu.addAction(action)
 
         self.ac_group_search = ac_group_search
+        self.search_mode = current
         return ac_group_search
 
     def create_del_actions(self) -> Optional["QActionGroup"]:
@@ -109,6 +112,7 @@ class ModelSearchSettings(Generic[DBM]):
         from exdrf_qt.utils.flt_acts import (
             apply_simple_filtering_action,
         )
+        from exdrf_qt.utils.search_actions import apply_search_action
 
         action_widget = self.parent
         widget_rect = action_widget.rect()
@@ -131,3 +135,9 @@ class ModelSearchSettings(Generic[DBM]):
 
         # Handle delete choice.
         apply_del_action(self.ac_group_del, self.model)
+
+        # Handle search mode.
+        if self.ac_group_search:
+            self.search_mode = (
+                apply_search_action(self.ac_group_search) or self.search_mode
+            )

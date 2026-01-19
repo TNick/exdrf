@@ -289,7 +289,7 @@ def all_related_paths(model: "ExResource"):
         # a label for that record.
         # This is a flat list and nested fields are represented using
         # the dot notation, so there's no need for recursion.
-        for sub_fld_name in fld.ref.minimum_field_set():
+        for sub_fld_name in fld.ref.minimum_field_set:
             top_join.load(sub_fld_name, fld.ref)
 
     return result
@@ -317,7 +317,7 @@ def all_related_label_paths(model: "ExResource"):
     top_parts = {}
 
     # Go through all the fields that point to other resources
-    for f_name in model.minimum_field_set():
+    for f_name in model.minimum_field_set:
         parts = f_name.split(".")
         fld = model[parts[0]]
         if len(parts) > 1:
@@ -336,7 +336,7 @@ def all_related_label_paths(model: "ExResource"):
             assert isinstance(
                 fld, RefBaseField
             ), f"Field {fld} is not a reference field"
-            for sub_fld_name in fld.ref.minimum_field_set():
+            for sub_fld_name in fld.ref.minimum_field_set:
                 top_join.load(sub_fld_name, fld.ref)
 
         elif not fld.is_ref_type:

@@ -77,18 +77,18 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
         _in_editing: Whether the widget is in editing mode.
         _clear_action: The clear action that we show inside the line edit.
         _dropdown_action: The dropdown action that we show inside the line edit.
-        _settings_action: The settings action that we show inside the line edit.
+        _edit_action: The edit action that we show inside the line edit.
         _editor_class: The editor class.
         _qt_model: The model.
         _add_kb: The add keyboard action.
     """
 
     popup: "PopupWidget[DBM]"
-    line_edit: ClickableLineEdit
+    line_edit: "ClickableLineEdit"
     _in_editing: bool
     _clear_action: Optional[QAction]
     _dropdown_action: QAction
-    _settings_action: QAction
+    _edit_action: Optional[QAction]
     _editor_class: Optional[Type["ExdrfEditor"]]
     _qt_model: "QtModel[DBM]"
     _add_kb: Optional[Callable[[str], None]]
@@ -108,7 +108,7 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
         self._qt_model = qt_model
         self._clear_action = None
         self._dropdown_action = None  # type: ignore
-        self._settings_action = None  # type: ignore
+        self._edit_action = None
         self.line_edit = None  # type: ignore
         self._editor_class = editor_class
 
@@ -122,7 +122,7 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
         # Create UI components.
         self.create_line_edit()
         self.create_drop_down_action()
-        self.create_settings_action()
+        self.create_edit_action()
         self.create_clear_action()
 
         # Set up the layout with the line edit.
@@ -136,6 +136,7 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
         self._add_kb = add_kb
         self.popup = None
 
+        self.controlChanged.connect(self.on_value_changed)
         self.post_init()
 
     @property
@@ -237,20 +238,22 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
         self._dropdown_action = action
         return action
 
-    def create_settings_action(self) -> QAction:
-        """Creates an action that allows the user to configure the control."""
+    def create_edit_action(self) -> Optional[QAction]:
+        """Creates an action that allows the user to edit the current selection."""
         # Return existing action if already created.
-        if self._settings_action is not None:
-            return self._settings_action
+        if self._edit_action is not None:
+            return self._edit_action
+        if self._editor_class is None:
+            return None
 
         # Create and configure the action.
         action = QAction(self)
-        action.setIcon(self.get_icon("wrench"))
-        action.triggered.connect(self.on_show_settings)
+        action.setIcon(self.get_icon("edit_button"))
+        action.triggered.connect(self.on_edit_item)
         self.line_edit.addAction(
             action, QLineEdit.ActionPosition.TrailingPosition
         )
-        self._settings_action = action
+        self._edit_action = action
         return action
 
     def create_clear_action(self) -> QAction:
@@ -280,6 +283,8 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
             self._dropdown_action.setEnabled(enabled)
         if self._clear_action:
             self._clear_action.setEnabled(enabled)
+        if self._edit_action:
+            self._edit_action.setEnabled(enabled)
 
     def change_edit_mode(  # type: ignore
         self: QWidget, in_editing: bool  # type: ignore
@@ -344,6 +349,8 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
         self.line_edit.setText("")
         if self._clear_action:
             self._clear_action.setEnabled(False)
+        if self._edit_action:
+            self._edit_action.setEnabled(False)
         self.controlChanged.emit()
 
     def record_to_text(self, record: "QtRecord") -> str:
@@ -380,15 +387,28 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
             self.set_to_null()
             return
 
-        if self._sel_field_value(new_value):
-            if self._clear_action:
-                self._clear_action.setEnabled(True)
-        else:
-            if self._clear_action and self.field_value is not None:
-                self._clear_action.setEnabled(False)
+        self._sel_field_value(new_value)
+
+    @top_level_handler
+    def on_value_changed(self):
+        # React to the new value.
+        enabled = not self.is_empty
+        if self._clear_action:
+            self._clear_action.setEnabled(enabled)
+        if self._edit_action:
+            self._edit_action.setEnabled(enabled)
 
     def _sel_field_value(self, new_value: Any) -> bool:
-        """Change the field value."""
+        """Change the field value.
+
+        The new value can be a database record or an ID of a record.
+
+        Args:
+            new_value: The new value to set for the field.
+
+        Returns:
+            True if the field value has been changed to the proposed value.
+        """
         raise NotImplementedError("Subclasses must implement this method")
 
     def get_record_label(self, record_id: "RecIdType") -> str:
@@ -441,16 +461,36 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
         # Update the field value with the loaded related record ID.
         self.change_field_value(related)
 
+    @top_level_handler
     def auto_create_new(self, text: str) -> None:
         """Create a new record."""
+
+        # Create the editor widget.
+        editor = self.create_editor()
+        if editor is None:
+            return
+
+        # Prepare it for creating a new record.
+        editor.on_create_new()
+
+    def on_record_saved(self, record: DBM) -> None:
+        """The record has been saved in the external editor."""
+        raise NotImplementedError("Subclasses must implement this method")
+
+    def create_editor(self, **kwargs) -> Optional["ExdrfEditor"]:
+        """Create the editor widget."""
         # No need for the popup anymore.
         if self.popup.isVisible():
             self.popup.hide()
 
+        if self.qt_model is None:
+            logger.error("No model set")
+            return None
+
         # This should only be called when there's an editor class set.
         if self._editor_class is None:
             logger.error("No editor class set")
-            return
+            return None
 
         # Create the editor widget and prepare it for creating a new record.
         editor = self._editor_class(
@@ -458,9 +498,8 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
             db_model=self.qt_model.db_model,
             parent=self,
             parent_form=self.form,
+            **kwargs
         )
-        editor.on_create_new()
-        self.ctx.create_window(editor, title=editor.windowTitle())
 
         # React to the record being saved.
         def _on_record_saved(record: DBM) -> None:
@@ -470,25 +509,16 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
 
         editor.recordSaved.connect(_on_record_saved)
 
-    def on_record_saved(self, record: DBM) -> None:
-        """The record has been saved in the external editor."""
-        raise NotImplementedError("Subclasses must implement this method")
+        # Create the panel for it.
+        self.ctx.create_window(editor, title=editor.windowTitle())
+
+        return editor
 
     @top_level_handler
-    def on_show_settings(self):
-        """Show the settings menu for the control."""
-        if self.qt_model is None:
-            logger.error("No model set")
-            return
+    def on_edit_item(self):
+        """Opens the edit dialog for the current item."""
 
-        from exdrf_qt.controls.search_lines.model_settings import (
-            ModelSearchSettings,
-        )
-
-        model_settings = ModelSearchSettings(self.qt_model, self)
-        model_settings.create_del_actions()
-        model_settings.create_simple_filtering_actions()
-        model_settings.run()
+        raise NotImplementedError
 
     def constraints_changed(self, concept_key: str, new_value: Any) -> None:
         """React to the constraints being changed.
@@ -507,7 +537,7 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
                 return
 
             self._qt_model.constraints_changed(concept_key, new_value)
-            if self._field_value is None:
+            if self.is_empty:
                 logger.log(1, "No field value set, nothing to check")
                 return
 
@@ -681,6 +711,7 @@ class DrfSelOneEditor(DrfSelBase[DBM_O]):
         _clear_action: Optional action button for clearing the selection,
             present only when the field is nullable.
         _dropdown_action: Action button for opening the selection popup.
+        _edit_action: Optional action button for editing the current selection.
     """
 
     def post_popup_init(self):
@@ -736,6 +767,11 @@ class DrfSelOneEditor(DrfSelBase[DBM_O]):
 
         Args:
             new_value: The new value to set for the field.
+
+        Returns:
+            True if the field value has been changed, False if
+            the new value is the same as the old value or we were unable to
+            compute the label (in which case we set the field to null).
         """
         assert new_value is not None
 
@@ -808,4 +844,35 @@ class DrfSelOneEditor(DrfSelBase[DBM_O]):
 
     def on_record_saved(self, record: DBM_O) -> None:
         """The record has been saved."""
-        self.change_field_value(self.qt_model.get_db_item_id(record))
+        new_rec_id = self.qt_model.get_db_item_id(record)
+        if self._field_value == new_rec_id:
+            # Change the label.
+            label = self.get_record_label(new_rec_id)
+            if label == "":
+                return
+            self.line_edit.setText(label)
+        else:
+            self.change_field_value(new_rec_id)
+
+    @top_level_handler
+    def on_edit_item(self):
+        """Opens the edit dialog for the current item."""
+        if self._field_value is None:
+            from exdrf_qt.controls.toast import Toast
+
+            Toast.show_error(
+                self,
+                self.t(
+                    "cmn.no_selection",
+                    "No selection",
+                ),
+            )
+            return
+
+        # Create the editor widget.
+        editor = self.create_editor(record_id=self._field_value)
+        if editor is None:
+            return
+
+        # Start the editing.
+        editor.on_begin_edit()

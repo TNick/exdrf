@@ -1592,7 +1592,7 @@ class QtModel(
         # Determine which fields to search
         fields_to_search = [
             f.name
-            for f in self.simple_search_fields
+            for f in self.simple_search_enabled_fields
             if limit is None or f.name == limit
         ]
 

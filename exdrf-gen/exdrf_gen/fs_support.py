@@ -265,7 +265,7 @@ class FieldDir(Dir):
 def resource_to_args(resource: "ExResource"):
     return {
         "r": resource,
-        "fields": resource.sorted_fields(),
+        "fields": resource.sorted_fields,
         "categories": resource.categories,
         "fields_cats": resource.sorted_fields_and_categories(),
         "ResPascal": resource.pascal_case_name,
@@ -275,7 +275,7 @@ def resource_to_args(resource: "ExResource"):
         "res_text": resource.text_name,
         "ResText": resource.text_name.capitalize(),
         "res_docs": resource.doc_lines,
-        "res_mfs": resource.minimum_field_set(),
+        "res_mfs": resource.minimum_field_set,
         "res_spl_id": resource.is_primary_simple,
         "res_primaries": resource.primary_fields(),
         "all_related_models": all_related_models(resource),

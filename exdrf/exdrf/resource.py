@@ -35,6 +35,8 @@ if TYPE_CHECKING:
     from exdrf.label_dsl import ASTNode
     from exdrf.visitor import ExVisitor
 
+CATEGORY_SEGREGATION_LIMIT = 6
+
 
 @define
 class ExResource:
@@ -261,7 +263,7 @@ class ExResource:
         """Get the fields that are going to be used with other models that
         reference this model when the user searches for text.
         """
-        lst = self.minium_field_set_wo_primaries() or self.minimum_field_set()
+        lst = self.minium_field_set_wo_primaries() or self.minimum_field_set
         return [self[n] for n in lst if not self[n].is_ref_type]
 
     def visit(
@@ -337,6 +339,7 @@ class ExResource:
         """
         return [fld for fld in self.ref_fields if fld.ref is dep]
 
+    @cached_property
     def minimum_field_set(self) -> List[str]:
         """Get the minimum set of fields that are used to represent the
         resource.
@@ -496,6 +499,96 @@ class ExResource:
 
         return file_path
 
+    def parse_pos_hint(
+        self, pos_hint: Optional[str]
+    ) -> Tuple[Optional[str], Optional[str], Optional[str]]:
+        """Parse a pos_hint into sort value and relationships.
+
+        Args:
+            pos_hint: The positional hint string to parse.
+
+        Returns:
+            A tuple of (sort_value, after_name, before_name).
+        """
+        if not pos_hint:
+            return None, None, None
+
+        # Extract relative positioning rules from the hint.
+        after_match = re.search(r"\[after:([^\]]+)\]", pos_hint)
+        before_match = re.search(r"\[before:([^\]]+)\]", pos_hint)
+        after_name = after_match.group(1).strip() if after_match else None
+        before_name = before_match.group(1).strip() if before_match else None
+
+        # Remove relationship tokens to keep the sort value intact.
+        sort_value = re.sub(
+            r"\[(?:after|before):[^\]]+\]", "", pos_hint
+        ).strip()
+
+        return sort_value, after_name, before_name
+
+    def apply_pos_hint_relations(
+        self, fields: List["ExField"]
+    ) -> List["ExField"]:
+        """Apply [after]/[before] relations to a sorted field list.
+
+        Args:
+            fields: The list of fields sorted by the base sort key.
+
+        Returns:
+            A reordered list that respects [after]/[before] hints.
+        """
+        ordered = list(fields)
+
+        # Reposition fields according to relative hints.
+        for fld in fields:
+            if not fld.pos_hint:
+                continue
+
+            _, after_name, before_name = self.parse_pos_hint(fld.pos_hint)
+            if not after_name and not before_name:
+                continue
+
+            name_to_index = {f.name: idx for idx, f in enumerate(ordered)}
+            current_index = name_to_index.get(fld.name)
+            if current_index is None:
+                continue
+
+            # Resolve the target index while keeping categories aligned.
+            after_index = None
+            before_index = None
+            if after_name in name_to_index:
+                after_fld = ordered[name_to_index[after_name]]
+                if after_fld.category == fld.category:
+                    after_index = name_to_index[after_name]
+            if before_name in name_to_index:
+                before_fld = ordered[name_to_index[before_name]]
+                if before_fld.category == fld.category:
+                    before_index = name_to_index[before_name]
+
+            if after_index is not None and before_index is not None:
+                if after_index < before_index:
+                    target_index = after_index + 1
+                    if target_index > before_index:
+                        target_index = before_index
+                else:
+                    target_index = before_index
+            elif after_index is not None:
+                target_index = after_index + 1
+            elif before_index is not None:
+                target_index = before_index
+            else:
+                continue
+
+            if target_index == current_index:
+                continue
+
+            ordered.pop(current_index)
+            if target_index > current_index:
+                target_index -= 1
+            ordered.insert(target_index, fld)
+
+        return ordered
+
     def field_sort_key(self, fld: "ExField") -> str:
         """Get the sort key for a field.
 
@@ -512,19 +605,44 @@ class ExResource:
         Returns:
             The sort key for the field.
         """
-        category = fld.category or ""
-        return f"{category}.{fld.name}"
+        label_fields = set(self.minimum_field_set)
 
+        category = fld.category or ""
+        sort_value = fld.pos_hint
+        if sort_value is None:
+            if fld.is_one_to_one_type or fld.is_many_to_one_type:
+                particle = "T"
+            elif fld.is_many_to_many_type or fld.is_one_to_many_type:
+                particle = "U"
+            elif fld.fk_to or fld.fk_from:
+                particle = "V"
+            elif fld.primary:
+                particle = "X"
+            elif fld.name == "deleted":
+                particle = "Y"
+            elif fld.name in ("created_on", "updated_on"):
+                particle = "Z"
+            elif fld.name in label_fields:
+                particle = "A"
+            else:
+                particle = "B"
+            sort_value = f"{particle}.{fld.name}"
+        return f"{category}.{sort_value}".lower()
+
+    @cached_property
     def sorted_fields(self) -> List["ExField"]:
         """Get a sorted list of fields.
 
         You can customize the order of the fields by reimplementing the
         `field_sort_key` method.
         """
-        return sorted(
+        sorted_fields = sorted(
             self.fields,
             key=self.field_sort_key,
         )
+
+        # Apply higher-precedence relative ordering hints.
+        return self.apply_pos_hint_relations(sorted_fields)
 
     def fields_by_category(
         self,
@@ -546,17 +664,27 @@ class ExResource:
             exclude_ref_fields: If True, reference fields will not be included.
         """
         categories: Dict[str, List["ExField"]] = {}
-        for f in self.sorted_fields():
+
+        def is_included(f):
             if exclude_names and f.name in exclude_names:
-                continue
+                return False
             if exclude_derived and f.is_derived:
-                continue
+                return False
             if exclude_ref_fields and f.is_ref_type:
-                continue
+                return False
             if exclude_fk_to and f.fk_to is not None:
-                continue
+                return False
             if exclude_fk_from and f.fk_from is not None:
-                continue
+                return False
+            return True
+
+        included_fields = [f for f in self.sorted_fields if is_included(f)]
+        if len(included_fields) < CATEGORY_SEGREGATION_LIMIT:
+            return {
+                "general": included_fields,
+            }
+
+        for f in included_fields:
             category = f.category
             lst = categories.get(category, None)
             if lst is None:
@@ -581,7 +709,11 @@ class ExResource:
         """
         if cat == "general":
             return "a-" + cat
-        return "z-" + cat
+        if cat == "management":
+            return "z-" + cat
+        if cat == "comments":
+            return "y-" + cat
+        return "p-" + cat
 
     def sorted_fields_and_categories(
         self,

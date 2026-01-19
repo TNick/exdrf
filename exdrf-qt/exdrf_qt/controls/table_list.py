@@ -33,7 +33,7 @@ from exdrf_qt.controls.crud_actions import (
     OpenViewAc,
 )
 from exdrf_qt.controls.filter_dlg.filter_dlg import FilterDlg
-from exdrf_qt.controls.search_line import SearchLine
+from exdrf_qt.controls.search_lines.with_model import ModelSearchLine
 from exdrf_qt.controls.tree_header import ListDbHeader
 
 if TYPE_CHECKING:
@@ -41,7 +41,7 @@ if TYPE_CHECKING:
 
     from exdrf_qt.context import QtContext  # noqa: F401
     from exdrf_qt.models import QtModel  # noqa: F401
-
+    from exdrf_qt.controls.search_lines.base import SearchData
 
 DBM = TypeVar("DBM")
 logger = logging.getLogger(__name__)
@@ -63,7 +63,7 @@ class ListDb(QWidget, QtUseContext, Generic[DBM]):
     ly: QVBoxLayout
     h_ly: QHBoxLayout
     tree: "TreeViewDb[DBM]"
-    c_search_box: SearchLine
+    c_search_box: "ModelSearchLine"
     lbl_total: QLabel
     lbl_loaded: QLabel
     lbl_in_prog: QLabel
@@ -95,13 +95,17 @@ class ListDb(QWidget, QtUseContext, Generic[DBM]):
         self.h_ly = QHBoxLayout()
 
         # Initialize the search line.
-        self.c_search_box = SearchLine(
+        self.c_search_box = ModelSearchLine(
             parent=self,
-            callback=self.apply_simple_search,
             ctx=self.ctx,
+            model=None,  # type: ignore
         )
         self.c_search_box.setMaximumWidth(200)
         self.h_ly.addWidget(self.c_search_box)
+
+        # Set focus to the search box when the widget is created
+        # so that the user can start typing immediately.
+        self.c_search_box.setFocus()
 
         self.lbl_total = QLabel(
             self.t("cmn.total_count", "Total: {count}", count=0), self
@@ -141,6 +145,7 @@ class ListDb(QWidget, QtUseContext, Generic[DBM]):
             crt_m.requestError.disconnect(self.on_request_error)
 
         self.tree.setModel(model)
+        self.c_search_box.qt_model = model
 
         if model is not None:
             model.totalCountChanged.connect(self.on_total_count_changed)
@@ -201,11 +206,9 @@ class ListDb(QWidget, QtUseContext, Generic[DBM]):
         """Handle the request error event."""
         self.on_request_issued(start, count, uniq_id, total_count)
 
-    def apply_simple_search(
-        self, text: str, exact: Optional[bool] = False
-    ) -> None:
+    def apply_simple_search(self, data: "SearchData") -> None:
         """Apply a simple search to the model."""
-        self.qt_model.apply_simple_search(text, exact)
+        self.qt_model.apply_simple_search(data.term, data.search_type)
 
 
 class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):

@@ -10,7 +10,7 @@ from typing import (
 from PyQt5.QtCore import QItemSelection, QItemSelectionModel
 from PyQt5.QtWidgets import QAbstractItemView
 from sqlalchemy import inspect
-
+from exdrf_qt.utils.tlh import top_level_handler
 from exdrf_qt.field_ed.fed_sel_one import DrfSelBase
 
 if TYPE_CHECKING:
@@ -23,6 +23,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 DBM_M = TypeVar("DBM_M", bound="DrfSelMultiEditor")
 ITEMS_IN_LABEL = 2
+MAX_ITEMS_FOR_MULTI_EDIT = 3
 
 
 class DrfSelMultiEditor(DrfSelBase[DBM_M]):
@@ -129,6 +130,10 @@ class DrfSelMultiEditor(DrfSelBase[DBM_M]):
 
         Args:
             new_value: The new value to set for the field.
+
+        Returns:
+            True if the field value has been changed, False if
+            the new value is the same as the old value.
         """
         converted = []
         for itr in new_value:
@@ -150,18 +155,7 @@ class DrfSelMultiEditor(DrfSelBase[DBM_M]):
         if crt_val == converted:
             return False
 
-        if len(converted) > ITEMS_IN_LABEL:
-            label = self.t(
-                "cmn.sel_count",
-                "{cnt} selected",
-                cnt=len(converted),
-            )
-        else:
-            with self.ctx.same_session():
-                label = ", ".join(
-                    [self.get_record_label(itr) for itr in converted]
-                )
-        self.line_edit.setText(f"[{label}]" if label else "")
+        self.update_label(converted)
 
         # Update model priority and enable clear action, then set value.
         if change_priority_ids:
@@ -170,6 +164,20 @@ class DrfSelMultiEditor(DrfSelBase[DBM_M]):
             self.qt_model.prioritized_ids = converted
         self.field_value = converted
         return True
+
+    def update_label(self, items_list: List["RecIdType"]):
+        if len(items_list) > ITEMS_IN_LABEL:
+            label = self.t(
+                "cmn.sel_count",
+                "{cnt} selected",
+                cnt=len(items_list),
+            )
+        else:
+            with self.ctx.same_session():
+                label = ", ".join(
+                    [self.get_record_label(itr) for itr in items_list]
+                )
+        self.line_edit.setText(f"[{label}]" if label else "")
 
     def save_value_to(self, record: Any):
         # Validate that the field name is set.
@@ -211,7 +219,10 @@ class DrfSelMultiEditor(DrfSelBase[DBM_M]):
         else:
             crt_list = list(crt_list)
             if rec_id in crt_list:
+                # The textual representation of the item might have changed.
+                self.update_label(crt_list)
                 return
+
             crt_list.append(rec_id)
         self.change_field_value(crt_list)
 
@@ -231,4 +242,42 @@ class DrfSelMultiEditor(DrfSelBase[DBM_M]):
         self.line_edit.setText("")
         if self._clear_action:
             self._clear_action.setEnabled(False)
+        if self._edit_action:
+            self._edit_action.setEnabled(False)
         self.controlChanged.emit()
+
+    @top_level_handler
+    def on_edit_item(self):
+        """Opens the edit dialog for the current item."""
+        from exdrf_qt.controls.toast import Toast
+
+        if not self._field_value:
+            Toast.show_error(
+                self,
+                self.t(
+                    "cmn.no_selection",
+                    "No selection",
+                ),
+            )
+            return
+        elif len(self._field_value) > MAX_ITEMS_FOR_MULTI_EDIT:
+            Toast.show_error(
+                self,
+                self.t(
+                    "exdrf.qt.f_sel_multi.too_many_items",
+                    "Too many items selected ({count}) for editing. "
+                    "The maximum number of items for editing is {max}.",
+                    count=len(self._field_value),
+                    max=MAX_ITEMS_FOR_MULTI_EDIT,
+                ),
+            )
+            return
+
+        for record_id in self._field_value:
+            # Create the editor widget.
+            editor = self.create_editor(record_id=record_id)
+            if editor is not None:
+                # Start the editing.
+                editor.on_begin_edit()
+            else:
+                logger.error("Failed to create editor for record %s", record_id)

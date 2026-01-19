@@ -80,6 +80,25 @@ class DrfFieldEd(QtUseContext):
         """Get the field value."""
         return self._field_value
 
+    @property
+    def is_empty(self) -> bool:
+        """Check if the field value is empty.
+
+        This is a more general concept than checking if field_value is
+        None because it includes the situation when the field has an empty
+        text or, for multi-select fields, when no items are selected.
+
+        The default implementation returns True if field_value is None
+        or if it is a list or string that is empty.
+        """
+        return (
+            self._field_value is None
+            or isinstance(self._field_value, list)
+            and not self._field_value
+            or isinstance(self._field_value, str)
+            and not self._field_value
+        )
+
     @field_value.setter
     def field_value(self, value: Any) -> None:
         """Set the field value."""

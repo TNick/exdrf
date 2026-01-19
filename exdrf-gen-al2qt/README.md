@@ -249,7 +249,7 @@ category-level variables, plus the resource-specific variables below.
 
 ##### Resource Methods (via `r` object)
 
-- **`r.sorted_fields()`**: Returns fields sorted according to the resource's
+- **`r.sorted_fields`**: Returns fields sorted according to the resource's
   sorting logic.
 
 - **`r.sorted_fields_and_categories()`**: Returns a dictionary mapping category
@@ -271,8 +271,9 @@ category-level variables, plus the resource-specific variables below.
 - **`r.is_connection_resource`**: A boolean property indicating if this
   resource represents a database connection configuration.
 
-- **`r.minimum_field_set()`**: Returns the minimum set of fields needed to
-  uniquely identify a record.
+- **`r.minimum_field_set`**: Returns the minimum set of fields needed to
+  construct the label of a record (in principle, it should be able to uniquely
+  identify a record, but that constraint is not enforced).
 
 ### 4. Field-Level Templates
 

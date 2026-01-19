@@ -22,7 +22,7 @@ from PyQt5.QtWidgets import (
 )
 
 from exdrf_qt.context_use import QtUseContext
-from exdrf_qt.controls.search_lines.base import BasicSearchLine
+from exdrf_qt.controls.search_lines.with_model import ModelSearchLine
 from exdrf_qt.controls.tree_list import TreeView
 from exdrf_qt.models import QtModel
 
@@ -49,7 +49,7 @@ class PopupWidget(QWidget, Generic[DBM], QtUseContext):
     """
 
     tree: "TreeView"
-    filter_edit: "BasicSearchLine"
+    filter_edit: "ModelSearchLine"
     qt_model: "QtModel[DBM]"
     progress: QProgressBar
     progress_timer: Optional[QTimer]
@@ -79,14 +79,14 @@ class PopupWidget(QWidget, Generic[DBM], QtUseContext):
         self.setWindowFlags(Qt.WindowType.Popup)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
 
-        self.filter_edit = BasicSearchLine(
+        self.filter_edit = ModelSearchLine(
             parent=self,
             ctx=ctx,
             add_button=(
                 self.on_add_button_clicked if add_kb is not None else False
             ),
+            model=qt_model,
         )
-        self.filter_edit.searchDataChanged.connect(self.on_search_data_changed)
 
         self.create_tree()
         self.create_progress()

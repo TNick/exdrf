@@ -135,7 +135,7 @@ def d_sf_for_ui(
     """Default implementation of sorted_fields_for_ui.
 
     The default implementation returns the fields unmodified, as the fields
-    will have been already sorted by the `ExResource.sorted_fields()` using
+    will have been already sorted by the `ExResource.sorted_fields` using
     the `ExResource.field_sort_key()` method.
 
     Args:
