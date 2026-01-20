@@ -106,7 +106,8 @@ class ListDbHeader(QHeaderView, QtUseContext, Generic[DBM]):
     def on_section_moved(
         self, logical_index: int, old_visual_index: int, new_visual_index: int
     ):
-        logger.debug(
+        logger.log(
+            1,
             "sectionMoved: %s, %s, %s",
             logical_index,
             old_visual_index,

@@ -26,7 +26,7 @@ from PyQt5.QtWidgets import (
 )
 from sqlalchemy import select
 
-from exdrf_qt.controls.tree_list import TreeView
+from exdrf_qt.controls.table_list import TreeViewDb
 from exdrf_qt.field_ed.base import DrfFieldEd
 from exdrf_qt.models.model import QtModel
 from exdrf_qt.models.record import QtRecord
@@ -145,7 +145,7 @@ class DrfRelated(QWidget, Generic[DBM], DrfFieldEd):
         self.lay_main = QHBoxLayout()
 
         # Create the source list.
-        self.src_list = TreeView(parent=self)
+        self.src_list = TreeViewDb(parent=self, ctx=ctx)
         self.src_list.setModel(self.src_model)
         self.src_list.setSelectionMode(
             QAbstractItemView.SelectionMode.MultiSelection
@@ -156,7 +156,7 @@ class DrfRelated(QWidget, Generic[DBM], DrfFieldEd):
         self.create_middle_buttons()
 
         # Create the destination list.
-        self.dst_list = TreeView(parent=self)
+        self.dst_list = TreeViewDb(parent=self, ctx=ctx)
         self.dst_list.setModel(self.dst_model)
         self.src_list.setSelectionMode(
             QAbstractItemView.SelectionMode.MultiSelection

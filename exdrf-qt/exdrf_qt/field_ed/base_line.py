@@ -318,6 +318,10 @@ class LineBase(QWidget, DrfFieldEd):
     def setReadOnly(self, read_only: bool) -> None:  # type: ignore
         self.c_line.setReadOnly(read_only)
 
+    def isReadOnly(self) -> bool:
+        """Return whether the line edit is read-only."""
+        return self.c_line.isReadOnly()
+
     def setPlaceholderText(self, text: str):
         self.c_line.setPlaceholderText(text)
 

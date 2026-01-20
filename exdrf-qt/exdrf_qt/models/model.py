@@ -822,6 +822,14 @@ class QtModel(
 
         # Inform interested parties that a request has been issued.
         try:
+            if self._is_deleted():
+                logger.log(
+                    MODEL_LOG_LEVEL,
+                    "M: %s Request %s ignored (model deleted).",
+                    self.name,
+                    req.uniq_id,
+                )
+                return
             self.requestIssued.emit(
                 req.uniq_id, req.start, req.count, len(self.requests)
             )
@@ -848,6 +856,13 @@ class QtModel(
             self.name,
             work.req_id,
         )
+        if self._is_deleted():
+            logger.log(
+                MODEL_LOG_LEVEL,
+                "M: %s Ignoring load (model deleted).",
+                self.name,
+            )
+            return
 
         # Locate the request in the list of requests.
         # work.req_id is a tuple (id(self), req), so work.req_id[1] is the
@@ -950,6 +965,15 @@ class QtModel(
                 req.start + available - 1, len(self.column_fields) - 1
             ),
         )
+
+    def _is_deleted(self) -> bool:
+        """Return True if the Qt object was deleted."""
+        try:
+            from PyQt5 import sip
+
+            return sip.isdeleted(self)
+        except Exception:
+            return False
 
     def db_item_to_record(
         self, item: DBM, record: Optional["QtRecord"] = None
@@ -1413,7 +1437,29 @@ class QtModel(
         base = Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable
         if self._checked is not None:
             base |= Qt.ItemFlag.ItemIsUserCheckable
+        if self._is_index_editable(index):
+            base |= Qt.ItemFlag.ItemIsEditable
         return cast(Qt.ItemFlags, base)
+
+    def _is_index_editable(self, index: QModelIndex) -> bool:
+        """Return True if the given index is editable.
+
+        Args:
+            index: The model index to check.
+
+        Returns:
+            True if the index is editable, False otherwise.
+        """
+        if not index.isValid():
+            return False
+        if index.row() < len(self.top_cache):
+            return False
+        record = self.data_record(index.row())
+        if record is None or not record.loaded or record.error:
+            return False
+        if index.column() >= len(self.column_fields):
+            return False
+        return self.column_fields[index.column()].is_editable()
 
     def setData(
         self,
@@ -1461,8 +1507,52 @@ class QtModel(
                 self.checkedChanged.emit()
                 return True
 
-        # TODO
-        return False
+        if role != Qt.ItemDataRole.EditRole:
+            return False
+
+        if index.column() >= len(self.column_fields):
+            return False
+        field = self.column_fields[index.column()]
+        if not field.is_editable():
+            return False
+
+        try:
+            with self.ctx.same_session(auto_commit=True) as session:
+                conditions = self.item_by_id_conditions(record.db_id)
+                db_item = session.scalar(
+                    select(self.db_model).where(*conditions)
+                )
+                if db_item is None:
+                    logger.error(
+                        "M: %s Record %s not found for edit",
+                        self.name,
+                        record.db_id,
+                    )
+                    return False
+
+                field.apply_edit_value(db_item, value, session)
+                self.db_item_to_record(db_item, record)
+        except Exception as e:
+            logger.error(
+                "M: %s Error setting field %s: %s",
+                self.name,
+                field.name,
+                e,
+                exc_info=True,
+            )
+            return False
+
+        self.dataChanged.emit(
+            index,
+            index,
+            [
+                Qt.ItemDataRole.DisplayRole,
+                Qt.ItemDataRole.EditRole,
+                Qt.ItemDataRole.ToolTipRole,
+                Qt.ItemDataRole.StatusTipRole,
+            ],
+        )
+        return True
 
     def sort(
         self, column: int, order: Qt.SortOrder = Qt.SortOrder.AscendingOrder

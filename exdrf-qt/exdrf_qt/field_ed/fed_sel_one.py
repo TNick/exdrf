@@ -124,6 +124,7 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
         self.create_drop_down_action()
         self.create_edit_action()
         self.create_clear_action()
+        self.change_nullable(self._nullable)
 
         # Set up the layout with the line edit.
         layout = QHBoxLayout(self)
@@ -322,6 +323,10 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
         """
         # Update the nullable flag.
         self._nullable = value
+        # Defer until actions are created.
+        if self._dropdown_action is None:
+            return
+
         # Add clear action if field becomes nullable.
         if value:
             if self._clear_action is None:

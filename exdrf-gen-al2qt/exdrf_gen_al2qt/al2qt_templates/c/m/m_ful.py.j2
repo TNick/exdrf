@@ -132,6 +132,22 @@ class Qt{{ ResPascal }}FuMo(QtModel["{{ ResPascal }}"]):
             **kwargs
         )
 
+        # The fields that are visible in the UI. Excluded from here are
+        # the the foreign key fields that are already represented by
+        # a resource field and derived fields (e.g. diacritic-less values):
+        {%- for field in sorted_fields_for_ui(dset, r, fields) %}
+        {%- if not (field.visible and not field.is_derived and not field.fk_to) %}
+        # - {{ field.name }}
+        {%- endif %}
+        {%- endfor %}
+        self.column_fields = [
+            {%- for field in sorted_fields_for_ui(dset, r, fields) %}
+            {%- if field.visible and not field.is_derived and not field.fk_to %}
+            "{{ field.name }}",
+            {%- endif %}
+            {%- endfor %}
+        ]
+
         # Inform plugins that the model has been created.
         safe_hook_call(
             exdrf_qt_pm.hook.{{ res_snake }}_fumo_created,

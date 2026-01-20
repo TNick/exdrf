@@ -12,13 +12,15 @@ from typing import (
 )
 
 from exdrf.constants import RecIdType
-from PyQt5.QtCore import QPoint, Qt
+from PyQt5.QtCore import QModelIndex, QPoint, Qt
 from PyQt5.QtWidgets import (
     QAbstractItemView,
     QAction,
     QHBoxLayout,
     QLabel,
     QMenu,
+    QStyledItemDelegate,
+    QStyleOptionViewItem,
     QTreeView,
     QVBoxLayout,
     QWidget,
@@ -35,6 +37,7 @@ from exdrf_qt.controls.crud_actions import (
 from exdrf_qt.controls.filter_dlg.filter_dlg import FilterDlg
 from exdrf_qt.controls.search_lines.with_model import ModelSearchLine
 from exdrf_qt.controls.tree_header import ListDbHeader
+from exdrf_qt.models.field import NO_EDITOR_VALUE
 
 if TYPE_CHECKING:
     from PyQt5.QtCore import QItemSelection, QItemSelectionModel  # noqa: F401
@@ -42,6 +45,7 @@ if TYPE_CHECKING:
     from exdrf_qt.context import QtContext  # noqa: F401
     from exdrf_qt.controls.search_lines.base import SearchData
     from exdrf_qt.models import QtModel  # noqa: F401
+    from exdrf_qt.models.field import QtField  # noqa: F401
 
 DBM = TypeVar("DBM")
 logger = logging.getLogger(__name__)
@@ -211,6 +215,78 @@ class ListDb(QWidget, QtUseContext, Generic[DBM]):
         self.qt_model.apply_simple_search(data.term, data.search_type)
 
 
+class DbFieldDelegate(QStyledItemDelegate):
+    """Delegate that edits model fields using QtField editors."""
+
+    def _field_from_index(self, index: QModelIndex) -> Optional["QtField"]:
+        """Resolve the QtField for a model index.
+
+        Args:
+            index: The model index being edited.
+
+        Returns:
+            The QtField instance or None if not available.
+        """
+        model = index.model()
+        if model is None or not hasattr(model, "column_fields"):
+            return None
+        fields = getattr(model, "column_fields", None)
+        if not fields or index.column() >= len(fields):
+            return None
+        return fields[index.column()]
+
+    def createEditor(
+        self,
+        parent: Optional[QWidget],
+        option: QStyleOptionViewItem,
+        index: QModelIndex,
+    ) -> Optional[QWidget]:
+        """Create an editor widget for the given index."""
+        field = self._field_from_index(index)
+        if field is None or not field.is_editable():
+            return None
+
+        editor = field.create_editor(parent)
+        if editor is None:
+            return None
+
+        def _commit_and_close(target: QWidget) -> None:
+            self.commitData.emit(target)
+            try:
+                self.closeEditor.emit(target)  # type: ignore[arg-type]
+            except Exception:
+                logger.log(1, "Failed to close inline editor", exc_info=True)
+
+        field.configure_editor(editor, _commit_and_close)
+        return editor
+
+    def setEditorData(self, editor: QWidget, index: QModelIndex) -> None:
+        """Populate the editor with the current value."""
+        field = self._field_from_index(index)
+        if field is None:
+            return
+        value = index.data(Qt.ItemDataRole.EditRole)
+        field.set_editor_data(editor, value)
+
+    def setModelData(self, editor: QWidget, model, index: QModelIndex) -> None:
+        """Commit the editor value back to the model."""
+        if model is None:
+            return
+        field = self._field_from_index(index)
+        if field is None:
+            return
+        value = field.editor_value(editor)
+        if value is NO_EDITOR_VALUE:
+            return
+        model.setData(index, value, Qt.ItemDataRole.EditRole)
+
+    def updateEditorGeometry(
+        self, editor: QWidget, option: QStyleOptionViewItem, index: QModelIndex
+    ) -> None:
+        """Position the editor within the cell."""
+        editor.setGeometry(option.rect)
+
+
 class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
     """A list that presents the content of a database table.
 
@@ -281,6 +357,9 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
         # Use custom header
         header = ListDbHeader(parent=self, ctx=ctx, qt_model=self.qt_model)
         self.setHeader(header)
+
+        # Use a field-aware delegate for inline edits.
+        self.setItemDelegate(DbFieldDelegate(self))
 
     @property
     def qt_model(self) -> "QtModel[DBM]":

@@ -1,10 +1,21 @@
-from typing import TYPE_CHECKING, Any, Dict, Generic, List, Optional, TypeVar
+import logging
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    Generic,
+    List,
+    Optional,
+    TypeVar,
+)
 
 from attrs import define, field
 from exdrf.api import ExField
 from exdrf.filter import FieldFilter
 from PyQt5.QtCore import QSize, Qt
 from PyQt5.QtGui import QBrush, QColor, QFont
+from sqlalchemy import inspect
 from sqlalchemy.sql.operators import or_, regexp_match_op
 from unidecode import unidecode
 
@@ -12,11 +23,14 @@ from exdrf_qt.context_use import QtUseContext
 from exdrf_qt.models.fi_op import filter_op_registry
 
 if TYPE_CHECKING:
+    from PyQt5.QtWidgets import QWidget  # noqa: F401
+
     from exdrf_qt.context import QtContext  # noqa: F401
     from exdrf_qt.models.model import QtModel  # noqa: F401
     from exdrf_qt.models.selector import Selector
 
 DBM = TypeVar("DBM")
+logger = logging.getLogger(__name__)
 
 ROLE_MAP = {
     "DisplayRole": Qt.ItemDataRole.DisplayRole,
@@ -36,6 +50,8 @@ ROLE_MAP = {
     "InitialSortOrderRole": Qt.ItemDataRole.InitialSortOrderRole,
     "UserRole": Qt.ItemDataRole.UserRole,
 }
+
+NO_EDITOR_VALUE = object()
 
 regular_font = QFont("Arial", 10, QFont.Normal)
 italic_font = QFont("Arial", 10, QFont.Normal)
@@ -59,6 +75,56 @@ class QtField(ExField, QtUseContext, Generic[DBM]):
     resource: "QtModel" = field(default=None)  # type: ignore[assignment]
     preferred_width: int = field(default=100)
 
+    def is_editable(self) -> bool:
+        """Return whether the field can be edited inline.
+
+        Returns:
+            True if the field is editable, False otherwise.
+        """
+        return (
+            self.visible
+            and not self.read_only
+            and not self.is_derived
+            and (not self.primary or self._primary_is_editable())
+        )
+
+    def _primary_is_editable(self) -> bool:
+        """Return whether a primary key field should be editable.
+
+        Primary keys are editable only when they are not database-allocated.
+        Composite primary keys are treated as editable by default (e.g., join
+        tables).
+
+        Returns:
+            True if the primary key can be edited, False otherwise.
+        """
+        try:
+            if self.resource is None:
+                return False
+            if len(self.resource.primary_key_fields) > 1:
+                return True
+            mapper = inspect(self.resource.db_model)
+            prop = mapper.get_property(self.name)
+            if not hasattr(prop, "columns") or not prop.columns:
+                return True
+            column = prop.columns[0]
+            if getattr(column, "identity", None) is not None:
+                return False
+            if column.server_default is not None:
+                return False
+            if getattr(column, "autoincrement", False):
+                return False
+            return True
+        except Exception:
+            logger.log(
+                1,
+                "Failed to determine PK editability for %s.%s",
+                getattr(self.resource, "name", "?"),
+                self.name,
+                exc_info=True,
+            )
+            return False
+
     def values(self, record: DBM) -> Dict[Qt.ItemDataRole, Any]:
         """Return the values for this field.
 
@@ -69,6 +135,72 @@ class QtField(ExField, QtUseContext, Generic[DBM]):
             A dictionary that maps the role to the data.
         """
         raise NotImplementedError()
+
+    def create_editor(self, parent: "QWidget") -> Optional["QWidget"]:
+        """Create an editor widget for inline editing.
+
+        Args:
+            parent: The parent widget for the editor.
+
+        Returns:
+            The editor widget or None if the field is not editable inline.
+        """
+        return None
+
+    def configure_editor(
+        self,
+        editor: "QWidget",
+        commit_cb: Callable[["QWidget"], None],
+    ) -> None:
+        """Attach signals to the editor for inline editing.
+
+        Args:
+            editor: The editor widget to configure.
+            commit_cb: Callback to commit and close the editor.
+        """
+        return None
+
+    def set_editor_data(self, editor: "QWidget", value: Any) -> None:
+        """Populate the editor with the current value.
+
+        Args:
+            editor: The editor widget.
+            value: The current value for the field.
+        """
+        if hasattr(editor, "change_field_value"):
+            editor.change_field_value(value)  # type: ignore[attr-defined]
+
+    def editor_value(self, editor: "QWidget") -> Any:
+        """Extract the value from the editor.
+
+        Args:
+            editor: The editor widget.
+
+        Returns:
+            The editor value or NO_EDITOR_VALUE if it is invalid.
+        """
+        if hasattr(editor, "validate_control"):
+            result = editor.validate_control()  # type: ignore[attr-defined]
+            if hasattr(result, "is_valid") and not result.is_valid:
+                return NO_EDITOR_VALUE
+
+        if hasattr(editor, "field_value"):
+            return editor.field_value  # type: ignore[attr-defined]
+
+        if hasattr(editor, "text"):
+            return editor.text()  # type: ignore[attr-defined]
+
+        return NO_EDITOR_VALUE
+
+    def apply_edit_value(self, db_item: DBM, value: Any, session: Any) -> None:
+        """Apply the edited value to the database item.
+
+        Args:
+            db_item: The database item to update.
+            value: The edited value to apply.
+            session: The SQLAlchemy session used for updates.
+        """
+        setattr(db_item, self.name, value)
 
     def apply_sorting(self, ascending: bool) -> Any:
         """Compute the sorting by this field.
