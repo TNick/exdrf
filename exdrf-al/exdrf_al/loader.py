@@ -244,6 +244,25 @@ def field_from_sql_rel(
             f"OneToOne or ManyToMany in {resource.name}.{relation.key}"
         )
 
+    # Extract bridge information.
+    if "bridge" in extra:
+        bridge = extra["bridge"]
+        if not isinstance(bridge, str):
+            raise ValueError(
+                f"Bridge must be a string in {resource.name}.{relation.key}, "
+                f"got {type(bridge)}"
+            )
+        if len(bridge) == 0:
+            bridge = None
+            del extra["bridge"]
+    else:
+        bridge = None
+    if in_dir != "OneToMany" and bridge:
+        raise ValueError(
+            f"Bridge is only allowed for OneToMany relationships in "
+            f"{resource.name}.{relation.key}, current relationship is {in_dir}"
+        )
+
     # Check the correct use of the `is_list` argument.
     if in_dir in ("OneToMany", "ManyToMany"):
         assert relation.uselist, (
@@ -367,5 +386,10 @@ def dataset_from_sqlalchemy(
                 f_iter.derived = (f_base, NO_DIACRITICS)
 
             res.post_process_field(f_iter, field_map)
+
+            if f_iter.is_one_to_many_type:
+                f_many = cast("RefOneToManyField", f_iter)
+                if f_many.bridge:
+                    f_many.bridge = d_set[cast(str, f_many.bridge)]
 
     return d_set

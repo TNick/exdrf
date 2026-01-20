@@ -107,7 +107,8 @@ class ExdrfEditorBase(QWidget, QtUseContext):
         for w in self.edit_fields:
             self.install_editor(w)
 
-        logger.debug(
+        logger.log(
+            1,
             "ExdrfEditorBase has been initialized with %d fields",
             len(self.edit_fields),
         )
@@ -135,7 +136,8 @@ class ExdrfEditorBase(QWidget, QtUseContext):
         Args:
             fld_editor: The field editor to install.
         """
-        logger.debug(
+        logger.log(
+            1,
             "install_editor %s (id %s)",
             fld_editor.name,
             id(fld_editor),
@@ -165,7 +167,8 @@ class ExdrfEditorBase(QWidget, QtUseContext):
         # Inform the field editor that it is part of this form.
         fld_editor.set_form(self)
 
-        logger.debug(
+        logger.log(
+            1,
             "install_editor done for %s",
             fld_editor.name,
         )
@@ -217,15 +220,16 @@ class ExdrfEditorBase(QWidget, QtUseContext):
         Returns:
             True if the editor is valid.
         """
-        logger.debug("Checking the validity of the editor's content")
+        logger.log(1, "Checking the validity of the editor's content")
 
         valid = True
         for ed in self.edit_fields:
             if not ed.is_valid():
                 valid = False
-                logger.debug("Field %s is not valid", ed.name)
+                logger.log(10, "Field %s is not valid", ed.name)
 
-        logger.debug(
+        logger.log(
+            1,
             "The editor content is %s",
             "valid" if valid else "not valid",
         )
@@ -301,7 +305,8 @@ class ExdrfEditorBase(QWidget, QtUseContext):
             True if the editing was canceled.
         """
         if not self.is_editing:
-            logger.debug(
+            logger.log(
+                1,
                 "validate_cancel: not editing",
             )
             return True
@@ -400,7 +405,8 @@ class ExdrfEditor(ExdrfEditorBase, Generic[DBM]):
         parent: Optional["QWidget"] = None,
         parent_form: Optional["ExdrfEditor"] = None,
     ):
-        logger.debug(
+        logger.log(
+            1,
             "Creating an ExdrfEditor for %s(id=%s)",
             db_model.__name__,
             record_id,

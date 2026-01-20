@@ -18,7 +18,7 @@ from typing import (
 from attrs import define, field
 from pydantic import BaseModel, Field, field_validator
 
-from exdrf.constants import FIELD_TYPE_INTEGER
+from exdrf.constants import FIELD_TYPE_INTEGER, FIELD_TYPE_REF_ONE_TO_MANY
 from exdrf.label_dsl import (
     generate_python_code,
     generate_typescript_code,
@@ -31,6 +31,8 @@ if TYPE_CHECKING:
     from exdrf.dataset import ExDataset
     from exdrf.field import ExField
     from exdrf.field_types.ref_base import RefBaseField
+    from exdrf.field_types.ref_m2m import RefManyToManyField
+    from exdrf.field_types.ref_o2m import RefOneToManyField
     from exdrf.field_types.str_field import StrField
     from exdrf.label_dsl import ASTNode
     from exdrf.visitor import ExVisitor
@@ -651,6 +653,11 @@ class ExResource:
         exclude_ref_fields: Optional[bool] = False,
         exclude_fk_to: Optional[bool] = False,
         exclude_fk_from: Optional[bool] = False,
+        exclude_many_to_many: Optional[bool] = False,
+        exclude_many_to_one: Optional[bool] = False,
+        exclude_one_to_many: Optional[bool] = False,
+        exclude_one_to_one: Optional[bool] = False,
+        exclude_bridge: Optional[bool] = False,
     ) -> Dict[str, List["ExField"]]:
         """Get a dictionary that maps categories to fields.
 
@@ -665,7 +672,7 @@ class ExResource:
         """
         categories: Dict[str, List["ExField"]] = {}
 
-        def is_included(f):
+        def is_included(f: "ExField") -> bool:
             if exclude_names and f.name in exclude_names:
                 return False
             if exclude_derived and f.is_derived:
@@ -675,6 +682,20 @@ class ExResource:
             if exclude_fk_to and f.fk_to is not None:
                 return False
             if exclude_fk_from and f.fk_from is not None:
+                return False
+            if exclude_many_to_many and f.is_many_to_many_type:
+                return False
+            if exclude_many_to_one and f.is_many_to_one_type:
+                return False
+            if exclude_one_to_many and f.is_one_to_many_type:
+                return False
+            if exclude_one_to_one and f.is_one_to_one_type:
+                return False
+            if (
+                exclude_bridge
+                and hasattr(f, "bridge")
+                and bool(getattr(f, "bridge"))
+            ):
                 return False
             return True
 
@@ -722,6 +743,11 @@ class ExResource:
         exclude_ref_fields: Optional[bool] = False,
         exclude_fk_to: Optional[bool] = False,
         exclude_fk_from: Optional[bool] = False,
+        exclude_many_to_many: Optional[bool] = False,
+        exclude_many_to_one: Optional[bool] = False,
+        exclude_one_to_many: Optional[bool] = False,
+        exclude_one_to_one: Optional[bool] = False,
+        exclude_bridge: Optional[bool] = False,
     ) -> OrderedDict[str, List["ExField"]]:
         """Get a dictionary that maps categories to fields.
 
@@ -740,6 +766,11 @@ class ExResource:
             exclude_ref_fields=exclude_ref_fields,
             exclude_fk_to=exclude_fk_to,
             exclude_fk_from=exclude_fk_from,
+            exclude_many_to_many=exclude_many_to_many,
+            exclude_many_to_one=exclude_many_to_one,
+            exclude_one_to_many=exclude_one_to_many,
+            exclude_one_to_one=exclude_one_to_one,
+            exclude_bridge=exclude_bridge,
         )
         result = OrDict()
         for k in sorted(categories.keys(), key=self.category_sort_key):
@@ -766,6 +797,28 @@ class ExResource:
             ):
                 result[fld.name] = fld.no_dia_field.name  # type: ignore
         return result
+
+    def iter_many(self, include_bridge: bool = False):
+        from exdrf.constants import FIELD_TYPE_REF_MANY_TO_MANY
+
+        for other_r in self.dataset.resources:
+            if other_r is self:
+                continue
+            for fld in other_r.fields:
+                if fld.type_name == FIELD_TYPE_REF_MANY_TO_MANY:
+                    fld_m = cast("RefManyToManyField", fld)
+                    if fld_m.ref is self:
+                        yield other_r, fld_m, fld_m.ref_intermediate
+                    continue
+
+                if (
+                    include_bridge
+                    and fld.type_name == FIELD_TYPE_REF_ONE_TO_MANY
+                ):
+                    fld_o = cast("RefOneToManyField", fld)
+                    if fld_o.bridge is self:
+                        yield other_r, fld_o, fld_o.ref
+                    continue
 
 
 class ResExtraInfo(BaseModel):

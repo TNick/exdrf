@@ -1,4 +1,5 @@
 import logging
+import uuid
 from contextlib import contextmanager
 from typing import (
     TYPE_CHECKING,
@@ -170,8 +171,11 @@ class QtModel(
             is made for an item that is not in the cache. Instead of loading
             one item at a time, the model loads a batch of items. The batch size
             is the number of items to load at once.
-        _total_count: The total number of items in the selection.
-        _loaded_count: The number of items loaded from the database.
+        _total_count: The total number of items in the database selection.
+            This does not include the number of items in the top cache.
+        _loaded_count: The number of items loaded from the database. This does
+            not include the number of items in the top cache. Compare to
+            _total_count to see if there are more items to load.
         _checked: A list of database IDs that are checked. If this list is None
             (default) the model shows no checkboxes.
         _db_to_row: A dictionary that maps database IDs to row indices in the
@@ -200,8 +204,13 @@ class QtModel(
             filters. If the name of a local column is found in this
             dictionary an OR filter is created with the original value and the
             value without diacritics.
+        _fixed_filters: If present, will be AND-ed together with the
+            filters attribute before computing the filtered selector.
+            The intended use is to apply some fixed filters that are not
+            user-editable.
+
     Signals:
-        totalCountChanged: Emitted when a change iin the total count is
+        totalCountChanged: Emitted when a change in the total count is
             detected by the recalculate_total_count method.
         loadedCountChanged: Emitted when the number of items loaded from the
             database changes.
@@ -223,6 +232,7 @@ class QtModel(
     sort_by: List[Tuple[str, Literal["asc", "desc"]]]
     prioritized_ids: Optional[List[RecIdType]]
     _filters: FilterType
+    _fixed_filters: Optional[FilterType] = None
     top_cache: List["QtRecord"]
     cache: SparseList["QtRecord"]
     batch_size: int
@@ -489,7 +499,22 @@ class QtModel(
                         else None
                     ),
                 )  # type: ignore
-                .run(self._filters)
+                .run(
+                    self._filters
+                    if self._fixed_filters is None
+                    else [
+                        (
+                            self._fixed_filters
+                            if isinstance(self._fixed_filters, list)
+                            else [self._fixed_filters]
+                        ),
+                        (
+                            self._filters
+                            if isinstance(self._filters, list)
+                            else [self._filters]
+                        ),
+                    ]  # type: ignore
+                )
             )
         except Exception:
             logger.error(
@@ -708,7 +733,9 @@ class QtModel(
         cache.
 
         Args:
-            start: The starting index of the items to load.
+            start: The starting index of the items to load. The index used here
+                should not include the offset of the top cache (the first
+                database item is at index 0 always).
             count: The number of items to load.
         """
         if start + count > self._total_count:
@@ -1763,6 +1790,118 @@ class QtModel(
             self.name,
         )
 
+    def insert_new_records(
+        self, new_items: List[Union[Dict[str, Any], "QtRecord"]]
+    ) -> List["QtRecord"]:
+        """Insert a database record into the model.
+
+        The record is not placed into the normal cache. It is placed into a
+        special cache that always reports its items first, before other items.
+        """
+        logger.log(
+            MODEL_LOG_LEVEL,
+            "M: %s Inserting %d new records into model...",
+            self.name,
+            len(new_items),
+        )
+
+        result = []
+        parent_idx = QModelIndex()
+        self.rowsAboutToBeInserted.emit(parent_idx, 0, len(new_items) - 1)
+
+        for i, item in enumerate(new_items):
+            if isinstance(item, QtRecord):
+                m_item = item
+            else:
+                m_item = self.data_to_record(item)
+            if m_item is None:
+                logger.error(
+                    "M: %s Error converting item %d to record",
+                    self.name,
+                    i,
+                )
+                continue
+            self.top_cache.insert(i, m_item)
+            result.append(m_item)
+
+        self.rowsInserted.emit(parent_idx, 0, len(new_items) - 1)
+        self.totalCountChanged.emit(self.total_count)
+
+        logger.log(
+            MODEL_LOG_LEVEL,
+            "M: %s %d new records inserted into model.",
+            self.name,
+            len(new_items),
+        )
+        return result
+
+    def data_to_record(
+        self, item: Dict[str, Any], record: Optional["QtRecord"] = None
+    ) -> "QtRecord":
+        """Convert data to a record.
+
+        The function asks the fields to compute the values for each role of the
+        corresponding column.
+
+        NOTE: As this method is also used from outside the model it is important
+        for it to remain pure. It should not change the state of the model or
+        the record.
+
+        Args:
+            item: The database item.
+
+        Returns:
+            The newly created record.
+        """
+        from exdrf_qt.models.record import QtRecord
+
+        uuid_id = str(uuid.uuid4())
+
+        if record is None:
+            result = QtRecord(
+                model=self,  # type: ignore
+                db_id=uuid_id,  # type: ignore
+            )
+        else:
+            result = record
+            result.db_id = uuid_id  # type: ignore
+
+        for f_index, fld in enumerate(self.column_fields):
+            try:
+                value = item.get(fld.name, None)
+                result.values[f_index] = {
+                    Qt.ItemDataRole.DisplayRole: value,
+                    Qt.ItemDataRole.EditRole: value,
+                }
+            except Exception as e:
+                logger.error(
+                    "M: %s Error converting item %d to record "
+                    "using field '%s': %s",
+                    self.name,
+                    f_index,
+                    fld.name,
+                    e,
+                )
+
+                import traceback
+
+                logger.error("M: %s %s", self.name, traceback.format_exc())
+
+                result.values[f_index] = {
+                    Qt.ItemDataRole.DisplayRole: str(e),
+                    Qt.ItemDataRole.EditRole: str(e),
+                }
+                result.error = True
+
+        # Deal with soft delete.
+        del_field = self.get_soft_delete_field()
+        if del_field is not None:
+            del_value = item.get(del_field.name, None)
+            result.soft_del = bool(del_value)
+
+        result.loaded = True
+        return result
+
     @property
     def settings_key(self) -> str:
         """Return the key for the settings."""
@@ -1823,3 +1962,28 @@ class QtModel(
     ) -> Optional[Any]:
         """Get the filter for a constraint."""
         return None
+
+    def ensure_fully_loaded(self) -> None:
+        """Ensure that the model is fully loaded."""
+        if self.is_fully_loaded:
+            return
+
+        range_start = None
+        existing = set(self.cache.keys())
+        for i in range(self._total_count):
+            if i in existing:
+                m_rec = self.cache[i]
+                if m_rec.loaded and not m_rec.error:
+                    # If we-re accumulating indices, end that now.
+                    if range_start is not None:
+                        self.request_items(range_start, i - range_start)
+                        range_start = None
+                    continue
+
+            # If we're not accumulating indices, start that now.
+            if range_start is None:
+                range_start = i
+
+        # If we're still accumulating indices, end that now.
+        if range_start is not None:
+            self.request_items(range_start, self._total_count - range_start)

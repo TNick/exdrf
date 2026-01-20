@@ -30,10 +30,11 @@ from jinja2.runtime import Undefined
 if TYPE_CHECKING:
     from exdrf.dataset import ExDataset
     from exdrf.field import ExField
+    from exdrf.field_types.ref_m2m import RefManyToManyField
+    from exdrf.field_types.ref_o2m import RefOneToManyField
     from exdrf.field_types.str_field import StrField
     from exdrf.resource import ExResource
     from jinja2 import Environment
-
 logger = logging.getLogger(__name__)
 
 
@@ -64,7 +65,7 @@ def get_field_value(value) -> str:
     return f"{value}"
 
 
-def d_base_ui_class(field: "ExField") -> str:
+def d_base_ui_class(field: "ExField", is_many: bool = False) -> str:
     """Get the field base class given the field type.
 
     Args:
@@ -73,6 +74,18 @@ def d_base_ui_class(field: "ExField") -> str:
     Returns:
         The base class name for the field.
     """
+    if is_many:
+        if hasattr(field, "bridge") and bool(getattr(field, "bridge")):
+            f_o2m = cast("RefOneToManyField", field)
+            r_name = f_o2m.resource.pascal_case_name
+            ref_name = f_o2m.bridge.pascal_case_name  # type: ignore
+            return f"Qt{r_name}Rel{ref_name}"  # type: ignore
+        else:
+            f_many = cast("RefManyToManyField", field)
+            r_name = f_many.resource.pascal_case_name
+            ref_name = f_many.ref.pascal_case_name  # type: ignore
+            return f"Qt{r_name}Rel{ref_name}"  # type: ignore
+
     if field.type_name == "blob":
         return "DrfBlobEditor"
     elif field.type_name == "text":
@@ -99,10 +112,16 @@ def d_base_ui_class(field: "ExField") -> str:
         )
     elif field.type_name == "formatted":
         return "DrfTextEditor"
+    elif hasattr(field, "bridge") and bool(getattr(field, "bridge")):
+        r_name = field.resource.pascal_case_name
+        ref_name = field.bridge.pascal_case_name  # type: ignore
+        return f"Qt{ref_name}Rel{r_name}"  # type: ignore
     elif field.type_name == "one-to-many":
         return f"Qt{field.ref.pascal_case_name}MuSe"  # type: ignore
     elif field.type_name == "many-to-many":
-        return f"Qt{field.ref.pascal_case_name}MuSe"  # type: ignore
+        r_name = field.resource.pascal_case_name
+        ref_name = field.ref.pascal_case_name  # type: ignore
+        return f"Qt{ref_name}Rel{r_name}"  # type: ignore
     elif field.type_name == "one-to-one":
         return f"Qt{field.ref.pascal_case_name}SiSe"  # type: ignore
     elif field.type_name == "many-to-one":
@@ -159,6 +178,79 @@ def d_fld_category(field: "ExField") -> str:
         The category for the field.
     """
     return field.category
+
+
+def _is_implied_rel_field(
+    i_f: "ExField",
+    r_list: "ExResource",
+    r_edit: "ExResource",
+    r_link: "ExResource",
+) -> bool:
+    if i_f.fk_from is not None:
+        i_f = i_f.fk_from
+    if len(i_f.src.foreign_keys) == 0:
+        # This can be the case when
+        return False
+
+    assert len(i_f.src.foreign_keys) == 1, "Expected exactly one foreign key"
+    pf = r_edit.primary_fields()
+    assert len(pf) == 1, "Expected exactly one primary field"
+    for fk in i_f.src.foreign_keys:
+        for f_name in pf:
+            fld = r_edit[f_name]
+            if fld.src is fk.column:
+                return True
+    return False
+
+
+def is_implied_rel_field(
+    i_f: "ExField",
+    r_list: "ExResource",
+    r_edit: "ExResource",
+    r_link: "ExResource",
+) -> bool:
+    """Determine if the current field is one of the implied fields.
+
+    Implied fields are the fields of the link model that point to
+    (contain the primary keys of) the resource in the editor. We want to
+    filter those out as there's no point in showing them in the
+    list of associated records.
+
+    Args:
+        i_f: The field of r_link to check.
+        r_list: The resource that will provide the items to be manipulated.
+            In the editor this is the *other resource*.
+        r_edit: The resource that is being edited.
+        r_link: the resource that links the two resources.
+
+    Returns:
+        True if the field is one of the implied fields.
+    """
+    detected = [
+        f.name
+        for f in r_link.fields
+        if _is_implied_rel_field(f, r_list, r_edit, r_link)
+    ]
+    assert len(detected) in (1, 2), "Expected exactly one or two implied fields"
+
+    return i_f.name in detected
+
+
+def get_mirror_field(
+    r: "ExResource", other_r: "ExResource", fld: "ExField", int_r: "ExResource"
+) -> str:
+    for int_f_name in int_r.primary_fields():
+        int_f = int_r[int_f_name]
+        for fk in int_f.src.foreign_keys:
+            for r_f_name in r.primary_fields():
+                r_f = r[r_f_name]
+                if fk.column is r_f.src:
+                    if int_f.fk_to:
+                        return int_f.fk_to.name
+                    return int_f.name
+    raise ValueError(
+        f"No mirror field found for field {fld.name} in resource {int_r.name}"
+    )
 
 
 def generate_qt_from_alchemy(
@@ -287,6 +379,7 @@ def generate_qt_from_alchemy(
                 "fk_to",
                 "fk_from",
                 "no_dia_field",
+                "bridge",
             ):
                 type_name = str(part.type)
                 if "typing." in type_name:
@@ -454,6 +547,14 @@ def generate_qt_from_alchemy(
                                     File(
                                         "{res_snake}_tv.html.j2",
                                         "c/m/w/view_templ.html.j2",
+                                    ),
+                                    File(
+                                        "{res_snake}_rel.py",
+                                        "c/m/w/rel_editor.py.j2",
+                                        extra={
+                                            "is_implied_rel_field": is_implied_rel_field,
+                                            "get_mirror_field": get_mirror_field,
+                                        },
                                     ),
                                 ],
                             ),

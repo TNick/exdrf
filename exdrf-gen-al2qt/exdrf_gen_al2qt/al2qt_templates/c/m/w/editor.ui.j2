@@ -22,8 +22,19 @@
      {# Exclude fields that are foreign keys to other resources because
       # there is a relation that uses that foreign key and that will be
       # used to edit the items.
+      #
+      # We also exclude many-to-many fields because they are handled
+      # separately.
       #}
-     {% for c_name, c_fields in r.sorted_fields_and_categories(exclude_derived=True, exclude_fk_to=True).items() %}
+     {%
+        set sfc = r.sorted_fields_and_categories(
+          exclude_many_to_many=True,
+          exclude_bridge=True,
+          exclude_derived=True,
+          exclude_fk_to=True
+        ).items()
+      %}
+     {% for c_name, c_fields in sfc %}
      <widget class="QWidget" name="tab_{{ c_name if c_name else "general" }}">
       <attribute name="title">
        <string>{{ (c_name if c_name else "general")| title }}</string>
@@ -122,13 +133,33 @@
       </layout>
      </widget>
      {% endfor %}
+     {%
+      for f_i, field in enumerate(r.fields)
+      if field.is_many_to_many_type or field.bridge
+     %}
+     <widget class="QWidget" name="tab_{{ field.name }}_rel">
+      <attribute name="title">
+       <string>{{ field.title }}</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="formLayout">
+      <item row="0">
+        <widget class="{{ base_ui_class(field, True) }}" name="c_{{ field.name }}">
+         <property name="name" stdset="0">
+          <string notr="true">{{ field.name }}</string>
+         </property>
+        </widget>
+      </item>
+      </layout>
+     </widget>
+     {%- endfor %}
     </widget>
    </item>
   </layout>
  </widget>
  <customwidgets>
  {%- set seen_widgets = set() %}
- {%- for field in r.sorted_fields %}
+  {%- for c_name, c_fields in sfc %}
+  {%- for field in c_fields %}
   {%- set read_only_data = get_read_only_field_data(field) or {} %}
   {%- set b_ui = read_only_data.get("custom_ui_xml", base_ui_class(field)) %}
   {%- if b_ui not in seen_widgets %}
@@ -137,6 +168,8 @@
     <extends>QLineEdit</extends>
     {%- if read_only_data.get("custom_header", None) %}
     <header>{{ read_only_data["custom_header"] }}</header>
+    {%- elif field.type_name == "many-to-many" or field.bridge %}
+    <header>{{ out_module }}.{{ field.resource.categories[0] }}.{{ field.resource.snake_case_name_plural }}.api</header>
     {%- elif field.is_ref_type %}
     <header>{{ out_module }}.{{ field.ref.categories[0] }}.{{ field.ref.snake_case_name_plural }}.api</header>
     {%- else %}
@@ -145,7 +178,31 @@
   </customwidget>
   {%- set _ = seen_widgets.add(b_ui) %}
   {%- endif %} {# if b_ui not in seen_widgets #}
- {%- endfor %} {# for field in r.sorted_fields #}
+ {%- endfor %} {# for field in c_fields #}
+ {%- endfor %} {# for c_name, c_fields in sfc #}
+ {%
+  for f_i, field in enumerate(r.fields)
+  if field.is_many_to_many_type or field.bridge
+ %}
+  {%- set read_only_data = get_read_only_field_data(field) or {} %}
+  {%- set b_ui = read_only_data.get("custom_ui_xml", base_ui_class(field, True)) %}
+  {%- if b_ui not in seen_widgets %}
+  <customwidget>
+    <class>{{ b_ui }}</class>
+    <extends>QWidget</extends>
+    {%- if read_only_data.get("custom_header", None) %}
+    <header>{{ read_only_data["custom_header"] }}</header>
+    {%- elif field.bridge %}
+    <header>{{ out_module }}.{{ field.bridge.categories[0] }}.{{ field.bridge.snake_case_name_plural }}.api</header>
+    {%- else %}
+    <header>{{ out_module }}.{{ field.ref.categories[0] }}.{{ field.ref.snake_case_name_plural }}.api</header>
+    <header>exdrf_qt.field_ed.api</header>
+    {%- endif %}
+  </customwidget>
+  {%- set _ = seen_widgets.add(b_ui) %}
+  {%- endif %} {# if b_ui not in seen_widgets #}
+ {%- endfor %}
+
  </customwidgets>
  <resources/>
  <connections/>

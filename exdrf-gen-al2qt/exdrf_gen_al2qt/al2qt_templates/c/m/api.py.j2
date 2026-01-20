@@ -27,7 +27,12 @@ from {{ out_module }}.{{ r.categories[0] }}.{{ r.snake_case_name_plural }}.widge
 from {{ out_module }}.{{ r.categories[0] }}.{{ r.snake_case_name_plural }}.widgets.{{ res_snake }}_tv import (
     Qt{{ ResPascal }}Tv,
 )
-
+from {{ out_module }}.{{ r.categories[0] }}.{{ r.snake_case_name_plural }}.widgets.{{ res_snake }}_rel import (
+    Qt{{ ResPascal }}Rel,
+{%- for other_r, fld, int_r in r.iter_many(include_bridge=True) %}
+    Qt{{ other_r.name }}Rel{{ r.name }},
+{%- endfor %}
+)
 # exdrf-keep-start more_content ------------------------------------------------
 {{more_content}}
 # exdrf-keep-end more_content --------------------------------------------------

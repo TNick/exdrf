@@ -10,8 +10,9 @@ from typing import (
 from PyQt5.QtCore import QItemSelection, QItemSelectionModel
 from PyQt5.QtWidgets import QAbstractItemView
 from sqlalchemy import inspect
-from exdrf_qt.utils.tlh import top_level_handler
+
 from exdrf_qt.field_ed.fed_sel_one import DrfSelBase
+from exdrf_qt.utils.tlh import top_level_handler
 
 if TYPE_CHECKING:
     from exdrf.constants import RecIdType

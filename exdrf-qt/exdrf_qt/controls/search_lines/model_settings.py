@@ -1,8 +1,8 @@
 import logging
 from typing import TYPE_CHECKING, Generic, List, Optional, TypeVar
 
-from PyQt5.QtCore import QPoint
 from exdrf.filter import SearchType
+from PyQt5.QtCore import QPoint
 
 if TYPE_CHECKING:
     from PyQt5.QtWidgets import QAction, QActionGroup, QWidget

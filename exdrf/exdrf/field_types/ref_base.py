@@ -61,6 +61,9 @@ class RelExtraInfo(FieldInfo):
         depends_on: indicates the concepts that this field depends on. This is
             usually set at the resource level but can be overridden at the field
             level.
+        bridge: Even if the relation type is declared as OneToMany, the
+            other side is a junction table with extra attributes. The value is
+            the name of the resource on the other side.
     """
 
     direction: Optional[RelType] = None
@@ -68,6 +71,7 @@ class RelExtraInfo(FieldInfo):
     expect_lots: Optional[bool] = False
     provides: List[str] = Field(default_factory=list)
     depends_on: List[Tuple[str, str]] = Field(default_factory=list)
+    bridge: Optional[str] = None
 
     @field_validator("provides", mode="before")
     @classmethod

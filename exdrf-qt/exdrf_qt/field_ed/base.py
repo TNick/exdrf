@@ -121,7 +121,7 @@ class DrfFieldEd(QtUseContext):
             raise ValueError("Field name is not set.")
 
         logger.log(
-            10,
+            1,
             "Saving field value %s to record: %s",
             self.field_value,
             self._name,

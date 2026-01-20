@@ -40,8 +40,8 @@ if TYPE_CHECKING:
     from PyQt5.QtCore import QItemSelection, QItemSelectionModel  # noqa: F401
 
     from exdrf_qt.context import QtContext  # noqa: F401
-    from exdrf_qt.models import QtModel  # noqa: F401
     from exdrf_qt.controls.search_lines.base import SearchData
+    from exdrf_qt.models import QtModel  # noqa: F401
 
 DBM = TypeVar("DBM")
 logger = logging.getLogger(__name__)

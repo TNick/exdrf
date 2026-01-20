@@ -317,7 +317,7 @@ class Worker(QThread):
                 with self.cn.session() as session:
                     work.perform(session)
                 logger.log(
-                    10,
+                    1,
                     "\n\nWork with ID %s completed in worker thread, "
                     "%d results from statement: %s\n\n",
                     work.req_id,

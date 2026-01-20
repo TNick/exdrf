@@ -262,6 +262,9 @@ def convert_pair(
     try:
         uic.compileUi(ui_file, output)
     except Exception as e:
+        import traceback
+
+        traceback.print_exc()
         print(f"Error compiling {ui_file}: {e}")
         return 1
 

@@ -154,7 +154,7 @@ class ListDbHeader(QHeaderView, QtUseContext, Generic[DBM]):
     def on_sort_indicator_changed(
         self, logical_index: int, order: Qt.SortOrder
     ):
-        logger.debug("sortIndicatorChanged: %s, %s", logical_index, order)
+        logger.log(1, "sortIndicatorChanged: %s, %s", logical_index, order)
 
     @property
     def treeview(self) -> "QTreeView":

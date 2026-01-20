@@ -33,7 +33,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-DBM = TypeVar("DBM", bound="PopupWidget")
+DBM = TypeVar("DBM")
 
 
 class PopupWidget(QWidget, Generic[DBM], QtUseContext):

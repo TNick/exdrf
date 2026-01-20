@@ -1,6 +1,6 @@
 """Cache module providing sparse list implementation."""
 
-from typing import Callable, Dict, Generic, KeysView, TypeVar
+from typing import Callable, Dict, Generic, Iterator, KeysView, Tuple, TypeVar
 
 T = TypeVar("T")
 
@@ -132,3 +132,12 @@ class SparseList(Generic[T]):
             for i in to_del:
                 del self._data[i]
         self._size = size
+
+    def iter_existing(self) -> Iterator[Tuple[int, T]]:
+        """Iterate over the existing items in the sparse list.
+
+        Returns:
+            An iterator over the existing items in the sparse list.
+        """
+        for i, j in self._data.items():
+            yield i, j

@@ -5,8 +5,8 @@ from exdrf_qt.controls.search_lines.base import BasicSearchLine
 from exdrf_qt.utils.tlh import top_level_handler
 
 if TYPE_CHECKING:
-    from exdrf_qt.models import QtModel
     from exdrf_qt.controls.search_lines.base import SearchData
+    from exdrf_qt.models import QtModel
 
 
 DBM = TypeVar("DBM")

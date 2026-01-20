@@ -1,9 +1,12 @@
-from typing import Any
+from typing import TYPE_CHECKING, Any, Optional
 
 from attrs import define, field
 
 from exdrf.constants import FIELD_TYPE_REF_ONE_TO_MANY
 from exdrf.field_types.ref_base import RefBaseField
+
+if TYPE_CHECKING:
+    from exdrf.resource import ExResource
 
 
 @define
@@ -21,6 +24,7 @@ class RefOneToManyField(RefBaseField):
     type_name: str = field(default=FIELD_TYPE_REF_ONE_TO_MANY)
     is_list: bool = field(default=True)
     subordinate: bool = field(default=False)
+    bridge: Optional["ExResource"] = field(default=None)
 
     def field_properties(self, explicit: bool = False) -> dict[str, Any]:
         result = super().field_properties(explicit)

@@ -1,0 +1,146 @@
+import logging
+from typing import TYPE_CHECKING, Any, Callable, Union
+
+from exdrf_qt.field_ed.fed_related import DrfRelated
+from exdrf_qt.plugins import exdrf_qt_pm
+from exdrf_qt.utils.plugins import safe_hook_call
+
+# exdrf-keep-start other_imports -----------------------------------------------
+{{other_imports}}
+# exdrf-keep-end other_imports -------------------------------------------------
+
+if TYPE_CHECKING:
+    from exdrf_qt.context import QtContext  # noqa: F401
+    from {{ db_module }}.{{ r.categories[0] }}.api import {{ r.name }} as {{ r.name }}  # noqa: F401
+    from sqlalchemy.orm import Session  # noqa: F401
+    from exdrf_qt.controls.base_editor import ExdrfEditorBase
+
+logger = logging.getLogger(__name__)
+
+# exdrf-keep-start other_globals -----------------------------------------------
+{{other_globals}}
+# exdrf-keep-end other_globals -------------------------------------------------
+
+
+class Qt{{ ResPascal }}Rel(DrfRelated):
+    """Relations editor where the target records are {{ ResPascal }} instances.
+    """
+    # exdrf-keep-start other_attributes ----------------------------------------
+{{other_attributes}}
+    # exdrf-keep-end other_attributes ------------------------------------------
+
+    def __init__(self, ctx: "QtContext", **kwargs):
+        from {{ out_module }}.{{ r.categories[0] }}.{{ r.snake_case_name_plural }}.api import (
+            Qt{{ r.pascal_case_name }}FuMo,
+        )
+        from {{ db_module }}.{{ r.categories[0] }}.api import (
+            {{ r.pascal_case_name }} as Db{{ r.pascal_case_name }}
+        )
+        from {{ util_module }}.{{ r.categories[0] }}.{{ res_snake }} import (
+            {{ res_snake }}_label
+        )
+
+        super().__init__(
+            ctx=ctx,
+            src_model=kwargs.pop("src_model", ctx.get_ovr(
+                "{{ out_module }}.{{ r.categories[0] }}.{{ res_p_snake }}."
+                "rel.src_model.{{ r.snake_case_name_plural }}",
+                Qt{{ r.pascal_case_name }}FuMo,
+            )),
+            src_db_model=kwargs.pop("src_db_model", ctx.get_ovr(
+                "{{ out_module }}.{{ r.categories[0] }}.{{ res_p_snake }}."
+                "rel.src_db_model.{{ r.snake_case_name_plural }}",
+                Db{{ r.name }},
+            )),
+            src_label_fun={{ res_snake }}_label,
+            **kwargs
+        )
+    # exdrf-keep-start extra_editor_content ------------------------------------
+{{extra_editor_content}}
+    # exdrf-keep-end extra_editor_content --------------------------------------
+
+    {%- if r.depends_on %}
+
+    def set_form(self, form: "ExdrfEditorBase"):
+        super().set_form(form)
+
+        self.integrate_concepts(
+            [
+                {%- for concept, target in r.depends_on %}
+                "{{ concept }}",
+                {%- endfor %}
+            ],
+        )
+    {%- endif %}
+
+{%- for other_r, fld, int_r in r.iter_many(include_bridge=True) %}
+
+
+class Qt{{ other_r.pascal_case_name }}Rel{{ r.name }}(Qt{{ ResPascal }}Rel):
+    """Relation editor for {{ r.name }} resources when hosted inside
+    {{ other_r.name }} resources.
+
+    The editor will present two lists for the user to edit the connections:
+        - to the left the full list of {{ r.name }} resources and
+        - to the right the list of {{ r.name }} resources that are
+          associated with the {{ other_r.name }} resource that is being edited.
+    """
+    def __init__(self, ctx: "QtContext", **kwargs):
+        from {{ out_module }}.{{ int_r.categories[0] }}.{{ int_r.snake_case_name_plural }}.api import (
+            Qt{{ int_r.pascal_case_name }}FuMo,
+        )
+        from {{ db_module }}.{{ int_r.categories[0] }}.api import (
+            {{ int_r.pascal_case_name }} as Db{{ int_r.pascal_case_name }}
+        )
+        from {{ db_module }}.{{ other_r.categories[0] }}.api import (
+            {{ other_r.pascal_case_name }} as Db{{ other_r.pascal_case_name }}
+        )
+
+        super().__init__(
+            ctx=ctx,
+            dst_model=kwargs.pop("dst_model", ctx.get_ovr(
+                "{{ out_module }}.{{ r.categories[0] }}.{{ res_p_snake }}."
+                "rel.dst_model.{{ int_r.snake_case_name_plural }}",
+                Qt{{ int_r.pascal_case_name }}FuMo,
+            )),
+            dst_db_model=kwargs.pop("dst_db_model", ctx.get_ovr(
+                "{{ out_module }}.{{ r.categories[0] }}.{{ res_p_snake }}."
+                "rel.dst_db_model.{{ int_r.snake_case_name_plural }}",
+                Db{{ int_r.name }},
+            )),
+            final_db_model=kwargs.pop("final_db_model", ctx.get_ovr(
+                "{{ out_module }}.{{ r.categories[0] }}.{{ res_p_snake }}."
+                "rel.final_db_model.{{ int_r.snake_case_name_plural }}",
+                Db{{ other_r.name }},
+            )),
+            is_simple={{ 'False' if fld.bridge else 'True' }},
+
+            implicit_set={
+                {%- for i_f in int_r.fields %}
+                {%- if is_implied_rel_field(i_f, r, other_r, int_r) %}
+                "{{ i_f.name }}",
+                {%- endif %}
+                {%- endfor %}
+            },
+            exclude_set=[
+                {#- We want to hide foreign keys for relations that are
+                 #  already present in the model -#}
+                {%- for i_f in int_r.fields %}
+                {%- if i_f.fk_to and not is_implied_rel_field(i_f, r, other_r, int_r) %}
+                "{{ i_f.name }}",
+                {%- endif %}
+                {%- endfor %}
+            ],
+            mirror_field="{{ get_mirror_field(r, other_r, fld, int_r) if fld.bridge else "" }}",
+        )
+        # Inform plugins that the editor has been created.
+        # safe_hook_call(
+        #    exdrf_qt_pm.hook.{{ other_r.snake_case_name }}_rel_{{ r.snake_case_name }}_created,
+        #    widget=self
+        #)
+
+{%- endfor %}
+# exdrf-keep-start more_content ------------------------------------------------
+{{more_content}}
+# exdrf-keep-end more_content --------------------------------------------------
+{{- "\n" -}}

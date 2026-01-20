@@ -42,8 +42,8 @@ if TYPE_CHECKING:
     from exdrf_qt.models.record import QtRecord
 
 logger = logging.getLogger(__name__)
-DBM = TypeVar("DBM", bound="DrfSelBase")
-DBM_O = TypeVar("DBM_O", bound="DrfSelOneEditor")
+DBM = TypeVar("DBM")
+DBM_O = TypeVar("DBM_O")
 
 
 class ClickableLineEdit(QLineEdit):
@@ -239,7 +239,10 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
         return action
 
     def create_edit_action(self) -> Optional[QAction]:
-        """Creates an action that allows the user to edit the current selection."""
+        """Creates an action that allows the user to edit the current selection.
+
+        If the editor class is not set, no action is created.
+        """
         # Return existing action if already created.
         if self._edit_action is not None:
             return self._edit_action
@@ -371,7 +374,7 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
         # Prevent changes if the field is read-only.
         if self._read_only:
             logger.log(
-                10,
+                1,
                 "%s.change_field_value(): read only",
                 self.__class__.__name__,
             )
@@ -380,7 +383,7 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
         # Handle None values by clearing the field.
         if new_value is None:
             logger.log(
-                10,
+                1,
                 "%s.change_field_value(): None",
                 self.__class__.__name__,
             )
@@ -498,7 +501,7 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
             db_model=self.qt_model.db_model,
             parent=self,
             parent_form=self.form,
-            **kwargs
+            **kwargs,
         )
 
         # React to the record being saved.
@@ -590,7 +593,7 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
 
             # ...and see if the current ID is in the selection.
             stm = stm.where(
-                self._qt_model.get_id_filter(self._field_value),
+                self._qt_model.get_id_filter([self._field_value]),
             )
             with self.ctx.same_session() as session:
                 count_stmt = select(func.count()).select_from(stm.subquery())
