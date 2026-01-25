@@ -34,6 +34,8 @@ from exdrf_qt.utils.tlh import top_level_handler
 if TYPE_CHECKING:
     pass
 
+    from PyQt5.QtWidgets import QAction
+
     from exdrf_qt.context import QtContext
     from exdrf_qt.field_ed.fed_related.base_adapter import BaseAdapter
 
@@ -187,10 +189,22 @@ class DrfRelated(QWidget, Generic[DBM], DrfFieldEd):
 
         # Create the destination list.
         self.dst_list = TreeViewDb(parent=self, ctx=self.ctx)
+        self.adjust_dst_actions()
         self.lay_main.addWidget(self.dst_list)
 
         # Set the layout for the page.
         self.setLayout(self.lay_main)
+
+    def adjust_dst_action(self, action: "QAction", handler: Any):
+        try:
+            action.triggered.disconnect()
+        except Exception:
+            pass
+        action.triggered.connect(handler)
+
+    def adjust_dst_actions(self):
+        self.adjust_dst_action(self.dst_list.ac_rem, self.on_btn_remove_clicked)
+        self.adjust_dst_action(self.dst_list.ac_rem_all, self.on_remove_all)
 
     def create_models(
         self,
@@ -260,6 +274,22 @@ class DrfRelated(QWidget, Generic[DBM], DrfFieldEd):
         sm_dst = self.dst_list.selectionModel()
         if sm_dst is not None:
             sm_dst.selectionChanged.connect(self.on_dst_selection_changed)
+
+        # React to change in number of items.
+        self.dst_model.totalCountChanged.connect(
+            self.on_dst_total_count_changed
+        )
+        # Remove unused actions.
+        self.dst_list.ac_new.deleteLater()
+        self.dst_list.ac_new = None  # type: ignore
+        self.dst_list.ac_view.deleteLater()
+        self.dst_list.ac_view = None  # type: ignore
+        self.dst_list.ac_edit.deleteLater()
+        self.dst_list.ac_edit = None  # type: ignore
+        self.dst_list.ac_clone.deleteLater()
+        self.dst_list.ac_clone = None  # type: ignore
+        self.dst_list.ac_filter.deleteLater()
+        self.dst_list.ac_filter = None  # type: ignore
 
     @top_level_handler
     def on_src_selection_changed(
@@ -338,7 +368,10 @@ class DrfRelated(QWidget, Generic[DBM], DrfFieldEd):
         dst_sm.clearSelection()
 
     def change_field_value(self, new_value: Any) -> None:
-        self.adapter.change_field_value(new_value)
+        raise NotImplementedError(
+            "This method is not implemented. "
+            "The control only works under an editor for now."
+        )
 
     def validate_control(self) -> "ValidationResult":
         return self.adapter.validate_control()
@@ -357,3 +390,66 @@ class DrfRelated(QWidget, Generic[DBM], DrfFieldEd):
     def on_record_saved(self, record: DBM):
         """Handle the record saved signal."""
         self.adapter.load_value_from(record)
+
+    @top_level_handler
+    def on_remove_all(self) -> None:
+        """Handle the remove all button click."""
+        # Collect the selected destination records.
+        dst_sm = self.dst_list.selectionModel()
+        if dst_sm is None:
+            return
+
+        # Collect all records.
+        selected_records = dst_sm.iter_records(
+            include_top=True,
+        )
+        if not selected_records:
+            return
+        filtered_records = cast(
+            "List[Tuple[QtRecord, int]]",
+            [r for r in selected_records if r[0] is not None],
+        )
+        self.adapter.remove_records(filtered_records)
+
+        # Clear the selection in the destination list.
+        dst_sm.clearSelection()
+
+    @top_level_handler
+    def on_dst_total_count_changed(self, count: int) -> None:
+        """Handle the change in the total number of items in the destination
+        list.
+
+        Args:
+            count: The new total number of items.
+        """
+        enabled = count > 0
+        if self.form and not self.form.is_editing:
+            enabled = False
+        self.dst_list.ac_rem_all.setEnabled(enabled)
+
+    def change_edit_mode(self, in_editing: bool) -> None:
+        """Change the edit mode of the related editor.
+
+        Args:
+            is_editing: True if the editor is in editing mode, False otherwise.
+        """
+        # Source selection.
+        src_sm = self.src_list.selectionModel()
+        src_enabled = in_editing
+        if in_editing and src_sm is not None:
+            src_enabled = not src_sm.selectedRows().isEmpty()
+
+        # Destination selection.
+        dst_sm = self.dst_list.selectionModel()
+        dst_enabled = in_editing
+        if in_editing and dst_sm is not None:
+            dst_enabled = not dst_sm.selectedRows().isEmpty()
+
+        # Change the buttons.
+        self.btn_add.setEnabled(src_enabled)
+        self.btn_remove.setEnabled(dst_enabled)
+        self.dst_list.ac_rem.setEnabled(dst_enabled)
+
+        self.dst_list.ac_rem_all.setEnabled(
+            in_editing and self.dst_model.total_count > 0
+        )

@@ -688,7 +688,9 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
             menu.addAction(self.ac_edit)
 
         if self.ac_set_null is not None:
-            menu.addAction(self.ac_set_null)
+            index = self.can_null_current_index()
+            if index is not None:
+                menu.addAction(self.ac_set_null)
 
         if self.ac_clone is not None:
             menu.addAction(self.ac_clone)
@@ -841,25 +843,31 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
         """Export all items."""
         raise NotImplementedError("on_export_all() not implemented.")
 
-    @top_level_handler
-    def on_set_null(self) -> None:
-        """Set the selected item to NULL."""
+    def can_null_current_index(self):
         src_sm = self.selectionModel()
         if src_sm is None:
-            return
+            return None
         column_fields = self.qt_model.column_fields
         index = src_sm.currentIndex()
         column = index.column()
         field: "QtField" = column_fields[column]
-        if field.nullable and not field.read_only:
-            if not self.qt_model.setData(index, None, Qt.ItemDataRole.EditRole):
-                self.ctx.show_error(
-                    title=self.t("cmn.error", "Error"),
-                    message=self.t(
-                        "cmn.error.cannot-set-null",
-                        "Cannot set field to NULL.",
-                    ),
-                )
+        return index if field.nullable and not field.read_only else None
+
+    @top_level_handler
+    def on_set_null(self) -> None:
+        """Set the selected item to NULL."""
+        index = self.can_null_current_index()
+        if index is None:
+            return
+
+        if not self.qt_model.setData(index, None, Qt.ItemDataRole.EditRole):
+            self.ctx.show_error(
+                title=self.t("cmn.error", "Error"),
+                message=self.t(
+                    "cmn.error.cannot-set-null",
+                    "Cannot set field to NULL.",
+                ),
+            )
 
     @top_level_handler
     def on_reload(self) -> None:
