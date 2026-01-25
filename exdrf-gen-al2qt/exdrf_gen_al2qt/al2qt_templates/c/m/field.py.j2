@@ -31,10 +31,28 @@ if TYPE_CHECKING:
     {%- endif %}
     from exdrf_qt.models.selector import Selector
     from exdrf.filter import FieldFilter
+    {%- if field.bridge %}
+    from {{ db_module }}.{{ field.bridge.categories[0] }}.api import {{ field.bridge.pascal_case_name }}  # noqa: F401
+    from {{ db_module }}.{{ field.ref.categories[0] }}.api import {{ field.ref.pascal_case_name }}  # noqa: F401
+    {%- endif %}
 
 # exdrf-keep-start other_globals ----------------------------------------------
 {{other_globals}}
 # exdrf-keep-end other_globals ------------------------------------------------
+
+{%- if field.bridge %}
+def get_bridge_to() -> Type["{{ field.bridge.pascal_case_name }}"]:
+    from {{ db_module }}.{{ field.bridge.categories[0] }}.api import {{ field.bridge.pascal_case_name }}  # noqa: F401
+
+    return {{ field.bridge.pascal_case_name }}
+
+
+def get_bridge_through() -> Type["{{ field.ref.pascal_case_name }}"]:
+    from {{ db_module }}.{{ field.ref.categories[0] }}.api import {{ field.ref.pascal_case_name }}  # noqa: F401
+
+    return {{ field.ref.pascal_case_name }}
+
+{%- endif %}
 
 
 @define
@@ -56,6 +74,13 @@ class {{ FldPascal }}Field(Qt{{ fld_bc }}Field["{{ ResPascal }}"]):
     no_dia_field: Optional[str] = field(default="{{ field.no_dia_field.name }}", repr=False)
     {%- endif %}
 
+    {%- if field.fk_to %}
+    fk_to: Optional[str] = field(default="{{ field.fk_to.name }}", repr=False)
+    {%- endif %}
+    {%- if field.fk_from %}
+    fk_from: Optional[str] = field(default="{{ field.fk_from.name }}", repr=False)
+    {%- endif %}
+
     {%- for part_name, part_class, part_default in gfp(field, fld_attrs, fld_bc) %}
     {%- if part_default.startswith('[') %}
     {{ part_name }}: {{ part_class }} = field(factory=lambda: {{ part_default }})
@@ -63,6 +88,14 @@ class {{ FldPascal }}Field(Qt{{ fld_bc }}Field["{{ ResPascal }}"]):
     {{ part_name }}: {{ part_class }} = field(default={{ part_default }})
     {%- endif %}
     {%- endfor %}
+    {%- if field.bridge %}
+    bridge_to: Type["{{ field.bridge.pascal_case_name }}"] = field(
+        factory=get_bridge_to, repr=False
+    )
+    bridge_through: Type["{{ field.ref.pascal_case_name }}"] = field(
+        factory=get_bridge_through, repr=False
+    )
+    {%- endif %}
 
     # exdrf-keep-start other_attributes ---------------------------------------
 {{other_attributes}}

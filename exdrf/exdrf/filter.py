@@ -621,3 +621,31 @@ def insert_quick_search(
         if existing_filter and inserted
         else []  # type: ignore
     )
+
+
+def compare_filters(f1: "FilterType", f2: "FilterType") -> bool:
+    """Compare two filter structures for equality.
+
+    Recursively compares filter structures, handling nested lists/tuples
+    and converting dictionaries to FieldFilter objects for comparison.
+
+    Args:
+        f1: The first filter structure to compare.
+        f2: The second filter structure to compare.
+
+    Returns:
+        True if the filters are equal, False otherwise.
+    """
+    if isinstance(f1, (list, tuple)) and isinstance(f2, (list, tuple)):
+        if len(f1) != len(f2):
+            return False
+        return all(
+            compare_filters(cast("FilterType", i1), cast("FilterType", i2))
+            for i1, i2 in zip(f1, f2)
+        )
+    else:
+        if isinstance(f1, dict):
+            f1 = FieldFilter(**f1)
+        if isinstance(f2, dict):
+            f2 = FieldFilter(**f2)
+        return f1 == f2

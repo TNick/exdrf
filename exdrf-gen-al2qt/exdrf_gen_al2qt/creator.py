@@ -189,7 +189,6 @@ def _is_implied_rel_field(
     if i_f.fk_from is not None:
         i_f = i_f.fk_from
     if len(i_f.src.foreign_keys) == 0:
-        # This can be the case when
         return False
 
     assert len(i_f.src.foreign_keys) == 1, "Expected exactly one foreign key"
@@ -234,6 +233,74 @@ def is_implied_rel_field(
     assert len(detected) in (1, 2), "Expected exactly one or two implied fields"
 
     return i_f.name in detected
+
+
+def classify_bridge_fields(
+    r_list: "ExResource",
+    r_edit: "ExResource",
+    f_link: "ExField",
+    r_link: "ExResource",
+) -> Dict[str, Any]:
+    """Get the names of the fields that are used in the bridge relationship.
+
+    Args:
+        r_list: The resource that is being listed (the source/remote resource).
+        r_edit: The resource that is being edited (the local resource),
+            on the other side of the bridge.
+        f_link: The field of the other_r that connects to the int_r.
+        r_link: The intermediate resource that links the two resources.
+            This is the resource whose fields we're classifying.
+
+    Returns:
+        A dictionary with the names of the fields that are used in the bridge
+        relationship.
+    """
+    result: Dict[str, Any] = {}
+
+    pk_list = r_list.primary_fields()
+    assert len(pk_list) == 1, "Expected exactly one primary field"
+    pk_edit = r_edit.primary_fields()
+    assert len(pk_edit) == 1, "Expected exactly one primary field"
+
+    pk_field_list = r_list[pk_list[0]]
+    pk_field_edit = r_edit[pk_edit[0]]
+
+    other_pk = []
+    other_fields = []
+
+    for f_link in r_link.fields:
+        if not f_link.primary:
+            other_fields.append(f_link.name)
+            continue
+        used = False
+        for fk in f_link.src.foreign_keys:
+            if fk.column is pk_field_list.src:
+                result["list_pk"] = f_link.name
+                assert f_link.fk_to is not None
+                result["list_rel"] = f_link.fk_to.name
+                used = True
+                break
+            elif fk.column is pk_field_edit.src:
+                result["edit_pk"] = f_link.name
+                assert f_link.fk_to is not None
+                result["edit_rel"] = f_link.fk_to.name
+                used = True
+                break
+        if not used:
+            other_pk.append(f_link.name)
+
+    assert "list_pk" in result
+    assert "edit_pk" in result
+    assert "list_rel" in result
+    assert "edit_rel" in result
+    result["other_pk"] = other_pk
+
+    if result["list_rel"] in other_fields:
+        other_fields.remove(result["list_rel"])
+    if result["edit_rel"] in other_fields:
+        other_fields.remove(result["edit_rel"])
+    result["other_fields"] = other_fields
+    return result
 
 
 def get_mirror_field(
@@ -554,6 +621,7 @@ def generate_qt_from_alchemy(
                                         extra={
                                             "is_implied_rel_field": is_implied_rel_field,
                                             "get_mirror_field": get_mirror_field,
+                                            "classify_bridge_fields": classify_bridge_fields,
                                         },
                                     ),
                                 ],

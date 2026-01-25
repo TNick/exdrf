@@ -7,9 +7,11 @@ from typing import (
     Dict,
     Generator,
     Generic,
+    Iterator,
     List,
     Literal,
     Optional,
+    Sequence,
     Set,
     Tuple,
     Type,
@@ -24,13 +26,14 @@ from exdrf.filter import (
     FieldFilter,
     FilterType,
     SearchType,
+    compare_filters,
     create_multi_field_or_filter,
     extract_field_filters,
     validate_filter,
 )
 from exdrf_al.utils import DelChoice
 from PyQt5.QtCore import QAbstractItemModel, QModelIndex, Qt, QTimer, pyqtSignal
-from sqlalchemy import case, func, select, tuple_
+from sqlalchemy import case, delete, func, select, tuple_, update
 from sqlalchemy.exc import SQLAlchemyError
 from unidecode import unidecode
 
@@ -54,40 +57,19 @@ if TYPE_CHECKING:
 
 DEFAULT_CHUNK_SIZE = 24
 MODEL_LOG_LEVEL = 1
+EDITABLE_LOG_LEVEL = MODEL_LOG_LEVEL
 DBM = TypeVar("DBM")
 logger = logging.getLogger(__name__)
 
 
-def compare_filters(f1: "FilterType", f2: "FilterType") -> bool:
-    """Compare two filter structures for equality.
-
-    Recursively compares filter structures, handling nested lists/tuples
-    and converting dictionaries to FieldFilter objects for comparison.
-
-    Args:
-        f1: The first filter structure to compare.
-        f2: The second filter structure to compare.
-
-    Returns:
-        True if the filters are equal, False otherwise.
-    """
-    if isinstance(f1, (list, tuple)) and isinstance(f2, (list, tuple)):
-        if len(f1) != len(f2):
-            return False
-        return all(
-            compare_filters(cast("FilterType", i1), cast("FilterType", i2))
-            for i1, i2 in zip(f1, f2)
-        )
-    else:
-        if isinstance(f1, dict):
-            f1 = FieldFilter(**f1)
-        if isinstance(f2, dict):
-            f2 = FieldFilter(**f2)
-        return f1 == f2
-
-
 @define(slots=True)
 class ModelWork(Work):
+    """Async work for QtModel.
+
+    Attributes:
+        model: The model that is performing the work.
+        cancelled: If True, the work is cancelled.
+    """
 
     model: "QtModel" = field(kw_only=True, repr=False)
     cancelled: bool = field(default=False, init=False)
@@ -123,12 +105,15 @@ class ModelWork(Work):
     def get_category(self) -> str:
         """The category for the priority queue.
 
+        The default implementation returns the ID of the model, meaning
+        that each individual model instance is a separate class.
+
         We want to process the newest requests first for the same model.
         """
         return str(id(self.model))
 
     def get_priority(self) -> int:
-        """The priority for the priority queue."""
+        """The priority for the priority queue among its peers in same class."""
         return self.req_id[1].priority
 
 
@@ -177,7 +162,8 @@ class QtModel(
             not include the number of items in the top cache. Compare to
             _total_count to see if there are more items to load.
         _checked: A list of database IDs that are checked. If this list is None
-            (default) the model shows no checkboxes.
+            (default) the model shows no checkboxes. If the record does not
+            have a database ID, the ID of the record object itself is used.
         _db_to_row: A dictionary that maps database IDs to row indices in the
             cache (does not include top_cache items).
         _wait_before_request: The number of milliseconds to wait before issuing
@@ -245,6 +231,7 @@ class QtModel(
     _del_choice: DelChoice
     _save_settings: bool
     _no_dia_map: Dict[str, str]
+    allow_top_cache_edit: bool
 
     totalCountChanged = pyqtSignal(int)
     checkedChanged = pyqtSignal()
@@ -314,6 +301,7 @@ class QtModel(
         self._db_to_row = {}
         self._soft_delete_field_name = soft_delete_field_name
         self._del_choice = del_choice
+        self.allow_top_cache_edit = False
         self.db_model = db_model
         self.fields = cast(Any, fields if fields is not None else [])
         self.selection = (
@@ -343,13 +331,20 @@ class QtModel(
         """Return True if the model is partially initialized."""
         return self._total_count == -1
 
-    def reset_model(self) -> None:
+    def reset_model(self, clear_top_cache: bool = False) -> None:
         """Reset the model.
 
         The function clears the cache and resets the total count.
+
+        Args:
+            clear_top_cache (bool): Whether to clear the top cache.
         """
         logger.log(MODEL_LOG_LEVEL, "M: %s Resetting model...", self.name)
         self.beginResetModel()
+
+        # Clear the top cache if requested.
+        if clear_top_cache:
+            self.top_cache.clear()
 
         # Clear any pending requests so late callbacks from previous state are
         # ignored after the cache is reset.
@@ -627,8 +622,8 @@ class QtModel(
                 # Changing the checked items.
                 changed = self._checked.symmetric_difference(value)
                 self._checked = value
-                for db_id in changed:
-                    row = self._db_to_row.get(db_id, None)
+                for record_id in changed:
+                    row = self._db_to_row.get(record_id, None)
                     if row is None:
                         reset_model = True
                     else:
@@ -642,6 +637,7 @@ class QtModel(
 
         # Respect the partially-initialized state.
         if reset_model and self._total_count != -1:
+            self.clear_cached_flags()
             self.reset_model()
 
         logger.log(
@@ -664,6 +660,16 @@ class QtModel(
         if not self._soft_delete_field_name:
             return None
         return getattr(self.db_model, self._soft_delete_field_name, None)
+
+    def change_soft_delete_value(self, db_record: DBM, value: bool) -> None:
+        """Change the value of the soft delete field for the given database
+        record.
+        """
+        if not self._soft_delete_field_name:
+            raise NotImplementedError(
+                f"Soft delete not available in model {self.name}."
+            )
+        setattr(db_record, self._soft_delete_field_name, value)
 
     @property
     def has_soft_delete_field(self) -> bool:
@@ -938,6 +944,7 @@ class QtModel(
                 if not old_record.loaded:
                     loaded_update = loaded_update + 1
                 self.cache[i] = new_record
+                new_record.clear_cached_flags()
 
                 # The row is the index of the item in the cache
                 # without the top cache.
@@ -1378,9 +1385,10 @@ class QtModel(
             if not item.loaded or self._checked is None:
                 return None
 
+            record_id = id(item) if item.db_id is None else item.db_id
             return (
                 Qt.CheckState.Checked
-                if item.db_id in self._checked
+                if record_id in self._checked
                 else Qt.CheckState.Unchecked
             )
 
@@ -1434,14 +1442,35 @@ class QtModel(
         if not index.isValid():
             return cast(Qt.ItemFlags, Qt.ItemFlag.NoItemFlags)
 
-        base = Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable
-        if self._checked is not None:
-            base |= Qt.ItemFlag.ItemIsUserCheckable
-        if self._is_index_editable(index):
-            base |= Qt.ItemFlag.ItemIsEditable
-        return cast(Qt.ItemFlags, base)
+        row = index.row()
+        column = index.column()
+        record = self.data_record(row)
 
-    def _is_index_editable(self, index: QModelIndex) -> bool:
+        cached = record.get_flags(column) if record is not None else None
+        if cached is not None:
+            return cached
+
+        value = Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable
+        if self._checked is not None and index.column() == 0:
+            value |= Qt.ItemFlag.ItemIsUserCheckable
+        if self._is_index_editable(record, row, column):
+            value |= Qt.ItemFlag.ItemIsEditable
+
+        if record is not None:
+            record.set_flags(column, value)
+
+        return cast(Qt.ItemFlags, value)
+
+    def clear_cached_flags(self) -> None:
+        """Clear the cached flags."""
+        for record in self.cache:
+            record.clear_cached_flags()
+        for record in self.top_cache:
+            record.clear_cached_flags()
+
+    def _is_index_editable(
+        self, record: Optional["QtRecord"], row: int, column: int
+    ) -> bool:
         """Return True if the given index is editable.
 
         Args:
@@ -1450,16 +1479,85 @@ class QtModel(
         Returns:
             True if the index is editable, False otherwise.
         """
-        if not index.isValid():
+        if record is None:
+            logger.log(
+                EDITABLE_LOG_LEVEL,
+                "M: %s Refusing to edit item at row %d; no record",
+                self.name,
+                row,
+            )
             return False
-        if index.row() < len(self.top_cache):
+
+        # The top level items are those outside the normal flow, not managed
+        # directly by the model.
+        if row < len(self.top_cache):
+
+            # The editing of top level items can be disabled for the
+            # whole model.
+            if not self.allow_top_cache_edit:
+                return False
+
+            # No record or not loaded and/or error while loading.
+            if not record.loaded or record.error:
+                logger.log(
+                    EDITABLE_LOG_LEVEL,
+                    "M: %s Refusing to edit item %s at row %d; "
+                    "loaded: %s, error: %s",
+                    self.name,
+                    record.db_id,
+                    row,
+                    record.loaded,
+                    record.error,
+                )
+                return False
+
+            # The column must be within the range of the model's fields.
+            if column >= len(self.column_fields):
+                logger.log(
+                    EDITABLE_LOG_LEVEL,
+                    "M: %s Refusing to edit item %s at row %d; "
+                    "column out of range: %d (max %d)",
+                    self.name,
+                    record.db_id,
+                    row,
+                    column,
+                    len(self.column_fields) - 1,
+                )
+                return False
+
+            # Record allows it, let the column decide.
+            return self.column_fields[column].is_editable()
+
+        # Not loaded and/or error while loading.
+        if not record.loaded or record.error:
+            logger.log(
+                EDITABLE_LOG_LEVEL,
+                "M: %s Refusing to edit item %s at row %d; "
+                "loaded: %s, error: %s",
+                self.name,
+                record.db_id,
+                row,
+                record.loaded,
+                record.error,
+            )
             return False
-        record = self.data_record(index.row())
-        if record is None or not record.loaded or record.error:
+
+        # The column must be within the range of the model's fields.
+        if column >= len(self.column_fields):
+            logger.log(
+                EDITABLE_LOG_LEVEL,
+                "M: %s Refusing to edit item %s at row %d; "
+                "column out of range: %d (max %d)",
+                self.name,
+                record.db_id,
+                row,
+                column,
+                len(self.column_fields) - 1,
+            )
             return False
-        if index.column() >= len(self.column_fields):
-            return False
-        return self.column_fields[index.column()].is_editable()
+
+        # Record allows it, let the column decide.
+        return self.column_fields[column].is_editable()
 
     def setData(
         self,
@@ -1468,9 +1566,6 @@ class QtModel(
         role: int = Qt.ItemDataRole.EditRole,
     ) -> bool:
         """Set the data for the given index and role.
-
-        Currently only supports setting CheckStateRole in checkable mode.
-        Top cache items and unloaded items cannot have their data set.
 
         Args:
             index: The model index to set data for.
@@ -1485,63 +1580,111 @@ class QtModel(
 
         # Get the item. If it is not loaded, we cannot set the data.
         row = index.row()
+        column = index.column()
+        record = self.data_record(row)
+
+        if not self._is_index_editable(record, row, column):
+            return False
+
+        # _is_index_editable should have already checked that the record is
+        # not None, loaded, and not in error state.
+        assert record is not None, "Record is None"
+        assert record.loaded, "Record is not loaded"
+        assert not record.error, "Record is in error state"
+
+        column_fields = self.column_fields
+        assert column < len(column_fields)
+
         if row < len(self.top_cache):
-            # We do not allow editing of top cache items.
-            return False
+            assert self.allow_top_cache_edit, "Top cache editing is disabled"
 
-        row = row - len(self.top_cache)
-        record: "QtRecord" = self.cache[row]
-        if not record.loaded:
-            return False
-
-        # Are we in checkable mode?
-        if self._checked is not None:
-            if role == Qt.ItemDataRole.CheckStateRole:
+        # Are we editing the check state?
+        if role == Qt.ItemDataRole.CheckStateRole:
+            if self._checked is not None:
+                # If there is a record ID we use that, otherwise we use
+                # the record object itself (which is unique).
+                record_id = id(record) if record.db_id is None else record.db_id
                 if value == Qt.CheckState.Checked:
-                    self._checked.add(record.db_id)
+                    self._checked.add(record_id)
                 else:
-                    self._checked.discard(record.db_id)
+                    self._checked.discard(record_id)
+                record.clear_cached_flags()
                 self.dataChanged.emit(
                     index, index, [Qt.ItemDataRole.CheckStateRole]
                 )
                 self.checkedChanged.emit()
                 return True
+            else:
+                logger.log(
+                    MODEL_LOG_LEVEL,
+                    "M: %s Refusing to edit item %s at row %d; "
+                    "no checked list",
+                    self.name,
+                    record.db_id,
+                    row,
+                )
+                return False
 
         if role != Qt.ItemDataRole.EditRole:
-            return False
-
-        if index.column() >= len(self.column_fields):
-            return False
-        field = self.column_fields[index.column()]
-        if not field.is_editable():
-            return False
-
-        try:
-            with self.ctx.same_session(auto_commit=True) as session:
-                conditions = self.item_by_id_conditions(record.db_id)
-                db_item = session.scalar(
-                    select(self.db_model).where(*conditions)
-                )
-                if db_item is None:
-                    logger.error(
-                        "M: %s Record %s not found for edit",
-                        self.name,
-                        record.db_id,
-                    )
-                    return False
-
-                field.apply_edit_value(db_item, value, session)
-                self.db_item_to_record(db_item, record)
-        except Exception as e:
-            logger.error(
-                "M: %s Error setting field %s: %s",
+            logger.log(
+                MODEL_LOG_LEVEL,
+                "M: %s Refusing to edit item %s at row %d; "
+                "role is not EditRole: %d",
                 self.name,
-                field.name,
-                e,
-                exc_info=True,
+                record.db_id,
+                row,
+                role,
             )
             return False
 
+        # Cache all display values to be able to determine f we should
+        # emit a dataChanged signal.
+        display_values = {
+            column_fields[i]
+            .name: record.values.get(i, {})
+            .get(Qt.ItemDataRole.DisplayRole, None)
+            for i in range(len(column_fields))
+            if i != column
+        }
+
+        if row < len(self.top_cache):
+            self.change_top_level_value(record, column, value)
+        else:
+            # Get the field that manages this record.
+            field = column_fields[column]
+            assert field.is_editable()
+
+            try:
+                with self.ctx.same_session(auto_commit=True) as session:
+                    conditions = self.item_by_id_conditions(record.db_id)
+                    db_item = session.scalar(
+                        select(self.db_model).where(*conditions)
+                    )
+                    if db_item is None:
+                        logger.error(
+                            "M: %s Record %s not found for edit",
+                            self.name,
+                            record.db_id,
+                        )
+                        return False
+
+                    field.apply_edit_value(db_item, value, session)
+                    session.commit()
+                    self.db_item_to_record(db_item, record)
+            except Exception as e:
+                logger.error(
+                    "M: %s Error setting field %s for row %d (ID: %s): %s",
+                    self.name,
+                    field.name,
+                    row - len(self.top_cache),
+                    record.db_id,
+                    e,
+                    exc_info=True,
+                )
+                return False
+
+        # Current cell is always updated.
+        record.clear_cached_flags()
         self.dataChanged.emit(
             index,
             index,
@@ -1551,6 +1694,29 @@ class QtModel(
                 Qt.ItemDataRole.ToolTipRole,
                 Qt.ItemDataRole.StatusTipRole,
             ],
+        )
+
+        # Other cells might have changed, so we need to emit a
+        # dataChanged signal for them, too.
+        for i in range(len(self.column_fields)):
+            if i != column:
+                if display_values.get(
+                    self.column_fields[i].name
+                ) != record.values.get(i, {}).get(
+                    Qt.ItemDataRole.DisplayRole, None
+                ):
+                    self.dataChanged.emit(
+                        self.index(row, i),
+                        self.index(row, i),
+                        [Qt.ItemDataRole.DisplayRole],
+                    )
+
+        logger.debug(
+            "M: %s Data changed for item ID: %s at row %d, column %d",
+            self.name,
+            record.db_id,
+            row,
+            column,
         )
         return True
 
@@ -1562,16 +1728,38 @@ class QtModel(
         The function clears the cache and resets the total count.
         """
         try:
-            self.sort_by = [
-                (
-                    self.column_fields[column].name,
-                    "asc" if order == Qt.SortOrder.AscendingOrder else "desc",
-                )
-            ]
 
             # Respect the partially-initialized state.
             if self._total_count == -1:
                 return
+
+            field = self.column_fields[column]
+            if not self.is_field_sortable(field.name):
+                logger.error(
+                    "M: %s Refusing to sort by column %d; "
+                    "field %s is not part of the sortable set.",
+                    self.name,
+                    column,
+                    field.name,
+                )
+                return
+
+            if not field.sortable:
+                logger.error(
+                    "M: %s Refusing to sort by column %d; "
+                    "field %s is capable of sorting.",
+                    self.name,
+                    column,
+                    field.name,
+                )
+                return
+
+            self.sort_by = [
+                (
+                    field.name,
+                    "asc" if order == Qt.SortOrder.AscendingOrder else "desc",
+                )
+            ]
 
             self.reset_model()
         except Exception as e:
@@ -1595,6 +1783,8 @@ class QtModel(
             fld: The field to filter by.
             op: The operation to perform.
             vl: The value to compare against.
+            trigger_reset: If True, the model will be reset if the model
+                is fully loaded.
         """
         for filter in self._filters:
             if isinstance(filter, FieldFilter):
@@ -1792,16 +1982,59 @@ class QtModel(
         Returns None if the model is not in checkable mode. The returned
         row indices include the offset from top_cache items.
 
+        The function may update the values in the _checked attribute
+        to replace the object ID with the database ID.
+
         Returns:
             A list of row indices for checked items, or None if not in
             checkable mode.
         """
         if self._checked is None:
             return None
-        return [
-            self._db_to_row[db_id] + len(self.top_cache)
-            for db_id in self._checked
-        ]
+
+        result = []
+
+        # Index the top cache by record ID.
+        top_id_cache = {id(r): i for i, r in enumerate(self.top_cache)}
+        replace = []
+        for record_id in self._checked:
+            assert record_id is not None, "Record ID is None"
+
+            # The usual case when the database ID was used.
+            row = self._db_to_row.get(record_id, None)
+            if row is not None:
+                result.append(
+                    row
+                    + (0 if record_id in top_id_cache else len(self.top_cache))
+                )
+                continue
+
+            # The record itself is used usually when we're dealing with top
+            # level items.
+            top_row = top_id_cache.get(record_id, None)  # type: ignore
+            if top_row is not None:
+                result.append(len(self.top_cache))
+                continue
+
+            # Unusual: a record that was unloaded at the time of the check.
+            for r_idx, rec in self.cache.iter_existing():
+                iter_rec_id = id(rec)
+                if rec.db_id is not None:
+                    replace.append((iter_rec_id, rec.db_id))
+                if iter_rec_id == record_id:
+                    result.append(r_idx)
+                    break
+
+        # If we have found some records to replace, we need to update the
+        # checked list.
+        for record_id, db_id in replace:
+            assert (
+                db_id in self._db_to_row
+            ), f"Database ID {db_id} not found in _db_to_row"
+            self._checked[db_id] = self._checked[record_id]  # type: ignore
+            del self._checked[record_id]  # type: ignore
+
+        return result
 
     def set_prioritized_ids(self, ids: Optional[List[RecIdType]]) -> None:
         """Set the prioritized IDs and reset the model.
@@ -1858,7 +2091,7 @@ class QtModel(
         row = row + len(self.top_cache)
         return row, self.cache[row]
 
-    def insert_db_record(self, db_item: DBM) -> None:
+    def insert_db_record(self, db_item: DBM) -> "QtRecord":
         """Insert a database record into the model.
 
         The record is not placed into the normal cache. It is placed into a
@@ -1871,7 +2104,8 @@ class QtModel(
         )
         parent_idx = QModelIndex()
         self.rowsAboutToBeInserted.emit(parent_idx, 0, 0)
-        self.top_cache.insert(0, self.db_item_to_record(db_item))
+        result = self.db_item_to_record(db_item)
+        self.top_cache.insert(0, result)
         self.rowsInserted.emit(parent_idx, 0, 0)
         self.totalCountChanged.emit(self.total_count)
         logger.log(
@@ -1879,9 +2113,10 @@ class QtModel(
             "M: %s Record inserted into model.",
             self.name,
         )
+        return result
 
     def insert_new_records(
-        self, new_items: List[Union[Dict[str, Any], "QtRecord"]]
+        self, new_items: Sequence[Union[Dict[str, Any], "QtRecord"]]
     ) -> List["QtRecord"]:
         """Insert a database record into the model.
 
@@ -1923,6 +2158,38 @@ class QtModel(
             self.name,
             len(new_items),
         )
+        return result
+
+    def set_top_records(self, records: Sequence["QtRecord"]) -> None:
+        """Set the top records.
+
+        Args:
+            records: The records to set.
+        """
+        crt_len = len(self.top_cache)
+        if crt_len:
+            self.rowsAboutToBeRemoved.emit(QModelIndex(), 0, crt_len - 1)
+            self.rowsRemoved.emit(QModelIndex(), 0, crt_len - 1)
+
+        new_len = len(records)
+        if new_len:
+            self.rowsAboutToBeInserted.emit(QModelIndex(), 0, new_len - 1)
+            self.top_cache = list(records)
+            self.rowsInserted.emit(QModelIndex(), 0, new_len - 1)
+        else:
+            self.top_cache = []
+
+        if new_len != crt_len:
+            self.totalCountChanged.emit(self.total_count)
+
+    def record_to_data(self, record: "QtRecord", session: "Session") -> DBM:
+        """Convert a record to a database item."""
+        result = self.db_model()
+
+        for f_index, fld in enumerate(self.column_fields):
+            value = record.data(f_index, Qt.ItemDataRole.EditRole)
+            fld.save_value_to(result, value, session)
+
         return result
 
     def data_to_record(
@@ -2077,3 +2344,241 @@ class QtModel(
         # If we're still accumulating indices, end that now.
         if range_start is not None:
             self.request_items(range_start, self._total_count - range_start)
+
+    def change_top_level_value(
+        self, record: "QtRecord", column: int, value: Any
+    ) -> None:
+
+        # Get the field that manages this record.
+        field = self.column_fields[column]
+        assert field.is_editable()
+
+        # Top level items are managed in memory only.
+        # Update the in-memory record without touching the DB.
+        record.values[column] = field.expand_value(value)
+
+    def restore_records(
+        self, ids: List[RecIdType], change_top: bool = False
+    ) -> None:
+        """Restore the records with the given IDs.
+
+        Args:
+            ids: The list of IDs of the records to restore.
+            change_top: Whether to change the top cache.
+        """
+        if not self.has_soft_delete_field:
+            raise NotImplementedError(
+                f"Soft delete not available in model {self.name}."
+            )
+        del_field = self.get_soft_delete_field()
+        if del_field is None:
+            raise NotImplementedError("Soft delete field is not set.")
+
+        changed_cache = []
+        tc_size = len(self.top_cache)
+        with self.ctx.same_session() as session:
+            not_found = {}
+            for db_rec in session.scalars(
+                select(self.db_model).where(self.get_id_filter(ids))
+            ):
+                assert db_rec is not None
+                db_id = self.get_db_item_id(db_rec)
+                row = self._db_to_row.get(db_id, None)
+                if row is None:
+                    not_found[db_id] = db_rec
+                    continue
+                m_rec = self.cache[row]
+                assert m_rec is not None and m_rec.db_id == db_id
+                assert m_rec.loaded and not m_rec.error
+
+                self.change_soft_delete_value(db_rec, False)
+                self.cache[row].soft_del = False
+
+                changed_cache.append(row + tc_size)
+
+            if change_top:
+                top_map = {
+                    m_rec.db_id: (row, m_rec)
+                    for row, m_rec in enumerate(self.top_cache)
+                    if m_rec.db_id is not None
+                }
+                final_not_found = {}
+                for db_id, db_rec in not_found.items():
+                    if db_id in top_map:
+                        row, m_rec = top_map[db_id]
+                        m_rec.soft_del = False
+                        changed_cache.append(row + tc_size)
+                    else:
+                        final_not_found[db_id] = db_rec
+                not_found = final_not_found
+
+            session.commit()
+
+        for row in changed_cache:
+            self.dataChanged.emit(
+                self.index(row, 0), self.index(row, self.columnCount() - 1)
+            )
+        logger.debug(
+            "M: %s Restored %d records.",
+            self.name,
+            len(changed_cache),
+        )
+        if len(not_found) > 0:
+            logger.warning(
+                "M: %s %d records were not found in the database and "
+                "were not restored: %s.",
+                self.name,
+                len(not_found),
+                ", ".join(str(id) for id in not_found.keys()),
+            )
+
+    def can_clone_records(self) -> bool:
+        """Return True if the model can clone records.
+
+        The default clone implementation simply copies the field values
+        from the original record to the new record, except primary fields.
+
+        This method returns True if there are any non-primary fields
+        and the number of primary key fields is exactly one, assuming that,
+        in this case, the database will allocate the ID for the new record.
+
+        """
+        if len(self.primary_key_fields) != 1:
+            return False
+        return any((not field.primary) for field in self.column_fields)
+
+    def clone_record(self, db_id: RecIdType) -> Tuple[int, "QtRecord"]:
+        """Clone the record with the given ID.
+
+        If the database index is found among the loaded ones the new
+        record will be inserted right after it, otherwise it will be inserted
+        at the start of the model, after the top cache.
+
+        Args:
+            db_id: The ID of the record to clone.
+
+        Returns:
+            The index of the new record in the model and the new record.
+        """
+        with self.ctx.same_session() as session:
+            db_rec = session.scalar(
+                select(self.db_model).where(self.get_id_filter([db_id]))
+            )
+            if db_rec is None:
+                raise ValueError(
+                    self.t(
+                        "cmn.record-id-not-found",
+                        "Record with ID {rec_id} was not found in "
+                        "the database.",
+                        rec_id=db_id,
+                    ),
+                )
+
+            new_rec = self.db_model()
+            for fld in self.fields:
+                if not fld.primary:
+                    setattr(new_rec, fld.name, getattr(db_rec, fld.name))
+            session.add(new_rec)
+            session.commit()
+            result = self.db_item_to_record(new_rec)
+
+        # We want to place this record right next to the one that was cloned.
+        insert_index = self._db_to_row.get(db_id, -1) + 1
+        self.beginInsertRows(QModelIndex(), insert_index, insert_index)
+        self.cache.insert_rows(insert_index, 1)
+        self._db_to_row = {
+            db_id_temp: row_temp + 1 if row_temp >= insert_index else row_temp
+            for db_id_temp, row_temp in self._db_to_row.items()
+        }
+        self.cache[insert_index] = result
+        self._total_count += 1
+        self.endInsertRows()
+        self.totalCountChanged.emit(self.total_count)
+        logger.debug(
+            "M: %s Record cloned into model at index %d from ID %s to ID %s.",
+            self.name,
+            insert_index,
+            db_id,
+            result.db_id,
+        )
+        return insert_index, result
+
+    def remove_all_records(self) -> None:
+        """Remove all records in the current selection."""
+
+        # Resolve primary key columns for the selection subquery.
+        primary_field_names = [fld.name for fld in self.fields if fld.primary]
+        if not primary_field_names:
+            raise ValueError("Cannot remove all records without a primary key.")
+
+        # Build a subquery that selects the IDs in the current selection.
+        selection_subquery = self.filtered_selection.subquery()
+        selection_cols = [
+            getattr(selection_subquery.c, name) for name in primary_field_names
+        ]
+        id_subquery = select(*selection_cols).select_from(selection_subquery)
+
+        # Build the primary key expression for the target table.
+        db_pk_cols = [
+            getattr(self.db_model, name) for name in primary_field_names
+        ]
+        db_pk_expr = (
+            tuple_(*db_pk_cols) if len(db_pk_cols) > 1 else db_pk_cols[0]
+        )
+
+        # Apply the bulk update or delete without loading records.
+        with self.ctx.same_session() as session:
+            if self.has_soft_delete_field:
+                del_field = self.get_soft_delete_field()
+                if del_field is None:
+                    raise NotImplementedError(
+                        f"Soft delete not available in model {self.name}."
+                    )
+                stmt = (
+                    update(self.db_model)
+                    .where(db_pk_expr.in_(id_subquery))
+                    .values({del_field: True})
+                )
+            else:
+                stmt = delete(self.db_model).where(db_pk_expr.in_(id_subquery))
+
+            result = session.execute(stmt)
+            session.commit()
+
+        # Reset the model to refresh counts and cache.
+        self.reset_model(clear_top_cache=True)
+
+        logger.log(
+            MODEL_LOG_LEVEL,
+            "M: %s Removed all records (affected rows: %s).",
+            self.name,
+            result.rowcount,
+        )
+
+    def iter_records(
+        self,
+        include_top: bool = True,
+        include_not_loaded: bool = False,
+        include_error: bool = False,
+        include_no_data: bool = False,
+    ) -> Iterator[Tuple["QtRecord", int]]:
+        if include_top:
+            for row, record in enumerate(self.top_cache):
+                if include_not_loaded and not record.loaded:
+                    continue
+                if include_error and record.error:
+                    continue
+                yield record, row
+
+        offset = len(self.top_cache)
+
+        for row in range(self._total_count):
+            m_record = self.cache.get_or_create(row, create=include_no_data)
+            if m_record is None:
+                continue
+
+            if include_not_loaded and not m_record.loaded:
+                continue
+            if include_error and m_record.error:
+                continue
+            yield m_record, row + offset

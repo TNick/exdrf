@@ -104,9 +104,9 @@ class DrfFieldEd(QtUseContext):
         """Set the field value."""
         self._change_field_value(value)
 
-    def _change_field_value(self, value: Any) -> None:
+    def _change_field_value(self, value: Any, force: bool = False) -> None:
         """Set the field value."""
-        if self._field_value != value:
+        if force or self._field_value != value:
             # Change the value and signal the change.
             self._field_value = value
             self.controlChanged.emit()  # type: ignore

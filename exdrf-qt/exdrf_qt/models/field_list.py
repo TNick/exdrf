@@ -141,6 +141,17 @@ class FieldsList:
         self._s_s_fields = [f for f in self._s_s_fields if f.name != field]
         return self._s_s_fields
 
+    def is_field_simple_searchable(self, field: str) -> bool:
+        """Check if a field is searchable.
+
+        Args:
+            field: The name of the field to check.
+
+        Returns:
+            True if the field is searchable, False otherwise.
+        """
+        return any(f.name == field for f in self._s_s_fields)
+
     @property
     def filter_fields(self) -> List["QtField"]:
         """Return the fields that can be filtered."""
@@ -166,6 +177,17 @@ class FieldsList:
         """
         self._f_fields = [f for f in self._f_fields if f.name != field]
         return self._f_fields
+
+    def is_field_filterable(self, field: str) -> bool:
+        """Check if a field is filterable.
+
+        Args:
+            field: The name of the field to check.
+
+        Returns:
+            True if the field is filterable, False otherwise.
+        """
+        return any(f.name == field for f in self._f_fields)
 
     @property
     def sortable_fields(self) -> List["QtField"]:
@@ -193,6 +215,17 @@ class FieldsList:
         self._s_fields = [f for f in self._s_fields if f.name != field]
         return self._s_fields
 
+    def is_field_sortable(self, field: str) -> bool:
+        """Check if a field is sortable.
+
+        Args:
+            field: The name of the field to check.
+
+        Returns:
+            True if the field is sortable, False otherwise.
+        """
+        return any(f.name == field for f in self._s_fields)
+
     @property
     def column_fields(self) -> List["QtField"]:
         """Return the fields that can be displayed in a column."""
@@ -218,6 +251,17 @@ class FieldsList:
         """
         self._c_fields = [f for f in self._c_fields if f.name != field]
         return self._c_fields
+
+    def is_column_field(self, field: str) -> bool:
+        """Check if a field is a column field.
+
+        Args:
+            field: The name of the field to check.
+
+        Returns:
+            True if the field is a column field, False otherwise.
+        """
+        return any(f.name == field for f in self._c_fields)
 
     @property
     def exportable_fields(self) -> List["QtField"]:
@@ -245,6 +289,17 @@ class FieldsList:
         self._e_fields = [f for f in self._e_fields if f.name != field]
         return self._e_fields
 
+    def is_field_exportable(self, field: str) -> bool:
+        """Check if a field is exportable.
+
+        Args:
+            field: The name of the field to check.
+
+        Returns:
+            True if the field is exportable, False otherwise.
+        """
+        return any(f.name == field for f in self._e_fields)
+
     @property
     def primary_key_fields(self) -> List["QtField"]:
         """Return the fields that are primary keys."""
@@ -269,3 +324,14 @@ class FieldsList:
             The updated list of primary key fields.
         """
         self._pk_fields = [f for f in self._pk_fields if f.name != field]
+
+    def is_field_primary_key(self, field: str) -> bool:
+        """Check if a field is a primary key.
+
+        Args:
+            field: The name of the field to check.
+
+        Returns:
+            True if the field is a primary key, False otherwise.
+        """
+        return any(f.name == field for f in self._pk_fields)

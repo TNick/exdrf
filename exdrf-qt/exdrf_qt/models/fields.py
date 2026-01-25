@@ -28,8 +28,9 @@ from exdrf.api import (
 from exdrf.constants import RecIdType
 from exdrf.moment import MomentFormat
 from PyQt5.QtCore import QSize, Qt, pyqtSignal
-from PyQt5.QtGui import QBrush
+from PyQt5.QtGui import QBrush, QPainter
 from PyQt5.QtWidgets import (
+    QComboBox,
     QDialog,
     QDialogButtonBox,
     QPlainTextEdit,
@@ -37,8 +38,9 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from sqlalchemy import inspect
+from sqlalchemy import inspect, select
 from sqlalchemy.orm import class_mapper
+from sqlalchemy.orm.collections import InstrumentedList, InstrumentedSet
 
 from exdrf_qt.field_ed.api import (
     DrfBlobEditor,
@@ -66,13 +68,14 @@ from exdrf_qt.models.field import (
 
 if TYPE_CHECKING:
     from exdrf.filter import FieldFilter
+    from sqlalchemy.orm.session import Session
 
     from exdrf_qt.models.selector import Selector
 
 logger = logging.getLogger(__name__)
 
 
-def _resolve_ref_item(session, model_cls, value: Any) -> Any:
+def _resolve_ref_item(session: "Session", model_cls: Any, value: Any) -> Any:
     """Resolve a reference value to a database record.
 
     Args:
@@ -88,6 +91,34 @@ def _resolve_ref_item(session, model_cls, value: Any) -> Any:
     if hasattr(value, "metadata"):
         return value
     return session.get(model_cls, value)
+
+
+def save_multi_value_to(
+    self, record: Any, name: str, value: Any, session: "Session"
+) -> None:
+    db_field = getattr(record.__class__, self.name)
+    db_model = getattr(record.__class__, self.name)
+
+    db_values = session.scalars(select(db_model).where(db_model.id.in_(value)))
+
+    if isinstance(db_field, InstrumentedList):
+        db_values = list(db_values)
+    elif isinstance(db_field, InstrumentedSet):
+        db_values = set(db_values)
+    else:
+        logger.error(
+            "Invalid field type for %s.%s", record.__class__.__name__, self.name
+        )
+        return
+
+    if len(db_values) != len(value):
+        logger.error(
+            "Invalid number of values for %s.%s",
+            record.__class__.__name__,
+            self.name,
+        )
+
+    setattr(record, self.name, db_values)
 
 
 def _resolve_ref_list(session, model_cls, values: Any) -> List[Any]:
@@ -116,19 +147,36 @@ def _resolve_ref_list(session, model_cls, values: Any) -> List[Any]:
         result.append(record)
     return result
 
+    def save_value_to(
+        self, record: DBM, value: Any, session: "Session"
+    ) -> None:
+        db_field = getattr(record.__class__, self.name)
+        db_model = getattr(record.__class__, self.name)
+        with self.ctx.same_session() as session:
+            db_values = session.scalars(
+                select(db_model).where(db_model.id.in_(value))
+            )
 
-def _identity_value(item: Any) -> Any:
-    """Extract the identity for a SQLAlchemy instance without loading it."""
-    try:
-        state = inspect(item)
-    except Exception:
-        logger.log(1, "Failed to inspect value %s", item, exc_info=True)
-        return None
-    if state is None or state.identity is None:
-        return None
-    if isinstance(state.identity, (list, tuple)) and len(state.identity) == 1:
-        return state.identity[0]
-    return state.identity
+            if isinstance(db_field, InstrumentedList):
+                db_values = list(db_values)
+            elif isinstance(db_field, InstrumentedSet):
+                db_values = set(db_values)
+            else:
+                logger.error(
+                    "Invalid field type for %s.%s",
+                    record.__class__.__name__,
+                    self.name,
+                )
+                return
+
+            if len(db_values) != len(value):
+                logger.error(
+                    "Invalid number of values for %s.%s",
+                    record.__class__.__name__,
+                    self.name,
+                )
+
+            setattr(record, self.name, db_values)
 
 
 def _finalize_editor(
@@ -208,7 +256,7 @@ class QtBlobField(BlobField, QtField[DBM]):
         )
 
 
-@define
+@define(kw_only=True, slots=True)
 class QtBoolField(BoolField, QtField[DBM]):
     def create_editor(self, parent) -> Optional[QWidget]:
         """Create an editor widget for inline editing."""
@@ -263,7 +311,7 @@ class QtBoolField(BoolField, QtField[DBM]):
         )
 
 
-@define
+@define(kw_only=True, slots=True)
 class QtDateTimeField(QtField[DBM], DateTimeField):  # type: ignore
     formatter: Optional[MomentFormat] = field(default=None)
 
@@ -301,7 +349,7 @@ class QtDateTimeField(QtField[DBM], DateTimeField):  # type: ignore
         )
 
 
-@define
+@define(kw_only=True, slots=True)
 class QtDateField(DateField, QtField[DBM]):
     formatter: Optional[MomentFormat] = field(default=None)
 
@@ -339,7 +387,7 @@ class QtDateField(DateField, QtField[DBM]):
         )
 
 
-@define
+@define(kw_only=True, slots=True)
 class QtTimeField(TimeField, QtField[DBM]):
     formatter: Optional[MomentFormat] = field(default=None)
 
@@ -377,7 +425,7 @@ class QtTimeField(TimeField, QtField[DBM]):
         )
 
 
-@define
+@define(kw_only=True, slots=True)
 class QtDurationField(DurationField, QtField[DBM]):
     def is_editable(self) -> bool:
         """Return whether the field can be edited inline.
@@ -391,7 +439,7 @@ class QtDurationField(DurationField, QtField[DBM]):
         return self.not_implemented_values(record)
 
 
-@define
+@define(kw_only=True, slots=True)
 class QtEnumField(EnumField, QtField[DBM]):
     def create_editor(self, parent) -> Optional[DrfEnumEditor]:
         """Create an editor widget for inline editing."""
@@ -432,7 +480,7 @@ class QtEnumField(EnumField, QtField[DBM]):
         return self.expand_value(None)  # type: ignore[no-untyped-call]
 
 
-@define
+@define(kw_only=True, slots=True)
 class QtFloatField(FloatField, QtField[DBM]):
     def create_editor(self, parent) -> Optional[DrfRealEditor]:
         """Create an editor widget for inline editing."""
@@ -506,7 +554,7 @@ class QtFloatField(FloatField, QtField[DBM]):
         )
 
 
-@define
+@define(kw_only=True, slots=True)
 class QtIntegerField(IntField, QtField[DBM]):
     def create_editor(self, parent) -> Optional[DrfIntEditor]:
         """Create an editor widget for inline editing."""
@@ -530,11 +578,11 @@ class QtIntegerField(IntField, QtField[DBM]):
         if value is None:
             return self.expand_value(None)  # type: ignore[no-untyped-call]
 
-        display = f"{value:,}"
+        display = f"{value:,}" if isinstance(value, int) else str(value)
         if self.unit_symbol:
             display = f"{display} {self.unit_symbol}"
 
-        tip = f"{value:,}"
+        tip = f"{value:,}" if isinstance(value, int) else str(value)
         if self.unit:
             tip = f"{tip} {self.unit}"
 
@@ -594,7 +642,7 @@ def value_for_text(self, record):
     )
 
 
-@define
+@define(kw_only=True, slots=True)
 class QtStringField(StrField, QtField[DBM]):
     def create_editor(self, parent) -> Optional[QWidget]:
         """Create an editor widget for inline editing."""
@@ -602,17 +650,21 @@ class QtStringField(StrField, QtField[DBM]):
             editor = _PlainTextButtonEditor(parent)
             editor.setEnabled(not self.read_only)
         else:
-            editor = DrfLineEditor(
-                ctx=self.ctx,
-                parent=parent,
-                name=self.name,
-                description="",
-                nullable=False,
-                min_len=self.min_length,
-                max_len=self.max_length,
-            )
-        if not self.multiline and self.enum_values:
-            editor.set_choices(self.enum_values)  # type: ignore[attr-defined]
+            if self.enum_values:
+                editor = QComboBox(parent)
+                editor.setEditable(False)
+                for key, label in self.enum_values:
+                    editor.addItem(label, key)
+            else:
+                editor = DrfLineEditor(
+                    ctx=self.ctx,
+                    parent=parent,
+                    name=self.name,
+                    description="",
+                    nullable=False,
+                    min_len=self.min_length,
+                    max_len=self.max_length,
+                )
         if not self.multiline:
             _finalize_editor(
                 editor, self.nullable, self.read_only, self.description or ""
@@ -621,6 +673,21 @@ class QtStringField(StrField, QtField[DBM]):
 
     def set_editor_data(self, editor, value: Any) -> None:
         """Populate the editor with the current value."""
+        if isinstance(editor, QComboBox):
+            # Handle empty values.
+            if value is None:
+                if self.nullable:
+                    editor.setCurrentIndex(-1)
+                return
+
+            # Match by stored key first, then by label.
+            index = editor.findData(value)
+            if index < 0:
+                index = editor.findText(str(value))
+            if index >= 0:
+                editor.setCurrentIndex(index)
+            return
+
         if self.multiline and isinstance(editor, _PlainTextButtonEditor):
             editor.setTextValue("" if value is None else str(value))
             return
@@ -630,9 +697,25 @@ class QtStringField(StrField, QtField[DBM]):
         """Attach signals to the editor for inline editing."""
         if self.multiline and isinstance(editor, _PlainTextButtonEditor):
             editor.editingFinished.connect(lambda: commit_cb(editor))
+        elif isinstance(editor, QComboBox):
+            editor.currentIndexChanged.connect(lambda: commit_cb(editor))
 
     def editor_value(self, editor) -> Any:
         """Extract the value from the editor."""
+        if isinstance(editor, QComboBox):
+            # Prefer the stored key value.
+            value = editor.currentData()
+            if value is not None:
+                return value
+
+            # Fallback to label lookup when no data is set.
+            label = editor.currentText()
+            for key, item_label in self.enum_values:
+                if item_label == label:
+                    return key
+
+            return None if self.nullable else label
+
         if self.multiline and isinstance(editor, _PlainTextButtonEditor):
             text = editor.textValue()
             if text == "" and self.nullable:
@@ -644,7 +727,7 @@ class QtStringField(StrField, QtField[DBM]):
         return value_for_text(self, record)
 
 
-@define
+@define(kw_only=True, slots=True)
 class QtStringListField(StrListField, QtField[DBM]):
     def create_editor(self, parent) -> Optional[DrfTextEditor]:
         """Create an editor widget for inline editing."""
@@ -708,7 +791,7 @@ class QtStringListField(StrListField, QtField[DBM]):
         )
 
 
-@define
+@define(kw_only=True, slots=True)
 class QtIntListField(IntListField, QtField[DBM]):
     def create_editor(self, parent) -> Optional[DrfTextEditor]:
         """Create an editor widget for inline editing."""
@@ -775,7 +858,7 @@ class QtIntListField(IntListField, QtField[DBM]):
         )
 
 
-@define
+@define(kw_only=True, slots=True)
 class QtFloatListField(FloatListField, QtField[DBM]):
     def is_editable(self) -> bool:
         """Return whether the field can be edited inline.
@@ -789,7 +872,7 @@ class QtFloatListField(FloatListField, QtField[DBM]):
         return self.not_implemented_values(record)
 
 
-@define
+@define(kw_only=True, slots=True)
 class QtFormattedField(FormattedField, QtField[DBM]):
     def create_editor(self, parent) -> Optional[DrfLineEditor]:
         """Create an editor widget for inline editing."""
@@ -871,6 +954,18 @@ class _OpaqueCellEditor(QWidget):
         self.setAutoFillBackground(True)
         self.setAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent, True)
 
+    def paintEvent(self, event) -> None:  # type: ignore[override]
+        """Paint the editor background as opaque.
+
+        Args:
+            event: The paint event from Qt.
+        """
+        # Fill the background to avoid transparent editor artifacts.
+        painter = QPainter(self)
+        painter.fillRect(
+            event.rect(), self.palette().brush(self.backgroundRole())
+        )
+
 
 class RefFilterByPart:
     def apply_sub_filter(
@@ -940,8 +1035,10 @@ class RefFilterByPart:
         return predicate_result
 
 
-@define
+@define(kw_only=True, slots=True)
 class QtRefManyToOneField(RefManyToOneField, RefFilterByPart, QtField[DBM]):
+    fk_from: str = field(repr=False)  # type: ignore[assignment]
+
     def is_editable(self) -> bool:
         """Return whether the field can be edited inline."""
         if not super().is_editable():
@@ -976,21 +1073,18 @@ class QtRefManyToOneField(RefManyToOneField, RefFilterByPart, QtField[DBM]):
 
             editor.controlChanged.connect(_on_change)
 
-    def set_editor_data(self, editor, value: Any) -> None:
-        """Populate the editor with a safe identity value."""
-        if hasattr(value, "metadata"):
-            identity = _identity_value(value)
-            if identity is not None:
-                value = identity
-        super().set_editor_data(editor, value)
-
     def apply_edit_value(self, db_item: DBM, value: Any, session: Any) -> None:
         """Apply the edited value to the database item."""
-        mapper = cast(Any, inspect(db_item.__class__))
-        rel = mapper.relationships[self.name]
-        related_cls = rel.mapper.class_
-        record = _resolve_ref_item(session, related_cls, value)
-        setattr(db_item, self.name, record)
+        # mapper = cast(Any, inspect(db_item.__class__))
+        # rel = mapper.relationships[self.name]
+        # related_cls = rel.mapper.class_
+        # if value is None:
+        #     record = None
+        # else:
+        #     record = _resolve_ref_item(session, related_cls, value)
+        # setattr(db_item, self.name, record)
+        assert self.fk_from is not None
+        setattr(db_item, self.fk_from, value)
 
     def apply_sorting(self, ascending: bool) -> Any:
         """Compute sorting using the underlying foreign key column."""
@@ -1005,14 +1099,14 @@ class QtRefManyToOneField(RefManyToOneField, RefFilterByPart, QtField[DBM]):
         column = getattr(self.resource.db_model, self.fk_from.name)
         return column.asc() if ascending else column.desc()
 
-    def values(self, record) -> Dict[Qt.ItemDataRole, Any]:
+    def values(self, record: DBM) -> Dict[Qt.ItemDataRole, Any]:
         item = getattr(record, self.name)
         if item is None:
             return self.expand_value(None)
         label = self.part_label(item)
         return self.expand_value(
             value=label,
-            EditRole=item,
+            EditRole=self.part_id(item),
         )
 
     def part_label(self, record: Any) -> str:
@@ -1021,10 +1115,24 @@ class QtRefManyToOneField(RefManyToOneField, RefFilterByPart, QtField[DBM]):
             "part_label is not implemented for QtRefOneToManyField"
         )
 
+    def part_id(self, record: Any) -> RecIdType:
+        """Compute the ID for one of the components of the field."""
+        raise NotImplementedError(
+            "part_id is not implemented for QtRefOneToManyField"
+        )
 
-@define
+    def save_value_to(
+        self, record: DBM, value: Any, session: "Session"
+    ) -> None:
+        assert self.fk_from is not None
+        setattr(record, self.fk_from, value)
+
+
+@define(kw_only=True, slots=True)
 class QtRefOneToManyField(RefOneToManyField, RefFilterByPart, QtField[DBM]):
     show_n_labels: int = field(default=4)
+    bridge_to: Optional[Any] = field(default=None, repr=False)
+    bridge_through: Optional[Any] = field(default=None, repr=False)
 
     def is_editable(self) -> bool:
         """Return whether the field can be edited inline."""
@@ -1049,6 +1157,24 @@ class QtRefOneToManyField(RefOneToManyField, RefFilterByPart, QtField[DBM]):
 
     def configure_editor(self, editor, commit_cb) -> None:
         """Attach signals to the editor for inline editing."""
+        if hasattr(editor, "editingFinished"):
+
+            def _on_finish() -> None:
+
+                # Skip committing when the editor cancelled the edit.
+                if hasattr(editor, "consume_skip_commit"):
+                    if editor.consume_skip_commit():
+                        return
+
+                if hasattr(editor, "validate_control"):
+                    result = editor.validate_control()
+                    if hasattr(result, "is_valid") and not result.is_valid:
+                        return
+                commit_cb(editor)
+
+            editor.editingFinished.connect(_on_finish)
+            return
+
         if hasattr(editor, "controlChanged"):
 
             def _on_change() -> None:
@@ -1060,29 +1186,18 @@ class QtRefOneToManyField(RefOneToManyField, RefFilterByPart, QtField[DBM]):
 
             editor.controlChanged.connect(_on_change)
 
-    def set_editor_data(self, editor, value: Any) -> None:
-        """Populate the editor with a safe identity list."""
-        if value is None:
-            super().set_editor_data(editor, value)
-            return
-        if isinstance(value, (list, tuple)):
-            result = []
-            for item in value:
-                if hasattr(item, "metadata"):
-                    identity = _identity_value(item)
-                    if identity is None:
-                        continue
-                    result.append(identity)
-                else:
-                    result.append(item)
-            value = result
-        super().set_editor_data(editor, value)
-
     def apply_edit_value(self, db_item: DBM, value: Any, session: Any) -> None:
         """Apply the edited value to the database item."""
         mapper = cast(Any, inspect(db_item.__class__))
         rel = mapper.relationships[self.name]
         related_cls = rel.mapper.class_
+
+        if value is None:
+            if self.bridge_to is not None:
+                for records in getattr(db_item, self.name):
+                    session.delete(records)
+            return
+
         records = _resolve_ref_list(session, related_cls, value)
         collection_cls = rel.collection_class or list
         setattr(db_item, self.name, collection_cls(records))
@@ -1145,9 +1260,17 @@ class QtRefOneToManyField(RefOneToManyField, RefFilterByPart, QtField[DBM]):
             "part_label is not implemented for QtRefOneToManyField"
         )
 
+    def save_value_to(
+        self, record: DBM, value: Any, session: "Session"
+    ) -> None:
+        with self.ctx.same_session() as session:
+            save_multi_value_to(self, record, self.name, value, session)
 
-@define
+
+@define(kw_only=True, slots=True)
 class QtRefOneToOneField(RefOneToOneField, RefFilterByPart, QtField[DBM]):
+    fk_from: str = field(repr=False)  # type: ignore[assignment]
+
     def is_editable(self) -> bool:
         """Return whether the field can be edited inline."""
         if not super().is_editable():
@@ -1171,6 +1294,24 @@ class QtRefOneToOneField(RefOneToOneField, RefFilterByPart, QtField[DBM]):
 
     def configure_editor(self, editor, commit_cb) -> None:
         """Attach signals to the editor for inline editing."""
+        if hasattr(editor, "editingFinished"):
+
+            def _on_finish() -> None:
+
+                # Skip committing when the editor cancelled the edit.
+                if hasattr(editor, "consume_skip_commit"):
+                    if editor.consume_skip_commit():
+                        return
+
+                if hasattr(editor, "validate_control"):
+                    result = editor.validate_control()
+                    if hasattr(result, "is_valid") and not result.is_valid:
+                        return
+                commit_cb(editor)
+
+            editor.editingFinished.connect(_on_finish)
+            return
+
         if hasattr(editor, "controlChanged"):
 
             def _on_change() -> None:
@@ -1182,20 +1323,15 @@ class QtRefOneToOneField(RefOneToOneField, RefFilterByPart, QtField[DBM]):
 
             editor.controlChanged.connect(_on_change)
 
-    def set_editor_data(self, editor, value: Any) -> None:
-        """Populate the editor with a safe identity value."""
-        if hasattr(value, "metadata"):
-            identity = _identity_value(value)
-            if identity is not None:
-                value = identity
-        super().set_editor_data(editor, value)
-
     def apply_edit_value(self, db_item: DBM, value: Any, session: Any) -> None:
         """Apply the edited value to the database item."""
         mapper = cast(Any, inspect(db_item.__class__))
         rel = mapper.relationships[self.name]
         related_cls = rel.mapper.class_
-        record = _resolve_ref_item(session, related_cls, value)
+        if value is None:
+            record = None
+        else:
+            record = _resolve_ref_item(session, related_cls, value)
         setattr(db_item, self.name, record)
 
     def apply_sorting(self, ascending: bool) -> Any:
@@ -1218,7 +1354,7 @@ class QtRefOneToOneField(RefOneToOneField, RefFilterByPart, QtField[DBM]):
         label = self.part_label(item)
         return self.expand_value(
             value=label,
-            EditRole=item,
+            EditRole=self.part_id(item),
         )
 
     def part_label(self, record: Any) -> str:
@@ -1226,6 +1362,18 @@ class QtRefOneToOneField(RefOneToOneField, RefFilterByPart, QtField[DBM]):
         raise NotImplementedError(
             "part_label is not implemented for QtRefOneToManyField"
         )
+
+    def part_id(self, record: Any) -> RecIdType:
+        """Compute the ID for one of the components of the field."""
+        raise NotImplementedError(
+            "part_id is not implemented for QtRefOneToManyField"
+        )
+
+    def save_value_to(
+        self, record: DBM, value: Any, session: "Session"
+    ) -> None:
+        assert self.fk_from is not None
+        setattr(record, self.fk_from, value)
 
 
 @define
@@ -1255,6 +1403,24 @@ class QtRefManyToManyField(RefManyToManyField, RefFilterByPart, QtField[DBM]):
 
     def configure_editor(self, editor, commit_cb) -> None:
         """Attach signals to the editor for inline editing."""
+        if hasattr(editor, "editingFinished"):
+
+            def _on_finish() -> None:
+
+                # Skip committing when the editor cancelled the edit.
+                if hasattr(editor, "consume_skip_commit"):
+                    if editor.consume_skip_commit():
+                        return
+
+                if hasattr(editor, "validate_control"):
+                    result = editor.validate_control()
+                    if hasattr(result, "is_valid") and not result.is_valid:
+                        return
+                commit_cb(editor)
+
+            editor.editingFinished.connect(_on_finish)
+            return
+
         if hasattr(editor, "controlChanged"):
 
             def _on_change() -> None:
@@ -1266,30 +1432,17 @@ class QtRefManyToManyField(RefManyToManyField, RefFilterByPart, QtField[DBM]):
 
             editor.controlChanged.connect(_on_change)
 
-    def set_editor_data(self, editor, value: Any) -> None:
-        """Populate the editor with a safe identity list."""
-        if value is None:
-            super().set_editor_data(editor, value)
-            return
-        if isinstance(value, (list, tuple)):
-            result = []
-            for item in value:
-                if hasattr(item, "metadata"):
-                    identity = _identity_value(item)
-                    if identity is None:
-                        continue
-                    result.append(identity)
-                else:
-                    result.append(item)
-            value = result
-        super().set_editor_data(editor, value)
-
     def apply_edit_value(self, db_item: DBM, value: Any, session: Any) -> None:
         """Apply the edited value to the database item."""
         mapper = cast(Any, inspect(db_item.__class__))
         rel = mapper.relationships[self.name]
         related_cls = rel.mapper.class_
-        records = _resolve_ref_list(session, related_cls, value)
+
+        if value is None:
+            records = []
+        else:
+            records = _resolve_ref_list(session, related_cls, value)
+
         collection_cls = rel.collection_class or list
         setattr(db_item, self.name, collection_cls(records))
 
@@ -1339,6 +1492,12 @@ class QtRefManyToManyField(RefManyToManyField, RefFilterByPart, QtField[DBM]):
         raise NotImplementedError(
             "part_label is not implemented for QtRefOneToManyField"
         )
+
+    def save_value_to(
+        self, record: DBM, value: Any, session: "Session"
+    ) -> None:
+        with self.ctx.same_session() as session:
+            save_multi_value_to(self, record, self.name, value, session)
 
 
 @define

@@ -1,7 +1,7 @@
 import logging
 from typing import TYPE_CHECKING, Any, Callable, Union
 
-from exdrf_qt.field_ed.fed_related import DrfRelated
+from exdrf_qt.field_ed.fed_related import DrfRelated, DrfRelatedType
 from exdrf_qt.plugins import exdrf_qt_pm
 from exdrf_qt.utils.plugins import safe_hook_call
 
@@ -36,8 +36,8 @@ class Qt{{ ResPascal }}Rel(DrfRelated):
         from {{ db_module }}.{{ r.categories[0] }}.api import (
             {{ r.pascal_case_name }} as Db{{ r.pascal_case_name }}
         )
-        from {{ util_module }}.{{ r.categories[0] }}.{{ res_snake }} import (
-            {{ res_snake }}_label
+        from {{ util_module }}.{{ r.categories[0] }}.{{ r.snake_case_name }} import (
+            {{ r.snake_case_name }}_label
         )
 
         super().__init__(
@@ -52,26 +52,12 @@ class Qt{{ ResPascal }}Rel(DrfRelated):
                 "rel.src_db_model.{{ r.snake_case_name_plural }}",
                 Db{{ r.name }},
             )),
-            src_label_fun={{ res_snake }}_label,
+            # src_label_fun={{ r.snake_case_name }}_label,
             **kwargs
         )
     # exdrf-keep-start extra_editor_content ------------------------------------
 {{extra_editor_content}}
     # exdrf-keep-end extra_editor_content --------------------------------------
-
-    {%- if r.depends_on %}
-
-    def set_form(self, form: "ExdrfEditorBase"):
-        super().set_form(form)
-
-        self.integrate_concepts(
-            [
-                {%- for concept, target in r.depends_on %}
-                "{{ concept }}",
-                {%- endfor %}
-            ],
-        )
-    {%- endif %}
 
 {%- for other_r, fld, int_r in r.iter_many(include_bridge=True) %}
 
@@ -86,12 +72,21 @@ class Qt{{ other_r.pascal_case_name }}Rel{{ r.name }}(Qt{{ ResPascal }}Rel):
           associated with the {{ other_r.name }} resource that is being edited.
     """
     def __init__(self, ctx: "QtContext", **kwargs):
+        {%- if fld.bridge %}
         from {{ out_module }}.{{ int_r.categories[0] }}.{{ int_r.snake_case_name_plural }}.api import (
             Qt{{ int_r.pascal_case_name }}FuMo,
         )
         from {{ db_module }}.{{ int_r.categories[0] }}.api import (
             {{ int_r.pascal_case_name }} as Db{{ int_r.pascal_case_name }}
         )
+        {%- else %}
+        from {{ out_module }}.{{ r.categories[0] }}.{{ r.snake_case_name_plural }}.api import (
+            Qt{{ r.pascal_case_name }}FuMo,
+        )
+        from {{ db_module }}.{{ r.categories[0] }}.api import (
+            {{ r.pascal_case_name }} as Db{{ r.pascal_case_name }}
+        )
+        {%- endif %}
         from {{ db_module }}.{{ other_r.categories[0] }}.api import (
             {{ other_r.pascal_case_name }} as Db{{ other_r.pascal_case_name }}
         )
@@ -101,37 +96,34 @@ class Qt{{ other_r.pascal_case_name }}Rel{{ r.name }}(Qt{{ ResPascal }}Rel):
             dst_model=kwargs.pop("dst_model", ctx.get_ovr(
                 "{{ out_module }}.{{ r.categories[0] }}.{{ res_p_snake }}."
                 "rel.dst_model.{{ int_r.snake_case_name_plural }}",
+                {%- if fld.bridge %}
                 Qt{{ int_r.pascal_case_name }}FuMo,
+                {%- else %}
+                Qt{{ r.pascal_case_name }}FuMo,
+                {%- endif %}
             )),
             dst_db_model=kwargs.pop("dst_db_model", ctx.get_ovr(
                 "{{ out_module }}.{{ r.categories[0] }}.{{ res_p_snake }}."
                 "rel.dst_db_model.{{ int_r.snake_case_name_plural }}",
+                {%- if fld.bridge %}
                 Db{{ int_r.name }},
+                {%- else %}
+                Db{{ r.name }},
+                {%- endif %}
             )),
-            final_db_model=kwargs.pop("final_db_model", ctx.get_ovr(
-                "{{ out_module }}.{{ r.categories[0] }}.{{ res_p_snake }}."
-                "rel.final_db_model.{{ int_r.snake_case_name_plural }}",
-                Db{{ other_r.name }},
-            )),
-            is_simple={{ 'False' if fld.bridge else 'True' }},
 
-            implicit_set={
-                {%- for i_f in int_r.fields %}
-                {%- if is_implied_rel_field(i_f, r, other_r, int_r) %}
-                "{{ i_f.name }}",
-                {%- endif %}
-                {%- endfor %}
-            },
-            exclude_set=[
-                {#- We want to hide foreign keys for relations that are
-                 #  already present in the model -#}
-                {%- for i_f in int_r.fields %}
-                {%- if i_f.fk_to and not is_implied_rel_field(i_f, r, other_r, int_r) %}
-                "{{ i_f.name }}",
-                {%- endif %}
-                {%- endfor %}
-            ],
-            mirror_field="{{ get_mirror_field(r, other_r, fld, int_r) if fld.bridge else "" }}",
+            variant=DrfRelatedType.{{ 'BRIDGE' if fld.bridge else 'SIMPLE' }},
+
+            {%- if fld.bridge %}
+            {%- set field_ctg = classify_bridge_fields(r, other_r, fld, int_r) %}
+            list_pk="{{ field_ctg.list_pk }}",
+            edit_pk="{{ field_ctg.edit_pk }}",
+            list_rel="{{ field_ctg.list_rel }}",
+            edit_rel="{{ field_ctg.edit_rel }}",
+            other_pk={{ field_ctg.other_pk }},
+            other_fields={{ field_ctg.other_fields }},
+            {%- endif %}
+
         )
         # Inform plugins that the editor has been created.
         # safe_hook_call(

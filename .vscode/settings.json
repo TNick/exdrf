@@ -64,6 +64,7 @@
         "INNERGRID",
         "ipynb",
         "ipython",
+        "isdeleted",
         "isort",
         "isouter",
         "joinedload",

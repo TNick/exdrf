@@ -16,6 +16,7 @@ from exdrf.filter import FieldFilter
 from PyQt5.QtCore import QSize, Qt
 from PyQt5.QtGui import QBrush, QColor, QFont
 from sqlalchemy import inspect
+from sqlalchemy.orm.collections import InstrumentedList, InstrumentedSet
 from sqlalchemy.sql.operators import or_, regexp_match_op
 from unidecode import unidecode
 
@@ -24,6 +25,7 @@ from exdrf_qt.models.fi_op import filter_op_registry
 
 if TYPE_CHECKING:
     from PyQt5.QtWidgets import QWidget  # noqa: F401
+    from sqlalchemy.orm.session import Session
 
     from exdrf_qt.context import QtContext  # noqa: F401
     from exdrf_qt.models.model import QtModel  # noqa: F401
@@ -192,7 +194,9 @@ class QtField(ExField, QtUseContext, Generic[DBM]):
 
         return NO_EDITOR_VALUE
 
-    def apply_edit_value(self, db_item: DBM, value: Any, session: Any) -> None:
+    def apply_edit_value(
+        self, db_item: DBM, value: Any, session: "Session"
+    ) -> None:
         """Apply the edited value to the database item.
 
         Args:
@@ -200,6 +204,18 @@ class QtField(ExField, QtUseContext, Generic[DBM]):
             value: The edited value to apply.
             session: The SQLAlchemy session used for updates.
         """
+        existing = getattr(db_item, self.name)
+        if isinstance(existing, InstrumentedList):
+            if value is None:
+                value = []
+            elif not isinstance(value, list):
+                value = list(value)
+        elif isinstance(existing, InstrumentedSet):
+            if value is None:
+                value = set()
+            elif not isinstance(value, set):
+                value = set(value)
+
         setattr(db_item, self.name, value)
 
     def apply_sorting(self, ascending: bool) -> Any:
@@ -368,3 +384,9 @@ class QtField(ExField, QtUseContext, Generic[DBM]):
             result[ROLE_MAP[k]] = kwargs[k]
 
         return result
+
+    def save_value_to(
+        self, record: DBM, value: Any, session: "Session"
+    ) -> None:
+        """Set in the database record the value of the edit role."""
+        setattr(record, self.name, value)

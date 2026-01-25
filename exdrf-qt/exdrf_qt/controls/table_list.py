@@ -19,6 +19,7 @@ from PyQt5.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QMenu,
+    QMessageBox,
     QStyledItemDelegate,
     QStyleOptionViewItem,
     QTreeView,
@@ -38,6 +39,7 @@ from exdrf_qt.controls.filter_dlg.filter_dlg import FilterDlg
 from exdrf_qt.controls.search_lines.with_model import ModelSearchLine
 from exdrf_qt.controls.tree_header import ListDbHeader
 from exdrf_qt.models.field import NO_EDITOR_VALUE
+from exdrf_qt.utils.tlh import top_level_handler
 
 if TYPE_CHECKING:
     from PyQt5.QtCore import QItemSelection, QItemSelectionModel  # noqa: F401
@@ -46,6 +48,7 @@ if TYPE_CHECKING:
     from exdrf_qt.controls.search_lines.base import SearchData
     from exdrf_qt.models import QtModel  # noqa: F401
     from exdrf_qt.models.field import QtField  # noqa: F401
+    from exdrf_qt.models.record import QtRecord  # noqa: F401
 
 DBM = TypeVar("DBM")
 logger = logging.getLogger(__name__)
@@ -173,6 +176,7 @@ class ListDb(QWidget, QtUseContext, Generic[DBM]):
             self.t("sq.common.loaded", "Loaded: {count}", count=count)
         )
 
+    @top_level_handler
     def on_request_issued(
         self,
         start: int,
@@ -189,6 +193,7 @@ class ListDb(QWidget, QtUseContext, Generic[DBM]):
             ),
         )
 
+    @top_level_handler
     def on_request_completed(
         self,
         start: int,
@@ -199,6 +204,7 @@ class ListDb(QWidget, QtUseContext, Generic[DBM]):
         """Handle the request completed event."""
         self.on_request_issued(start, count, uniq_id, total_count)
 
+    @top_level_handler
     def on_request_error(
         self,
         start: int,
@@ -314,6 +320,7 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
     ac_new: OpenCreateAc
     ac_rem: OpenDeleteAc
     ac_rem_all: QAction
+    ac_restore: QAction
     ac_edit: OpenEditAc
     ac_view: OpenViewAc
     ac_clone: QAction
@@ -451,6 +458,13 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
         )
         self.ac_rem_all.triggered.connect(self.on_remove_all)
 
+        self.ac_restore = QAction(
+            self.get_icon("bin_recycle"),
+            self.t("sq.common.restore", "Restore"),
+            self,
+        )
+        self.ac_restore.triggered.connect(self.on_restore)
+
         self.ac_edit = OpenEditAc(
             label=self.t("sq.common.edit", "Edit"),
             ctx=self.ctx,
@@ -549,7 +563,14 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
         self.ac_clone.setEnabled(False)
 
     def get_selected_db_id(self) -> Optional[RecIdType]:
-        """Get the selected item ID."""
+        """Get the single selected item ID.
+
+        This assumes that the model is a single-select model, but it does
+        not check that there is a single selected item, it just
+        returns the first one.
+
+        If the item is in error or loading states the result is None.
+        """
         model = self.qt_model
         selected_indexes = self.selectedIndexes()
         if not selected_indexes:
@@ -560,13 +581,67 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
         selected_row = selected_index.row()
 
         # Get the item at that index.
-        if selected_row > len(model.cache) - 1:
+        record = model.data_record(selected_row)
+        if record is None:
             return None
-        item = model.cache[selected_row]
-        if not item.loaded:
+        if not record.loaded or record.error:
             return None
+        return record.db_id
 
-        return item.db_id
+    def get_selected_records(
+        self,
+        exclude_error: bool = True,
+        exclude_not_loaded: bool = True,
+        exclude_top: bool = True,
+    ) -> List["QtRecord"]:
+        """Get the records of all selected items.
+
+        Args:
+            exclude_error: If True, exclude items that are in error state.
+            exclude_not_loaded: If True, exclude items that are not loaded.
+            exclude_top: If True, exclude items that are in the top cache,
+                that is, items that are not directly managed by the model.
+        """
+        result = []
+        model = self.qt_model
+        # Collect the selected source records.
+        src_sm = self.selectionModel()
+        if src_sm is None:
+            return result
+        selected_rows = [i.row() for i in src_sm.selectedRows()]
+        if not selected_rows:
+            return result
+
+        for row in selected_rows:
+            record = model.data_record(row)
+            if record is None:
+                continue
+            if exclude_error and record.error:
+                continue
+            if exclude_not_loaded and not record.loaded:
+                continue
+            if exclude_top and row < len(model.top_cache):
+                continue
+            result.append(record)
+        return result
+
+    def get_selected_db_ids(
+        self,
+        exclude_top: bool = True,
+    ) -> List[RecIdType]:
+        """Get the IDs of all selected items.
+
+        The result set only includes items that are loaded and not in error.
+        Other items are silently ignored.
+
+        Args:
+            exclude_top: If True, exclude items that are in the top cache,
+                that is, items that are not directly managed by the model.
+        """
+        return [
+            record.db_id
+            for record in self.get_selected_records(exclude_top=exclude_top)
+        ]
 
     def add_other_view_actions(self, menu: QMenu):
         """Add the other actions to the context menu."""
@@ -580,6 +655,7 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
         if actual_actions:
             menu.addSeparator()
 
+    @top_level_handler
     def show_context_menu(self, point: "QPoint") -> None:
         """Show the context menu."""
         menu = QMenu(self)
@@ -626,126 +702,203 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
         assert vp is not None, "Viewport should not be None"
         menu.exec_(vp.mapToGlobal(point))
 
+    @top_level_handler
     def on_selection_changed(
         self,
         selected: "QItemSelection",
         deselected: "QItemSelection",
     ) -> None:
         """Handle selection changes."""
-        try:
-            empty_sel = selected.isEmpty()
+        empty_sel = selected.isEmpty()
 
-            if self.ac_rem is not None:
-                self.ac_rem.setEnabled(not empty_sel)
-            if self.ac_view is not None:
-                self.ac_view.setEnabled(not empty_sel)
-            if self.ac_edit is not None:
-                self.ac_edit.setEnabled(not empty_sel)
-            if self.ac_set_null is not None:
-                self.ac_set_null.setEnabled(not empty_sel)
-            if self.ac_clone is not None:
-                self.ac_clone.setEnabled(not empty_sel)
+        if self.ac_rem is not None:
+            self.ac_rem.setEnabled(not empty_sel)
+        if self.ac_view is not None:
+            self.ac_view.setEnabled(not empty_sel)
+        if self.ac_edit is not None:
+            self.ac_edit.setEnabled(not empty_sel)
+        if self.ac_set_null is not None:
+            self.ac_set_null.setEnabled(not empty_sel)
+        if self.ac_clone is not None:
+            self.ac_clone.setEnabled(not empty_sel)
 
-            empty_model = self.qt_model.total_count == 0
+        empty_model = self.qt_model.total_count == 0
 
-            if self.ac_rem_all is not None:
-                self.ac_rem_all.setEnabled(not empty_model)
-            if self.ac_export is not None:
-                self.ac_export.setEnabled(not empty_model)
-            if self.ac_filter is not None:
-                self.ac_filter.setEnabled(not empty_model)
+        if self.ac_rem_all is not None:
+            self.ac_rem_all.setEnabled(not empty_model)
+        if self.ac_export is not None:
+            self.ac_export.setEnabled(not empty_model)
+        if self.ac_filter is not None:
+            self.ac_filter.setEnabled(not empty_model)
 
-            if self.ac_new is not None:
-                self.ac_new.setEnabled(True)
-        except Exception as e:
-            logger.exception("Error in ListDb.on_selection_changed")
-            self.ctx.show_error(
-                title=self.t("sq.common.error", "Error"),
-                message=str(e),
-            )
+        if self.ac_new is not None:
+            self.ac_new.setEnabled(True)
 
+    def _remove_all_records(self) -> None:
+        """Default implementation for removing all records.
+
+        It simply asks the model to remove all records.
+
+        At this point the user confirmed the removal.
+        """
+        self.qt_model.remove_all_records()
+
+    @top_level_handler
     def on_remove_all(self) -> None:
         """Remove all items."""
-        try:
-            raise NotImplementedError("on_remove_all() not implemented.")
-        except Exception as e:
-            logger.exception("Error in ListDb.on_remove_all")
-            self.ctx.show_error(
-                title=self.t("sq.common.error", "Error"),
-                message=str(e),
+        if (
+            QMessageBox.question(
+                self,
+                self.t("cmn.question", "Question"),
+                self.t(
+                    "cmn.question.remove-n-items",
+                    "Are you sure you want to remove {count} items?",
+                    count=self.qt_model.total_count,
+                ),
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.No,
             )
+            != QMessageBox.Yes
+        ):
+            return
 
+        if not self.qt_model.has_soft_delete_field:
+            if (
+                QMessageBox.question(
+                    self,
+                    self.t("cmn.warning", "Warning"),
+                    self.t(
+                        "cmn.question.permanent-delete",
+                        "WARNING!\n"
+                        "\n"
+                        "This database table does not support soft-delete.\n"
+                        "All {count} items will be permanently deleted, with no \n"
+                        "way of recovering them.\n"
+                        "\n"
+                        "Are REALLY REALLY sure you want to continue?",
+                        count=self.qt_model.total_count,
+                    ),
+                    QMessageBox.Yes | QMessageBox.No,
+                    QMessageBox.No,
+                )
+                != QMessageBox.Yes
+            ):
+                return
+        self._remove_all_records()
+
+    def _clone_db_item(self, db_id: RecIdType) -> None:
+        """Default implementation for cloning a database record.
+
+        It simply asks the model to clone the record and scrolls to the new
+        record.
+
+        At this point the user has selected a single record to clone.
+
+        Args:
+            db_id: The ID of the record to clone.
+        """
+        index, _ = self.qt_model.clone_record(db_id)
+        self.scrollTo(self.qt_model.index(index, 0))
+
+    @top_level_handler
     def on_clone_selected(self) -> None:
         """Clone the selected item."""
-        try:
-            raise NotImplementedError("on_clone_selected() not implemented.")
-        except Exception as e:
-            logger.exception("Error in ListDb.on_clone_selected")
+        if not self.qt_model.can_clone_records():
             self.ctx.show_error(
-                title=self.t("sq.common.error", "Error"),
-                message=str(e),
+                title=self.t("cmn.error", "Error"),
+                message=self.t(
+                    "cmn.error.cannot-clone",
+                    "Cannot clone records.",
+                ),
             )
+            return
 
+        db_ids = self.get_selected_db_ids()
+        if not db_ids:
+            self.ctx.show_error(
+                title=self.t("cmn.error", "Error"),
+                message=self.t(
+                    "cmn.error.no-selected-records",
+                    "No selected records to clone.",
+                ),
+            )
+            return
+
+        if len(db_ids) > 1:
+            self.ctx.show_error(
+                title=self.t("cmn.error", "Error"),
+                message=self.t(
+                    "cmn.error.cannot-clone-multiple",
+                    "Cannot clone multiple records at once.",
+                ),
+            )
+            return
+
+        self._clone_db_item(db_ids[0])
+
+    @top_level_handler
     def on_export_all(self) -> None:
         """Export all items."""
-        try:
-            raise NotImplementedError("on_export_all() not implemented.")
-        except Exception as e:
-            logger.exception("Error in ListDb.on_export_all")
-            self.ctx.show_error(
-                title=self.t("sq.common.error", "Error"),
-                message=str(e),
-            )
+        raise NotImplementedError("on_export_all() not implemented.")
 
+    @top_level_handler
     def on_set_null(self) -> None:
         """Set the selected item to NULL."""
-        try:
-            raise NotImplementedError("on_set_null() not implemented.")
-        except Exception as e:
-            logger.exception("Error in ListDb.on_set_null")
-            self.ctx.show_error(
-                title=self.t("sq.common.error", "Error"),
-                message=str(e),
-            )
+        src_sm = self.selectionModel()
+        if src_sm is None:
+            return
+        column_fields = self.qt_model.column_fields
+        index = src_sm.currentIndex()
+        column = index.column()
+        field: "QtField" = column_fields[column]
+        if field.nullable and not field.read_only:
+            if not self.qt_model.setData(index, None, Qt.ItemDataRole.EditRole):
+                self.ctx.show_error(
+                    title=self.t("cmn.error", "Error"),
+                    message=self.t(
+                        "cmn.error.cannot-set-null",
+                        "Cannot set field to NULL.",
+                    ),
+                )
 
+    @top_level_handler
     def on_reload(self) -> None:
         """Reload the items."""
-        try:
-            model = cast("QtModel", self.model())
-            model.reset_model()
-        except Exception as e:
-            logger.exception("Error in ListDb.on_reload")
-            self.ctx.show_error(
-                title=self.t("sq.common.error", "Error"),
-                message=str(e),
-            )
+        model = cast("QtModel", self.model())
+        model.reset_model()
 
+    @top_level_handler
     def on_filter(self) -> None:
         """Filter the items."""
-        try:
-            # This is the general filter dialog, distinct from header column
-            # filter
-            dlg = FilterDlg(
-                ctx=self.ctx,
-                qt_model=self.qt_model,
-                parent=self,
-            )
-            if dlg.exec_() == dlg.Accepted:
-                try:
-                    self.qt_model.apply_filter(dlg.filter)  # type: ignore
-                except Exception as e:
-                    self.ctx.show_error(
-                        title=self.t("cmn.error", "Error"),
-                        message=self.t(
-                            "cmn.error.bad_filter",
-                            "Invalid filter: {error}",
-                            error=str(e),
-                        ),
-                    )
-                    logger.exception("Error in ListDb.on_filter: bad filter")
-        except Exception as e:
-            logger.exception("Error in ListDb.on_filter")
-            self.ctx.show_error(
-                title=self.t("sq.common.error", "Error"),
-                message=str(e),
-            )
+        # This is the general filter dialog, distinct from header column
+        # filter
+        dlg = FilterDlg(
+            ctx=self.ctx,
+            qt_model=self.qt_model,
+            parent=self,
+        )
+        if dlg.exec_() == dlg.Accepted:
+            try:
+                self.qt_model.apply_filter(dlg.filter)  # type: ignore
+            except Exception as e:
+                self.ctx.show_error(
+                    title=self.t("cmn.error", "Error"),
+                    message=self.t(
+                        "cmn.error.bad_filter",
+                        "Invalid filter: {error}",
+                        error=str(e),
+                    ),
+                )
+                logger.exception("Error in ListDb.on_filter: bad filter")
+
+    @top_level_handler
+    def on_restore(self) -> None:
+        """Restore the selected items."""
+        del_ids = [
+            rec.db_id
+            for rec in self.get_selected_records(exclude_top=False)
+            if rec.soft_del and rec.db_id
+        ]
+        if not del_ids:
+            return
+        self.qt_model.restore_records(del_ids)

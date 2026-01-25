@@ -1,10 +1,14 @@
+import logging
 from enum import Enum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import or_, select
+from sqlalchemy.inspection import inspect
 
 if TYPE_CHECKING:
     from sqlalchemy import Select
+
+logger = logging.getLogger(__name__)
 
 
 class DelChoice(Enum):
@@ -72,3 +76,17 @@ class DelChoice(Enum):
             return sel.where(or_(fld.is_(None), fld.is_(False)))
         else:
             return sel
+
+
+def identity_value(item: Any) -> Any:
+    """Extract the identity for a SQLAlchemy instance without loading it."""
+    try:
+        state = inspect(item)
+    except Exception:
+        logger.log(1, "Failed to inspect value %s", item, exc_info=True)
+        return None
+    if state is None or state.identity is None:
+        return None
+    if isinstance(state.identity, (list, tuple)) and len(state.identity) == 1:
+        return state.identity[0]
+    return state.identity

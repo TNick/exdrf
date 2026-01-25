@@ -133,11 +133,44 @@ class SparseList(Generic[T]):
                 del self._data[i]
         self._size = size
 
-    def iter_existing(self) -> Iterator[Tuple[int, T]]:
+    def iter_existing(self, ordered: bool = False) -> Iterator[Tuple[int, T]]:
         """Iterate over the existing items in the sparse list.
 
         Returns:
-            An iterator over the existing items in the sparse list.
+            An iterator over the existing items in the sparse list,
+            yielding the row index and the item.
         """
+        if ordered:
+            for i in range(self._size):
+                row = self._data.get(i)
+                if row is not None:
+                    yield i, row
+            return
+
         for i, j in self._data.items():
             yield i, j
+
+    def insert_rows(self, start: int, count: int) -> None:
+        """This simply changes the keys of the items in the sparse list
+        that are larger than or equal to start by adding count to them.
+
+        Args:
+            start: The index to start at.
+            count: The number of rows to insert.
+        """
+        d = self._data
+        self._data = {(k + count if k >= start else k): v for k, v in d.items()}
+        self._size += count
+
+    def get_or_create(self, index: int, create: bool = True) -> "T | None":
+        if index >= self._size:
+            raise IndexError(
+                f"Index {index} out of range. List has {self._size} items."
+            )
+        result = self._data.get(index)
+        if result is None:
+            if not create:
+                return None
+            result = self._default_factory()
+            self._data[index] = result
+        return result

@@ -81,7 +81,14 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
         _editor_class: The editor class.
         _qt_model: The model.
         _add_kb: The add keyboard action.
+        editingFinished: Signal emitted when the popup closes.
+        _popup_restore_value: The field value before the popup opened.
+        _popup_restore_label: The text displayed before the popup opened.
+        _popup_restore_priorities: The model priorities before the popup opened.
+        _skip_commit: Whether the edit should be skipped.
     """
+
+    editingFinished = pyqtSignal()
 
     popup: "PopupWidget[DBM]"
     line_edit: "ClickableLineEdit"
@@ -92,6 +99,10 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
     _editor_class: Optional[Type["ExdrfEditor"]]
     _qt_model: "QtModel[DBM]"
     _add_kb: Optional[Callable[[str], None]]
+    _popup_restore_value: Any
+    _popup_restore_label: str
+    _popup_restore_priorities: Optional[List["RecIdType"]]
+    _skip_commit: bool
 
     def __init__(
         self,
@@ -111,6 +122,10 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
         self._edit_action = None
         self.line_edit = None  # type: ignore
         self._editor_class = editor_class
+        self._popup_restore_value = None
+        self._popup_restore_label = ""
+        self._popup_restore_priorities = None
+        self._skip_commit = False
 
         # Initialize parent classes.
         QWidget.__init__(self, kwargs.pop("parent", None))
@@ -173,7 +188,20 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
                 qt_model=self._qt_model,
                 add_kb=self._add_kb,
             )
+
+            # Emit editingFinished when the popup closes.
+            self.popup.closed.connect(self._on_popup_closed)
             self.post_popup_init()
+
+        # Remember the current value so we can restore it on cancel.
+        self._popup_restore_value = self._field_value
+        if isinstance(self._popup_restore_value, list):
+            self._popup_restore_value = list(self._popup_restore_value)
+        self._popup_restore_label = self.line_edit.text()
+        if self.qt_model.prioritized_ids is None:
+            self._popup_restore_priorities = None
+        else:
+            self._popup_restore_priorities = list(self.qt_model.prioritized_ids)
 
         # Position and display the popup below the line edit.
         logger.log(1, "%s.show_popup()", self.__class__.__name__)
@@ -199,6 +227,41 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
         """The popup is about to be shown.
 
         Allows subclasses to do additional setup."""
+
+    def _on_popup_closed(self, cancelled: bool) -> None:
+        """Handle popup close events.
+
+        Args:
+            cancelled: True if the popup closed via Escape.
+        """
+
+        # Restore the value if the user cancelled the edit.
+        if cancelled:
+            self._skip_commit = True
+            self._restore_popup_value()
+        else:
+            self._skip_commit = False
+
+        # Notify listeners that inline editing can be committed.
+        self.editingFinished.emit()
+
+    def _restore_popup_value(self) -> None:
+        """Restore the value to what it was before the popup opened."""
+
+        # Restore the field value without emitting controlChanged.
+        self._field_value = self._popup_restore_value
+        self.line_edit.setText(self._popup_restore_label)
+        if self._popup_restore_priorities is not None:
+            self.qt_model.prioritized_ids = list(self._popup_restore_priorities)
+        self.on_value_changed()
+
+    def consume_skip_commit(self) -> bool:
+        """Return True if the edit should be skipped."""
+
+        # Reset the skip flag after it is consumed.
+        result = self._skip_commit
+        self._skip_commit = False
+        return result
 
     def resizeEvent(self, event: QResizeEvent | None) -> None:  # type: ignore
         # Handle widget resize events.

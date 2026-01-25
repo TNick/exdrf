@@ -40,6 +40,7 @@ class QtRecord:
     values: Dict[int, Dict[Qt.ItemDataRole, Any]] = field(
         factory=dict, repr=False
     )
+    flags: Dict[int, Any] = field(factory=dict, repr=False)
     soft_del: bool = field(default=False)
     _loaded: bool = field(default=False)
     _error: bool = field(default=False)
@@ -213,3 +214,27 @@ class QtRecord:
             self.values.get(i, {}).get(role, None)
             for i in range(max(self.values.keys()) + 1)
         ]
+
+    def get_flags(self, column: int) -> Any:
+        """Return the flags for the given column.
+
+        Args:
+            column: The column index.
+
+        Returns:
+            The flags for the given column.
+        """
+        return self.flags.get(column, None)
+
+    def set_flags(self, column: int, flags: Any) -> None:
+        """Set the flags for the given column.
+
+        Args:
+            column: The column index.
+            flags: The flags to set.
+        """
+        self.flags[column] = flags
+
+    def clear_cached_flags(self) -> None:
+        """Clear the cached flags."""
+        self.flags.clear()

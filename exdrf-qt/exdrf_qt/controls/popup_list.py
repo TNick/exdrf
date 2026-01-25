@@ -13,7 +13,9 @@ from typing import (
 from PyQt5.QtCore import (
     Qt,
     QTimer,
+    pyqtSignal,
 )
+from PyQt5.QtGui import QKeyEvent
 from PyQt5.QtWidgets import (
     QAbstractItemView,
     QProgressBar,
@@ -46,7 +48,10 @@ class PopupWidget(QWidget, Generic[DBM], QtUseContext):
         qt_model: The model that provides the data.
         progress: The progress bar that shows the progress of the search.
         progress_timer: The timer that shows the progress bar.
+    closed: Signal emitted when the popup hides.
     """
+
+    closed = pyqtSignal(bool)
 
     tree: "TreeView"
     filter_edit: "ModelSearchLine"
@@ -54,6 +59,7 @@ class PopupWidget(QWidget, Generic[DBM], QtUseContext):
     progress: QProgressBar
     progress_timer: Optional[QTimer]
     add_kb: Optional[Callable[[str], None]]
+    _close_cancelled: bool
 
     def __init__(
         self,
@@ -70,6 +76,7 @@ class PopupWidget(QWidget, Generic[DBM], QtUseContext):
         self.progress_timer = None
         self.progress = None  # type: ignore
         self.add_kb = add_kb
+        self._close_cancelled = False
 
         if qt_model is not None and not isinstance(qt_model, QtModel):
             qt_model = qt_model(ctx=ctx, db_model=None)  # type: ignore
@@ -101,6 +108,42 @@ class PopupWidget(QWidget, Generic[DBM], QtUseContext):
         self.qt_model.requestIssued.connect(self.request_items_start)
         self.qt_model.requestCompleted.connect(self.request_items_ok)
         self.qt_model.requestError.connect(self.request_items_error)
+
+    def keyPressEvent(self, a0: Optional[QKeyEvent]) -> None:
+        """Handle key presses that should close the popup.
+
+        Args:
+            event: The key event.
+        """
+
+        # Track the close reason before hiding the popup.
+        if a0 is not None and a0.key() in (
+            Qt.Key.Key_Return,
+            Qt.Key.Key_Enter,
+        ):
+            self._close_cancelled = False
+            self.hide()
+            return
+
+        if a0 is not None and a0.key() == Qt.Key.Key_Escape:
+            self._close_cancelled = True
+            self.hide()
+            return
+
+        super().keyPressEvent(a0)
+
+    def hideEvent(self, event) -> None:  # type: ignore[override]
+        """Emit the closed signal when the popup hides.
+
+        Args:
+            event: The hide event.
+        """
+
+        # Notify listeners that the popup was closed.
+        cancelled = self._close_cancelled
+        self._close_cancelled = False
+        self.closed.emit(cancelled)
+        super().hideEvent(event)
 
     def on_search_data_changed(self, search_data: "SearchData"):
         if self.qt_model is None:
