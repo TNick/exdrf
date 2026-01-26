@@ -100,7 +100,8 @@ class Qt{{ ResPascal }}Tv(RecordTemplViewer):
         self,
         session: "Session"
     ) -> Union[None, "{{ ResPascal }}"]:
-        from {{ util_module }}.{{ r.categories[0] }}.{{ res_snake }} import {{ res_snake }}_label
+        from {{ util_module }}.{{ r.categories[0] }}.{{ res_snake }} \
+            import {{ res_snake }}_label
 
         result = session.scalar(
             select(self.db_model).where(
@@ -125,7 +126,7 @@ class Qt{{ ResPascal }}Tv(RecordTemplViewer):
                 label = self.t(
                     "{{ res_snake }}.tv.title-found",
                     "{{ r.text_name }}: view {name}",
-                    name={{ res_snake }}_label(result)
+                    name={{ res_snake }}_label(result, self.ctx)
                 )
             except Exception as e:
                 logger.error("Error getting label: %s", e, exc_info=True)

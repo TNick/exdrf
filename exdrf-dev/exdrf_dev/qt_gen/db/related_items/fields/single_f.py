@@ -44,9 +44,7 @@ class LabelField(QtStringField["RelatedItem"]):
     # exdrf-keep-end other_label_attributes -----------------------------------
 
     def values(self, record: "RelatedItem") -> Dict[Qt.ItemDataRole, Any]:
-        return self.expand_value(
-            (str("ID:") + str(record.id)), EditRole=record.id
-        )
+        return self.expand_value(f"ID: {record.id}", EditRole=record.id)
 
     # exdrf-keep-start extra_label_content ------------------------------------
 

@@ -29,6 +29,192 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+@define(slots=True)
+class CompletedWorkStat:
+    """Statistics about one completed unit of work.
+
+    Attributes:
+        req_id: The request ID of the completed work.
+        category: Work category used by the queue (fairness class).
+        priority: Work priority used by the queue.
+        duration_s: How long the work took in seconds.
+        finished_at: The wall-clock timestamp when the work completed.
+        results_count: Number of results produced by the statement.
+        had_error: Whether the work ended with an error.
+        statement_preview: A short string representation of the statement.
+    """
+
+    req_id: Any
+    category: str
+    priority: int
+    duration_s: float
+    finished_at: float
+    results_count: int
+    had_error: bool
+    statement_preview: str = field(repr=False)
+
+
+class WorkerStats:
+    """Thread-safe statistics collected by a worker thread.
+
+    Attributes:
+        _max_history: How many completed work items are stored.
+        _lock: Protects all internal state.
+        _started_count: Number of work items started.
+        _finished_count: Number of work items finished (success or error).
+        _error_count: Number of work items finished with error.
+        _last_started_at: Wall-clock timestamp of last started work.
+        _last_finished_at: Wall-clock timestamp of last finished work.
+        _current_req_id: The request id of the work currently being executed.
+        _current_started_at: perf_counter value when current work started.
+        _current_category: Work category for current work.
+        _current_priority: Work priority for current work.
+        _durations_s: Last N durations in seconds.
+        _history: Last N completed work records.
+    """
+
+    _max_history: int
+    _lock: threading.Lock
+    _started_count: int
+    _finished_count: int
+    _error_count: int
+    _last_started_at: Optional[float]
+    _last_finished_at: Optional[float]
+
+    _current_req_id: Any
+    _current_started_at: Optional[float]
+    _current_category: Optional[str]
+    _current_priority: Optional[int]
+
+    _durations_s: Deque[float]
+    _history: Deque[CompletedWorkStat]
+
+    def __init__(self, max_history: int = 10) -> None:
+        self._max_history = max_history
+        self._lock = threading.Lock()
+
+        self._started_count = 0
+        self._finished_count = 0
+        self._error_count = 0
+        self._last_started_at = None
+        self._last_finished_at = None
+
+        self._current_req_id = None
+        self._current_started_at = None
+        self._current_category = None
+        self._current_priority = None
+
+        self._durations_s = deque(maxlen=max_history)
+        self._history = deque(maxlen=max_history)
+
+    def record_started(self, work: "Work") -> None:
+        """Record that a work item has started.
+
+        Args:
+            work: The work item that has started.
+        """
+        with self._lock:
+            self._started_count += 1
+            self._last_started_at = time.time()
+            self._current_req_id = work.req_id
+            self._current_started_at = time.perf_counter()
+            self._current_category = work.get_category()
+            self._current_priority = work.get_priority()
+
+    def record_finished(
+        self,
+        work: "Work",
+        *,
+        duration_s: float,
+        results_count: int,
+        had_error: bool,
+        statement_preview: str,
+    ) -> None:
+        """Record that a work item has finished.
+
+        Args:
+            work: The completed work item.
+            duration_s: Work duration in seconds.
+            results_count: Number of results produced by the work.
+            had_error: Whether the work ended with an error.
+            statement_preview: Short string for debugging/UI.
+        """
+        finished_at = time.time()
+        with self._lock:
+            self._finished_count += 1
+            if had_error:
+                self._error_count += 1
+            self._last_finished_at = finished_at
+
+            self._durations_s.append(duration_s)
+            self._history.append(
+                CompletedWorkStat(
+                    req_id=work.req_id,
+                    category=work.get_category(),
+                    priority=work.get_priority(),
+                    duration_s=duration_s,
+                    finished_at=finished_at,
+                    results_count=results_count,
+                    had_error=had_error,
+                    statement_preview=statement_preview,
+                )
+            )
+
+            self._current_req_id = None
+            self._current_started_at = None
+            self._current_category = None
+            self._current_priority = None
+
+    def snapshot(self) -> dict[str, Any]:
+        """Get a read-only snapshot of current statistics.
+
+        Returns:
+            A dictionary with counts, current execution info, and last N work
+            timings including average.
+        """
+        with self._lock:
+            durations = list(self._durations_s)
+            avg = (sum(durations) / len(durations)) if durations else None
+            current_elapsed_s = None
+            if self._current_started_at is not None:
+                current_elapsed_s = (
+                    time.perf_counter() - self._current_started_at
+                )
+
+            history = [
+                {
+                    "req_id": h.req_id,
+                    "category": h.category,
+                    "priority": h.priority,
+                    "duration_s": h.duration_s,
+                    "finished_at": h.finished_at,
+                    "results_count": h.results_count,
+                    "had_error": h.had_error,
+                    "statement_preview": h.statement_preview,
+                }
+                for h in self._history
+            ]
+
+            return {
+                "started_count": self._started_count,
+                "finished_count": self._finished_count,
+                "error_count": self._error_count,
+                "last_started_at": self._last_started_at,
+                "last_finished_at": self._last_finished_at,
+                "current": {
+                    "req_id": self._current_req_id,
+                    "category": self._current_category,
+                    "priority": self._current_priority,
+                    "elapsed_s": current_elapsed_s,
+                },
+                "last_10": {
+                    "durations_s": durations,
+                    "avg_duration_s": avg,
+                    "history": history,
+                },
+            }
+
+
 class WorkQueue:
     """A queue of work to be done by the worker thread."""
 
@@ -168,16 +354,24 @@ class Relay(QObject):
     completion of the worker thread.
     """
 
-    worker: "Worker"
+    workers: List["Worker"]
     data: Dict[Any, Work]
     queue: WorkQueue
 
-    def __init__(self, cn: "DbConn", parent: Optional[QObject] = None):
+    def __init__(
+        self,
+        cn: "DbConn",
+        threads_count: int = 4,
+        parent: Optional[QObject] = None,
+    ):
         super().__init__(parent)
         self.data = {}
         self.queue = WorkQueue()
-        self.worker = Worker(queue=self.queue, cn=cn, parent=self)
-        self.worker.haveResult.connect(self.handle_result)
+        self.workers = []
+        for i in range(threads_count):
+            worker = Worker(queue=self.queue, cn=cn, parent=self, my_id=str(i))
+            worker.haveResult.connect(self.handle_result)
+            self.workers.append(worker)
 
     def handle_result(self, work_id: Any):
         """Handle the result from the worker thread.
@@ -209,10 +403,47 @@ class Relay(QObject):
 
     def stop(self):
         """Stop the worker thread."""
-        if self.worker.isRunning():
-            self.worker.should_stop = True
-            self.worker.quit()
-            self.worker.wait()
+        for worker in self.workers:
+            if worker.isRunning():
+                worker.should_stop = True
+                worker.quit()
+        for worker in self.workers:
+            if worker.isRunning():
+                worker.wait()
+
+    def debug_snapshot(self) -> dict[str, Any]:
+        """Collect a detailed snapshot for debugging/UI.
+
+        Returns:
+            A nested dictionary describing queue state and worker states.
+        """
+        return {
+            "queue": {
+                "total_len": len(self.queue),
+                "class_order": self.queue.peek_class_order(),
+                "sizes_by_class": self.queue.sizes_by_class(),
+            },
+            "workers": [
+                {
+                    "id": w.my_id,
+                    "object_name": w.objectName(),
+                    "is_running": w.isRunning(),
+                    "should_stop": w.should_stop,
+                    "current_work_req_id": getattr(w.work, "req_id", None),
+                    "current_work_category": (
+                        w.work.get_category() if w.work is not None else None
+                    ),
+                    "current_work_priority": (
+                        w.work.get_priority() if w.work is not None else None
+                    ),
+                    "current_work_statement": (
+                        str(w.work.statement) if w.work is not None else None
+                    ),
+                    "stats": w.get_stats_snapshot(),
+                }
+                for w in self.workers
+            ],
+        }
 
     @overload
     def push_work(self, work: "Work") -> "Work": ...
@@ -245,8 +476,10 @@ class Relay(QObject):
                 provided, a new one will be generated.
             use_unique: Whether to use unique() on the result.
         """
-        if not self.worker.isRunning():
-            self.worker.start()
+        for worker in self.workers:
+            if not worker.isRunning():
+                worker.start()
+                break
 
         # Handle the case where a Work object is passed directly.
         if isinstance(statement_or_work, Work):
@@ -291,28 +524,55 @@ class Worker(QThread):
     queue: WorkQueue
     should_stop: bool
     cn: "DbConn"
+    my_id: str
+    work: Optional["Work"]
+    _stats: WorkerStats
 
     haveResult = pyqtSignal(object)
 
     def __init__(
-        self, queue: WorkQueue, cn: "DbConn", parent: Optional[QObject] = None
+        self,
+        queue: WorkQueue,
+        cn: "DbConn",
+        my_id: str = "",
+        parent: Optional[QObject] = None,
     ):
         super().__init__(parent)
+        self.work = None
+        self.my_id = my_id
         self.should_stop = False
         self.queue = queue
         self.cn = cn
-        self.setObjectName("ExdrfWorkerThread")
+        self.setObjectName(f"ExdrfWorkerThread{my_id}")
+
+        # Maintain worker thread statistics for UI/debugging.
+        self._stats = WorkerStats(max_history=10)
+
+    def get_stats_snapshot(self) -> dict[str, Any]:
+        """Return a thread-safe snapshot of the worker statistics.
+
+        Returns:
+            A dictionary suitable for UI/debugging.
+        """
+        return self._stats.snapshot()
 
     def run(self) -> None:
         """The main function of the worker thread."""
-        threading.current_thread().name = "ExdrfWorkerThread"
+        threading.current_thread().name = f"ExdrfWorkerThread{self.my_id}"
         while not self.should_stop:
+            self.work = None
             try:
                 work: "Work" = self.queue.get(timeout=0.5)
+                self.work = work
             except (TimeoutError, Empty):
                 time.sleep(0.25)
                 continue
 
+            # Record that the work has started.
+            self._stats.record_started(work)
+            work_started = time.perf_counter()
+
+            # Execute the work against the DB.
             try:
                 with self.cn.session() as session:
                     work.perform(session)
@@ -336,5 +596,15 @@ class Worker(QThread):
                     exc_info=True,
                 )
                 work.error = e
+
+            # Record completion statistics (even on error).
+            duration_s = time.perf_counter() - work_started
+            self._stats.record_finished(
+                work,
+                duration_s=duration_s,
+                results_count=len(work.result),
+                had_error=bool(work.error),
+                statement_preview=str(work.statement),
+            )
 
             self.haveResult.emit(work.req_id)

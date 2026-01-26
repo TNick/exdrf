@@ -128,7 +128,11 @@ class {{ FldPascal }}Field(Qt{{ fld_bc }}Field["{{ ResPascal }}"]):
 
     def part_label(self, record: "{{ field.ref.pascal_case_name }}") -> str:
         """Compute the label for one of the components of the field."""
-        return {{ field.ref.label_to_python() }}
+        from {{ util_module }}.{{ field.ref.categories[0] }}.{{ field.ref.snake_case_name }} import (
+            {{ field.ref.snake_case_name }}_label
+        )
+
+        return {{ field.ref.snake_case_name }}_label(record, self.ctx)
 
     def apply_filter(self, item: "FieldFilter", selector: "Selector", no_dia: Optional[str] = None) -> Any:
         from {{ db_module }}.{{ field.ref.categories[0] }}.api import {{ field.ref.name }} as Db{{ field.ref.name }}

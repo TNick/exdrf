@@ -551,7 +551,7 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
     def create_editor(self, **kwargs) -> Optional["ExdrfEditor"]:
         """Create the editor widget."""
         # No need for the popup anymore.
-        if self.popup.isVisible():
+        if self.popup and self.popup.isVisible():
             self.popup.hide()
 
         if self.qt_model is None:

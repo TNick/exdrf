@@ -87,7 +87,7 @@ class BridgeAdapter(BaseAdapter):
         return namedtuple("MockDbClass", fields)
 
     def new_mock_from_list_item(
-        self, list_item: Any, list_item_id: RecIdType
+        self, list_item: Any, list_item_id: RecIdType, **kwargs
     ) -> Any:
         mock_db_class = self.mock_db_class
 
@@ -100,30 +100,31 @@ class BridgeAdapter(BaseAdapter):
             values.append(list_item)
         if self.edit_rel:
             values.append(None)
-        for _ in self.other_pk:
-            values.append(None)
-        for _ in self.other_fields:
-            values.append(None)
+        for x in self.other_pk:
+            values.append(kwargs.get(x, None))
+        for x in self.other_fields:
+            values.append(kwargs.get(x, None))
         return mock_db_class(*values)
 
-    def add_records(self, records: Sequence["QtRecord"]) -> None:
+    def add_db_ids(
+        self,
+        db_id_list: List[RecIdType],
+        extra: Dict[RecIdType, Dict[str, Any]] = {},
+    ):
         # Get the destination model.
-        bridge_model: "QtModel" = self.core.dst_model
         list_model: "QtModel" = self.core.src_model
+        bridge_model: "QtModel" = self.core.dst_model
         list_db_model = list_model.db_model
-
-        # We use these to create the database key.
-        other_pk_keys = [None for _ in self.other_pk]
-
-        # Get the list of IDs to add.
-        incoming = [r.db_id for r in records if r.db_id is not None]
+        other_pk_keys = []
 
         with self.ctx.same_session() as session:
             # Read these records from the database.
             dst_records = session.scalars(
-                select(list_db_model).where(list_model.get_id_filter(incoming))
+                select(list_db_model).where(
+                    list_model.get_id_filter(db_id_list)
+                )
             )
-            # And create a IDȘ record map.
+            # And create a ID record map.
             result_map: Dict[RecIdType, Any] = {
                 list_model.get_db_item_id(r): r for r in dst_records
             }
@@ -131,7 +132,7 @@ class BridgeAdapter(BaseAdapter):
             # Check to see if we were able to find all the records in the
             # database. Trim those that were not found.
             ordered_records = []
-            for db_id in incoming:
+            for db_id in db_id_list:
                 if db_id not in result_map:
                     logger.error(
                         "Record %s not found in the database",
@@ -145,8 +146,13 @@ class BridgeAdapter(BaseAdapter):
             # Create model records out of each database record.
             new_items = []
             for db_rec in ordered_records:
+                extra_data = extra.get(db_rec.id, {})
+                # We use these to create the database key.
+                other_pk_keys = [extra_data.get(x, None) for x in self.other_pk]
                 db_id = self.create_record_id(db_rec.id, other_pk_keys)
-                mock = self.new_mock_from_list_item(db_rec, db_rec.id)
+                mock = self.new_mock_from_list_item(
+                    db_rec, db_rec.id, **extra_data
+                )
                 m_record = bridge_model.db_item_to_record(mock)
                 m_record.loaded = True
                 new_items.append(m_record)
@@ -156,6 +162,12 @@ class BridgeAdapter(BaseAdapter):
 
         # Update the field value.
         self.core.field_value = id(other_pk_keys)
+
+    def add_records(self, records: Sequence["QtRecord"]) -> None:
+
+        # Get the list of IDs to add.
+        incoming = [r.db_id for r in records if r.db_id is not None]
+        self.add_db_ids(incoming)
 
     def remove_records(self, records: Sequence[Tuple["QtRecord", int]]) -> None:
         # Get the destination model.

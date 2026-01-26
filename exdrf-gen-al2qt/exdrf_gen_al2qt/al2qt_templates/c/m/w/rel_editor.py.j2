@@ -36,9 +36,6 @@ class Qt{{ ResPascal }}Rel(DrfRelated):
         from {{ db_module }}.{{ r.categories[0] }}.api import (
             {{ r.pascal_case_name }} as Db{{ r.pascal_case_name }}
         )
-        from {{ util_module }}.{{ r.categories[0] }}.{{ r.snake_case_name }} import (
-            {{ r.snake_case_name }}_label
-        )
 
         super().__init__(
             ctx=ctx,
@@ -52,7 +49,6 @@ class Qt{{ ResPascal }}Rel(DrfRelated):
                 "rel.src_db_model.{{ r.snake_case_name_plural }}",
                 Db{{ r.name }},
             )),
-            # src_label_fun={{ r.snake_case_name }}_label,
             **kwargs
         )
     # exdrf-keep-start extra_editor_content ------------------------------------

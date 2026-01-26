@@ -1096,7 +1096,7 @@ class QtRefManyToOneField(RefManyToOneField, RefFilterByPart, QtField[DBM]):
                 self.name,
             )
             return None
-        column = getattr(self.resource.db_model, self.fk_from.name)
+        column = getattr(self.resource.db_model, self.fk_from)
         return column.asc() if ascending else column.desc()
 
     def values(self, record: DBM) -> Dict[Qt.ItemDataRole, Any]:

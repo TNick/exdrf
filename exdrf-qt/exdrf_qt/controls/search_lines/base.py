@@ -64,6 +64,7 @@ class BasicSearchLine(QLineEdit, QtUseContext):
     searchDataChanged = pyqtSignal(object)
     returnPressed = pyqtSignal()
     escapePressed = pyqtSignal()
+    addButtonClicked = pyqtSignal(str)
 
     def __init__(
         self,
@@ -113,6 +114,11 @@ class BasicSearchLine(QLineEdit, QtUseContext):
         )
         super().__init__(parent)
 
+        # Initialize action attributes before any create_* calls.
+        self.ac_clear = None
+        self.ac_settings = None
+        self.ac_add = None
+
         label = self.t("cmn.search.term", "Enter search term")
         self.setPlaceholderText(label)
         self.setToolTip(label)
@@ -159,12 +165,28 @@ class BasicSearchLine(QLineEdit, QtUseContext):
         return action
 
     def create_add_action(self) -> QAction:
-        """Creates an action that allows the user to add a new item to the list."""
+        """Creates an action that allows the user to add a new item to the
+        list.
+        """
+        if self.ac_add is not None:
+            return self.ac_add
+
         action = QAction(self)
         action.setIcon(self.get_icon("plus"))
-        action.triggered.connect(self.on_add)
+        action.triggered.connect(self._on_add_action_triggered)
         self.addAction(action, QLineEdit.ActionPosition.TrailingPosition)
-        return action
+        self.ac_add = action
+        return self.ac_add
+
+    def _on_add_action_triggered(self) -> None:
+        """Handle the add action click.
+
+        The default behavior emits `addButtonClicked` with the current text.
+        If an `add_callback` was configured, it is called as well.
+        """
+        self.addButtonClicked.emit(self.text())
+        if self.add_callback is not None:
+            self.add_callback()
 
     def stop_timer(self) -> None:
         """Stops the search timer."""

@@ -33,8 +33,18 @@ from exdrf.filter import (
 )
 from exdrf_al.utils import DelChoice
 from PyQt5.QtCore import QAbstractItemModel, QModelIndex, Qt, QTimer, pyqtSignal
-from sqlalchemy import case, delete, func, select, tuple_, update
+from sqlalchemy import (
+    any_,
+    bindparam,
+    case,
+    delete,
+    func,
+    select,
+    tuple_,
+    update,
+)
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.sql.elements import Tuple as SQLTuple
 from unidecode import unidecode
 
 from exdrf_qt.context_use import QtUseContext
@@ -55,7 +65,7 @@ if TYPE_CHECKING:
     from exdrf_qt.models.requests import RecordRequest  # noqa: F401
 
 
-DEFAULT_CHUNK_SIZE = 24
+DEFAULT_CHUNK_SIZE = 6
 MODEL_LOG_LEVEL = 1
 EDITABLE_LOG_LEVEL = MODEL_LOG_LEVEL
 DBM = TypeVar("DBM")
@@ -719,7 +729,7 @@ class QtModel(
             old_total = self._total_count
             try:
                 self._total_count = new_total
-                count = min(self.batch_size * 8, new_total)
+                count = min(self.batch_size * 2, new_total)
                 if count > 0:
                     self.request_items(0, count)
                 logger.log(
@@ -1103,6 +1113,24 @@ class QtModel(
         pks = self.get_primary_columns()
         if isinstance(pks, (list, tuple)):
             pks = tuple_(*pks)
+
+        # Prefer a Postgres-friendly form for large ID lists: `col = ANY(:ids)`.
+        #
+        # Using `IN (:ids)` with a single bound parameter can lead to a
+        # psycopg2-adapted array being placed inside IN(...), which Postgres
+        # interprets as `integer IN (integer[])` and errors out. SQLite doesn't
+        # support `ANY`, so keep the portable `IN (...)` form there.
+        if (
+            self.ctx.engine is not None
+            and self.ctx.engine.dialect.name == "postgresql"
+            and not isinstance(pks, SQLTuple)
+        ):
+            from sqlalchemy import Integer
+            from sqlalchemy.dialects.postgresql import ARRAY
+
+            ids_param = bindparam(None, value=id_list, type_=ARRAY(Integer))
+            return pks == any_(ids_param)
+
         return pks.in_(id_list)
 
     def item_by_id_conditions(self, rec_id: RecIdType) -> List[Any]:

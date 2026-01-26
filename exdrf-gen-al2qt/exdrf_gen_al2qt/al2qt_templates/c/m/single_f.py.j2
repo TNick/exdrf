@@ -45,8 +45,12 @@ class LabelField(QtStringField["{{ ResPascal }}"]):
     # exdrf-keep-end other_label_attributes -----------------------------------
 
     def values(self, record: "{{ ResPascal }}") -> Dict[Qt.ItemDataRole, Any]:
+        from {{ util_module }}.{{ r.categories[0] }}.{{ r.snake_case_name }} import (
+            {{ r.snake_case_name }}_label
+        )
+
         return self.expand_value(
-            {{ r.label_to_python() }},
+            {{ r.snake_case_name }}_label(record, self.ctx),
             {%- if res_spl_id %}
             EditRole=record.{{ res_primaries[0] }}
             {%- else %}

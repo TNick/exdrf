@@ -489,7 +489,7 @@ class IntStr(Operation):
             f"{'\n'.join(map(str, args))}"
         )
         (number,) = args
-        return "{:,}".format(number)
+        return f"{number:,}"
 
     def to_python(self, *args) -> str:
         assert len(args) == 1, (
@@ -497,7 +497,7 @@ class IntStr(Operation):
             f"{'\n'.join(map(str, args))}"
         )
         (number,) = args
-        return '"{:,}".format(' + str(number) + ")"
+        return 'f"{' + str(number) + ':,}"'
 
     def to_typescript(self, *args) -> str:
         assert len(args) == 1, (

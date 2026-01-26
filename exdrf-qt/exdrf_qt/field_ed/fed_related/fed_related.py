@@ -377,7 +377,14 @@ class DrfRelated(QWidget, Generic[DBM], DrfFieldEd):
         return self.adapter.validate_control()
 
     def load_value_from(self, record: DBM):
-        self.adapter.load_value_from(record)
+        if record is None:
+            self.dst_model.base_selection = select(
+                self.dst_model.db_model
+            ).where(false())
+            self.dst_model.top_cache = []
+            self.dst_model.reset_model()
+        else:
+            self.adapter.load_value_from(record)
 
     def save_value_to(self, record: DBM):
         self.adapter.save_value_to(record)
