@@ -1,5 +1,7 @@
 from typing import TYPE_CHECKING, Optional
 
+from PyQt5.QtCore import pyqtProperty  # type: ignore
+
 from exdrf_qt.field_ed.base_number import NumberBase
 from exdrf_qt.field_ed.choices_mixin import EditorWithChoices
 
@@ -43,6 +45,22 @@ class DrfRealEditor(NumberBase[float], EditorWithChoices):
             unit=self.unit,
             unit_symbol=self.unit_symbol,
         )
+
+    def getPrecision(self) -> int:
+        """Get the precision of the field.
+
+        This is a support function for implementing the precision property.
+        """
+        return self.decimals
+
+    def setPrecision(self, value: int) -> None:
+        """Set the name of the field in the database record.
+
+        This is a support function for implementing the precision property.
+        """
+        self.decimals = value
+
+    precision = pyqtProperty(int, fget=getPrecision, fset=setPrecision)
 
 
 if __name__ == "__main__":

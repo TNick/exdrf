@@ -1,6 +1,7 @@
 from unittest import mock
 
 from sqlalchemy import ForeignKey, Integer
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from exdrf_al.visitor import DbVisitor
@@ -48,6 +49,7 @@ def test_visit_empty(LocalBase):
     assert len(visitor.categ_map) == 0
     assert visitor.visit_model.call_count == 0
     assert visitor.visit_column.call_count == 0
+    assert visitor.visit_hybrid.call_count == 0
     assert visitor.visit_relation.call_count == 0
 
 
@@ -86,4 +88,37 @@ def test_visit_with_models(LocalBase):
     assert len(visitor.categ_map["c1"]["c2"]) == 2
     assert visitor.visit_model.call_count == 2
     assert visitor.visit_column.call_count == 3
+    assert visitor.visit_hybrid.call_count == 0
     assert visitor.visit_relation.call_count == 1
+
+
+def test_visit_calls_visit_hybrid_for_hybrid_properties(LocalBase):
+    """Tests that visit_hybrid is called for each hybrid property on a model."""
+
+    class MockModelWithHybrid(LocalBase):
+        __tablename__ = "mock_hybrid"
+        id: Mapped[int] = mapped_column(
+            Integer, primary_key=True, doc="Primary key."
+        )
+        x: Mapped[int] = mapped_column(Integer, doc="Column x.")
+        y: Mapped[int] = mapped_column(Integer, doc="Column y.")
+
+        @hybrid_property
+        def total(self) -> int:
+            return self.x + self.y
+
+        @total.expression
+        def total(cls):
+            return cls.x + cls.y
+
+    visitor = mock.MagicMock(spec=DbVisitor)
+    visitor.category = mock.MagicMock(return_value=[])
+    visitor.categ_map = {}
+    LocalBase.visit(visitor)
+
+    assert visitor.visit_hybrid.call_count == 1
+    visitor.visit_hybrid.assert_called_once_with(
+        MockModelWithHybrid, "total", mock.ANY
+    )
+    call_args = visitor.visit_hybrid.call_args[0]
+    assert call_args[2].extension_type is not None

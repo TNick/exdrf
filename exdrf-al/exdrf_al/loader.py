@@ -1,6 +1,17 @@
+import datetime
 import logging
 import re
-from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple, Type, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Optional,
+    Tuple,
+    Type,
+    cast,
+    get_args,
+    get_origin,
+)
 
 from attrs import define, field
 from exdrf.api import (
@@ -38,6 +49,7 @@ if TYPE_CHECKING:
     from exdrf.dataset import ExDataset
     from exdrf.field import ExField, FieldInfo
     from exdrf.resource import ExResource
+    from sqlalchemy.ext.hybrid import hybrid_property as HybridProperty
     from sqlalchemy.orm.relationships import RelationshipProperty  # noqa: F401
     from sqlalchemy.sql.elements import KeyedColumnElement  # noqa: F401
 
@@ -181,6 +193,98 @@ def field_from_sql_col(
     result = Ctor(**final_args)
 
     # The field is added to the resource.
+    resource.add_field(result)
+    return result
+
+
+def _hybrid_return_type_to_field(
+    return_type: Optional[Type[Any]], extra: Dict[str, Any]
+) -> Tuple[Type["ExField"], Type["FieldInfo"]]:
+    """Map a hybrid property's return type to (ExField, FieldInfo).
+
+    Unwraps Optional/Union[X, None] and X | None to X. Defaults to
+    FloatField when unknown or missing (e.g. for computed areas).
+
+    Args:
+        return_type: The annotated return type of the hybrid getter.
+        extra: Dict to update with type-specific options (e.g. max_length).
+    """
+    if return_type is None:
+        return FloatField, FloatInfo  # type: ignore[return-value]
+    origin = get_origin(return_type)
+    args = get_args(return_type) if origin is not None else ()
+    if args:
+        non_none = [a for a in args if a is not type(None)]
+        if len(non_none) == 1:
+            return _hybrid_return_type_to_field(non_none[0], extra)
+    if return_type is int:
+        return IntField, IntInfo  # type: ignore[return-value]
+    if return_type is float:
+        return FloatField, FloatInfo  # type: ignore[return-value]
+    if return_type is str:
+        return StrField, StrInfo  # type: ignore[return-value]
+    if return_type is bool:
+        return BoolField, BoolInfo  # type: ignore[return-value]
+    if return_type is datetime.date:
+        return DateField, DateInfo  # type: ignore[return-value]
+    if return_type is datetime.datetime:
+        return DateTimeField, DateTimeInfo  # type: ignore[return-value]
+    if return_type is datetime.time:
+        return TimeField, TimeInfo  # type: ignore[return-value]
+    return StrField, StrInfo  # type: ignore[return-value]
+
+
+def field_from_sql_hybrid(
+    resource: "ExResource",
+    name: str,
+    prop: "HybridProperty",
+    **kwargs: Any,
+) -> "ExField":
+    """Create a field object from a SQLAlchemy hybrid property.
+
+    Uses the getter's return type annotation to pick the field type.
+    Reads extra metadata from prop.info (same shape as column.info).
+
+    Args:
+        resource: The resource to which the field belongs.
+        name: The name of the hybrid property.
+        prop: The SQLAlchemy hybrid property to convert.
+        **kwargs: Additional arguments to pass to the Field constructor.
+    """
+    from typing import get_type_hints
+
+    extra: Dict[str, Any] = {
+        "resource": resource,
+        "src": prop,
+        "name": name,
+        "title": name.replace("_", " ").title(),
+        "description": getattr(prop.fget, "__doc__", None) or "",
+        "nullable": True,
+    }
+    return_type: Optional[Type[Any]] = None
+    try:
+        hints = get_type_hints(prop.fget)
+        return_type = hints.get("return")
+    except Exception as e:
+        logger.log(
+            1,
+            "No return type for hybrid %s.%s: %s",
+            resource.name,
+            name,
+            e,
+            exc_info=True,
+        )
+    Ctor, Parser = _hybrid_return_type_to_field(return_type, extra)
+    info_dict = getattr(prop, "info", None) or {}
+    parsed_info = Parser.model_validate(info_dict, strict=True)
+    for key, value in parsed_info.model_dump().items():
+        if value is not None:
+            extra[key] = value
+    final_args = {**extra, **kwargs}
+    logger.debug(
+        "Creating hybrid field %s for %s.%s", Ctor.__name__, resource.name, name
+    )
+    result = Ctor(**final_args, read_only=True)
     resource.add_field(result)
     return result
 
@@ -357,6 +461,14 @@ def dataset_from_sqlalchemy(
             column: "KeyedColumnElement[Any]",
         ) -> None:
             field_from_sql_col(resource=self.res, column=column)
+
+        def visit_hybrid(
+            self,
+            model: Type["Base"],
+            name: str,
+            prop: "HybridProperty",
+        ) -> None:
+            field_from_sql_hybrid(resource=self.res, name=name, prop=prop)
 
     @define
     class VisitorRel(DbVisitor):

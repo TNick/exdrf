@@ -300,7 +300,7 @@ class DrfFieldEd(QtUseContext):
 
         This is a support function for implementing the modifiable property.
         """
-        self._read_only = not value
+        self.read_only = not value
 
     modifiable = pyqtProperty(bool, fget=getModifiable, fset=setModifiable)
 

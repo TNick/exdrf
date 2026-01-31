@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING, Any, List, Optional, Type
 
 from attrs import define, field
 from exdrf.resource import ResExtraInfo
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm.relationships import RelationshipProperty
 from sqlalchemy.sql.elements import KeyedColumnElement
 
@@ -47,7 +48,21 @@ class DbVisitor:
 
         Args:
             model: The model that contains the relationship.
-            relationship: The relationship that is being visited.
+            relation: The relationship that is being visited.
+        """
+
+    def visit_hybrid(
+        self,
+        model: Type["Base"],
+        name: str,
+        prop: hybrid_property,
+    ) -> None:
+        """Visit a hybrid property.
+
+        Args:
+            model: The model that contains the hybrid property.
+            name: The attribute name of the hybrid property on the model.
+            prop: The hybrid_property descriptor (has .info, etc.).
         """
 
     @staticmethod

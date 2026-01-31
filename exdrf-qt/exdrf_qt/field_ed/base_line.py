@@ -1,7 +1,16 @@
+from functools import partial
 from typing import TYPE_CHECKING, Optional, cast
 
-from PyQt5.QtCore import QEvent, QPoint, QRect, Qt, pyqtSignal
-from PyQt5.QtWidgets import QAction, QLabel, QLineEdit, QVBoxLayout, QWidget
+from PyQt5.QtCore import QEvent, QPoint, QRect, Qt, QTimer, pyqtSignal
+from PyQt5.QtGui import QMoveEvent, QResizeEvent
+from PyQt5.QtWidgets import (
+    QAction,
+    QApplication,
+    QLabel,
+    QLineEdit,
+    QVBoxLayout,
+    QWidget,
+)
 
 if TYPE_CHECKING:
     from PyQt5.QtWidgets import QCompleter
@@ -10,14 +19,52 @@ from exdrf_qt.field_ed.base import DrfFieldEd
 
 
 class InfoLabel(QLabel):
+    """Floating information label shown above line edits.
+
+    Attributes:
+        last_label_rect: Last known on-screen geometry of the label.
+        hover_hidden: Flag kept for backwards compatibility with older hover
+            behavior.
+        is_error: Whether the label currently represents an error message.
+        _timer: Internal timer used to periodically update the position and to
+            auto-hide the label.
+        _seconds_visible: Number of seconds the label has been visible since
+            it was last shown.
+        _host_widget: Widget this label is positioned relative to.
+        _mouse_pressed: Whether the left mouse button is currently pressed on
+            the label.
+        _mouse_dragged: Whether the mouse was dragged far enough to be
+            considered a selection gesture instead of a simple click.
+        _press_pos: Position of the last mouse press event.
+    """
+
     last_label_rect: QRect
     hover_hidden: bool
     is_error: bool
+
+    _timer: QTimer
+    _seconds_visible: int
+    _host_widget: Optional[QWidget]
+
+    _mouse_pressed: bool
+    _mouse_dragged: bool
+    _press_pos: QPoint
 
     def __init__(self, parent=None, text: Optional[str] = ""):
         super().__init__(parent=parent)
         self.last_label_rect = QRect()
         self.hover_hidden = False
+        self.is_error = False
+
+        self._timer = QTimer(self)
+        self._timer.setInterval(1000)
+        self._timer.timeout.connect(self._on_tick)
+        self._seconds_visible = 0
+        self._host_widget = cast(Optional[QWidget], parent)
+
+        self._mouse_pressed = False
+        self._mouse_dragged = False
+        self._press_pos = QPoint()
 
         self.setText(text)
         self.update_style(False)
@@ -31,6 +78,9 @@ class InfoLabel(QLabel):
                 Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop,
             )
         )
+        self.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse
+        )
         self.hide()
 
     @property
@@ -39,13 +89,16 @@ class InfoLabel(QLabel):
         return not self.text()
 
     def update_style(self, with_error: bool):
+        bk = "rgb(246, 217, 213)" if with_error else "rgb(199, 249, 212)"
         self.setStyleSheet(
             "QLabel { "
             f"  color: {'red' if with_error else 'black'};"
-            "  background-color: rgb(240,240,255);"
+            f"  background-color: {bk};"
             "  font-size: 9pt;"
-            "  border: 1px solid darkgrey;"
+            "  border: 1px solid rgba(0, 0, 0, 40);"
             "  border-radius: 6px;"
+            "  margin: 2px;"
+            "  padding: 2px;"
             "}"
         )
 
@@ -54,6 +107,32 @@ class InfoLabel(QLabel):
         self.update()
 
         if len(self.text()) == 0:
+            self.hide()
+
+    def showEvent(self, event):  # type: ignore[override]
+        """Start the timer when the label becomes visible."""
+        self._seconds_visible = 0
+        if not self._timer.isActive():
+            self._timer.start()
+        super().showEvent(event)
+
+    def hideEvent(self, event):  # type: ignore[override]
+        """Stop the timer when the label is hidden."""
+        if self._timer.isActive():
+            self._timer.stop()
+        super().hideEvent(event)
+
+    def _on_tick(self):
+        """Handle periodic timer ticks while the label is visible."""
+        if not self.isVisible():
+            return
+
+        self._seconds_visible += 1
+
+        if self._host_widget is not None:
+            self.update_position(self._host_widget)
+
+        if self._seconds_visible >= 6:
             self.hide()
 
     def show_text(self, text: str):
@@ -65,6 +144,7 @@ class InfoLabel(QLabel):
         self.setText(text)
         self.update_style(True)
         self.is_error = True
+        self.show()
 
     def is_inside(self, pos):
         return self.last_label_rect.isValid() and self.last_label_rect.contains(
@@ -74,14 +154,54 @@ class InfoLabel(QLabel):
     def update_position(self, other):
         if not self.isVisible():
             return
+        self._host_widget = cast(QWidget, other)
         h = self.sizeHint().height()
         global_pos = other.mapToGlobal(QPoint(0, -h - 2))
         self.move(global_pos)
         self.resize(other.width(), h)
         self.last_label_rect = self.frameGeometry()
 
+    def mousePressEvent(self, event):  # type: ignore[override]
+        """Remember mouse press position and allow text selection."""
+        self._mouse_pressed = True
+        self._mouse_dragged = False
+        self._press_pos = event.pos()
+        super().mousePressEvent(event)
+
+        # remember where it was on screen
+        self.last_label_rect = self.frameGeometry()
+
+    def mouseMoveEvent(self, event):  # type: ignore[override]
+        """Track dragging to differentiate click from selection."""
+        if self._mouse_pressed:
+            distance = (event.pos() - self._press_pos).manhattanLength()
+            if distance > QApplication.startDragDistance():
+                self._mouse_dragged = True
+        super().mouseMoveEvent(event)
+
+        # remember where it was on screen
+        self.last_label_rect = self.frameGeometry()
+
+    def mouseReleaseEvent(self, event):  # type: ignore[override]
+        """Hide the label on click while preserving selection."""
+        super().mouseReleaseEvent(event)
+        if (
+            self._mouse_pressed
+            and not self._mouse_dragged
+            and event.button() == Qt.MouseButton.LeftButton
+        ):
+            self.hide()
+
+        self._mouse_pressed = False
+        self._mouse_dragged = False
+
+        # remember where it was on screen
+        self.last_label_rect = self.frameGeometry()
+
 
 class SpecialLine(QLineEdit):
+
+    geometryChange = pyqtSignal()
 
     def keyPressEvent(self, event):  # type: ignore[override]
         result = super().keyPressEvent(event)
@@ -95,6 +215,16 @@ class SpecialLine(QLineEdit):
         ):
             cast("LineBase", self.parentWidget()).showChoices.emit()
         return result
+
+    def resizeEvent(self, event: QResizeEvent):  # type: ignore[override]
+        """Handle resize events to react to size changes."""
+        super().resizeEvent(event)
+        self.geometryChange.emit()
+
+    def moveEvent(self, event: QMoveEvent):  # type: ignore[override]
+        """Handle move events to react to position changes."""
+        super().moveEvent(event)
+        self.geometryChange.emit()
 
 
 class LineBase(QWidget, DrfFieldEd):
@@ -116,6 +246,9 @@ class LineBase(QWidget, DrfFieldEd):
         self.lay_main.addWidget(self.c_line)
 
         self.c_info = InfoLabel(self)
+        self.c_line.geometryChange.connect(
+            partial(self.c_info.update_position, self)
+        )
         self.lay_main.addWidget(self.c_info)
 
         self.setLayout(self.lay_main)
@@ -166,6 +299,7 @@ class LineBase(QWidget, DrfFieldEd):
             )
             self.c_line.setPlaceholderText(self.t("cmn.NULL", "NULL"))
             self.controlChanged.emit()
+            self.update_tooltip(self.description or "")
         else:
             self.c_line.setStyleSheet(
                 "QLineEdit { color: red; font-style: italic; } "
@@ -210,14 +344,13 @@ class LineBase(QWidget, DrfFieldEd):
             self.c_info.hide()
         else:
             self._show_floating_label()
+        self.c_info.update_position(self)
 
     def _show_floating_label(self):
         pass
         # self.btm_tip.resize(self.width(), self.btm_tip.sizeHint().height())
         # if self.hasFocus() and not self.btm_tip.is_empty:
         #     self.btm_tip.show()
-
-        # self.btm_tip.update_position(self)
 
     def add_clear_to_null_action(self):
         """Adds a clear to null action to the line edit."""
@@ -317,6 +450,10 @@ class LineBase(QWidget, DrfFieldEd):
 
     def setReadOnly(self, read_only: bool) -> None:  # type: ignore
         self.c_line.setReadOnly(read_only)
+
+    def setModifiable(self, value: bool) -> None:
+        self.c_line.setReadOnly(not value)
+        return super().setModifiable(value)
 
     def isReadOnly(self) -> bool:
         """Return whether the line edit is read-only."""

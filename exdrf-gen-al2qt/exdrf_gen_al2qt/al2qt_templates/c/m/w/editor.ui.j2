@@ -126,6 +126,13 @@
           <string notr="true">{{ field.depends_on | map('join', ':') | join(',') }}</string>
          </property>
          {%- endif %}{# if field.depends_on #}
+         {%- if field.type_name == 'float' %}
+         {%- if field.precision is not none %}
+         <property name="precision" stdset="0">
+          <number>{{ field.precision }}</number>
+         </property>
+         {%- endif %}{# if field.precision is not none #}
+         {%- endif %}{# if field.type_name == 'float' #}
         </widget>
         {%- endif %}{# if len(read_only_data) #}
        </item>
