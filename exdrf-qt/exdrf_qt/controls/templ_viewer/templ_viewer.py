@@ -119,21 +119,24 @@ class TemplateRenderWorker(QThread):
     """Worker thread for rendering templates.
 
     Attributes:
+        job_id: Identifier for the render job. Used to ignore stale results.
         render_func: The function to call for rendering.
         render_kwargs: Keyword arguments to pass to the render function.
         ctx: The Qt context for creating sessions in the worker thread.
     """
 
+    job_id: int
     render_func: Callable[..., str]
     render_kwargs: Dict[str, Any]
     ctx: Optional["QtContext"]
     data: Dict[str, Any]
 
-    rendered = pyqtSignal(str)
-    error = pyqtSignal(Exception, str)
+    rendered = pyqtSignal(int, str)
+    error = pyqtSignal(int, Exception, str)
 
     def __init__(
         self,
+        job_id: int,
         render_func: Callable[..., str],
         render_kwargs: Dict[str, Any],
         ctx: Optional["QtContext"] = None,
@@ -143,12 +146,14 @@ class TemplateRenderWorker(QThread):
         """Initialize the template render worker.
 
         Args:
+            job_id: Identifier for the render job.
             render_func: The function to call for rendering the template.
             render_kwargs: Keyword arguments to pass to the render function.
             ctx: The Qt context for creating sessions in the worker thread.
             parent: The parent QObject.
         """
         super().__init__(parent)
+        self.job_id = job_id
         self.render_func = render_func
         self.render_kwargs = render_kwargs
         self.ctx = ctx
@@ -157,10 +162,22 @@ class TemplateRenderWorker(QThread):
     def run(self):
         """Execute the template rendering in the worker thread."""
         try:
+            # If the caller already moved on, skip the work.
+            if self.isInterruptionRequested():
+                return
+
             html = self.render_func(**self.render_kwargs)
-            self.rendered.emit(html)
+
+            # If a newer render superseded this one, do not emit.
+            if self.isInterruptionRequested():
+                return
+
+            self.rendered.emit(self.job_id, html)
         except Exception as e:
-            self.error.emit(e, traceback.format_exc())
+            if self.isInterruptionRequested():
+                return
+
+            self.error.emit(self.job_id, e, traceback.format_exc())
 
 
 snippets = {
@@ -233,39 +250,42 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
         view_mode: The mode of the template viewer: source or rendered.
     """
 
-    _current_template: Optional["Template"]
-    _current_template_file: Optional[str]
-    _use_edited_text: bool
-    _auto_save_to: Optional[str]
+    _active_render_job_id: int
     _auto_save_timer: "QTimer"
+    _auto_save_to: Optional[str]
     _backup_file: Optional[str]
-    jinja_env: "Environment"
-    header: "VarHeader"
-    model: "VarModel"
-    view_mode: "ViewMode"
-    extra_context: Dict[str, Any]
-    _render_seq: int
-    _set_html_timer: "QTimer"
-    _pending_html: Optional[str]
+    _current_template_file: Optional[str]
+    _current_template: Optional["Template"]
+    _fallback_triggered_for_seq: int
     _last_render_html: Optional[str]
     _last_render_len: int
     _last_render_seq: int
-    _fallback_triggered_for_seq: int
+    _pending_html: Optional[str]
+    _render_job_seq: int
+    _render_seq: int
+    _set_html_timer: "QTimer"
+    _use_edited_text: bool
+    extra_context: Dict[str, Any]
+    header: "VarHeader"
+    jinja_env: "Environment"
+    model: "VarModel"
+    view_mode: "ViewMode"
 
-    ac_refresh: "QAction"
-    ac_copy_key: "QAction"
-    ac_copy_value: "QAction"
-    ac_copy_keys: "QAction"
-    ac_copy_values: "QAction"
-    ac_copy_all: "QAction"
     ac_add: "QAction"
     ac_clear: "QAction"
-    ac_switch_mode: "QAction"
-    ac_save_as_templ: "QAction"
+    ac_copy_all: "QAction"
+    ac_copy_key: "QAction"
+    ac_copy_keys: "QAction"
+    ac_copy_value: "QAction"
+    ac_copy_values: "QAction"
+    ac_others: List[Union["AcBase", QAction, None]]
+    ac_refresh: "QAction"
+    ac_save_as_docx: "QAction"
     ac_save_as_html: "QAction"
     ac_save_as_pdf: "QAction"
-    ac_save_as_docx: "QAction"
-    ac_others: List[Union["AcBase", QAction, None]]
+    ac_save_as_templ: "QAction"
+    ac_switch_mode: "QAction"
+
     mnu_snippets: "QMenu"
     _prevent_render: bool
     _prevent_save: bool
@@ -367,6 +387,8 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
 
         # Initialize render sequence counter for traceability of loads.
         self._render_seq = 0
+        self._render_job_seq = 0
+        self._active_render_job_id = -1
 
         # Coalesce rapid setHtml calls to avoid aborting loads.
         self._pending_html = None
@@ -374,7 +396,8 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
         self._set_html_timer.setSingleShot(True)
         self._set_html_timer.timeout.connect(self._flush_pending_html)
 
-        # Debounce render_template_later calls when responding to controlChanged.
+        # Debounce render_template_later calls when responding to a
+        # controlChanged.
         self._render_later_timer = QTimer(self)
         self._render_later_timer.setSingleShot(True)
         self._render_later_timer.setInterval(1500)  # 1.5 seconds
@@ -1273,13 +1296,18 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
 
         # Cancel any existing render worker
         if self._render_worker is not None and self._render_worker.isRunning():
-            logger.log(1, "Cancelling previous render worker")
-
-            # End the worker immediately.
-            self._render_worker.terminate()
-
-            # The documentation recommends waiting for the worker to finish.
-            self._render_worker.wait(1000)
+            # Never use terminate(): it is unsafe and can crash the process
+            # (notably on Windows). Instead, request interruption and ignore
+            # stale results via job_id.
+            logger.log(1, "Cancelling previous render worker (soft cancel)")
+            try:
+                self._render_worker.requestInterruption()
+            except Exception as e:
+                logger.debug(
+                    "Failed to request interruption for render worker: %s",
+                    e,
+                    exc_info=True,
+                )
 
         try:
             if self._override_content:
@@ -1342,30 +1370,46 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
             loading_html = self._get_loading_html()
             self._queue_set_html(loading_html)
 
-        # Create worker thread
-        self._render_worker = TemplateRenderWorker(
+        # Create worker thread. Use job ids to avoid out-of-order updates.
+        self._render_job_seq += 1
+        job_id = self._render_job_seq
+        self._active_render_job_id = job_id
+
+        worker = TemplateRenderWorker(
+            job_id=job_id,
             render_func=self._render_template,
             render_kwargs=kwargs,
             ctx=self.ctx,
             parent=self,
         )
+        self._render_worker = worker
 
         # Allow the subclasses to adjust the thread.
         self._adjust_render_thread()
 
         # Connect signals
-        self._render_worker.rendered.connect(self._on_template_rendered)
-        self._render_worker.error.connect(self._on_template_render_error)
-        self._render_worker.finished.connect(self._on_render_worker_finished)
+        worker.rendered.connect(self._on_template_rendered)
+        worker.error.connect(self._on_template_render_error)
+        worker.finished.connect(lambda: self._on_render_worker_finished(worker))
 
         # Start the worker
-        self._render_worker.start()
+        worker.start()
 
     def _adjust_render_thread(self):
         """Adjust the render thread."""
 
-    def _on_template_rendered(self, html: str):
+    @top_level_handler
+    def _on_template_rendered(self, job_id: int, html: str):
         """Handle successful template rendering."""
+        if job_id != self._active_render_job_id:
+            logger.log(
+                1,
+                "Ignoring rendered HTML for stale job_id=%d (active=%d)",
+                job_id,
+                self._active_render_job_id,
+            )
+            return
+
         html_len = len(html) if isinstance(html, str) else 0
         if html_len == 0 or (isinstance(html, str) and not html.strip()):
             logger.warning("Rendered HTML is empty/blank")
@@ -1384,17 +1428,39 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
         # Coalesce setHtml invocations; schedule a single update shortly.
         self._queue_set_html(html)
 
-    def _on_template_render_error(self, e: Exception, formatted: str):
+    @top_level_handler
+    def _on_template_render_error(
+        self, job_id: int, e: Exception, formatted: str
+    ) -> None:
         """Handle template rendering error."""
+        if job_id != self._active_render_job_id:
+            logger.log(
+                1,
+                "Ignoring render error for stale job_id=%d (active=%d): %s",
+                job_id,
+                self._active_render_job_id,
+                e,
+            )
+            return
+
         logger.error("Error rendering template: %s", e, exc_info=True)
 
         # Show exception in viewer
         self.show_exception(e, formatted)
 
-    def _on_render_worker_finished(self):
-        """Handle worker thread completion."""
-        if self._render_worker is not None:
-            self._render_worker.deleteLater()
+    @top_level_handler
+    def _on_render_worker_finished(self, worker: TemplateRenderWorker) -> None:
+        """Handle worker thread completion.
+
+        Args:
+            worker: The worker that finished.
+        """
+        try:
+            worker.deleteLater()
+        except Exception as e:
+            logger.debug("Failed to delete render worker: %s", e, exc_info=True)
+
+        if self._render_worker is worker:
             self._render_worker = None
 
     def _snapshot_page_html(self, seq: int) -> None:
@@ -1456,8 +1522,13 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
         try:
             # Snapshot the page HTML shortly after scheduling setHtml.
             QTimer.singleShot(200, lambda: self._snapshot_page_html(seq))
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(
+                "Failed to schedule HTML snapshot seq=%d: %s",
+                seq,
+                e,
+                exc_info=True,
+            )
         logger.debug("setHtml(seq=%d) scheduled", seq)
 
     def _fallback_load_via_file(self, html: str, seq: int) -> None:
@@ -1481,8 +1552,13 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
             self.c_viewer.setUrl(q_url)
             try:
                 QTimer.singleShot(300, lambda: self._snapshot_page_html(seq))
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug(
+                    "Failed to schedule fallback snapshot seq=%d: %s",
+                    seq,
+                    e,
+                    exc_info=True,
+                )
         except Exception as e:
             logger.error(
                 "Fallback load via file failed seq=%d: %s",
