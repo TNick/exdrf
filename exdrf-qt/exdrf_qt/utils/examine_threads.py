@@ -58,7 +58,7 @@ def _format_duration_s(val: Any) -> str:
     try:
         return "%.2fs" % float(val)
     except Exception as e:
-        logger.log(1, "Invalid duration value %s: %s", val, e, exc_info=True)
+        logger.exception("Invalid duration value %s: %s", val, e)
         return "-"
 
 
@@ -76,7 +76,7 @@ def _humanize_ts(val: Any) -> str:
     try:
         ts = float(val)
     except Exception as e:
-        logger.log(1, "Invalid timestamp value %s: %s", val, e, exc_info=True)
+        logger.exception("Invalid timestamp value %s: %s", val, e)
         return "-"
 
     dt = datetime.fromtimestamp(ts)
@@ -130,7 +130,7 @@ def _format_sql(sql: Any) -> str:
         ).replace(" ON ", "\n    ON ")
         return pretty_sql
     except Exception as e:
-        logger.log(1, "Failed to format SQL: %s", e, exc_info=True)
+        logger.exception("Failed to format SQL: %s", e)
         return str(sql)
 
 

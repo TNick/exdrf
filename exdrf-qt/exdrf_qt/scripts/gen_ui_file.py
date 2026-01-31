@@ -7,6 +7,151 @@ import click
 
 var_def = re.compile(r"^self\.([a-zA-Z_][a-zA-Z0-9_]+)\s*=\s*([\.a-zA-Z0-9_]+)")
 
+# Maximum line length when splitting long string literals (Black default).
+MAX_LINE_LENGTH = 80
+
+
+def _split_long_string_line(
+    line: str, max_length: int = MAX_LINE_LENGTH
+) -> List[str]:
+    """Split a long string line into multiple concatenated double-quoted lines.
+
+    If the line is a single line containing one double- or triple-quoted string
+    (e.g. from _translate(..., "long text")) and exceeds max_length, returns a
+    list of lines with the string split at word boundaries into adjacent
+    string literals. Triple-quoted strings are converted to multiple "xyz"
+    lines. Otherwise returns [line].
+    """
+    if len(line) <= max_length:
+        return [line]
+    stripped = line.lstrip()
+    indent = line[: len(line) - len(stripped)]
+    quote_len = 1
+    if stripped.startswith('"""'):
+        quote_len = 3
+    elif stripped.startswith("'''"):
+        quote_len = 3
+    elif not stripped.startswith('"'):
+        return [line]
+    # Find the closing quote(s), respecting backslash-escaped quotes.
+    i = len(indent) + quote_len
+    content_parts: List[str] = []
+    close_quote = line[len(indent) : len(indent) + quote_len]
+    while i < len(line):
+        if line[i] == "\\" and i + 1 < len(line):
+            content_parts.append(line[i : i + 2])
+            i += 2
+            continue
+        if (
+            i + quote_len <= len(line)
+            and line[i : i + quote_len] == close_quote
+        ):
+            break
+        content_parts.append(line[i])
+        i += 1
+    else:
+        return [line]
+    content = "".join(content_parts)
+    tail = line[i + quote_len :]
+    max_chunk = max_length - len(indent) - 2
+    if max_chunk < 10:
+        return [line]
+    words = content.split(" ")
+    chunks = _chunk_words(words, max_chunk)
+    if len(chunks) <= 1:
+        return [line]
+    result = [indent + '"' + chunk + '"' for chunk in chunks[:-1]]
+    result.append(indent + '"' + chunks[-1] + '"' + tail)
+    return result
+
+
+def _chunk_words(words: List[str], max_chunk: int) -> List[str]:
+    """Split a list of words into chunks of at most max_chunk characters."""
+    chunks: List[str] = []
+    current: List[str] = []
+    current_len = 0
+    for w in words:
+        need = len(w) + (1 if current else 0)
+        if current and current_len + need > max_chunk:
+            chunks.append(" ".join(current))
+            current = [w]
+            current_len = len(w)
+        else:
+            current.append(w)
+            current_len += need
+    if current:
+        chunks.append(" ".join(current))
+    return chunks
+
+
+def _find_closing_quote(line: str, start: int) -> Optional[int]:
+    """Return index of closing double-quote, respecting \\\"; None if not found."""
+    i = start
+    while i < len(line):
+        if line[i] == "\\" and i + 1 < len(line):
+            i += 2
+            continue
+        if line[i] == '"':
+            return i
+        i += 1
+    return None
+
+
+def _split_translate_line(
+    line: str, max_length: int = MAX_LINE_LENGTH
+) -> List[str]:
+    """Split a long line containing _translate(\"Context\", \"long string\") into multiple lines.
+
+    If the line is too long and contains exactly one _translate(..., "second_arg")
+    call, the second (translatable) string is split at word boundaries into
+    multiple concatenated \"...\" lines. Otherwise returns [line].
+    """
+    if len(line) <= max_length:
+        return [line]
+    idx = line.find("_translate(")
+    if idx < 0:
+        return [line]
+    # First quoted argument (context): after _translate(
+    open_paren = idx + len("_translate(")
+    if open_paren >= len(line) or line[open_paren] != '"':
+        return [line]
+    first_end = _find_closing_quote(line, open_paren + 1)
+    if first_end is None:
+        return [line]
+    # Expect ", " then second string.
+    after_first = first_end + 1
+    if (
+        after_first + 2 > len(line)
+        or line[after_first : after_first + 2] != ", "
+    ):
+        return [line]
+    second_start = after_first + 2
+    if second_start >= len(line) or line[second_start] != '"':
+        return [line]
+    second_content_start = second_start + 1
+    second_end = _find_closing_quote(line, second_content_start)
+    if second_end is None:
+        return [line]
+    content = line[second_content_start:second_end]
+    tail = line[second_end + 1 :]
+    indent = line[: len(line) - len(line.lstrip())]
+    cont_indent = indent + "    "
+    max_chunk = max_length - len(cont_indent) - 2
+    if max_chunk < 10:
+        return [line]
+    words = content.split(" ")
+    chunks = _chunk_words(words, max_chunk)
+    if len(chunks) <= 1:
+        return [line]
+    prefix = line[:second_start]
+    if len(prefix) > max_length:
+        return [line]
+    result = [prefix]
+    for chunk in chunks[:-1]:
+        result.append(cont_indent + '"' + chunk + ' "')
+    result.append(cont_indent + '"' + chunks[-1] + '"' + tail)
+    return result
+
 
 def auto_field_description(var_name: str, var_type: str) -> str:
     if "Layout" in var_name:
@@ -66,7 +211,7 @@ class Fixer:
     def control_defs(self):
         return [
             (var_name, var_type)
-            for var_name, var_type in self._var_defs
+            for var_name, var_type in sorted(self._var_defs, key=lambda x: x[0])
             if not (
                 var_name.startswith("label_")
                 or var_name in ("label", "line")
@@ -79,7 +224,7 @@ class Fixer:
     def control_defs_pure(self):
         return [
             (var_name, var_type)
-            for var_name, var_type in self._var_defs
+            for var_name, var_type in sorted(self._var_defs, key=lambda x: x[0])
             if not (
                 var_name.startswith("label_")
                 or var_name in ("label", "line")
@@ -160,7 +305,14 @@ class Fixer:
                         replacer = "(parent="
                     line = line[:-1].replace("(", replacer) + ", ctx=self.ctx)"
 
-            changed.append(line)
+            split_lines = (
+                _split_translate_line(line)
+                if "_translate(" in line and len(line) > MAX_LINE_LENGTH
+                else [line]
+            )
+            if len(split_lines) <= 1:
+                split_lines = _split_long_string_line(line)
+            changed.extend(split_lines)
 
         py_import = []
         if self._has_qt_core:
@@ -177,7 +329,7 @@ class Fixer:
         after_setup = changed[self._setup_idx :]  # noqa: E203
         var_decl = [
             f'    {var_name}: "{var_type}"'
-            for var_name, var_type in self._var_defs
+            for var_name, var_type in sorted(self._var_defs, key=lambda x: x[0])
         ]
 
         var_description = [

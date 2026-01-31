@@ -6,22 +6,22 @@ class Ui_MainWindow:
 
     Attributes:
         central_widget: Central widget.
-        verticalLayout: The layout for the widget.
         mdi_area: Mdi area.
-        menubar: Menubar.
-        menu_file: Menu file.
         menu_concerns: Menu concerns.
+        menu_file: Menu file.
+        menubar: Menubar.
         statusbar: Statusbar.
+        verticalLayout: The layout for the widget.
 
     """
 
     central_widget: "QtWidgets.QWidget"
-    verticalLayout: "QtWidgets.QVBoxLayout"
     mdi_area: "QtWidgets.QMdiArea"
-    menubar: "QtWidgets.QMenuBar"
-    menu_file: "QtWidgets.QMenu"
     menu_concerns: "QtWidgets.QMenu"
+    menu_file: "QtWidgets.QMenu"
+    menubar: "QtWidgets.QMenuBar"
     statusbar: "QtWidgets.QStatusBar"
+    verticalLayout: "QtWidgets.QVBoxLayout"
 
     def setup_ui(self, MainWindow):
 
@@ -63,8 +63,8 @@ class Ui_MainWindow:
         return [
             self.central_widget,
             self.mdi_area,
-            self.menubar,
-            self.menu_file,
             self.menu_concerns,
+            self.menu_file,
+            self.menubar,
             self.statusbar,
         ]

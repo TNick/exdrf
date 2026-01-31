@@ -1,3 +1,12 @@
+"""Custom WebEngine page and exdrf:// URL scheme handler for template viewer.
+
+This module provides the exdrf:// URL scheme (local, local-access-allowed)
+and a handler that serves assets (CSS/JS), attachments, and library icons
+from the template viewer. It also defines a WebEnginePage subclass that
+installs this handler, forwards JavaScript console messages to Python
+logging, and controls navigation (exdrf://, about/data/file, or external).
+"""
+
 import logging
 import os
 from datetime import datetime, timedelta
@@ -29,6 +38,18 @@ ErrorMsgLevel = QWebEnginePage.JavaScriptConsoleMessageLevel.ErrorMessageLevel
 
 
 def read_local_assets(path: str) -> bytes:
+    """Read a file from the templ_viewer assets package as raw bytes.
+
+    Args:
+        path: Relative path under exdrf_qt.controls.templ_viewer.assets
+            (e.g. datatables.min.css, not-found.png).
+
+    Returns:
+        File contents as bytes.
+
+    Raises:
+        FileNotFoundError: If the path is not a file in the assets directory.
+    """
     src_path = resources.files(
         "exdrf_qt.controls.templ_viewer.assets"
     ).joinpath(path)
@@ -40,24 +61,19 @@ def read_local_assets(path: str) -> bytes:
 
 
 class ExDrfHandler(QWebEngineUrlSchemeHandler, QtUseContext):
-    """Custom URL scheme handler for exdrf://.
+    """Custom URL scheme handler for exdrf:// requests.
 
-    This class is used to handle requests for assets, attachments, and
-    attachment images.
-
-    For now the buffers are not discarded, which is a memory leak.
-    There seem to be no way to detect when the job is finished.
-
-    The collector timer is used to collect buffers that are no longer needed.
-    It is started when the handler is created and runs every minute.
-    When a buffer is added the time when it will be removed is set to 5 minutes
-    from the current time.
+    Serves assets (CSS/JS from the package), attachments by path, and
+    library icons (by name, rendered from QIcon). Buffers are kept in
+    _buffers so the engine can read them; a collector timer runs every
+    minute and drops buffers older than 5 minutes to limit memory use.
 
     Attributes:
-        _buffers: Keep a reference to buffers to prevent them from being
-            garbage collected until the job is finished.
-        collector_timer: Timer that runs every minute to collect buffers that
-            are no longer needed.
+        _buffers: List of (expiry datetime, QBuffer) to keep buffers alive
+            until the engine finishes; collector removes expired entries.
+        collector_timer: QTimer that runs every minute and calls
+            collect_buffers.
+        icon_cache: Map from icon name to PNG bytes for lib-img requests.
     """
 
     _buffers: List[Tuple[datetime, QBuffer]]
@@ -65,6 +81,12 @@ class ExDrfHandler(QWebEngineUrlSchemeHandler, QtUseContext):
     icon_cache: Dict[str, bytes]
 
     def __init__(self, ctx: "QtContext", parent=None):
+        """Initialize the exdrf handler and start the buffer collector timer.
+
+        Args:
+            ctx: Qt context for e.g. icon lookup.
+            parent: Optional parent for the handler.
+        """
         super().__init__(parent)
         self.ctx = ctx
         self._buffers = []
@@ -73,8 +95,8 @@ class ExDrfHandler(QWebEngineUrlSchemeHandler, QtUseContext):
         self.collector_timer.timeout.connect(self.collect_buffers)
         self.collector_timer.start(1 * 60 * 1000)
 
-    def collect_buffers(self):
-        """Collect buffers that are no longer needed."""
+    def collect_buffers(self) -> None:
+        """Remove buffers whose expiry time has passed to free memory."""
         before = len(self._buffers)
         now = datetime.now()
         self._buffers = [(t, b) for t, b in self._buffers if t > now]
@@ -83,6 +105,15 @@ class ExDrfHandler(QWebEngineUrlSchemeHandler, QtUseContext):
             logger.debug("Discarded %d buffers", before - after)
 
     def get_asset(self, path: str) -> Tuple[bytes, bytes]:
+        """Return asset bytes and MIME type for a known CSS/JS asset path.
+
+        Args:
+            path: Filename under assets (e.g. datatables.min.css).
+
+        Returns:
+            Pair (data, mime); mime is text/css or application/javascript,
+            or 404 placeholder with text/plain.
+        """
         if path in ("datatables.min.css", "bootstrap.min.css"):
             data = read_local_assets(path)
             mime = b"text/css"
@@ -100,18 +131,36 @@ class ExDrfHandler(QWebEngineUrlSchemeHandler, QtUseContext):
         return data, mime
 
     def get_attachment(self, path: str) -> Tuple[bytes, bytes]:
-        """Get an attachment."""
+        """Return attachment bytes and MIME for a file path (PDF or placeholder).
+
+        Args:
+            path: Absolute or relative path to the attachment file.
+
+        Returns:
+            Pair (data, mime); PDF if file exists, else not-found.png and
+            image/png.
+        """
         if os.path.isfile(path):
             data = read_local_assets(path)
             mime = b"application/pdf"
         else:
-            logger.error(f"Attachment not found: {path}")
+            logger.error("Attachment not found: %s", path)
             data = read_local_assets("not-found.png")
             mime = b"application/png"
         return data, mime
 
     def get_lib_img(self, name: str) -> Tuple[bytes, bytes]:
-        """Get an attachment as an image."""
+        """Return PNG bytes for a library icon by name (cached).
+
+        Strips .png suffix if present, then looks up icon via get_icon,
+        renders to 32x32 PNG, and caches. On failure returns not-found.png.
+
+        Args:
+            name: Icon name (optionally with .png); used for get_icon and cache.
+
+        Returns:
+            Pair (data, mime) with image/png.
+        """
         if name.upper().endswith(".PNG"):
             name = name[:-4]
         try:
@@ -121,7 +170,6 @@ class ExDrfHandler(QWebEngineUrlSchemeHandler, QtUseContext):
                 return data, mime
             icon = self.get_icon(name)
             if icon is not None:
-                # Convert QIcon to PNG bytes
                 pixmap = icon.pixmap(32, 32)
                 buffer = QBuffer()
                 buffer.open(QIODevice.OpenModeFlag.ReadWrite)
@@ -131,19 +179,26 @@ class ExDrfHandler(QWebEngineUrlSchemeHandler, QtUseContext):
                 self.icon_cache[name] = data
                 return data, mime
         except Exception:
-            pass
-        logger.error(f"Attachment icon not found: {name}")
+            logger.log(1, "Failed to get lib icon %s", name, exc_info=True)
+        logger.error("Attachment icon not found: %s", name)
         data = read_local_assets("not-found.png")
         mime = b"image/png"
         return data, mime
 
     def get_att_img(self, path: str) -> Tuple[bytes, bytes]:
-        """Get an attachment as an image."""
+        """Return image bytes and MIME for an attachment image path.
+
+        Args:
+            path: Path to an image file to serve.
+
+        Returns:
+            Pair (data, mime); image/png from file or not-found.png if missing.
+        """
         if os.path.isfile(path):
             data = read_local_assets(path)
             mime = b"image/png"
         else:
-            logger.error(f"Attachment image not found: {path}")
+            logger.error("Attachment image not found: %s", path)
             data = read_local_assets("not-found.png")
             mime = b"image/png"
         return data, mime
@@ -151,7 +206,16 @@ class ExDrfHandler(QWebEngineUrlSchemeHandler, QtUseContext):
     def requestStarted(  # type: ignore
         self,
         job: Optional[QWebEngineUrlRequestJob],
-    ):
+    ) -> None:
+        """Handle an exdrf:// request: route by host, build buffer, reply.
+
+        Hosts: assets, attachments, att-img, lib-img. Path is taken from
+        the request URL (leading slash stripped). Reply buffer is kept in
+        _buffers with 5-minute expiry for the collector.
+
+        Args:
+            job: The URL request job; failed or replied here.
+        """
         if job is None:
             return
         req_url: "QUrl" = job.requestUrl()
@@ -165,6 +229,7 @@ class ExDrfHandler(QWebEngineUrlSchemeHandler, QtUseContext):
         data: bytes
         mime: bytes
 
+        # Route by host and build (data, mime); fail job on error
         try:
             if host == "assets":
                 data, mime = self.get_asset(path)
@@ -178,36 +243,57 @@ class ExDrfHandler(QWebEngineUrlSchemeHandler, QtUseContext):
                 raise RuntimeError(f"Unknown host: {host}")
         except Exception as e:
             logger.error(
-                f"Error handling request for {req_url.toString()}: {e}"
+                "Error handling request for %s: %s",
+                req_url.toString(),
+                e,
             )
             job.fail(QWebEngineUrlRequestJob.Error.RequestFailed)
             return
 
-        # Prepare QBuffer, hold reference
+        # Build reply buffer and keep reference for collector
         content_type_qba = QByteArray(mime)
         data_buffer = QBuffer()
         data_buffer.setData(data)
         if not data_buffer.open(QIODevice.OpenModeFlag.ReadOnly):
-            logger.error(f"Failed to open QBuffer for URL {req_url.toString()}")
+            logger.error(
+                "Failed to open QBuffer for URL %s", req_url.toString()
+            )
             job.fail(QWebEngineUrlRequestJob.Error.RequestFailed)
             return
 
-        # Add buffer to collector list.
         five_minutes_later = datetime.now() + timedelta(minutes=5)
         self._buffers.append((five_minutes_later, data_buffer))
 
-        # Reply to the request.
         job.reply(content_type_qba, data_buffer)
         logger.debug("replied with %d bytes", len(data))
 
 
 class WebEnginePage(QWebEnginePage, QtUseContext):
-    """A custom web engine page that can handle internal navigation requests."""
+    """Custom WebEngine page with exdrf:// handler and navigation control.
+
+    Installs ExDrfHandler on the default profile for exdrf:// assets,
+    attachments, and lib-img. Forwards JavaScript console messages to
+    Python logging. Accepts or blocks navigation based on scheme and
+    accept_navigation.
+
+    Attributes:
+        handler: The ExDrfHandler installed on the profile (set in
+            setup_handler).
+        accept_navigation: If true, allow normal navigation for non-exdrf
+            URLs; if false, show "Navigation not allowed" for them.
+    """
 
     handler: ExDrfHandler
     accept_navigation: bool = False
 
     def __init__(self, ctx: "QtContext", *args, **kwargs):
+        """Initialize the page with context and install exdrf handler.
+
+        Args:
+            ctx: Qt context for handler and routing.
+            *args: Passed to QWebEnginePage (e.g. profile, parent).
+            **kwargs: Passed to QWebEnginePage.
+        """
         super().__init__(*args, **kwargs)
         self.ctx = ctx
         self.handler = None  # type: ignore
@@ -216,12 +302,22 @@ class WebEnginePage(QWebEnginePage, QtUseContext):
             raise RuntimeError("Failed to get default profile")
         self.setup_handler(profile)
 
-    def setup_handler(self, profile: "QWebEngineProfile"):
+    def setup_handler(self, profile: "QWebEngineProfile") -> None:
+        """Install ExDrfHandler on the given profile for exdrf:// scheme.
+
+        Args:
+            profile: The WebEngine profile to install the handler on.
+        """
         self.handler = ExDrfHandler(self.ctx, profile)
         profile.installUrlSchemeHandler(b"exdrf", self.handler)
 
-    def javaScriptConsoleMessage(self, level, message, lineNumber, sourceID):
-        # Map JS console message level to Python logging level
+    def javaScriptConsoleMessage(
+        self, level, message, lineNumber, sourceID
+    ) -> None:
+        """Forward JavaScript console messages to Python logging.
+
+        Maps Info/Warning/Error to info/warning/error; other levels to debug.
+        """
         if level == InfoMsgLevel:
             logger.info(
                 f"JS: {message} (line {lineNumber}, source: {sourceID})"
@@ -236,13 +332,28 @@ class WebEnginePage(QWebEnginePage, QtUseContext):
             )
         else:
             logger.debug(
-                f"JS: {message} (line {lineNumber}, source: {sourceID})"
+                "JS: %s (line %s, source: %s)", message, lineNumber, sourceID
             )
 
     def acceptNavigationRequest(  # type: ignore
         self, url: "QUrl", _type, isMainFrame: bool
     ) -> bool:
-        """Accept navigation requests."""
+        """Decide whether to allow navigation to the given URL.
+
+        Allows about/data/file and empty URL. For exdrf://, handles
+        host "navigation" via ctx.router and returns False; other exdrf
+        hosts get custom placeholder and False. For other schemes,
+        allows only if accept_navigation is true.
+
+        Args:
+            url: The URL being navigated to.
+            _type: Navigation type (unused).
+            isMainFrame: Whether the request is for the main frame.
+
+        Returns:
+            True to allow navigation, False to block (and optionally
+            set placeholder HTML).
+        """
         host = url.host()
         scheme = url.scheme()
 
@@ -259,10 +370,11 @@ class WebEnginePage(QWebEnginePage, QtUseContext):
         if view is None:
             return False
 
-        # Allow internal loads needed by setHtml and fallback file loads
+        # Allow internal loads (setHtml) and file/data/about
         if not url_str or scheme in ("about", "data", "file"):
             return True
 
+        # exdrf: route navigation host or show placeholder; always suppress
         if scheme == "exdrf":
             if host == "navigation":
                 result = self.ctx.router.route(url_str)
@@ -274,8 +386,8 @@ class WebEnginePage(QWebEnginePage, QtUseContext):
             view.setHtml(f"<h1>Custom content for {url_str}</h1>")
             return False
 
+        # Other schemes: allow only if accept_navigation is true
         if self.accept_navigation:
             return super().acceptNavigationRequest(url, _type, isMainFrame)
-        else:
-            view.setHtml(f"<h1>Navigation not allowed for {url_str}</h1>")
-            return False
+        view.setHtml(f"<h1>Navigation not allowed for {url_str}</h1>")
+        return False

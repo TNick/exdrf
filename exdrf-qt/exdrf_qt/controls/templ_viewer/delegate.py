@@ -1,3 +1,12 @@
+"""Item delegate for template viewer variables table (value column).
+
+This module provides VarItemDelegate, which creates type-aware editors
+for the value column (checkboxes for bool, date/datetime pickers,
+validated line edits for int/float, list popup for list types) and
+paints model BackgroundRole when not selected. It also defines the
+private _ListEditDialog and _ListButtonEditor for list editing.
+"""
+
 import logging
 from typing import Any, List, Optional, Tuple, cast
 
@@ -35,22 +44,31 @@ logger = logging.getLogger(__name__)
 
 
 class _ListEditDialog(QDialog):
-    """Popup dialog used to edit list values with type-aware validation.
+    """Popup dialog to edit list values with type-aware validation.
 
-    The dialog displays a list whose items can be edited in-place and provides
-    an input row to add new items. Validation rules depend on the list type.
+    Displays a list of items (editable in-place) and an input row to add
+    items. Validation depends on value_type (int list, float list, or
+    string list). OK is enabled only when all items parse correctly.
+
+    Attributes:
+        _value_type: Field type name for list elements (int/float/string list).
+        _list: QListWidget holding the items.
+        _input: QLineEdit for new item text.
+        _btn_add: Button to add item from _input.
+        _btn_rem: Button to remove selected item.
+        _buttons: OK/Cancel button box.
     """
 
-    def __init__(self, parent: QWidget, value_type: str):
-        """Initialize the dialog.
+    def __init__(self, parent: QWidget, value_type: str) -> None:
+        """Initialize the dialog with parent and list element type.
 
         Args:
-            parent: The parent widget.
-            value_type: The field type name describing list element type.
+            parent: Parent widget for the dialog.
+            value_type: Field type name for list elements (e.g. int list,
+                float list, string list); used for validators and parsing.
         """
         super().__init__(parent)
 
-        # Configure UI elements.
         self.setWindowTitle("Edit List")
         self._value_type = value_type
         self._list = QListWidget(self)
@@ -60,20 +78,14 @@ class _ListEditDialog(QDialog):
         self._buttons = QDialogButtonBox(
             QDialogButtonBox.Ok | QDialogButtonBox.Cancel, parent=self
         )
-
-        # Set button labels.
         self._btn_add.setText("+")
         self._btn_rem.setText("-")
 
-        # Allow inline editing of items (defaults are acceptable).
-
-        # Apply validators for numeric lists.
         if value_type == FIELD_TYPE_INT_LIST:
             self._input.setValidator(QIntValidator(self))
         elif value_type == FIELD_TYPE_FLOAT_LIST:
             self._input.setValidator(QDoubleValidator(self))
 
-        # Layout assembly.
         lay = QVBoxLayout(self)
         row = QHBoxLayout()
         row.addWidget(self._input, 1)
@@ -86,21 +98,19 @@ class _ListEditDialog(QDialog):
         lay.addLayout(row2)
         lay.addWidget(self._buttons)
 
-        # Connect signals.
         self._btn_add.clicked.connect(self._on_add)
         self._btn_rem.clicked.connect(self._on_remove)
         self._buttons.accepted.connect(self._on_accept)
         self._buttons.rejected.connect(self.reject)
         self._list.itemChanged.connect(self._on_item_changed)
-
-        # Initial state.
         self._update_ok_enabled()
 
     def set_values(self, values: List[Any]) -> None:
-        """Populate the dialog with an initial list of values.
+        """Populate the list with initial values and update OK state.
 
         Args:
-            values: The initial items to display.
+            values: Initial items to display (each shown as str); None or
+                empty list clears the list.
         """
         self._list.clear()
         for v in values or []:
@@ -110,10 +120,13 @@ class _ListEditDialog(QDialog):
         self._update_ok_enabled()
 
     def values(self) -> List[Any]:
-        """Return the current list values, parsed according to type.
+        """Return the current list values, parsed according to _value_type.
+
+        Invalid items are left as strings. Used when the user accepts
+        the dialog.
 
         Returns:
-            A list containing the parsed items.
+            List of parsed values (int/float/str per type) or raw strings.
         """
         result: List[Any] = []
         for i in range(self._list.count()):
@@ -128,13 +141,14 @@ class _ListEditDialog(QDialog):
         return result
 
     def _parse(self, text: str) -> Tuple[bool, Any]:
-        """Parse a string according to the configured list element type.
+        """Parse a string according to _value_type (int/float list or string).
 
         Args:
-            text: The text to parse.
+            text: Text to parse (e.g. from list item or input line).
 
         Returns:
-            A tuple (ok, value) where ok indicates whether parsing succeeded.
+            Pair (ok, value): ok True if parsing succeeded, value the
+            parsed value or None on failure.
         """
         if self._value_type == FIELD_TYPE_INT_LIST:
             try:
@@ -151,7 +165,7 @@ class _ListEditDialog(QDialog):
         return True, text
 
     def _on_add(self) -> None:
-        """Add the value from the input box as a new list item."""
+        """Add the input line text as a new list item; highlight if invalid."""
         txt = self._input.text()
         if txt == "":
             return
@@ -165,7 +179,7 @@ class _ListEditDialog(QDialog):
         self._update_ok_enabled()
 
     def _on_remove(self) -> None:
-        """Remove the currently selected list item, if any."""
+        """Remove the currently selected list item and update OK state."""
         row = self._list.currentRow()
         if row >= 0:
             it = self._list.takeItem(row)
@@ -174,20 +188,20 @@ class _ListEditDialog(QDialog):
         self._update_ok_enabled()
 
     def _on_item_changed(self, it: QListWidgetItem) -> None:
-        """Validate a list item after it was edited.
+        """Validate the item after edit; set background to white or salmon.
 
         Args:
-            it: The item that changed.
+            it: The list widget item that was changed.
         """
         ok, _ = self._parse(it.text())
         it.setBackground(QBrush(QColor("white" if ok else "salmon")))
         self._update_ok_enabled()
 
     def _all_items_valid(self) -> bool:
-        """Check whether all list items are valid according to type.
+        """Return whether every list item parses successfully for _value_type.
 
         Returns:
-            True if all items are valid, False otherwise.
+            True if all items parse, False if any fail.
         """
         for i in range(self._list.count()):
             item = self._list.item(i)
@@ -199,13 +213,13 @@ class _ListEditDialog(QDialog):
         return True
 
     def _update_ok_enabled(self) -> None:
-        """Enable or disable the OK button based on validation state."""
+        """Enable OK only when _all_items_valid is true."""
         btn = self._buttons.button(QDialogButtonBox.Ok)
         if btn is not None:
             btn.setEnabled(self._all_items_valid())
 
     def _on_accept(self) -> None:
-        """Accept the dialog only if the list is fully valid."""
+        """Accept the dialog only when all items are valid; else reject."""
         if self._all_items_valid():
             self.accept()
         else:
@@ -213,16 +227,25 @@ class _ListEditDialog(QDialog):
 
 
 class _ListButtonEditor(QToolButton):
-    """Tiny editor that opens a popup to edit list-typed values."""
+    """Tool button that opens _ListEditDialog to edit list-typed values.
+
+    Shows "..." as label; on click opens the dialog and emits
+    editingFinished when the user accepts. Values are stored in _values.
+
+    Attributes:
+        _value_type: Field type name for list elements (passed to dialog).
+        _values: Current list value (edited in dialog, committed on accept).
+    """
 
     editingFinished = pyqtSignal()
 
-    def __init__(self, parent: QWidget, value_type: str):
-        """Initialize the tool-button editor.
+    def __init__(self, parent: QWidget, value_type: str) -> None:
+        """Initialize the list button editor.
 
         Args:
-            parent: The parent widget.
-            value_type: Field type name describing list element type.
+            parent: Parent widget for the button.
+            value_type: Field type name for list elements (int/float/string
+                list); passed to _ListEditDialog for validation.
         """
         super().__init__(parent)
         self._value_type = value_type
@@ -231,7 +254,7 @@ class _ListButtonEditor(QToolButton):
         self.clicked.connect(self._on_clicked)
 
     def _on_clicked(self) -> None:
-        """Open the list editor dialog and store the result if accepted."""
+        """Open the list editor dialog; on accept update _values and emit."""
         dlg = _ListEditDialog(self, self._value_type)
         dlg.setWindowModality(Qt.WindowModality.ApplicationModal)
         dlg.set_values(self._values)
@@ -240,35 +263,44 @@ class _ListButtonEditor(QToolButton):
             self.editingFinished.emit()
 
     def setValues(self, values: List[Any]) -> None:
-        """Set the current list value represented by this editor.
+        """Set the list value shown when the dialog opens.
 
         Args:
-            values: The list values to store.
+            values: List to store (None or non-sequence becomes empty list).
         """
         self._values = list(values or [])
 
     def values(self) -> List[Any]:
-        """Get the current list value represented by this editor.
+        """Return a copy of the current list value (after dialog accept).
 
         Returns:
-            A copy of the stored list of values.
+            Copy of _values for commit to model.
         """
         return list(self._values)
 
 
 class VarItemDelegate(QStyledItemDelegate):
-    """Delegate that creates editors based on the field type for values."""
+    """Delegate that creates type-aware editors for the value column.
+
+    For VarModel value column (column 1): checkboxes for bool, date/
+    datetime pickers, validated line edits for int/float, list popup
+    for list types, else plain line edit. Paints model BackgroundRole
+    when the cell is not selected or hovered.
+
+    Attributes:
+        ctx: Optional application context (for future use).
+    """
 
     def __init__(
         self,
         parent: Optional[QWidget] = None,
         ctx: Optional[Any] = None,
-    ):
+    ) -> None:
         """Initialize the delegate.
 
         Args:
-            parent: The parent widget.
-            ctx: Optional application context (for future use).
+            parent: Optional parent widget for the delegate.
+            ctx: Optional application context (e.g. for translation).
         """
         super().__init__(parent)
         self.ctx = ctx
@@ -279,15 +311,17 @@ class VarItemDelegate(QStyledItemDelegate):
         option: QStyleOptionViewItem,
         index: QModelIndex,
     ) -> None:
-        """Paint the item, honoring model-provided background for non-selected rows.
+        """Paint the cell; use model BackgroundRole when not selected/hovered.
+
+        Fills the cell rect with the model's background brush before
+        calling the base paint so custom backgrounds are visible.
 
         Args:
-            painter: The painter used to draw.
-            option: The style option describing the cell.
-            index: The index being painted.
+            painter: Painter to use for drawing.
+            option: Style option for the cell (rect, state).
+            index: Model index of the cell.
         """
         try:
-            # Respect model BackgroundRole when not selected/hovered to avoid QSS masking.
             is_selected = bool(option.state & QStyle.State_Selected)
             is_hover = bool(option.state & QStyle.State_MouseOver)
             if not is_selected and not is_hover:
@@ -307,22 +341,26 @@ class VarItemDelegate(QStyledItemDelegate):
         option: QStyleOptionViewItem,
         index: QModelIndex,
     ) -> Optional[QWidget]:
-        """Create an appropriate editor for the model index.
+        """Create a type-appropriate editor for the value column.
+
+        Returns None for non-value columns. For value column: list
+        button for list types, checkbox for bool, date/datetime edit,
+        validated line edit for int/float, else plain line edit.
 
         Args:
-            parent: The parent widget for the editor.
-            option: Style option for the editor.
-            index: The model index to edit (value column only).
+            parent: Parent widget for the editor.
+            option: Style option (unused for type choice).
+            index: Model index; must be value column (1) for an editor.
 
         Returns:
-            A QWidget editor instance or None if not editable.
+            Editor widget or None if column is not 1.
         """
         if index.column() != 1:
             return None
         model = cast(Any, index.model())
         try:
             from exdrf_qt.controls.templ_viewer.model import (
-                VarModel as _VarModel,  # lazy import
+                VarModel as _VarModel,
             )
 
             var_model = cast(_VarModel, model)
@@ -342,27 +380,22 @@ class VarItemDelegate(QStyledItemDelegate):
 
             if t == FIELD_TYPE_BOOL:
                 return QCheckBox(parent)
-
             if t == FIELD_TYPE_INTEGER:
                 edit = QLineEdit(parent)
                 edit.setValidator(QIntValidator(parent))
                 return edit
-
             if t == FIELD_TYPE_FLOAT:
                 edit = QLineEdit(parent)
                 edit.setValidator(QDoubleValidator(parent))
                 return edit
-
             if t == FIELD_TYPE_DATE:
                 de = QDateEdit(parent)
                 de.setCalendarPopup(True)
                 return de
-
             if t == FIELD_TYPE_DT:
                 dte = QDateTimeEdit(parent)
                 dte.setCalendarPopup(True)
                 return dte
-
             return QLineEdit(parent)
         except Exception:
             logger.error("Error creating editor", exc_info=True)
@@ -371,11 +404,14 @@ class VarItemDelegate(QStyledItemDelegate):
     def setEditorData(
         self, editor: Optional[QWidget], index: QModelIndex
     ) -> None:
-        """Populate editor with the current model value.
+        """Load the current model value into the editor.
+
+        Dispatches by editor type: list button, checkbox, date/datetime
+        edit, or line edit. Does nothing if editor is None or not value column.
 
         Args:
-            editor: The created editor widget.
-            index: The model index being edited.
+            editor: Editor widget created by createEditor.
+            index: Model index being edited (value column).
         """
         if editor is None or index.column() != 1:
             return
@@ -420,12 +456,16 @@ class VarItemDelegate(QStyledItemDelegate):
         model: Any,
         index: QModelIndex,
     ) -> None:
-        """Commit the value from the editor back to the model.
+        """Write the editor value back to the model at the given index.
+
+        Dispatches by editor type; for line edit, uses field type to
+        parse int/float or pass string. Does nothing if editor is None
+        or not value column.
 
         Args:
-            editor: The editor widget.
-            model: The target model.
-            index: The model index being edited.
+            editor: Editor widget that holds the new value.
+            model: Model to update (VarModel).
+            index: Model index being edited (value column).
         """
         if editor is None or index.column() != 1:
             return
@@ -469,6 +509,7 @@ class VarItemDelegate(QStyledItemDelegate):
                 field = var_model.filtered_bag.fields[index.row()]
                 t = field.type_name
 
+                # Parse line edit text by field type before committing
                 if t == FIELD_TYPE_INTEGER:
                     model.setData(
                         index,
@@ -497,12 +538,12 @@ class VarItemDelegate(QStyledItemDelegate):
         option: QStyleOptionViewItem,
         index: QModelIndex,
     ) -> None:
-        """Size and position the editor within the view cell.
+        """Set the editor geometry to the cell rect from the option.
 
         Args:
-            editor: The editor widget.
-            option: The style option containing geometry.
-            index: The model index being edited.
+            editor: Editor widget to position (ignored if None).
+            option: Style option whose rect is used for geometry.
+            index: Model index (unused).
         """
         if editor is None:
             return
@@ -510,13 +551,13 @@ class VarItemDelegate(QStyledItemDelegate):
 
     @staticmethod
     def _list_type_name(tn: str) -> str:
-        """Normalize list field type names outside the standard set.
+        """Return a supported list type name for the given field type.
 
         Args:
-            tn: The raw field type name.
+            tn: Field type name (e.g. from VarModel field).
 
         Returns:
-            One of the supported list field type names.
+            Same string if int/float/string list, else string list.
         """
         if tn in (
             FIELD_TYPE_INT_LIST,
@@ -527,10 +568,13 @@ class VarItemDelegate(QStyledItemDelegate):
         return FIELD_TYPE_STRING_LIST
 
     def _commit_and_close(self, editor: QWidget) -> None:
-        """Emit commitData and closeEditor for the given editor.
+        """Emit commitData then closeEditor for the list button editor.
+
+        Called when _ListButtonEditor emits editingFinished. Ensures
+        closeEditor is emitted even if commitData raises.
 
         Args:
-            editor: The editor to commit and close.
+            editor: Editor widget to commit and close.
         """
         try:
             self.commitData.emit(editor)
@@ -538,4 +582,8 @@ class VarItemDelegate(QStyledItemDelegate):
             try:
                 self.closeEditor.emit(editor)  # type: ignore[arg-type]
             except Exception:
-                pass
+                logger.log(
+                    1,
+                    "Error emitting closeEditor for list editor",
+                    exc_info=True,
+                )

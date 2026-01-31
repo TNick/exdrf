@@ -83,7 +83,7 @@ def identity_value(item: Any) -> Any:
     try:
         state = inspect(item)
     except Exception:
-        logger.log(1, "Failed to inspect value %s", item, exc_info=True)
+        logger.exception("Failed to inspect value %s", item)
         return None
     if state is None or state.identity is None:
         return None

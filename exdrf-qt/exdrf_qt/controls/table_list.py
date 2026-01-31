@@ -261,7 +261,7 @@ class DbFieldDelegate(QStyledItemDelegate):
             try:
                 self.closeEditor.emit(target)  # type: ignore[arg-type]
             except Exception:
-                logger.log(1, "Failed to close inline editor", exc_info=True)
+                logger.exception("Failed to close inline editor")
 
         field.configure_editor(editor, _commit_and_close)
         return editor

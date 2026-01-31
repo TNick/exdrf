@@ -19,46 +19,46 @@ class Ui_MainWindow:
 
     Attributes:
         central_widget: Central widget.
-        formLayout: The layout for the widget.
+        ed_blob: Ed blob.
         ed_bool: Ed bool.
         ed_date: Ed date.
         ed_date_time: Ed date time.
-        ed_time: Ed time.
         ed_int: Ed int.
-        ed_real: Ed real.
-        ed_string: Ed string.
-        ed_single: Ed single.
         ed_multi: Ed multi.
+        ed_real: Ed real.
+        ed_single: Ed single.
+        ed_string: Ed string.
         ed_text: Ed text.
-        ed_blob: Ed blob.
+        ed_time: Ed time.
+        formLayout: The layout for the widget.
         statusbar: Statusbar.
 
     """
 
     central_widget: "QtWidgets.QWidget"
-    formLayout: "QtWidgets.QFormLayout"
-    lbl_bool: "QtWidgets.QLabel"
-    ed_bool: "DrfBoolEditor"
-    lbl_date: "QtWidgets.QLabel"
-    ed_date: "DrfDateEditor"
-    lbl_date_time: "QtWidgets.QLabel"
-    ed_date_time: "DrfDateTimeEditor"
-    lbl_time: "QtWidgets.QLabel"
-    ed_time: "DrfTimeEditor"
-    lbl_int: "QtWidgets.QLabel"
-    ed_int: "DrfIntEditor"
-    lbl_real: "QtWidgets.QLabel"
-    ed_real: "DrfRealEditor"
-    lbl_string: "QtWidgets.QLabel"
-    ed_string: "DrfLineEditor"
-    lbl_text: "QtWidgets.QLabel"
-    lbl_single: "QtWidgets.QLabel"
-    ed_single: "QtWidgets.QLineEdit"
-    lbl_multi: "QtWidgets.QLabel"
-    ed_multi: "QtWidgets.QLineEdit"
-    ed_text: "DrfTextEditor"
-    lbl_blob: "QtWidgets.QLabel"
     ed_blob: "DrfBlobEditor"
+    ed_bool: "DrfBoolEditor"
+    ed_date: "DrfDateEditor"
+    ed_date_time: "DrfDateTimeEditor"
+    ed_int: "DrfIntEditor"
+    ed_multi: "QtWidgets.QLineEdit"
+    ed_real: "DrfRealEditor"
+    ed_single: "QtWidgets.QLineEdit"
+    ed_string: "DrfLineEditor"
+    ed_text: "DrfTextEditor"
+    ed_time: "DrfTimeEditor"
+    formLayout: "QtWidgets.QFormLayout"
+    lbl_blob: "QtWidgets.QLabel"
+    lbl_bool: "QtWidgets.QLabel"
+    lbl_date: "QtWidgets.QLabel"
+    lbl_date_time: "QtWidgets.QLabel"
+    lbl_int: "QtWidgets.QLabel"
+    lbl_multi: "QtWidgets.QLabel"
+    lbl_real: "QtWidgets.QLabel"
+    lbl_single: "QtWidgets.QLabel"
+    lbl_string: "QtWidgets.QLabel"
+    lbl_text: "QtWidgets.QLabel"
+    lbl_time: "QtWidgets.QLabel"
     statusbar: "QtWidgets.QStatusBar"
 
     def setup_ui(self, MainWindow):
@@ -239,16 +239,16 @@ class Ui_MainWindow:
         """Enumerate the controls in the form."""
         return [
             self.central_widget,
+            self.ed_blob,
             self.ed_bool,
             self.ed_date,
             self.ed_date_time,
-            self.ed_time,
             self.ed_int,
-            self.ed_real,
-            self.ed_string,
-            self.ed_single,
             self.ed_multi,
+            self.ed_real,
+            self.ed_single,
+            self.ed_string,
             self.ed_text,
-            self.ed_blob,
+            self.ed_time,
             self.statusbar,
         ]
