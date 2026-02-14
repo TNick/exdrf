@@ -12,18 +12,30 @@ from pyrsistent import freeze, pmap, thaw
 from pyrsistent.typing import PMap
 
 DEBOUNCE_TIME = 5
+MAX_BACKUPS = 5
 logger = logging.getLogger(__name__)
 
 
 @define
 class LocalSettings:
-    """Local settings for the application."""
+    """Local settings for the application.
+
+    Attributes:
+        settings: Immutable mapping of stored settings.
+        read_only: Flag indicating whether persistence is disabled.
+        _save_timer: Debounce timer for saves (None when inactive).
+        _save_lock: Lock guarding saves; None when read_only is True.
+    """
 
     settings: PMap[str, Any] = field(default=pmap())
+    read_only: bool = field(default=False)
     _save_timer: Optional[threading.Timer] = field(default=None, init=False)
-    _save_lock: threading.Lock = field(factory=threading.Lock, init=False)
+    _save_lock: Optional[threading.Lock] = field(
+        factory=threading.Lock, init=False
+    )
 
     def __attrs_post_init__(self):
+        self.set_read_only(self.read_only)
         self.load_settings()
 
     def __getitem__(self, key: str) -> Any:
@@ -34,8 +46,9 @@ class LocalSettings:
 
     def set_read_only(self, read_only: bool):
         """Set the read-only flag for the settings."""
+        self.read_only = read_only
         if read_only:
-            self._save_lock = None  # type: ignore
+            self._save_lock = None
         elif self._save_lock is None:
             self._save_lock = threading.Lock()
 
@@ -52,6 +65,8 @@ class LocalSettings:
 
     def _do_save_settings(self):
         """Internal method to perform the actual save operation."""
+        if self.read_only:
+            return
         settings_file = self.settings_file()
         tmp_settings = f"{settings_file}.tmp"
         with open(tmp_settings, "w") as f:
@@ -132,7 +147,8 @@ class LocalSettings:
         """Load the settings from the user's configuration directory."""
         settings_file = self.settings_file()
         if os.path.exists(settings_file):
-            rotate_backups(settings_file, max_backups=5)
+            if not self.read_only:
+                rotate_backups(settings_file, max_backups=MAX_BACKUPS)
             with open(settings_file, "r") as f:
                 tmp = freeze(yaml.safe_load(f))
                 if tmp is not None:

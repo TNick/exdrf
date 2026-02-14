@@ -217,7 +217,7 @@ class QtContext(QtMinContext):
     asset_sources: List[str] = field(factory=lambda: ["exdrf_qt.assets"])
     _overrides: Dict[str, Any] = field(factory=dict)
     router: "ExdrfRouter" = field(default=None)
-    t_collector: "TranslateCollector" = field(default=None)
+    t_collector: Optional["TranslateCollector"] = field(default=None)
 
     def __attrs_post_init__(self):
         super().__attrs_post_init__()
@@ -232,10 +232,12 @@ class QtContext(QtMinContext):
         collect_file_path = os.environ.get(
             "EXDRF_TRANSLATE_COLLECTOR_FILE", None
         )
-        if collect_file_path:
+        if collect_file_path and self.t_collector is None:
             from exdrf_qt.utils.t_collector import TranslateCollector
 
             self.t_collector = TranslateCollector()
+        elif self.t_collector is False:
+            self.t_collector = None
 
         # Inform plugins that the context has been created.
         safe_hook_call(exdrf_qt_pm.hook.context_created, context=self)
