@@ -4,12 +4,20 @@ from typing import Any, Dict, List, Optional
 
 from attrs import define, field
 from sqlalchemy import Engine, Select, create_engine, event
+from sqlalchemy.engine.url import make_url
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.session import Session
+from sqlalchemy.pool import NullPool, StaticPool
 
 from exdrf_al.db_ver.db_ver import DbVer
 
 dialects_with_schema = {"postgresql", "oracle", "mssql"}
+
+# Connection pool configuration constants
+DEFAULT_POOL_SIZE = 16
+DEFAULT_MAX_OVERFLOW = 10
+DEFAULT_POOL_RECYCLE = 3600  # 1 hour in seconds
+DEFAULT_POOL_TIMEOUT = 30  # seconds
 
 
 @define
@@ -70,11 +78,56 @@ class DbConn:
     db_version: Optional[str] = None
     auto_migrate: Optional[bool] = False
 
-    def connect(self) -> Engine:
+    def connect(self, **kwargs) -> Engine:
         """Connect to the database."""
         if self.engine:
             return self.engine
-        self.engine = create_engine(self.c_string)
+
+        # Parse connection string to determine dialect
+        url = make_url(self.c_string)
+
+        # Configure pool parameters: apply defaults first, then kwargs override
+        engine_kwargs: Dict[str, Any] = {}
+
+        if url.drivername.startswith("postgresql"):
+            # PostgreSQL benefits from connection pooling
+            engine_kwargs.update(
+                {
+                    "pool_size": DEFAULT_POOL_SIZE,
+                    "max_overflow": DEFAULT_MAX_OVERFLOW,
+                    "pool_recycle": DEFAULT_POOL_RECYCLE,
+                    "pool_pre_ping": True,
+                    "pool_timeout": DEFAULT_POOL_TIMEOUT,
+                }
+            )
+        elif url.drivername.startswith("mysql"):
+            # MySQL also benefits from pooling
+            engine_kwargs.update(
+                {
+                    "pool_size": DEFAULT_POOL_SIZE,
+                    "max_overflow": DEFAULT_MAX_OVERFLOW,
+                    "pool_recycle": DEFAULT_POOL_RECYCLE,
+                    "pool_pre_ping": True,
+                }
+            )
+        elif url.drivername.startswith("sqlite"):
+            # SQLite: use StaticPool for :memory:, NullPool for file-based
+            if ":memory:" in self.c_string or url.database == ":memory:":
+                engine_kwargs["poolclass"] = StaticPool
+                engine_kwargs["connect_args"] = {"check_same_thread": False}
+            else:
+                engine_kwargs["poolclass"] = NullPool
+        # For other databases (Oracle, MSSQL, etc.), use SQLAlchemy defaults
+
+        # Apply user overrides.
+        engine_kwargs.update(kwargs)
+
+        # Remove engine_kwargs whose values are None
+        engine_kwargs = {
+            k: v for k, v in engine_kwargs.items() if v is not None
+        }
+
+        self.engine = create_engine(self.c_string, **engine_kwargs)
         dialect_name = self.engine.dialect.name
         supports_schema = dialect_name in dialects_with_schema
         if supports_schema:
