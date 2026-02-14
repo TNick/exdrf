@@ -160,6 +160,7 @@
         "TEXTJOIN",
         "timedelta",
         "TINYINT",
+        "tometadata",
         "TOPPADDING",
         "tplan",
         "trolltech",

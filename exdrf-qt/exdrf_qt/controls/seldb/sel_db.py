@@ -26,6 +26,7 @@ from exdrf_qt.controls.seldb.utils import (
     CON_TYPE_LOCAL,
     CON_TYPE_REMOTE,
 )
+from exdrf_qt.controls.transfer import TransferWidget
 from exdrf_qt.utils.tlh import top_level_handler
 
 if TYPE_CHECKING:
@@ -45,9 +46,17 @@ class SelectDatabaseDlg(QDialog, Ui_SelectDatabase, QtUseContext):
     save_btn: QPushButton
     ok_btn: QPushButton
     _config_model: DatabaseConfigModel
+    btn_transfer: QPushButton
 
-    def __init__(self, ctx: "QtContext", **kwargs):
-        """Initialize the editor widget."""
+    def __init__(
+        self, ctx: "QtContext", show_transfer_button: bool = True, **kwargs
+    ):
+        """Initialize the editor widget.
+
+        Args:
+            ctx: The Qt application context.
+            show_transfer_button: Whether to show the Transfer button in this dialog.
+        """
         super().__init__(**kwargs)
         self.ctx = ctx
         self.setup_ui(self)
@@ -80,6 +89,20 @@ class SelectDatabaseDlg(QDialog, Ui_SelectDatabase, QtUseContext):
         assert self.btn_bootstrap is not None
         self.btn_bootstrap.setIcon(self.get_icon("sitemap_application_blue"))
         self.btn_bootstrap.clicked.connect(self.on_bootstrap)  # type: ignore
+
+        # Add a Transfer button that opens the transfer widget
+        self.btn_transfer = self.bbox.addButton(
+            self.ctx.t("cmn.transfer", "Transfer"),
+            QDialogButtonBox.ButtonRole.ActionRole,
+        )
+        assert self.btn_transfer is not None
+        try:
+            self.btn_transfer.setIcon(self.get_icon("layer_aspect_arrow"))
+        except Exception:
+            pass
+        self.btn_transfer.clicked.connect(self.on_open_transfer)  # type: ignore
+        if not show_transfer_button:
+            self.btn_transfer.setVisible(False)
 
         # Notice changes by the user.
         self.c_db_name.textChanged.connect(self.on_content_changed)
@@ -160,6 +183,34 @@ class SelectDatabaseDlg(QDialog, Ui_SelectDatabase, QtUseContext):
 
         # Start version checker
         self._start_version_checker()
+
+    @top_level_handler
+    def on_open_transfer(self) -> None:
+        """Open the data transfer widget in a window."""
+        try:
+            # Close the settings dialog before opening transfer
+            self.accept()
+            w = TransferWidget(ctx=self.ctx, parent=self.ctx.top_widget)
+            title = self.ctx.t("cmn.transfer", "Transfer")
+            if (
+                hasattr(self.ctx, "create_window")
+                and self.ctx.top_widget is not None
+            ):
+                self.ctx.create_window(w, title)
+            else:
+                w.setWindowTitle(title)
+                w.resize(1100, 700)
+                w.show()
+        except Exception as e:
+            logger.error("Failed to open transfer widget: %s", e, exc_info=True)
+            self.ctx.show_error(
+                title=self.ctx.t("cmn.error", "Error"),
+                message=self.ctx.t(
+                    "cmn.err-open-transfer",
+                    "Failed to open transfer widget: {err}",
+                    err=str(e),
+                ),
+            )
 
     def _start_version_checker(self):
         """Start the background thread to check database versions."""

@@ -75,9 +75,14 @@ class FilterHeader(QHeaderView, QtUseContext):
             )
 
     def sizeHint(self) -> QSize:  # type: ignore[override]
-        """Get the size hint for the header view."""
+        """Get the size hint for the header view.
+
+        Ensure there is always space for the label text above the filters by
+        enforcing a minimum base label height before adding the filter area.
+        """
         s = super().sizeHint()
-        s.setHeight(s.height() + self._filter_height)
+        base_h = max(s.height(), 20)  # minimum label area height
+        s.setHeight(base_h + self._filter_height)
         return s
 
     def init_filters(
