@@ -1,10 +1,16 @@
 """Main transfer widget: two-pane DB transfer with table list and viewer."""
 
 import logging
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, List, Optional, cast
 
 from exdrf_al.connection import DbConn
-from PyQt5.QtCore import QPoint, QSortFilterProxyModel, Qt
+from PyQt5.QtCore import (
+    QItemSelectionModel,
+    QPoint,
+    QSortFilterProxyModel,
+    Qt,
+    QTimer,
+)
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (
     QAbstractItemView,
@@ -272,7 +278,84 @@ class TransferWidget(QWidget, QtUseContext):
 
         return w
 
+    # -------------------------------
+    # View state helpers (selection/scroll)
+    # -------------------------------
+    def _capture_view_state(self, view: QTableView, model: TablesModel):
+        """Capture selected table names and vertical scroll value.
+
+        Args:
+            view: The table view.
+            model: The underlying source model.
+
+        Returns:
+            A tuple (names, scroll_value) suitable for restoring later.
+        """
+        try:
+            names = self._selected_tables(view, model)
+        except Exception:
+            names = []
+        vsb = view.verticalScrollBar()
+        scroll_val = vsb.value() if vsb is not None else 0
+        return (names, scroll_val)
+
+    def _restore_view_state(
+        self, view: QTableView, model: TablesModel, state
+    ) -> None:
+        """Restore selection and vertical scroll after a model refresh.
+
+        Args:
+            view: The table view.
+            model: The underlying source model.
+            state: The state tuple returned by _capture_view_state.
+        """
+        if not state:
+            return
+        names, scroll_val = state
+        proxy_model = view.model()
+        # Select rows matching the saved names
+        try:
+            sel = view.selectionModel()
+            if sel:
+                sel.clearSelection()
+            # Build a set for quick lookup
+            wanted = set(names)
+            # Iterate source model rows to find matches
+            for r in range(model.rowCount()):
+                name = model.table_name(r)
+                if not name or name not in wanted:
+                    continue
+                src_idx = model.index(r, 0)
+                try:
+                    if isinstance(proxy_model, QSortFilterProxyModel):
+                        px_idx = proxy_model.mapFromSource(src_idx)
+                    else:
+                        px_idx = src_idx
+                except Exception:
+                    px_idx = src_idx
+                if not px_idx.isValid():
+                    continue
+                if sel:
+                    flags = cast(
+                        QItemSelectionModel.SelectionFlag,
+                        (
+                            QItemSelectionModel.SelectionFlag.Select
+                            | QItemSelectionModel.SelectionFlag.Rows
+                        ),
+                    )
+                    sel.select(px_idx, flags)
+        except Exception as e:
+            logger.log(VERBOSE, "TransferWidget: %s", e, exc_info=True)
+        # Restore scroll position
+        try:
+            vsb = view.verticalScrollBar()
+            if vsb is not None:
+                vsb.setValue(scroll_val)
+        except Exception as e:
+            logger.log(VERBOSE, "TransferWidget: %s", e, exc_info=True)
+
     # Selection -> connections
+
     def _apply_src_selection(self) -> None:
         """Update source connection based on the chooser selection.
 
@@ -280,6 +363,22 @@ class TransferWidget(QWidget, QtUseContext):
         """
         logger.log(VERBOSE, "TransferWidget: applying src selection")
         self._src_count_error_shown = False
+
+        # Capture view state to preserve selection/scroll across refreshes
+        src_state = None
+        dst_state = None
+        try:
+            src_state = self._capture_view_state(
+                self._src_view, self._src_model
+            )
+        except Exception:
+            src_state = None
+        try:
+            dst_state = self._capture_view_state(
+                self._dst_view, self._dst_model
+            )
+        except Exception:
+            dst_state = None
 
         cfg = self._current_cfg(self._src_db)
         if not cfg:
@@ -293,7 +392,32 @@ class TransferWidget(QWidget, QtUseContext):
         if self._is_same_conn(self._src_conn, self._dst_conn):
             self._clear_destination()
         self._src_model.set_connections(self._src_conn, self._dst_conn)
+        # Source selection changes table list; refresh both models
         self._src_model.refresh()
+        try:
+            self._dst_model.set_connections(self._src_conn, self._dst_conn)
+            self._dst_model.refresh()
+        except Exception as e:
+            logger.log(VERBOSE, "TransferWidget: %s", e, exc_info=True)
+
+        # Restore view state asynchronously (after models settle)
+        try:
+            if src_state:
+                QTimer.singleShot(
+                    0,
+                    lambda s=src_state: self._restore_view_state(
+                        self._src_view, self._src_model, s
+                    ),
+                )
+            if dst_state:
+                QTimer.singleShot(
+                    0,
+                    lambda s=dst_state: self._restore_view_state(
+                        self._dst_view, self._dst_model, s
+                    ),
+                )
+        except Exception:
+            pass
         logger.log(
             VERBOSE,
             "TransferWidget: applied src selection %s",
@@ -320,14 +444,20 @@ class TransferWidget(QWidget, QtUseContext):
         if self._is_same_conn(self._src_conn, self._dst_conn):
             self._clear_destination()
         # Update only destination-side model and refresh it
+        # Destination selection does not affect table list; avoid full refreshes
         try:
-            # Always map (source, destination)
+            # Update both models' connections
             self._dst_model.set_connections(self._src_conn, self._dst_conn)
-            self._dst_model.refresh()
+            self._src_model.set_connections(self._src_conn, self._dst_conn)
+            # Invalidate only destination-side counts so deltas recollect
+            self._dst_model.invalidate_counts_side("dst")
+            self._src_model.invalidate_counts_side("dst")
         except Exception as e:
             logger.error(
-                "TransferWidget: failed to refresh destination after "
-                "selection: %s",
+                (
+                    "TransferWidget: failed to invalidate counts after "
+                    "selection: %s"
+                ),
                 e,
                 exc_info=True,
             )

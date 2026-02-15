@@ -47,8 +47,13 @@ class NumericSortProxy(QSortFilterProxyModel):
         if model is None:
             return super().lessThan(left, right)
 
-        lv = model.data(left, Qt.ItemDataRole.DisplayRole)
-        rv = model.data(right, Qt.ItemDataRole.DisplayRole)
+        # Prefer EditRole (e.g. numeric 'a') for sorting; fall back to
+        # DisplayRole
+        lv = model.data(left, Qt.ItemDataRole.EditRole)
+        rv = model.data(right, Qt.ItemDataRole.EditRole)
+        if lv is None or rv is None:
+            lv = model.data(left, Qt.ItemDataRole.DisplayRole)
+            rv = model.data(right, Qt.ItemDataRole.DisplayRole)
 
         def _to_num(val):
             if val is None:

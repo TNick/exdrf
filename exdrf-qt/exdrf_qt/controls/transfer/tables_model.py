@@ -10,6 +10,7 @@ from PyQt5.QtGui import QBrush, QColor, QFont
 from sqlalchemy import MetaData, Table, func, inspect, select
 
 from exdrf_qt.context_use import QtUseContext
+from exdrf_qt.controls.transfer.count_cache import count_cache, make_pair_key
 from exdrf_qt.controls.transfer.count_worker import CountWorker
 from exdrf_qt.controls.transfer.tbl_row import TblRow
 
@@ -119,9 +120,13 @@ class TablesModel(QAbstractTableModel, QtUseContext):
                 ins = inspect(self._src_conn.engine)
                 src_tables = ins.get_table_names(schema=self._src_conn.schema)
 
-            # Build rows using source table list (counts loaded on demand)
+            # Build rows using source table list and prefill from shared cache
+            pair = make_pair_key(self._src_conn, self._dst_conn)
             for name in sorted(src_tables):
-                self._rows.append(TblRow(name=name))
+                src_cached, dst_cached = count_cache.get_pair(pair, name)
+                self._rows.append(
+                    TblRow(name=name, cnt_src=src_cached, cnt_dst=dst_cached)
+                )
 
             logger.log(VERBOSE, "TablesModel.refresh: rows=%d", len(self._rows))
         except Exception as e:
@@ -217,36 +222,106 @@ class TablesModel(QAbstractTableModel, QtUseContext):
             return None
 
         row = self._rows[index.row()]
-        # Pending state styling (dark gray + italic until counted)
+        # Pending state: current side count not yet known
         is_pending = (self._side == "src" and row.cnt_src is None) or (
             self._side == "dst" and row.cnt_dst is None
         )
+        # Helper to get current and other counts
+        cur = row.cnt_src if self._side == "src" else row.cnt_dst
+        other = row.cnt_dst if self._side == "src" else row.cnt_src
+
+        # Attempt to hydrate from shared cache if missing
+        if (cur is None or other is None) and index.column() == 1:
+            pair = make_pair_key(self._src_conn, self._dst_conn)
+            c_src, c_dst = count_cache.get_pair(pair, row.name)
+            if self._side == "src":
+                if row.cnt_src is None and c_src is not None:
+                    row.cnt_src = int(c_src)
+                if row.cnt_dst is None and c_dst is not None:
+                    row.cnt_dst = int(c_dst)
+            else:
+                if row.cnt_dst is None and c_dst is not None:
+                    row.cnt_dst = int(c_dst)
+                if row.cnt_src is None and c_src is not None:
+                    row.cnt_src = int(c_src)
+            cur = row.cnt_src if self._side == "src" else row.cnt_dst
+            other = row.cnt_dst if self._side == "src" else row.cnt_src
+
         if role == Qt.ItemDataRole.FontRole:
-            if is_pending:
+            if is_pending and index.column() == 1:
                 f = QFont()
                 f.setItalic(True)
                 return f
             return None
+        if role == Qt.ItemDataRole.EditRole:
+            # Sorting uses EditRole: return numeric 'a' for counts column
+            if index.column() == 1:
+                if cur is None:
+                    # Trigger counting if needed
+                    self._enqueue_row(index.row())
+                    self._ensure_worker()
+                    return None
+                return int(cur)
+            return None
         if role == Qt.ItemDataRole.ForegroundRole:
-            if is_pending:
+            # Pending styling (dark gray) for counts column
+            if index.column() == 1 and is_pending:
                 return QBrush(QColor(Qt.GlobalColor.darkGray))
+            # Color rules for counts column when both connections exist and
+            # values are known
+            if index.column() == 1 and cur is not None:
+                # Require both source and destination connections present
+                if self._src_conn is None or self._dst_conn is None:
+                    return None
+                if other is None:
+                    return None
+                # Missing table on other side or error => red
+                if int(other) < 0:
+                    return QBrush(QColor(Qt.GlobalColor.red))
+                # Both sides known and valid => delta-based coloring
+                try:
+                    a = int(cur)
+                    b = int(other)
+                except Exception:
+                    return None
+                if a > b:
+                    return QBrush(QColor(Qt.GlobalColor.darkGreen))
+                if a < b:
+                    return QBrush(QColor(Qt.GlobalColor.blue))
+                # Equal => default (black)
+                return QBrush(QColor(Qt.GlobalColor.black))
             return None
         if role == Qt.ItemDataRole.DisplayRole:
             if index.column() == 0:
                 return row.name
             if index.column() == 1:
-                need = (
-                    row.cnt_src is None
-                    if self._side == "src"
-                    else row.cnt_dst is None
-                )
-                if need:
+                # Ensure counting queued for this row
+                if cur is None:
                     self._enqueue_row(index.row())
                     self._ensure_worker()
-                val = row.cnt_src if self._side == "src" else row.cnt_dst
-                if val is None:
                     return ""
-                return "-" if val < 0 else str(val)
+                # Current count value (a)
+                if cur < 0:
+                    return "-"
+                a = int(cur)
+                # If both connections exist and both sides are known and valid,
+                # append (+b) or (-b)
+                if (
+                    self._src_conn is not None
+                    and self._dst_conn is not None
+                    and other is not None
+                    and other >= 0
+                ):
+                    b = int(other)
+                    delta = a - b
+                    if delta > 0:
+                        return f"{a} (+{delta})"
+                    if delta < 0:
+                        return f"{a} ({delta})"
+                    # Equal: no (b) part
+                    return str(a)
+                # If other side missing (negative), just show 'a'
+                return str(a)
         return None
 
     # Helpers
@@ -380,13 +455,72 @@ class TablesModel(QAbstractTableModel, QtUseContext):
             self._rows[row].cnt_src = value
         else:
             self._rows[row].cnt_dst = value
-        # Remove from pending set so we no longer consider it "in flight"
+        # Update shared cache for this side only
+        pair = make_pair_key(self._src_conn, self._dst_conn)
+        if self._side == "src":
+            count_cache.set_pair(
+                pair,
+                self._rows[row].name,
+                src_value=value,
+            )
+        else:
+            count_cache.set_pair(
+                pair,
+                self._rows[row].name,
+                dst_value=value,
+            )
         if hasattr(self, "_pending_lock"):
             with self._pending_lock:
                 self._pending_set.discard(row)
         left = self.index(row, 1)
         right = self.index(row, 1)
-        self.dataChanged.emit(left, right, [Qt.ItemDataRole.DisplayRole])
+        self.dataChanged.emit(
+            left,
+            right,
+            [
+                Qt.ItemDataRole.DisplayRole,
+                Qt.ItemDataRole.EditRole,
+                Qt.ItemDataRole.ForegroundRole,
+            ],
+        )
+
+    def _on_counts_pair_ready(
+        self, row: int, src_value: int, dst_value: int
+    ) -> None:
+        """Handle async pair counts (src, dst) for a row.
+
+        Args:
+            row: Row index.
+            src_value: Count for source side (-1 for missing/error).
+            dst_value: Count for destination side (-1 for missing/error).
+        """
+        if row < 0 or row >= len(self._rows):
+            return
+        r = self._rows[row]
+        r.cnt_src = src_value
+        r.cnt_dst = dst_value
+        # Update shared cache
+        pair = make_pair_key(self._src_conn, self._dst_conn)
+        count_cache.set_pair(
+            pair,
+            r.name,
+            src_value=src_value,
+            dst_value=dst_value,
+        )
+        if hasattr(self, "_pending_lock"):
+            with self._pending_lock:
+                self._pending_set.discard(row)
+        left = self.index(row, 1)
+        right = self.index(row, 1)
+        self.dataChanged.emit(
+            left,
+            right,
+            [
+                Qt.ItemDataRole.DisplayRole,
+                Qt.ItemDataRole.EditRole,
+                Qt.ItemDataRole.ForegroundRole,
+            ],
+        )
 
     # Queue helpers for single-threaded counting (cache: only count when
     # missing)
@@ -455,6 +589,14 @@ class TablesModel(QAbstractTableModel, QtUseContext):
         w = getattr(self, "_worker", None)
         if w is None or not w.isRunning():
             self._worker = CountWorker(self)
+            # Prefer pair-ready for computing differences; keep single ready
+            # for safety
+            try:
+                self._worker.counts_pair_ready.connect(
+                    self._on_counts_pair_ready
+                )
+            except Exception:
+                pass
             self._worker.counts_ready.connect(self._on_counts_ready)
             self._worker.count_error.connect(self._on_count_error)
             self._worker.start()
@@ -476,8 +618,38 @@ class TablesModel(QAbstractTableModel, QtUseContext):
 
     def invalidate_counts(self) -> None:
         """Clear cached counts for this model side and requeue all rows."""
+        # Reset both sides so differences recalculate consistently
         for r in self._rows:
-            if self._side == "src":
+            r.cnt_src = None
+            r.cnt_dst = None
+        if not hasattr(self, "_pending_lock"):
+            import threading as _th
+
+            self._pending_lock = _th.Lock()
+            self._pending_rows = []
+            self._pending_set = set()
+        with self._pending_lock:
+            self._pending_rows = list(range(len(self._rows)))
+            self._pending_set = set(self._pending_rows)
+        # Clear shared cache for this pair to force recount
+        try:
+            pair = make_pair_key(self._src_conn, self._dst_conn)
+            count_cache.clear_pair(pair)
+        except Exception:
+            pass
+        self._ensure_worker()
+
+    def invalidate_counts_side(self, clear_side: str) -> None:
+        """Clear cached counts only for one side and requeue all rows.
+
+        Args:
+            clear_side: 'src' or 'dst' indicating which cached values to clear.
+        """
+        assert clear_side in ("src", "dst")
+        if not self._rows:
+            return
+        for r in self._rows:
+            if clear_side == "src":
                 r.cnt_src = None
             else:
                 r.cnt_dst = None
@@ -490,13 +662,26 @@ class TablesModel(QAbstractTableModel, QtUseContext):
         with self._pending_lock:
             self._pending_rows = list(range(len(self._rows)))
             self._pending_set = set(self._pending_rows)
+        # Emit data changed for counts column to update text/color/pending style
+        top_left = self.index(0, 1)
+        bottom_right = self.index(len(self._rows) - 1, 1)
+        self.dataChanged.emit(
+            top_left,
+            bottom_right,
+            [
+                Qt.ItemDataRole.DisplayRole,
+                Qt.ItemDataRole.EditRole,
+                Qt.ItemDataRole.ForegroundRole,
+                Qt.ItemDataRole.FontRole,
+            ],
+        )
         self._ensure_worker()
 
     def _stop_all_count_workers(self) -> None:
         """Request stop for the single worker (compat shim)."""
         if hasattr(self, "_worker"):
             try:
-                self._stop_count_worker()  # type: ignore[attr-defined]
+                self._stop_count_worker()
             except Exception as e:
                 logger.error(
                     "TablesModel: failed to stop all count workers: %s",
