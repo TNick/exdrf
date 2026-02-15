@@ -9,6 +9,7 @@
         "appauthor",
         "appname",
         "ARGB",
+        "autocompleter",
         "autofit",
         "autoflake",
         "Backtab",
