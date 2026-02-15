@@ -1,7 +1,7 @@
 """Context object for one open table tab in the viewer."""
 
-from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
 from exdrf_qt.controls.table_viewer.column_filter_proxy import ColumnFilterProxy
 from exdrf_qt.controls.table_viewer.sql_table_model import SqlTableModel
@@ -26,6 +26,8 @@ class TableViewCtx:
         model: The underlying data model.
         proxy: The active filter proxy for the view.
         editing: Whether this tab is in editing mode (cells can be edited).
+        extra_columns: List of (fk_column, target_table, target_column) for
+            read-only joined columns currently shown.
     """
 
     viewer: "TableViewer"
@@ -36,6 +38,7 @@ class TableViewCtx:
     model: "SqlTableModel"
     proxy: "ColumnFilterProxy"
     editing: bool = False
+    extra_columns: List[Tuple[str, str, str]] = field(default_factory=list)
 
     def selected_records(self) -> List[Dict[str, Any]]:
         """Return raw dict rows for current row selection.

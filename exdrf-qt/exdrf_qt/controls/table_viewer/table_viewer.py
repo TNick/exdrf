@@ -14,6 +14,7 @@ from PyQt5.QtWidgets import (
     QAbstractItemView,
     QAction,
     QApplication,
+    QDialog,
     QHeaderView,
     QMenu,
     QTableView,
@@ -25,13 +26,20 @@ from PyQt5.QtWidgets import (
 from exdrf_qt.context_use import QtUseContext
 from exdrf_qt.controls.filter_header import FilterHeader
 from exdrf_qt.controls.table_viewer.column_filter_proxy import ColumnFilterProxy
+from exdrf_qt.controls.table_viewer.column_visibility_dialog import (
+    ColumnVisibilityDialog,
+)
 from exdrf_qt.controls.table_viewer.sql_column_delegate import (
     SqlColumnDelegate,
     TableCellDelegate,
 )
-from exdrf_qt.controls.table_viewer.sql_table_model import SqlTableModel
+from exdrf_qt.controls.table_viewer.sql_table_model import (
+    SqlTableModel,
+    get_foreign_key_columns,
+)
 from exdrf_qt.controls.table_viewer.table_view_ctx import TableViewCtx
 from exdrf_qt.controls.table_viewer.viewer_plugin import ViewerPlugin
+from exdrf_qt.utils.stay_open_menu import StayOpenMenu
 
 if TYPE_CHECKING:
     from sqlalchemy.engine import Engine
@@ -62,6 +70,8 @@ class TableViewer(QWidget, QtUseContext):
         _column_editable_checks: List of callables (engine, schema, table,
             column_name) -> bool; if non-empty, a column is editable only
             if at least one returns True.
+        _fk_columns_cache: Cache of get_foreign_key_columns result keyed by
+            (engine_url, schema, table) for faster context menu display.
     """
 
     all_tabs_closed = pyqtSignal()
@@ -76,6 +86,9 @@ class TableViewer(QWidget, QtUseContext):
     _editing_allowed: bool
     _column_editable_checks: List[
         Callable[[object, Optional[str], str, str], bool]
+    ]
+    _fk_columns_cache: Dict[
+        Tuple[str, str, str], List[Tuple[str, str, List[str]]]
     ]
 
     def __init__(
@@ -99,6 +112,7 @@ class TableViewer(QWidget, QtUseContext):
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
         self._tabs = QTabWidget(self)
         self._tabs.setTabsClosable(True)
+        self._fk_columns_cache = {}
         self._tabs.tabCloseRequested.connect(self._close_tab)
         ly = QVBoxLayout(self)
         ly.setContentsMargins(2, 2, 2, 2)
@@ -155,7 +169,26 @@ class TableViewer(QWidget, QtUseContext):
         logger.log(
             VERBOSE, "TableViewer: open_table table=%s schema=%s", table, schema
         )
-        model = SqlTableModel(engine=engine, schema=schema, table=table)
+        default_extra: List[Tuple[str, str, str]] = []
+        for plg in self._plugins:
+            try:
+                extra = plg.get_default_join_columns(
+                    self, engine, schema, table
+                )
+                if extra:
+                    default_extra.extend(extra)
+            except Exception:
+                logger.debug(
+                    "get_default_join_columns failed for %s",
+                    type(plg).__name__,
+                    exc_info=True,
+                )
+        model = SqlTableModel(
+            engine=engine,
+            schema=schema,
+            table=table,
+            extra_columns=default_extra if default_extra else None,
+        )
         proxy = ColumnFilterProxy()
         proxy.setSourceModel(model)
 
@@ -201,6 +234,7 @@ class TableViewer(QWidget, QtUseContext):
             model=model,
             proxy=proxy,
             editing=False,
+            extra_columns=list(default_extra),
         )
         self._views.append(ctx)
         for plg in self._plugins:
@@ -499,6 +533,69 @@ class TableViewer(QWidget, QtUseContext):
         ac_yaml.setEnabled(bool(selected))
         ac_yaml.triggered.connect(lambda: self._copy_selected_as_yaml(ctx))
         menu.addAction(ac_yaml)
+        menu.addSeparator()
+        ac_columns = QAction(
+            self.t(
+                "table_viewer.choose_visible_columns",
+                "Choose visible columns…",
+            ),
+            view,
+        )
+        ac_columns.triggered.connect(
+            lambda: self._open_column_visibility_dialog(ctx)
+        )
+        menu.addAction(ac_columns)
+        # Stay-open submenu: Add columns from related table (FK joins)
+        try:
+            cache_key = (
+                str(ctx.engine.url),
+                ctx.schema or "",
+                ctx.table,
+            )
+            if cache_key not in self._fk_columns_cache:
+                self._fk_columns_cache[cache_key] = get_foreign_key_columns(
+                    ctx.engine, ctx.schema, ctx.table
+                )
+            fk_list = self._fk_columns_cache[cache_key]
+            if fk_list:
+                menu.addSeparator()
+                add_cols_menu = StayOpenMenu(view)
+                add_cols_menu.setTitle(
+                    self.t(
+                        "table_viewer.add_columns_from_related",
+                        "Add columns from related table",
+                    )
+                )
+                current = set(ctx.extra_columns)
+                for idx, (fk_col, target_table, target_cols) in enumerate(
+                    fk_list
+                ):
+                    if idx > 0:
+                        add_cols_menu.addSeparator()
+                    ac_title = QAction("%s → %s" % (fk_col, target_table), view)
+                    ac_title.setEnabled(False)
+                    add_cols_menu.addAction(ac_title)
+                    for target_col in target_cols:
+                        ac = QAction(target_col, view)
+                        ac.setCheckable(True)
+                        triple = (fk_col, target_table, target_col)
+                        ac.setChecked(triple in current)
+                        ac.setData(triple)
+                        add_cols_menu.addAction(ac)
+                menu.addMenu(add_cols_menu)
+
+                def on_add_cols_closed() -> None:
+                    chosen = self._collect_join_choices_from_menu(add_cols_menu)
+                    if chosen != ctx.extra_columns:
+                        self._replace_model_with_joined_columns(ctx, chosen)
+
+                add_cols_menu.aboutToHide.connect(on_add_cols_closed)
+        except Exception:
+            logger.debug(
+                "Build FK join menu failed for %s",
+                ctx.table,
+                exc_info=True,
+            )
         if self._plugins:
             menu.addSeparator()
         for plg in self._plugins:
@@ -514,6 +611,84 @@ class TableViewer(QWidget, QtUseContext):
         if vp is None:
             return
         menu.exec_(vp.mapToGlobal(point))
+
+    def _open_column_visibility_dialog(self, ctx: TableViewCtx) -> None:
+        """Open the column visibility dialog and apply chosen visibility.
+
+        Reads current visibility from the header, shows the dialog, and on
+        accept updates the view's horizontal header hidden state per section.
+
+        Args:
+            ctx: The tab context (model and view).
+        """
+        headers = ctx.model.raw_headers()
+        header = ctx.view.horizontalHeader()
+        initial_visible = [
+            not header.isSectionHidden(i) for i in range(len(headers))
+        ]
+        dlg = ColumnVisibilityDialog(self, self.ctx, headers, initial_visible)
+        if dlg.exec_() != QDialog.Accepted:
+            return
+        visibility = dlg.get_visibility()
+        for i, vis in enumerate(visibility):
+            if i < len(headers):
+                header.setSectionHidden(i, not vis)
+
+    def _replace_model_with_joined_columns(
+        self,
+        ctx: TableViewCtx,
+        extra_columns: List[Tuple[str, str, str]],
+    ) -> None:
+        """Replace the tab model with one that includes the given join columns.
+
+        Updates ctx.model and ctx.extra_columns, sets the proxy source, and
+        re-initializes the filter header so column count matches.
+
+        Args:
+            ctx: The tab context.
+            extra_columns: List of (fk_column, target_table, target_column).
+        """
+        limit = ctx.model.get_limit()
+        new_model = SqlTableModel(
+            engine=ctx.engine,
+            schema=ctx.schema,
+            table=ctx.table,
+            limit=limit,
+            extra_columns=extra_columns if extra_columns else None,
+        )
+        ctx.model = new_model
+        ctx.extra_columns = list(extra_columns)
+        ctx.proxy.setSourceModel(new_model)
+        header = ctx.view.horizontalHeader()
+        if isinstance(header, FilterHeader):
+            header.init_filters(
+                headers=new_model.raw_headers(),
+                on_text_changed=lambda c, t: ctx.proxy.set_filter(c, t),
+            )
+        self._apply_editing_state(ctx)
+
+    def _collect_join_choices_from_menu(
+        self, menu: QMenu
+    ) -> List[Tuple[str, str, str]]:
+        """Collect (fk_col, target_table, target_col) from checkable actions.
+
+        Recursively visits submenus. Uses Qt.UserRole for the triple.
+
+        Args:
+            menu: Menu that may contain checkable actions with UserRole data.
+
+        Returns:
+            List of triples for checked actions.
+        """
+        out: List[Tuple[str, str, str]] = []
+        for ac in menu.actions():
+            if ac.menu():
+                out.extend(self._collect_join_choices_from_menu(ac.menu()))
+            elif ac.isCheckable() and ac.isChecked():
+                data = ac.data()
+                if isinstance(data, (list, tuple)) and len(data) == 3:
+                    out.append((data[0], data[1], data[2]))
+        return out
 
     def _on_editing_toggled(self, ctx: TableViewCtx, checked: bool) -> None:
         """Handle the Editing menu checkbox toggle.

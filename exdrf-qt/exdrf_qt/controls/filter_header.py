@@ -8,10 +8,13 @@ from typing import (
     cast,
 )
 
-from PyQt5.QtCore import QSize, Qt, QTimer
+from PyQt5.QtCore import QRect, QSize, Qt, QTimer
+from PyQt5.QtGui import QPainter
 from PyQt5.QtWidgets import (
     QHeaderView,
     QLineEdit,
+    QStyle,
+    QStyleOptionHeader,
     QWidget,
 )
 
@@ -171,6 +174,76 @@ class FilterHeader(QHeaderView, QtUseContext):
                 ed.setGeometry(x + 2, y, max(0, w - 4), self._filter_height - 2)
             except Exception:
                 continue
+
+    def paintSection(
+        self,
+        painter: QPainter,
+        rect: QRect,
+        logicalIndex: int,
+    ) -> None:
+        """Paint the header section label in the top area only.
+
+        The default style draws for the full section height and can show no
+        text when the header is taller (label + filter row). We restrict the
+        drawn rect to the label area and set the text from the model so the
+        column name is visible.
+        """
+        label_height = max(0, rect.height() - self._filter_height)
+        label_rect = QRect(rect.x(), rect.y(), rect.width(), label_height)
+        if label_rect.isEmpty():
+            return
+        model = self.model()
+        text = ""
+        if model is not None:
+            val = model.headerData(
+                logicalIndex,
+                self.orientation(),
+                Qt.ItemDataRole.DisplayRole,
+            )
+            text = "" if val is None else str(val)
+        opt = QStyleOptionHeader()
+        self.initStyleOption(opt)
+        opt.rect = label_rect
+        opt.section = logicalIndex
+        opt.text = text
+        opt.textAlignment = (
+            Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter
+        )
+        if (
+            self.isSortIndicatorShown()
+            and self.sortIndicatorSection() == logicalIndex
+        ):
+            opt.sortIndicator = (
+                QStyleOptionHeader.SortDown
+                if self.sortIndicatorOrder() == Qt.SortOrder.DescendingOrder
+                else QStyleOptionHeader.SortUp
+            )
+        else:
+            opt.sortIndicator = QStyleOptionHeader.SortIndicator.None_
+        style = self.style()
+        if style is not None:
+            style.drawControl(
+                QStyle.ControlElement.CE_Header, opt, painter, self
+            )
+            # Draw sort arrow in the label area (CE_Header may not draw it
+            # when using a custom rect).
+            if (
+                self.isSortIndicatorShown()
+                and self.sortIndicatorSection() == logicalIndex
+            ):
+                sort_rect = style.subElementRect(
+                    QStyle.SubElement.SE_HeaderArrow, opt, self
+                )
+                if not sort_rect.isEmpty():
+                    prev_rect = opt.rect
+                    opt.rect = sort_rect
+                    style.drawPrimitive(
+                        QStyle.PrimitiveElement.PE_IndicatorHeaderArrow,
+                        opt,
+                        painter,
+                        self,
+                    )
+                    opt.rect = prev_rect
 
     def resizeEvent(self, event) -> None:  # type: ignore[override]
         """Handle the resize event of the header view."""

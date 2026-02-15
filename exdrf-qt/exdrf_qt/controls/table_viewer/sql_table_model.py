@@ -6,7 +6,7 @@ cell changes via UPDATE statements (requires a primary key).
 
 import logging
 from datetime import date, datetime
-from typing import TYPE_CHECKING, Any, List, Optional
+from typing import TYPE_CHECKING, Any, List, Optional, Tuple
 
 from PyQt5.QtCore import QAbstractTableModel, QModelIndex, Qt
 from sqlalchemy import MetaData, Table, select, update
@@ -16,6 +16,60 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 VERBOSE = 10
+
+
+def get_foreign_key_columns(
+    engine: "Engine",
+    schema: Optional[str],
+    table_name: str,
+) -> List[Tuple[str, str, List[str]]]:
+    """Return FK-based join options for a table.
+
+    Reflects the table and each target table to list (fk_column, target_table,
+    target_non_pk_column_names). Target tables are reflected to exclude
+    primary key columns from the list.
+
+    Args:
+        engine: SQLAlchemy engine.
+        schema: Optional schema (None for SQLite).
+        table_name: Base table name.
+
+    Returns:
+        List of (fk_column, target_table_name, [target_col, ...]).
+    """
+    effective_schema = None if engine.dialect.name == "sqlite" else schema
+    meta = MetaData()
+    base_t = Table(
+        table_name, meta, autoload_with=engine, schema=effective_schema
+    )
+    out: List[Tuple[str, str, List[str]]] = []
+    for fk in base_t.foreign_keys:
+        # fk.parent is the column in base_t, fk.column is in target table
+        fk_col = fk.parent.name
+        target_table = fk.column.table.name
+        target_schema = (
+            getattr(fk.column.table, "schema", None) or effective_schema
+        )
+        target_meta = MetaData()
+        try:
+            target_t = Table(
+                target_table,
+                target_meta,
+                autoload_with=engine,
+                schema=target_schema,
+            )
+        except Exception:
+            logger.debug(
+                "get_foreign_key_columns: could not reflect target %s",
+                target_table,
+                exc_info=True,
+            )
+            continue
+        pk_names = {c.name for c in target_t.primary_key.columns}
+        non_pk = [c.name for c in target_t.columns if c.name not in pk_names]
+        if non_pk:
+            out.append((fk_col, target_table, non_pk))
+    return out
 
 
 class SqlTableModel(QAbstractTableModel):
@@ -34,6 +88,9 @@ class SqlTableModel(QAbstractTableModel):
         _table: Table name.
         _table_obj: Reflected Table object for UPDATE statements.
         _column_nullable: Whether each column accepts NULL (from reflection).
+        _limit: Row limit used for load (for reload when adding join columns).
+        _base_column_count: Number of base table columns (joined columns are
+            read-only and follow).
     """
 
     # Private attributes
@@ -46,6 +103,8 @@ class SqlTableModel(QAbstractTableModel):
     _schema: Optional[str]
     _table: str
     _table_obj: Any
+    _limit: int
+    _base_column_count: int
 
     def __init__(
         self,
@@ -53,7 +112,8 @@ class SqlTableModel(QAbstractTableModel):
         engine: "Engine",
         schema: Optional[str],
         table: str,
-        limit: int = 10000,
+        limit: int = 1000000,
+        extra_columns: Optional[List[Tuple[str, str, str]]] = None,
     ) -> None:
         """Initialize the table model and load initial data.
 
@@ -62,6 +122,8 @@ class SqlTableModel(QAbstractTableModel):
             schema: Optional schema name.
             table: Table name to read.
             limit: Limit number of rows loaded initially.
+            extra_columns: Optional list of (fk_column, target_table,
+                target_column) to add as read-only joined columns.
         """
         super().__init__()
         self._headers = []
@@ -73,7 +135,9 @@ class SqlTableModel(QAbstractTableModel):
         self._schema = schema or ""
         self._table = table
         self._table_obj = None  # Set in _load
-        self._load(engine, schema, table, limit)
+        self._limit = limit
+        self._base_column_count = 0
+        self._load(engine, schema, table, limit, extra_columns or [])
 
     def rowCount(
         self, parent: QModelIndex = QModelIndex()
@@ -159,11 +223,14 @@ class SqlTableModel(QAbstractTableModel):
         """
         if not index.isValid():
             return Qt.ItemFlag.NoItemFlags  # type: ignore[return-value]
-        return (
-            Qt.ItemFlag.ItemIsEnabled
-            | Qt.ItemFlag.ItemIsSelectable
-            | Qt.ItemFlag.ItemIsEditable
-        )  # type: ignore[return-value]
+        base = Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable
+        if index.column() < self._base_column_count:
+            base = base | Qt.ItemFlag.ItemIsEditable
+        return base  # type: ignore[return-value]
+
+    def get_limit(self) -> int:
+        """Return the row limit used for loading (for reload with new joins)."""
+        return self._limit
 
     def raw_headers(self) -> List[str]:
         """Return a copy of the column headers list."""
@@ -234,7 +301,7 @@ class SqlTableModel(QAbstractTableModel):
             row < 0
             or row >= len(self._rows)
             or col < 0
-            or col >= len(self._headers)
+            or col >= self._base_column_count
         ):
             return False
 
@@ -335,16 +402,54 @@ class SqlTableModel(QAbstractTableModel):
 
         return value
 
+    def _default_extra_loader(
+        self,
+        t: "Table",
+        fk_col: str,
+        target_table_name: str,
+        target_col: str,
+        engine: "Engine",
+        effective_schema: Optional[str],
+        stmt: Any,
+        extra_headers: List[str],
+    ) -> Any:
+        target_meta = MetaData()
+        target_t = Table(
+            target_table_name,
+            target_meta,
+            autoload_with=engine,
+            schema=effective_schema,
+        )
+
+        # Get the set of primary key columns from the foreign key table.
+        target_pk_cols = list(target_t.primary_key.columns)
+        if not target_pk_cols:
+            return
+
+        target_pk = target_pk_cols[0].name
+        stmt = stmt.outerjoin(target_t, t.c[fk_col] == target_t.c[target_pk])
+        label = "%s_%s" % (target_table_name, target_col)
+        stmt = stmt.add_columns(target_t.c[target_col].label(label))
+        extra_headers.append(label)
+
+        return stmt
+
     def _load(
-        self, engine: "Engine", schema: Optional[str], table: str, limit: int
+        self,
+        engine: "Engine",
+        schema: Optional[str],
+        table: str,
+        limit: int,
+        extra_columns: List[Tuple[str, str, str]],
     ) -> None:
-        """Load headers and initial rows into memory.
+        """Load headers and initial rows into memory, with optional JOINs.
 
         Args:
             engine: SQLAlchemy engine.
             schema: Optional schema.
             table: Table name.
             limit: Row limit for the preview.
+            extra_columns: List of (fk_column, target_table, target_column).
         """
         # SQLite does not support arbitrary schema names; it only uses None,
         # "main", or attached database names. Passing a non-existent schema
@@ -361,19 +466,52 @@ class SqlTableModel(QAbstractTableModel):
         t = Table(table, meta, autoload_with=engine, schema=effective_schema)
         self._table_obj = t
         self._schema = effective_schema
-        self._headers = [c.name for c in t.columns]
+        base_headers = [c.name for c in t.columns]
         self._column_types = [c.type for c in t.columns]
         self._column_nullable = [bool(c.nullable) for c in t.columns]
         self._primary_key_names = [c.name for c in t.primary_key.columns]
-        stmt = select(t)
+        self._base_column_count = len(base_headers)
+
+        # Build select: base columns + optional joined columns
+        stmt = select(*[t.c[h] for h in base_headers])
+        extra_headers: List[str] = []
+        for fk_col, target_table_name, target_col in extra_columns:
+            # Check if the user wants to use a custom loader for the
+            # extra column.
+            if callable(target_col):
+                stmt = target_col(
+                    t,
+                    fk_col,
+                    target_table_name,
+                    self,
+                    engine,
+                    effective_schema,
+                    stmt,
+                    extra_headers,
+                )
+            else:
+                stmt = self._default_extra_loader(
+                    t,
+                    fk_col,
+                    target_table_name,
+                    target_col,
+                    engine,
+                    effective_schema,
+                    stmt,
+                    extra_headers,
+                )
+
+        self._headers = base_headers + extra_headers
+        self._column_types.extend([None] * len(extra_headers))
+        self._column_nullable.extend([True] * len(extra_headers))
+
         if limit > 0:
             stmt = stmt.limit(limit)
 
         with engine.connect() as conn:
             rs = conn.execute(stmt)
             for row in rs:
-                mapping = row._mapping  # SQLAlchemy RowMapping view
-                self._rows.append([mapping[h] for h in self._headers])
+                self._rows.append([row[i] for i in range(len(self._headers))])
 
         logger.log(
             VERBOSE,

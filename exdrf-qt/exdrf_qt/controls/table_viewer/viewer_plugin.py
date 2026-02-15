@@ -1,6 +1,6 @@
 """Plugin interface for TableViewer."""
 
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, List, Optional, Tuple
 
 from PyQt5.QtWidgets import QAction
 
@@ -16,6 +16,30 @@ class ViewerPlugin:
     Subclasses override methods to contribute actions and be notified when a
     view is created.
     """
+
+    def get_default_join_columns(
+        self,
+        viewer: "TableViewer",
+        engine: object,
+        schema: Optional[str],
+        table: str,
+    ) -> Optional[List[Tuple[str, str, str]]]:
+        """Return default (fk_column, target_table, target_column) for a table.
+
+        When opening a table, the viewer merges these from all plugins and
+        loads the model with those joined columns. Return None or [] for no
+        defaults.
+
+        Args:
+            viewer: Hosting viewer.
+            engine: SQLAlchemy engine.
+            schema: Optional schema name.
+            table: Table name being opened.
+
+        Returns:
+            List of (fk_column, target_table, target_column), or None.
+        """
+        return None
 
     def provide_actions(
         self, viewer: "TableViewer", ctx: TableViewCtx

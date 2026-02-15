@@ -118,14 +118,7 @@ class ColumnFilterProxy(QSortFilterProxyModel):
             except Exception:
                 try:
                     return float(s)
-                except Exception as e:
-                    logger.log(
-                        VERBOSE,
-                        "ColumnFilterProxy lessThan non-numeric: %r %s",
-                        val,
-                        e,
-                        exc_info=True,
-                    )
+                except Exception:
                     return None
 
         ln = _to_num(lv)

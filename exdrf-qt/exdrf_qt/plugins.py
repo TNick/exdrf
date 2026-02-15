@@ -1,5 +1,5 @@
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List
 
 from pluggy import HookimplMarker, HookspecMarker, PluginManager
 
@@ -7,6 +7,7 @@ if TYPE_CHECKING:
     from PyQt5.QtWidgets import QMenu, QTableView, QWidget
 
     from exdrf_qt.context import QtContext
+    from exdrf_qt.controls.table_viewer.viewer_plugin import ViewerPlugin
 
 
 hook_spec = HookspecMarker("exdrf-qt")
@@ -58,10 +59,31 @@ class TransferHooks:
         raise NotImplementedError
 
 
+class DbViewerHooks:
+    """Hooks for the database table viewer (DbViewer).
+
+    Plugins can provide ViewerPlugin instances that are added to each
+    new DbViewer (e.g. default FK join columns, extra context menu actions).
+    """
+
+    @hook_spec
+    def db_viewer_plugins(self) -> List["ViewerPlugin"]:
+        """Return ViewerPlugin instances to add to a new DbViewer.
+
+        Each implementation returns a list of plugins; the caller flattens
+        and adds them to the viewer. Return an empty list for no plugins.
+
+        Returns:
+            List of ViewerPlugin instances.
+        """
+        raise NotImplementedError
+
+
 # The PluginManager for the exdrf-qt project.
 exdrf_qt_pm = PluginManager("exdrf-qt")
 exdrf_qt_pm.add_hookspecs(ContextHooks)
 exdrf_qt_pm.add_hookspecs(TransferHooks)
+exdrf_qt_pm.add_hookspecs(DbViewerHooks)
 
 # To have your plugin automatically loaded, add an entry point to your
 # setup.py file.
