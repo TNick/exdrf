@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from exdrf_qt.context import QtContext
 
 logger = logging.getLogger(__name__)
-VERBOSE = 10
+VERBOSE = 1
 
 
 class SearchLine(QLineEdit, QtUseContext):

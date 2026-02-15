@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from exdrf_qt.models.record import QtRecord
 
 logger = logging.getLogger(__name__)
-VERBOSE = 10
+VERBOSE = 1
 DBM_M = TypeVar("DBM_M", bound="DrfSelMultiEditor")
 ITEMS_IN_LABEL = 2
 MAX_ITEMS_FOR_MULTI_EDIT = 3

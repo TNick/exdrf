@@ -6,7 +6,7 @@ from typing import Dict
 from PyQt5.QtCore import QModelIndex, QSortFilterProxyModel, Qt
 
 logger = logging.getLogger(__name__)
-VERBOSE = 10
+VERBOSE = 1
 
 
 class ColumnFilterProxy(QSortFilterProxyModel):

@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from sqlalchemy.engine import Engine
 
 logger = logging.getLogger(__name__)
-VERBOSE = 10
+VERBOSE = 1
 
 
 def get_foreign_key_columns(

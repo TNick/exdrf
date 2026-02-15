@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
-VERBOSE = 10
+VERBOSE = 1
 
 
 @define(slots=True)

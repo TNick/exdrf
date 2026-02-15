@@ -42,7 +42,7 @@ if TYPE_CHECKING:
     from exdrf_qt.models.record import QtRecord
 
 logger = logging.getLogger(__name__)
-VERBOSE = 10
+VERBOSE = 1
 DBM = TypeVar("DBM")
 DBM_O = TypeVar("DBM_O")
 

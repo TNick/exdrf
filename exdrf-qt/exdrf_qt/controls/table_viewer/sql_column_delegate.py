@@ -34,7 +34,7 @@ from PyQt5.QtWidgets import (
 )
 
 logger = logging.getLogger(__name__)
-VERBOSE = 10
+VERBOSE = 1
 
 # Property name set on the wrapper when user clicks Clear to store NULL.
 _CLEAR_TO_NULL_PROP = "_clear_to_null"

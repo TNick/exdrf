@@ -33,7 +33,7 @@ if TYPE_CHECKING:
     from exdrf_qt.controls.search_lines.base import SearchData
 
 logger = logging.getLogger(__name__)
-VERBOSE = 10
+VERBOSE = 1
 
 
 DBM = TypeVar("DBM")

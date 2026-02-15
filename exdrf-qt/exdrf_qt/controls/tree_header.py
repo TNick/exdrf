@@ -28,7 +28,7 @@ if TYPE_CHECKING:
 
 DBM = TypeVar("DBM")
 logger = logging.getLogger(__name__)
-VERBOSE = 10
+VERBOSE = 1
 
 
 class ListDbHeader(QHeaderView, QtUseContext, Generic[DBM]):

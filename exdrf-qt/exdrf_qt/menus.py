@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     )
 
 logger = logging.getLogger(__name__)
-VERBOSE = 10
+VERBOSE = 1
 
 
 @define
