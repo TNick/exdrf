@@ -38,6 +38,7 @@ if TYPE_CHECKING:
 
 DBM = TypeVar("DBM")
 logger = logging.getLogger(__name__)
+VERBOSE = 10
 
 PRP_PROTECT_FROM_NEW = "protectFromNew"
 
@@ -220,7 +221,7 @@ class ExdrfEditorBase(QWidget, QtUseContext):
         Returns:
             True if the editor is valid.
         """
-        logger.log(1, "Checking the validity of the editor's content")
+        logger.log(VERBOSE, "Checking the validity of the editor's content")
 
         valid = True
         for ed in self.edit_fields:
@@ -229,7 +230,7 @@ class ExdrfEditorBase(QWidget, QtUseContext):
                 logger.log(10, "Field %s is not valid", ed.name)
 
         logger.log(
-            1,
+            VERBOSE,
             "The editor content is %s",
             "valid" if valid else "not valid",
         )

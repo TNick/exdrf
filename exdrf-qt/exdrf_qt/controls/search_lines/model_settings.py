@@ -13,6 +13,7 @@ if TYPE_CHECKING:
 
 DBM = TypeVar("DBM")
 logger = logging.getLogger(__name__)
+VERBOSE = 10
 
 
 class ModelSearchSettings(Generic[DBM]):
@@ -36,7 +37,7 @@ class ModelSearchSettings(Generic[DBM]):
         self.ac_group_search = None
         self.ac_simple = []
         self.search_mode = SearchType.EXACT
-        logger.log(1, "%s.show_settings()", parent.__class__.__name__)
+        logger.log(VERBOSE, "%s.show_settings()", parent.__class__.__name__)
 
     def create_search_mode_actions(
         self, current: "SearchType"

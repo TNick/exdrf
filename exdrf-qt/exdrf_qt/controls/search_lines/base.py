@@ -15,6 +15,7 @@ if TYPE_CHECKING:
     from exdrf_qt.context import QtContext
 
 logger = logging.getLogger(__name__)
+VERBOSE = 10
 
 INSTANT_TRIGGER = 0
 NEVER_TRIGGER = -1
@@ -205,7 +206,7 @@ class BasicSearchLine(QLineEdit, QtUseContext):
             self.timer_search = QTimer(self)
             self.timer_search.setSingleShot(True)
             self.timer_search.setInterval(self.delay)
-            logger.log(1, "timer created")
+            logger.log(VERBOSE, "timer created")
         return self.timer_search
 
     def change_search_term(self, term: str, emit: bool = True) -> None:
@@ -263,7 +264,7 @@ class BasicSearchLine(QLineEdit, QtUseContext):
         The function will wait for some ms after the user stops typing before
         applying the search term via the callback if delay is greater than 0.
         """
-        logger.log(1, "on_search_term_changed(%s)", term)
+        logger.log(VERBOSE, "on_search_term_changed(%s)", term)
 
         # Only show the add new button if the term is not empty.
         if self.ac_add is not None:
@@ -272,7 +273,7 @@ class BasicSearchLine(QLineEdit, QtUseContext):
         if self.delay <= 0:
             self.stop_timer()
 
-            logger.log(1, "SearchLine on_search_term_changed: no delay")
+            logger.log(VERBOSE, "SearchLine on_search_term_changed: no delay")
             if self.delay == INSTANT_TRIGGER:
                 self.trigger_callback(term)
             return
@@ -283,7 +284,7 @@ class BasicSearchLine(QLineEdit, QtUseContext):
 
         # If term is empty, apply immediately via callback, don't wait for timer
         if not term:
-            logger.log(1, "SearchLine on_search_term_changed: empty term")
+            logger.log(VERBOSE, "SearchLine on_search_term_changed: empty term")
             self.trigger_callback(term)
             return
 
@@ -292,18 +293,20 @@ class BasicSearchLine(QLineEdit, QtUseContext):
         try:
             timer.timeout.disconnect()
         except TypeError:  # Thrown if no connections exist
-            logger.log(1, "SearchLine on_search_term_changed: no connections")
+            logger.log(
+                VERBOSE, "SearchLine on_search_term_changed: no connections"
+            )
 
         # Connect with current exact state for the timed callback
         # Using a lambda here to capture current state of term and
         # exact_search_enabled for when the timer fires.
         timer.timeout.connect(lambda: self.trigger_callback(term))
         timer.start()
-        logger.log(1, "SearchLine delayed callback started")
+        logger.log(VERBOSE, "SearchLine delayed callback started")
 
     def trigger_callback(self, term: str) -> None:
         """Trigger the callback."""
-        logger.log(1, "SearchLine trigger_callback")
+        logger.log(VERBOSE, "SearchLine trigger_callback")
         self.search_data.term = term
         self.searchDataChanged.emit(self.search_data)
 

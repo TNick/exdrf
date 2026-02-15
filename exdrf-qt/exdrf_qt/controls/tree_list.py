@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     from exdrf_qt.models import QtModel
 
 logger = logging.getLogger(__name__)
+VERBOSE = 10
 
 DBM = TypeVar("DBM")
 
@@ -60,7 +61,7 @@ class TreeView(QTreeView, Generic[DBM]):
         self, current: QModelIndex, previous: QModelIndex
     ) -> None:
         if not current or not current.isValid():
-            logger.log(1, "TreeView.currentChanged: no current index")
+            logger.log(VERBOSE, "TreeView.currentChanged: no current index")
             self.itemSelected.emit(None)
             return
 
@@ -82,7 +83,9 @@ class TreeView(QTreeView, Generic[DBM]):
             selected: The selected items.
             deselected: The deselected items.
         """
-        logger.log(1, "TreeView.on_selection_changed: %s", selected, deselected)
+        logger.log(
+            VERBOSE, "TreeView.on_selection_changed: %s", selected, deselected
+        )
         sm = self.selectionModel()
         if sm is None:
             self.itemsSelected.emit([])
@@ -94,6 +97,6 @@ class TreeView(QTreeView, Generic[DBM]):
             self.itemsSelected.emit([])
             return
 
-        logger.log(1, "Selected indices: %s", [i.row() for i in indices])
+        logger.log(VERBOSE, "Selected indices: %s", [i.row() for i in indices])
         items = [self.qt_model.data_record(index.row()) for index in indices]
         self.itemsSelected.emit(items)

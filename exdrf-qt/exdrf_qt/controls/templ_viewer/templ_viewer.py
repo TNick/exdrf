@@ -71,6 +71,7 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
+VERBOSE = 10
 LOADING_HTML = """
 <!DOCTYPE html>
 <html>
@@ -1215,10 +1216,10 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
             url = self.c_viewer.url().toString()  # type: ignore[attr-defined]
         except Exception:
             url = "<unknown>"
-        logger.log(1, "WebEngine loadStarted url=%s", url)
+        logger.log(VERBOSE, "WebEngine loadStarted url=%s", url)
 
     def _on_page_load_progress(self, p: int) -> None:
-        logger.log(1, "WebEngine loadProgress=%d", p)
+        logger.log(VERBOSE, "WebEngine loadProgress=%d", p)
 
     @top_level_handler
     def _on_page_load_finished(self, ok: bool) -> None:
@@ -1226,7 +1227,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
             url = self.c_viewer.url().toString()  # type: ignore[attr-defined]
         except Exception:
             url = "<unknown>"
-        logger.log(1, "WebEngine loadFinished ok=%s url=%s", ok, url)
+        logger.log(VERBOSE, "WebEngine loadFinished ok=%s url=%s", ok, url)
         # Fallback: if load failed after setHtml, try loading via temp file.
         if not ok and self._last_render_html and self._last_render_len > 0:
             if self._fallback_triggered_for_seq != self._last_render_seq:
@@ -1241,7 +1242,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
             s = url.toString()
         except Exception:
             s = "<unavailable>"
-        logger.log(1, "WebEngine urlChanged=%s", s)
+        logger.log(VERBOSE, "WebEngine urlChanged=%s", s)
 
     def _on_page_render_terminated(self, status, exit_code: int) -> None:
         # Status is an enum; print it as-is to avoid import churn.
@@ -1281,10 +1282,12 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
         If the current view mode is source, the template is not rendered.
         """
         if self.view_mode == ViewMode.SOURCE:
-            logger.log(1, "Skipping render of template in source mode")
+            logger.log(VERBOSE, "Skipping render of template in source mode")
             return
         if self._prevent_render:
-            logger.log(1, "Skipping render of template in prevent_render mode")
+            logger.log(
+                VERBOSE, "Skipping render of template in prevent_render mode"
+            )
             return
 
         # Check if the WebView is still valid before attempting to render
@@ -1299,7 +1302,9 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
             # Never use terminate(): it is unsafe and can crash the process
             # (notably on Windows). Instead, request interruption and ignore
             # stale results via job_id.
-            logger.log(1, "Cancelling previous render worker (soft cancel)")
+            logger.log(
+                VERBOSE, "Cancelling previous render worker (soft cancel)"
+            )
             try:
                 self._render_worker.requestInterruption()
             except Exception as e:
@@ -1311,7 +1316,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
 
         try:
             if self._override_content:
-                logger.log(1, "Rendering override content...")
+                logger.log(VERBOSE, "Rendering override content...")
                 html = self._override_content
                 # For override content, render immediately (no threading needed)
                 if not self._is_webview_valid():
@@ -1414,8 +1419,8 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
         if html_len == 0 or (isinstance(html, str) and not html.strip()):
             logger.warning("Rendered HTML is empty/blank")
         else:
-            logger.log(1, "Rendered HTML length=%d", html_len)
-        logger.log(1, "The template has been rendered")
+            logger.log(VERBOSE, "Rendered HTML length=%d", html_len)
+        logger.log(VERBOSE, "The template has been rendered")
 
         # Double-check WebView validity before setting HTML
         if not self._is_webview_valid():
@@ -1599,7 +1604,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
     def on_editor_text_changed(self):
         """Handle the change of the editor text."""
         if self._prevent_save:
-            logger.log(1, "Skipping auto-save in prevent_save mode")
+            logger.log(VERBOSE, "Skipping auto-save in prevent_save mode")
             return
         self._use_edited_text = True
         if self._auto_save_timer.isActive():
@@ -1610,7 +1615,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
     def _perform_auto_save(self):
         """Perform the actual auto-save operation."""
         if self._prevent_save:
-            logger.log(1, "Skipping auto-save in prevent_save mode")
+            logger.log(VERBOSE, "Skipping auto-save in prevent_save mode")
             return
 
         if self._auto_save_to is not None:

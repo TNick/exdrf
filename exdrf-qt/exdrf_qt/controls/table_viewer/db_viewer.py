@@ -103,6 +103,7 @@ class DbViewer(QWidget, QtUseContext):
         *,
         parent: Optional[QWidget] = None,
         initial_cfg_id: Optional[str] = None,
+        editing_allowed: bool = True,
     ) -> None:
         """Initialize the database viewer.
 
@@ -110,6 +111,9 @@ class DbViewer(QWidget, QtUseContext):
             ctx: Application context (for TableViewer, ChooseDb, translations).
             parent: Optional parent widget.
             initial_cfg_id: Optional DB config id to select initially.
+            editing_allowed: If True, the embedded TableViewer allows
+                enabling per-tab editing via the context menu; if False,
+                tables are read-only.
         """
         super().__init__(parent)
         self.ctx = ctx
@@ -117,17 +121,23 @@ class DbViewer(QWidget, QtUseContext):
         self._schema = None
         self._table_names = []
 
-        # Connection chooser with label
+        # Connection chooser with label; initial selection from param or context
         self._lbl_connection = QLabel(
             self.t("db_viewer.connection", "Connection:"), self
         )
         self._chooser = ChooseDb(ctx=ctx, parent=self)
         self._chooser.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self._chooser.populate_db_connections()
-        if initial_cfg_id:
+        effective_initial_id = initial_cfg_id
+        if effective_initial_id is None and getattr(ctx, "c_string", None):
+            effective_initial_id = ctx.stg.locate_db_config(
+                ctx.c_string,
+                ctx.schema,
+            )
+        if effective_initial_id:
             model = self._chooser.model()
             if hasattr(model, "find_config_index"):
-                idx = model.find_config_index(initial_cfg_id)
+                idx = model.find_config_index(effective_initial_id)
                 if idx is not None:
                     self._chooser.setCurrentIndex(idx.row())
         self._chooser.currentIndexChanged.connect(self._on_connection_changed)
@@ -226,7 +236,9 @@ class DbViewer(QWidget, QtUseContext):
         list_ly.addLayout(btn_row)
 
         # Viewer page: embedded TableViewer
-        self._viewer = TableViewer(ctx=ctx, parent=self)
+        self._viewer = TableViewer(
+            ctx=ctx, parent=self, editing_allowed=editing_allowed
+        )
         self._viewer.all_tabs_closed.connect(self._on_all_tabs_closed)
 
         # Stack
@@ -374,7 +386,11 @@ class DbViewer(QWidget, QtUseContext):
         self._apply_list_filter()
 
     def _apply_list_filter(self) -> None:
-        """Show or hide list items based on the filter line (case-insensitive)."""
+        """Show or hide list items based on the filter line (case-insensitive).
+
+        If the filter is empty, show all items. Otherwise, show only items whose
+        name contains the filter text (case-insensitive).
+        """
         needle = self._list_filter_line.text().strip().lower()
         for i in range(self._list_widget.count()):
             item = self._list_widget.item(i)

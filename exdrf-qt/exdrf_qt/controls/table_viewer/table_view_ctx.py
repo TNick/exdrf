@@ -25,6 +25,7 @@ class TableViewCtx:
         view: The QTableView displaying the table.
         model: The underlying data model.
         proxy: The active filter proxy for the view.
+        editing: Whether this tab is in editing mode (cells can be edited).
     """
 
     viewer: "TableViewer"
@@ -34,6 +35,7 @@ class TableViewCtx:
     view: "QTableView"
     model: "SqlTableModel"
     proxy: "ColumnFilterProxy"
+    editing: bool = False
 
     def selected_records(self) -> List[Dict[str, Any]]:
         """Return raw dict rows for current row selection.

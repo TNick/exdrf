@@ -1,11 +1,13 @@
 """Tabbed table viewer widget with per-column filters and plugins."""
 
 import logging
-from typing import TYPE_CHECKING, List, Optional, Tuple
+from typing import TYPE_CHECKING, Callable, List, Optional, Tuple
 
 from PyQt5.QtCore import QPoint, Qt, pyqtSignal
+from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (
     QAbstractItemView,
+    QAction,
     QHeaderView,
     QMenu,
     QTableView,
@@ -17,6 +19,10 @@ from PyQt5.QtWidgets import (
 from exdrf_qt.context_use import QtUseContext
 from exdrf_qt.controls.filter_header import FilterHeader
 from exdrf_qt.controls.table_viewer.column_filter_proxy import ColumnFilterProxy
+from exdrf_qt.controls.table_viewer.sql_column_delegate import (
+    SqlColumnDelegate,
+    TableCellDelegate,
+)
 from exdrf_qt.controls.table_viewer.sql_table_model import SqlTableModel
 from exdrf_qt.controls.table_viewer.table_view_ctx import TableViewCtx
 from exdrf_qt.controls.table_viewer.viewer_plugin import ViewerPlugin
@@ -37,12 +43,19 @@ class TableViewer(QWidget, QtUseContext):
         ctx: The application context.
 
     Signals:
-        all_tabs_closed: Emitted when the last tab is closed (tab count becomes 0).
+        all_tabs_closed: Emitted when the last tab is closed (tab count
+            becomes 0). This is useful for UI elements that need to know when
+            all tabs are closed, such as the database viewer.
 
     Private Attributes:
         _tabs: The QTabWidget hosting open tables.
         _plugins: Installed viewer plugins.
         _views: Context list for each open tab.
+        _editing_allowed: Whether the Editing menu and per-tab edit mode
+            are available.
+        _column_editable_checks: List of callables (engine, schema, table,
+            column_name) -> bool; if non-empty, a column is editable only
+            if at least one returns True.
     """
 
     all_tabs_closed = pyqtSignal()
@@ -54,13 +67,26 @@ class TableViewer(QWidget, QtUseContext):
     _tabs: QTabWidget
     _plugins: List[ViewerPlugin]
     _views: List[TableViewCtx]
+    _editing_allowed: bool
+    _column_editable_checks: List[
+        Callable[[object, Optional[str], str, str], bool]
+    ]
 
-    def __init__(self, ctx, parent: Optional[QWidget] = None) -> None:
+    def __init__(
+        self,
+        ctx: "QtContext",
+        parent: Optional[QWidget] = None,
+        *,
+        editing_allowed: bool = True,
+    ) -> None:
         """Initialize the viewer widget.
 
         Args:
             ctx: Application context.
             parent: Optional parent widget.
+            editing_allowed: If True, the context menu shows an Editing
+                checkbox to toggle per-tab edit mode; if False, editing
+                cannot be enabled and the menu item is hidden.
         """
         super().__init__(parent)
         self.ctx = ctx
@@ -73,6 +99,8 @@ class TableViewer(QWidget, QtUseContext):
         ly.addWidget(self._tabs)
         self._plugins = []
         self._views = []
+        self._editing_allowed = editing_allowed
+        self._column_editable_checks = []
 
     def add_plugin(self, plugin: ViewerPlugin) -> None:
         """Install a plugin that contributes actions and hooks.
@@ -84,6 +112,22 @@ class TableViewer(QWidget, QtUseContext):
         logger.log(
             VERBOSE, "TableViewer: plugin added %s", type(plugin).__name__
         )
+
+    def add_column_editable_check(
+        self,
+        fn: Callable[[object, Optional[str], str, str], bool],
+    ) -> None:
+        """Register a check to decide if a column is editable.
+
+        When any check is registered, a column is editable only if at least
+        one check returns True for (engine, schema, table_name, column_name).
+        If no check is registered, all columns are considered editable when
+        the tab is in editing mode.
+
+        Args:
+            fn: Callable(engine, schema, table_name, column_name) -> bool.
+        """
+        self._column_editable_checks.append(fn)
 
     def open_table(
         self,
@@ -135,7 +179,7 @@ class TableViewer(QWidget, QtUseContext):
             header.setSectionsClickable(True)
         except Exception as e:
             logger.log(
-                1,
+                VERBOSE,
                 "TableViewer: header sort/sections: %s",
                 e,
                 exc_info=True,
@@ -150,6 +194,7 @@ class TableViewer(QWidget, QtUseContext):
             view=view,
             model=model,
             proxy=proxy,
+            editing=False,
         )
         self._views.append(ctx)
         for plg in self._plugins:
@@ -160,6 +205,7 @@ class TableViewer(QWidget, QtUseContext):
 
         idx = self._tabs.addTab(view, label)
         self._tabs.setCurrentIndex(idx)
+        self._apply_editing_state(ctx)
 
     def get_open_tables(self) -> List[Tuple[str, str]]:
         """Return (table_name, tab_label) for each open tab in order.
@@ -212,8 +258,104 @@ class TableViewer(QWidget, QtUseContext):
                 return c
         return None
 
+    def _tab_index_for_ctx(self, ctx: TableViewCtx) -> Optional[int]:
+        """Return the tab index for the given context, or None.
+
+        Args:
+            ctx: The tab context.
+
+        Returns:
+            Tab index if found; None otherwise.
+        """
+        for i in range(self._tabs.count()):
+            if self._tabs.widget(i) is ctx.view:
+                return i
+        return None
+
+    def _apply_editing_state(self, ctx: TableViewCtx) -> None:
+        """Apply the tab's editing flag to the view and tab icon.
+
+        Sets view edit triggers, tab icon, and installs or removes the
+        SqlColumnDelegate.
+
+        Args:
+            ctx: The tab context whose editing state to apply.
+        """
+        if ctx.editing:
+            ctx.view.setEditTriggers(
+                QAbstractItemView.DoubleClicked
+                | QAbstractItemView.EditKeyPressed
+            )
+            try:
+                icon = self.get_icon("edit_button")
+                tab_idx = self._tab_index_for_ctx(ctx)
+                if tab_idx is not None:
+                    self._tabs.setTabIcon(tab_idx, icon)
+            except Exception as e:
+                logger.log(
+                    VERBOSE,
+                    "TableViewer: set tab icon: %s",
+                    e,
+                    exc_info=True,
+                )
+            is_editable = self._make_is_column_editable(ctx)
+            delegate = SqlColumnDelegate(
+                ctx.view,
+                is_column_editable=is_editable,
+                get_icon=self.get_icon,
+                get_text=self.t,
+            )
+            ctx.view.setItemDelegate(delegate)
+        else:
+            ctx.view.setEditTriggers(QAbstractItemView.NoEditTriggers)
+            # Restore default delegate (paints NULL as italic grey centered).
+            ctx.view.setItemDelegate(TableCellDelegate(ctx.view))
+            tab_idx = self._tab_index_for_ctx(ctx)
+            if tab_idx is not None:
+                self._tabs.setTabIcon(tab_idx, QIcon())
+        return None
+
+    def _make_is_column_editable(
+        self, ctx: TableViewCtx
+    ) -> Callable[[str], bool]:
+        """Return a callable that checks if a column is editable for this
+        context.
+
+        If no checks are registered, returns a callable that always returns
+        True. Otherwise returns True if any registered check returns True.
+
+        Args:
+            ctx: The tab context (engine, schema, table).
+
+        Returns:
+            Callable(column_name: str) -> bool.
+        """
+        checks = self._column_editable_checks
+        engine = ctx.engine
+        schema = ctx.schema
+        table = ctx.table
+
+        def is_editable(column_name: str) -> bool:
+            if not checks:
+                return True
+            for fn in checks:
+                try:
+                    if fn(engine, schema, table, column_name):
+                        return True
+                except Exception as e:
+                    logger.log(
+                        VERBOSE,
+                        "TableViewer: column_editable_check %s: %s",
+                        column_name,
+                        e,
+                        exc_info=True,
+                    )
+            return False
+
+        return is_editable
+
     def _show_context_menu(self, view: "QTableView", point: QPoint) -> None:
-        """Show a context menu built from plugins for the given view.
+        """Show a context menu built from Editing toggle and plugins.
 
         Args:
             view: The originating view.
@@ -223,7 +365,17 @@ class TableViewer(QWidget, QtUseContext):
         if ctx is None:
             return
         menu = QMenu(view)
-        # Plugin actions first
+        if self._editing_allowed:
+            ac_editing = QAction(
+                self.t("table_viewer.editing", "Editing"), view
+            )
+            ac_editing.setCheckable(True)
+            ac_editing.setChecked(ctx.editing)
+            ac_editing.triggered.connect(
+                lambda checked: self._on_editing_toggled(ctx, checked)
+            )
+            menu.addAction(ac_editing)
+            menu.addSeparator()
         for plg in self._plugins:
             try:
                 actions = plg.provide_actions(self, ctx)
@@ -237,3 +389,27 @@ class TableViewer(QWidget, QtUseContext):
         if vp is None:
             return
         menu.exec_(vp.mapToGlobal(point))
+
+    def _on_editing_toggled(self, ctx: TableViewCtx, checked: bool) -> None:
+        """Handle the Editing menu checkbox toggle.
+
+        If the user enables editing but the table has no primary key, show
+        a toast, revert to not editing, and do not enable edit mode.
+
+        Args:
+            ctx: The tab context.
+            checked: New state for editing mode.
+        """
+        if checked and not ctx.model._primary_key_names:
+            from exdrf_qt.controls.toast import Toast
+
+            msg = self.t(
+                "table_viewer.no_primary_key",
+                "This table has no primary key and cannot be edited.",
+            )
+            Toast.show_warning(self, msg)
+            ctx.editing = False
+            self._apply_editing_state(ctx)
+            return
+        ctx.editing = checked
+        self._apply_editing_state(ctx)

@@ -28,6 +28,7 @@ if TYPE_CHECKING:
 
 DBM = TypeVar("DBM")
 logger = logging.getLogger(__name__)
+VERBOSE = 10
 
 
 class ListDbHeader(QHeaderView, QtUseContext, Generic[DBM]):
@@ -100,7 +101,7 @@ class ListDbHeader(QHeaderView, QtUseContext, Generic[DBM]):
             self._no_stg_write = False
 
     def on_geometries_changed(self):
-        logger.log(1, "geometriesChanged")
+        logger.log(VERBOSE, "geometriesChanged")
         self.setFirstSectionMovable(True)
 
     def on_section_moved(
@@ -134,28 +135,30 @@ class ListDbHeader(QHeaderView, QtUseContext, Generic[DBM]):
                 self.ctx.stg.set_setting(key, new_size)
 
     def on_section_count_changed(self, old_count: int, new_count: int):
-        logger.log(1, "sectionCountChanged: %s, %s", old_count, new_count)
+        logger.log(VERBOSE, "sectionCountChanged: %s, %s", old_count, new_count)
 
     def on_section_clicked(self, logical_index: int):
-        logger.log(1, "sectionClicked: %s", logical_index)
+        logger.log(VERBOSE, "sectionClicked: %s", logical_index)
 
     def on_section_double_clicked(self, logical_index: int):
-        logger.log(1, "sectionDoubleClicked: %s", logical_index)
+        logger.log(VERBOSE, "sectionDoubleClicked: %s", logical_index)
         self.show_search_line(logical_index)
 
     def on_section_entered(self, logical_index: int):
-        logger.log(1, "sectionEntered: %s", logical_index)
+        logger.log(VERBOSE, "sectionEntered: %s", logical_index)
 
     def on_section_handle_double_clicked(self, logical_index: int):
-        logger.log(1, "sectionHandleDoubleClicked: %s", logical_index)
+        logger.log(VERBOSE, "sectionHandleDoubleClicked: %s", logical_index)
 
     def on_section_pressed(self, logical_index: int):
-        logger.log(1, "sectionPressed: %s", logical_index)
+        logger.log(VERBOSE, "sectionPressed: %s", logical_index)
 
     def on_sort_indicator_changed(
         self, logical_index: int, order: Qt.SortOrder
     ):
-        logger.log(1, "sortIndicatorChanged: %s, %s", logical_index, order)
+        logger.log(
+            VERBOSE, "sortIndicatorChanged: %s, %s", logical_index, order
+        )
 
     @property
     def treeview(self) -> "QTreeView":

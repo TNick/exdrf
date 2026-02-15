@@ -42,6 +42,7 @@ if TYPE_CHECKING:
     from exdrf_qt.models.record import QtRecord
 
 logger = logging.getLogger(__name__)
+VERBOSE = 10
 DBM = TypeVar("DBM")
 DBM_O = TypeVar("DBM_O")
 
@@ -114,7 +115,7 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
     ) -> None:
 
         # Initialize instance variables.
-        logger.log(1, "DrfSelOneEditor.__init__")
+        logger.log(VERBOSE, "DrfSelOneEditor.__init__")
         self._in_editing = True
         self._qt_model = qt_model
         self._clear_action = None
@@ -204,7 +205,7 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
             self._popup_restore_priorities = list(self.qt_model.prioritized_ids)
 
         # Position and display the popup below the line edit.
-        logger.log(1, "%s.show_popup()", self.__class__.__name__)
+        logger.log(VERBOSE, "%s.show_popup()", self.__class__.__name__)
         self.popup.move(self.mapToGlobal(QPoint(0, self.height())))
         self.popup.resize(self.width(), 150)
         self.popup.show()
@@ -265,7 +266,7 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
 
     def resizeEvent(self, event: QResizeEvent | None) -> None:  # type: ignore
         # Handle widget resize events.
-        logger.log(1, "%s.resizeEvent", self.__class__.__name__)
+        logger.log(VERBOSE, "%s.resizeEvent", self.__class__.__name__)
         super().resizeEvent(event)
         # Resize the popup to match the widget width if it's visible.
         if self.popup and self.popup.isVisible():
@@ -609,7 +610,7 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
 
             self._qt_model.constraints_changed(concept_key, new_value)
             if self.is_empty:
-                logger.log(1, "No field value set, nothing to check")
+                logger.log(VERBOSE, "No field value set, nothing to check")
                 return
 
             # If the model is initialized, the constraints_changed would
@@ -794,11 +795,13 @@ class DrfSelOneEditor(DrfSelBase[DBM_O]):
         # Set the current selection in the popup tree to match the field value.
         index = QModelIndex()
         if self.field_value is None:
-            logger.log(1, "Tree cleared")
+            logger.log(VERBOSE, "Tree cleared")
         else:
             # Find the row corresponding to the current field value.
             row = self.qt_model._db_to_row.get(self.field_value, None)
-            logger.log(1, "Found row %s for value %s", row, self.field_value)
+            logger.log(
+                VERBOSE, "Found row %s for value %s", row, self.field_value
+            )
             if row is not None:
                 index = self.qt_model.index(row, 0)
                 logger.log(
@@ -823,7 +826,9 @@ class DrfSelOneEditor(DrfSelBase[DBM_O]):
 
         # Update the line edit with the selected record's display text.
         text = item.display_text()
-        logger.log(1, "%s.on_item_selected: %s", self.__class__.__name__, text)
+        logger.log(
+            VERBOSE, "%s.on_item_selected: %s", self.__class__.__name__, text
+        )
 
         self.line_edit.setText(text)
         self.popup.hide()

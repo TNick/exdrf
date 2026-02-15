@@ -33,6 +33,7 @@ if TYPE_CHECKING:
     from exdrf_qt.controls.search_lines.base import SearchData
 
 logger = logging.getLogger(__name__)
+VERBOSE = 10
 
 
 DBM = TypeVar("DBM")
@@ -68,7 +69,7 @@ class PopupWidget(QWidget, Generic[DBM], QtUseContext):
         parent=None,
         add_kb: Optional[Callable[[str], None]] = None,
     ):
-        logger.log(1, "PopupWidget.__init__()")
+        logger.log(VERBOSE, "PopupWidget.__init__()")
 
         super().__init__(parent, Qt.WindowType.Popup)
 
@@ -80,7 +81,7 @@ class PopupWidget(QWidget, Generic[DBM], QtUseContext):
 
         if qt_model is not None and not isinstance(qt_model, QtModel):
             qt_model = qt_model(ctx=ctx, db_model=None)  # type: ignore
-            logger.log(1, "PopupWidget created the new model")
+            logger.log(VERBOSE, "PopupWidget created the new model")
         self.qt_model = qt_model
 
         self.setWindowFlags(Qt.WindowType.Popup)

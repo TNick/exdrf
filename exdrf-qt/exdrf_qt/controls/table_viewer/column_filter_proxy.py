@@ -120,7 +120,7 @@ class ColumnFilterProxy(QSortFilterProxyModel):
                     return float(s)
                 except Exception as e:
                     logger.log(
-                        1,
+                        VERBOSE,
                         "ColumnFilterProxy lessThan non-numeric: %r %s",
                         val,
                         e,

@@ -28,6 +28,7 @@ if TYPE_CHECKING:
     )
 
 logger = logging.getLogger(__name__)
+VERBOSE = 10
 
 
 @define
@@ -197,7 +198,7 @@ class NewMenus(QtUseContext):
             default_menu: The menu where actions without a parent will be added.
             existing: A dictionary of existing menus to use, keyed by menu key.
         """
-        logger.log(1, "collect_and_create menus starts")
+        logger.log(VERBOSE, "collect_and_create menus starts")
         self.pre_create(ctx, top_parent, default_menu, existing)
 
         # Populate the existing menus.
@@ -217,7 +218,7 @@ class NewMenus(QtUseContext):
                 plugin_name,
                 error,
             )
-        logger.log(1, "result_map has %d items", len(result_map))
+        logger.log(VERBOSE, "result_map has %d items", len(result_map))
 
         # Add the definitions to the class.
         for plugin_name, defs in result_map.items():
@@ -255,7 +256,7 @@ class NewMenus(QtUseContext):
         self._create_actions(action_defs, top_parent, default_menu)
 
         self.post_create(ctx, top_parent, default_menu, existing)
-        logger.log(1, "collect_and_create done")
+        logger.log(VERBOSE, "collect_and_create done")
 
     def _create_menus(
         self,

@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from exdrf_qt.models.record import QtRecord
 
 logger = logging.getLogger(__name__)
+VERBOSE = 10
 DBM_M = TypeVar("DBM_M", bound="DrfSelMultiEditor")
 ITEMS_IN_LABEL = 2
 MAX_ITEMS_FOR_MULTI_EDIT = 3
@@ -82,7 +83,7 @@ class DrfSelMultiEditor(DrfSelBase[DBM_M]):
 
         sm.clearSelection()
         if self.field_value is None:
-            logger.log(1, "Tree cleared")
+            logger.log(VERBOSE, "Tree cleared")
             return
 
         # Collect all indices to select in a single batch operation.
@@ -90,10 +91,12 @@ class DrfSelMultiEditor(DrfSelBase[DBM_M]):
         for crt_id in self.field_value:
             # Find the row corresponding to the current field value.
             row = self.qt_model._db_to_row.get(crt_id, None)
-            logger.log(1, "Found row %s for value %s", row, crt_id)
+            logger.log(VERBOSE, "Found row %s for value %s", row, crt_id)
             if row is not None:
                 index = self.qt_model.index(row, 0)
-                logger.log(1, "Found index %s for value %s", index, crt_id)
+                logger.log(
+                    VERBOSE, "Found index %s for value %s", index, crt_id
+                )
                 # Add the index to the selection range.
                 selection.select(index, index)
             else:

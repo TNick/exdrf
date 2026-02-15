@@ -27,6 +27,7 @@ if TYPE_CHECKING:
     from exdrf_qt.context import QtContext  # noqa: F401
 
 logger = logging.getLogger(__name__)
+VERBOSE = 10
 scheme = QWebEngineUrlScheme(b"exdrf")
 scheme.setFlags(
     QWebEngineUrlScheme.LocalScheme | QWebEngineUrlScheme.LocalAccessAllowed
@@ -179,7 +180,9 @@ class ExDrfHandler(QWebEngineUrlSchemeHandler, QtUseContext):
                 self.icon_cache[name] = data
                 return data, mime
         except Exception:
-            logger.log(1, "Failed to get lib icon %s", name, exc_info=True)
+            logger.log(
+                VERBOSE, "Failed to get lib icon %s", name, exc_info=True
+            )
         logger.error("Attachment icon not found: %s", name)
         data = read_local_assets("not-found.png")
         mime = b"image/png"
@@ -224,7 +227,7 @@ class ExDrfHandler(QWebEngineUrlSchemeHandler, QtUseContext):
 
         if path.startswith("/"):
             path = path[1:]
-        logger.log(1, "Request for host '%s' path '%s'", host, path)
+        logger.log(VERBOSE, "Request for host '%s' path '%s'", host, path)
 
         data: bytes
         mime: bytes

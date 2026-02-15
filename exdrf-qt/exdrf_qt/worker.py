@@ -27,6 +27,7 @@ if TYPE_CHECKING:
     from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
+VERBOSE = 10
 
 
 @define(slots=True)
@@ -386,7 +387,9 @@ class Relay(QObject):
 
         try:
             work.callback(work)
-            logger.log(1, "Work with ID %s completed successfully", work_id)
+            logger.log(
+                VERBOSE, "Work with ID %s completed successfully", work_id
+            )
         except Exception as e:
             if isinstance(e, RuntimeError) and "has been deleted" in str(e):
                 logger.debug(
