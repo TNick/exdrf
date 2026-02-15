@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from exdrf_qt.context import QtContext
 
 logger = logging.getLogger(__name__)
-VERBOSE = 10
+VERBOSE = 1
 
 INSTANT_TRIGGER = 0
 NEVER_TRIGGER = -1
@@ -23,6 +23,13 @@ NEVER_TRIGGER = -1
 
 @define(slots=True, kw_only=True)
 class SearchData:
+    """Data structure that stores the current state of the search line.
+
+    Attributes:
+        term: The current search term.
+        search_type: The current search type.
+    """
+
     term: str
     search_type: "SearchType"
 

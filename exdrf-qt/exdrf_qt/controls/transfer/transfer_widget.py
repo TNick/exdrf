@@ -81,8 +81,8 @@ class TransferWidget(QWidget, QtUseContext):
     # Private attributes
     _src_conn: Optional["DbConn"]
     _dst_conn: Optional["DbConn"]
-    _src_view_win: Optional[TableViewer]
-    _dst_view_win: Optional[TableViewer]
+    _src_view_win: TableViewer = None  # type: ignore
+    _dst_view_win: TableViewer = None  # type: ignore
     _spin_chunk: "QSpinBox"
     _src_db: "ChooseDb"
     _dst_db: "ChooseDb"
@@ -114,10 +114,6 @@ class TransferWidget(QWidget, QtUseContext):
         # selection changes)
         self._src_count_error_shown: bool = False
         self._dst_count_error_shown: bool = False
-
-        # External viewer windows (owned by MDI or top-level)
-        self._src_view_win: Optional[TableViewer] = None
-        self._dst_view_win: Optional[TableViewer] = None
 
         # Build UI controls and top toolbar
         top_bar = QHBoxLayout()
@@ -174,9 +170,11 @@ class TransferWidget(QWidget, QtUseContext):
         self._select_newest_for_source()
         self._clear_destination()
 
-        # Initial refresh
+        # Initial refresh and sync counts
         self._src_model.refresh()
         self._dst_model.refresh()
+        self._run_counts_sync("src")
+        self._run_counts_sync("dst")
 
         # Track running full-table transfer worker (if any)
         self._full_worker = None
@@ -228,6 +226,7 @@ class TransferWidget(QWidget, QtUseContext):
             header.setSectionsClickable(True)
         except Exception as e:
             logger.log(VERBOSE, "TransferWidget: %s", e, exc_info=True)
+
         view.setSortingEnabled(True)
         view.setSelectionBehavior(QAbstractItemView.SelectRows)
         view.setSelectionMode(QAbstractItemView.ExtendedSelection)
@@ -400,6 +399,10 @@ class TransferWidget(QWidget, QtUseContext):
         except Exception as e:
             logger.log(VERBOSE, "TransferWidget: %s", e, exc_info=True)
 
+        # Run counts in main thread for the new source (and dst if set)
+        self._run_counts_sync("src")
+        self._run_counts_sync("dst")
+
         # Restore view state asynchronously (after models settle)
         try:
             if src_state:
@@ -416,8 +419,13 @@ class TransferWidget(QWidget, QtUseContext):
                         self._dst_view, self._dst_model, s
                     ),
                 )
-        except Exception:
-            pass
+        except Exception as e:
+            logger.log(
+                1,
+                "TransferWidget: failed to schedule restore view state: %s",
+                e,
+                exc_info=True,
+            )
         logger.log(
             VERBOSE,
             "TransferWidget: applied src selection %s",
@@ -452,6 +460,7 @@ class TransferWidget(QWidget, QtUseContext):
             # Invalidate only destination-side counts so deltas recollect
             self._dst_model.invalidate_counts_side("dst")
             self._src_model.invalidate_counts_side("dst")
+            self._run_counts_sync("dst")
         except Exception as e:
             logger.error(
                 (
@@ -799,18 +808,19 @@ class TransferWidget(QWidget, QtUseContext):
         vp = view.viewport()
         if vp is None:
             return
+
         menu.exec_(vp.mapToGlobal(point))
 
     def _on_refresh_counts(self, view: QTableView) -> None:
-        """Refresh counts for the given view's model."""
-        model = view.model()
-        src = (
-            model.sourceModel()
-            if isinstance(model, QSortFilterProxyModel)
-            else model
-        )
-        if isinstance(src, TablesModel):
-            src.invalidate_counts()
+        """Refresh counts: clear both models and run sync count for both sides.
+
+        Args:
+            view: The view to refresh the counts for.
+        """
+        self._src_model.invalidate_counts()
+        self._dst_model.invalidate_counts()
+        self._run_counts_sync("src")
+        self._run_counts_sync("dst")
 
     # Actions
     def _selected_tables(
@@ -881,6 +891,7 @@ class TransferWidget(QWidget, QtUseContext):
         win = self._src_view_win if is_src else self._dst_view_win
         if win is None:
             win = TableViewer(ctx=self.ctx)
+
             # Install plugin to transfer selected rows when viewing the source
             if is_src and self._dst_conn is not None:
                 win.add_plugin(
@@ -890,6 +901,7 @@ class TransferWidget(QWidget, QtUseContext):
                         chunk=self._spin_chunk.value(),
                     )
                 )
+
             win.destroyed.connect(
                 lambda *_: self._on_viewer_closed(is_src=is_src)
             )
@@ -898,15 +910,8 @@ class TransferWidget(QWidget, QtUseContext):
                 if is_src
                 else self.t("tr.dst.viewer", "Destination Tables")
             )
-            if (
-                hasattr(self.ctx, "create_window")
-                and self.ctx.top_widget is not None
-            ):
-                self.ctx.create_window(win, title)
-            else:
-                win.setWindowTitle(title)
-                win.resize(900, 600)
-                win.show()
+            self.ctx.create_window(win, title)
+
             if is_src:
                 self._src_view_win = win
             else:
@@ -959,13 +964,13 @@ class TransferWidget(QWidget, QtUseContext):
         )
         # Progress UI
         dlg = QProgressDialog(
-            self.t("tr.transfer", "Transfer"),
+            self.t("tr.transfer.t", "Transfer"),
             self.t("cmn.cancel", "Cancel"),
             0,
             0,
             self,
         )
-        dlg.setWindowTitle(self.t("tr.transfer", "Transfer"))
+        dlg.setWindowTitle(self.t("tr.transfer.t", "Transfer"))
         dlg.setAutoReset(True)
         dlg.setAutoClose(True)
 
@@ -1030,8 +1035,38 @@ class TransferWidget(QWidget, QtUseContext):
         worker.start()
 
     def _refresh_counts(self) -> None:
+        """Rebuild table list and run sync counts for both sides."""
         self._src_model.refresh()
         self._dst_model.refresh()
+        self._run_counts_sync("src")
+        self._run_counts_sync("dst")
+
+    def _run_counts_sync(self, side: str) -> None:
+        """Run row counts in the main thread for one connection and update both
+        models. Uses a single query to fetch all table counts at once.
+
+        Args:
+            side: "src" or "dst"; the connection that was changed or that we
+                are (re)counting.
+        """
+        conn = self._src_conn if side == "src" else self._dst_conn
+        if conn is None:
+            return
+        table_names = [
+            self._src_model.table_name(row)
+            for row in range(self._src_model.rowCount())
+        ]
+        table_names = [n for n in table_names if n]
+        if not table_names:
+            return
+        counts = self._src_model.count_all_tables(conn, table_names)
+        for row in range(self._src_model.rowCount()):
+            name = self._src_model.table_name(row)
+            if not name:
+                continue
+            val = counts.get(name, -1)
+            self._src_model.set_count(row, side, val)
+            self._dst_model.set_count(row, side, val)
 
     def closeEvent(self, event) -> None:  # type: ignore[override]
         """Stop background threads before closing the widget."""
@@ -1039,11 +1074,6 @@ class TransferWidget(QWidget, QtUseContext):
             if self._full_worker and self._full_worker.isRunning():
                 self._full_worker.requestInterruption()
                 self._full_worker.wait(2000)
-        except Exception as e:
-            logger.log(VERBOSE, "TransferWidget: %s", e, exc_info=True)
-        try:
-            self._src_model._stop_all_count_workers()
-            self._dst_model._stop_all_count_workers()
         except Exception as e:
             logger.log(VERBOSE, "TransferWidget: %s", e, exc_info=True)
         # Disconnect sync scroll

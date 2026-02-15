@@ -161,6 +161,7 @@
         "TEXTJOIN",
         "timedelta",
         "TINYINT",
+        "tname",
         "tometadata",
         "TOPPADDING",
         "tplan",
