@@ -1,13 +1,19 @@
 """Tabbed table viewer widget with per-column filters and plugins."""
 
+import csv
+import io
+import json
 import logging
-from typing import TYPE_CHECKING, Callable, List, Optional, Tuple
+from datetime import date, datetime
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple
 
+import yaml
 from PyQt5.QtCore import QPoint, Qt, pyqtSignal
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (
     QAbstractItemView,
     QAction,
+    QApplication,
     QHeaderView,
     QMenu,
     QTableView,
@@ -256,6 +262,8 @@ class TableViewer(QWidget, QtUseContext):
         for c in self._views:
             if c.view is view:
                 return c
+
+        logger.error("TableViewer: no context found for view %s", id(view))
         return None
 
     def _tab_index_for_ctx(self, ctx: TableViewCtx) -> Optional[int]:
@@ -354,8 +362,100 @@ class TableViewer(QWidget, QtUseContext):
 
         return is_editable
 
+    def _records_for_export(
+        self, records: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        """Convert record values to JSON- and YAML-serializable form.
+
+        All keys are str; values are None, bool, int, float, or str so that
+        both json.dumps and yaml.safe_dump work (SafeDumper rejects Decimal,
+        bytes, UUID, etc.).
+
+        Args:
+            records: List of dicts from selected_records().
+
+        Returns:
+            List of dicts with scalar values only.
+        """
+        out: List[Dict[str, Any]] = []
+        for row in records:
+            normalized: Dict[str, Any] = {}
+            for k, v in row.items():
+                # Force built-in str so yaml.safe_dump accepts keys (rejects
+                # str subclasses e.g. numpy.str_).
+                key = str(k) if type(k) is not str else k
+                if v is None:
+                    normalized[key] = None
+                elif isinstance(v, bool):
+                    normalized[key] = bool(v)
+                elif isinstance(v, int):
+                    normalized[key] = int(v)
+                elif isinstance(v, float):
+                    normalized[key] = float(v)
+                elif isinstance(v, (date, datetime)):
+                    normalized[key] = v.isoformat()
+                elif isinstance(v, str):
+                    normalized[key] = str(v)
+                else:
+                    normalized[key] = str(v)
+            out.append(normalized)
+        return out
+
+    def _copy_selected_as_csv(self, ctx: TableViewCtx) -> None:
+        """Copy selected rows to clipboard as CSV.
+
+        Args:
+            ctx: The tab context.
+        """
+        records = ctx.selected_records()
+        if not records:
+            return
+        export = self._records_for_export(records)
+        headers = list(export[0].keys())
+        buf = io.StringIO()
+        writer = csv.DictWriter(buf, fieldnames=headers)
+        writer.writeheader()
+        for row in export:
+            writer.writerow(
+                {k: ("" if v is None else str(v)) for k, v in row.items()}
+            )
+        cb = QApplication.clipboard()
+        if cb is not None:
+            cb.setText(buf.getvalue())
+
+    def _copy_selected_as_json(self, ctx: TableViewCtx) -> None:
+        """Copy selected rows to clipboard as JSON.
+
+        Args:
+            ctx: The tab context.
+        """
+        records = ctx.selected_records()
+        if not records:
+            return
+        export = self._records_for_export(records)
+        text = json.dumps(export, indent=2)
+        cb = QApplication.clipboard()
+        if cb is not None:
+            cb.setText(text)
+
+    def _copy_selected_as_yaml(self, ctx: TableViewCtx) -> None:
+        """Copy selected rows to clipboard as YAML.
+
+        Args:
+            ctx: The tab context.
+        """
+        records = ctx.selected_records()
+        if not records:
+            return
+        export = self._records_for_export(records)
+        text = yaml.safe_dump(export, default_flow_style=False)
+        cb = QApplication.clipboard()
+        if cb is not None:
+            cb.setText(text)
+
     def _show_context_menu(self, view: "QTableView", point: QPoint) -> None:
-        """Show a context menu built from Editing toggle and plugins.
+        """Show a context menu built from Editing toggle, copy actions, and
+        plugins.
 
         Args:
             view: The originating view.
@@ -375,6 +475,31 @@ class TableViewer(QWidget, QtUseContext):
                 lambda checked: self._on_editing_toggled(ctx, checked)
             )
             menu.addAction(ac_editing)
+            menu.addSeparator()
+        # Copy selected rows as CSV / JSON / YAML
+        selected = ctx.selected_records()
+        ac_csv = QAction(
+            self.t("table_viewer.copy_as_csv", "Copy as CSV"),
+            view,
+        )
+        ac_csv.setEnabled(bool(selected))
+        ac_csv.triggered.connect(lambda: self._copy_selected_as_csv(ctx))
+        menu.addAction(ac_csv)
+        ac_json = QAction(
+            self.t("table_viewer.copy_as_json", "Copy as JSON"),
+            view,
+        )
+        ac_json.setEnabled(bool(selected))
+        ac_json.triggered.connect(lambda: self._copy_selected_as_json(ctx))
+        menu.addAction(ac_json)
+        ac_yaml = QAction(
+            self.t("table_viewer.copy_as_yaml", "Copy as YAML"),
+            view,
+        )
+        ac_yaml.setEnabled(bool(selected))
+        ac_yaml.triggered.connect(lambda: self._copy_selected_as_yaml(ctx))
+        menu.addAction(ac_yaml)
+        if self._plugins:
             menu.addSeparator()
         for plg in self._plugins:
             try:
