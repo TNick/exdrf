@@ -147,6 +147,35 @@ class FilterHeader(QHeaderView, QtUseContext):
         text = self._editors[column].text()
         self._on_change(column, text)
 
+    def get_filter_value(self, column: int) -> str:
+        """Return the current filter text for a column.
+
+        Args:
+            column: Column index.
+
+        Returns:
+            The filter text, or empty string if column is out of range.
+        """
+        if column < 0 or column >= len(self._editors):
+            return ""
+        return self._editors[column].text() or ""
+
+    def set_filter_value(self, column: int, text: str) -> None:
+        """Set the filter text for a column and notify the proxy.
+
+        Used when restoring workspace state. Skips debounce and applies
+        immediately.
+
+        Args:
+            column: Column index.
+            text: Filter text to set.
+        """
+        if column < 0 or column >= len(self._editors):
+            return
+        self._editors[column].setText(text)
+        if self._on_change:
+            self._on_change(column, text)
+
     def _clear_editors(self) -> None:
         """Clear the editors and their debounce timers."""
         for tmr in self._timers:

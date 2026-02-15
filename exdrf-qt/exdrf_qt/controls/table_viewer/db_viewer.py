@@ -3,12 +3,14 @@ stacked view.
 """
 
 import logging
-from typing import TYPE_CHECKING, List, Optional, cast
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, cast
 
+import yaml
 from exdrf_al.connection import DbConn
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
     QCompleter,
+    QFileDialog,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -74,6 +76,10 @@ class DbViewer(QWidget, QtUseContext):
         _top_line: QLineEdit for table name with completer.
         _btn_add: Add button.
         _btn_show_list: Button to show the table list again.
+        _btn_save_workspace: Button to save the current workspace to a YAML
+            file.
+        _btn_load_workspace: Button to load a workspace from a YAML file.
+        _btn_load_workspace_list: On list page, button to load a workspace.
         _btn_close_tabs_list: On list page, button to switch back to the tabbed
             viewer; visible only when there are open tabs.
     """
@@ -83,6 +89,9 @@ class DbViewer(QWidget, QtUseContext):
     _lbl_connection: QLabel
     _chooser: ChooseDb
     _btn_manage_connection: QPushButton
+    _btn_save_workspace: QPushButton
+    _btn_load_workspace: QPushButton
+    _btn_load_workspace_list: QPushButton
     _engine: Optional["Engine"]
     _schema: Optional[str]
     _table_names: List[str]
@@ -176,11 +185,25 @@ class DbViewer(QWidget, QtUseContext):
             self._top_bar_widget,
         )
         self._btn_show_list.clicked.connect(self._on_show_list_clicked)
+        self._btn_save_workspace = QPushButton(
+            self.get_icon("file_save_as"),
+            self.t("db_viewer.save_workspace", "Save workspace"),
+            self._top_bar_widget,
+        )
+        self._btn_save_workspace.clicked.connect(self._on_save_workspace)
+        self._btn_load_workspace = QPushButton(
+            self.get_icon("folder"),
+            self.t("db_viewer.load_workspace", "Load workspace"),
+            self._top_bar_widget,
+        )
+        self._btn_load_workspace.clicked.connect(self._on_load_workspace)
 
         top_bar.addWidget(lbl)
         top_bar.addWidget(self._top_line, 1)
         top_bar.addWidget(self._btn_add)
         top_bar.addWidget(self._btn_show_list)
+        top_bar.addWidget(self._btn_load_workspace)
+        top_bar.addWidget(self._btn_save_workspace)
 
         # List page: invite label, checkable list of all tables, Add button
         # centered
@@ -227,10 +250,17 @@ class DbViewer(QWidget, QtUseContext):
         )
         btn_add_list.setIcon(self.get_icon("plus"))
         btn_add_list.clicked.connect(self._on_list_ok_clicked)
+        self._btn_load_workspace_list = QPushButton(
+            self.get_icon("folder"),
+            self.t("db_viewer.load_workspace", "Load workspace"),
+            self._list_page,
+        )
+        self._btn_load_workspace_list.clicked.connect(self._on_load_workspace)
 
         btn_row = QHBoxLayout()
         btn_row.addStretch(1)
         btn_row.addWidget(btn_add_list)
+        btn_row.addWidget(self._btn_load_workspace_list)
         btn_row.addWidget(self._btn_close_tabs_list)
         btn_row.addStretch(1)
         list_ly.addLayout(btn_row)
@@ -510,6 +540,186 @@ class DbViewer(QWidget, QtUseContext):
     def _on_back_to_tabs(self) -> None:
         """Switch back to the tabbed viewer from the list page."""
         self._stack.setCurrentIndex(PAGE_VIEWER)
+        self._update_ui_state()
+
+    def _on_save_workspace(self) -> None:
+        """Save the current connection and open tables state to a YAML file."""
+        cfg = self._current_config()
+        if not cfg:
+            self.show_error(
+                self.t(
+                    "db_viewer.workspace.no_connection",
+                    "Select a connection before saving the workspace.",
+                ),
+                title=self.t("cmn.error", "Error"),
+            )
+            return
+        open_tables = self._viewer.get_open_tables()
+        if not open_tables:
+            self.show_error(
+                self.t(
+                    "db_viewer.workspace.no_tables",
+                    "Open at least one table before saving the workspace.",
+                ),
+                title=self.t("cmn.error", "Error"),
+            )
+            return
+        tables_payload: List[Dict[str, Any]] = []
+        for i in range(self._viewer._tabs.count()):
+            w = self._viewer._tabs.widget(i)
+            ctx = None
+            for c in self._viewer._views:
+                if c.view is w:
+                    ctx = c
+                    break
+            if ctx is None:
+                continue
+            tab_label = self._viewer._tabs.tabText(i)
+            state = self._viewer.get_workspace_state_for_tab(ctx)
+            tables_payload.append(
+                {
+                    "table": ctx.table,
+                    "tab_label": tab_label,
+                    **state,
+                }
+            )
+        workspace = {
+            "connection": {"id": cfg.get("id")},
+            "tables": tables_payload,
+        }
+        path, _ = QFileDialog.getSaveFileName(
+            self,
+            self.t("db_viewer.save_workspace.title", "Save workspace"),
+            "",
+            "YAML (*.yaml *.yml);;All files (*)",
+        )
+        if not path:
+            return
+        try:
+            with open(path, "w", encoding="utf-8") as f:
+                yaml.dump(
+                    workspace, f, default_flow_style=False, allow_unicode=True
+                )
+        except Exception as e:
+            logger.error(
+                "DbViewer: failed to save workspace: %s", e, exc_info=True
+            )
+            self.show_error(
+                self.t(
+                    "db_viewer.workspace.save_failed",
+                    "Failed to save workspace: {err}",
+                    err=str(e),
+                ),
+                title=self.t("cmn.error", "Error"),
+            )
+
+    def _on_load_workspace(self) -> None:
+        """Load a workspace from a YAML file and restore connection and tabs."""
+        path, _ = QFileDialog.getOpenFileName(
+            self,
+            self.t("db_viewer.load_workspace.title", "Load workspace"),
+            "",
+            "YAML (*.yaml *.yml);;All files (*)",
+        )
+        if not path:
+            return
+        try:
+            with open(path, encoding="utf-8") as f:
+                workspace = yaml.safe_load(f)
+        except Exception as e:
+            logger.error(
+                "DbViewer: failed to load workspace file: %s",
+                e,
+                exc_info=True,
+            )
+            self.show_error(
+                self.t(
+                    "db_viewer.workspace.load_failed",
+                    "Failed to load workspace: {err}",
+                    err=str(e),
+                ),
+                title=self.t("cmn.error", "Error"),
+            )
+            return
+        if not isinstance(workspace, dict):
+            self.show_error(
+                self.t(
+                    "db_viewer.workspace.invalid",
+                    "Invalid workspace file format.",
+                ),
+                title=self.t("cmn.error", "Error"),
+            )
+            return
+        conn = workspace.get("connection") or {}
+        conn_id = conn.get("id")
+        if not conn_id:
+            self.show_error(
+                self.t(
+                    "db_viewer.workspace.no_connection_id",
+                    "Workspace file has no connection id.",
+                ),
+                title=self.t("cmn.error", "Error"),
+            )
+            return
+        self._chooser.blockSignals(True)
+        try:
+            self._chooser.populate_db_connections()
+            model = self._chooser.model()
+            if hasattr(model, "find_config_index"):
+                idx = model.find_config_index(conn_id)
+                if idx is not None:
+                    self._chooser.setCurrentIndex(idx.row())
+        finally:
+            self._chooser.blockSignals(False)
+        self._on_connection_changed()
+        if self._engine is None:
+            return
+        self._viewer.clear_all_tabs()
+        tables = workspace.get("tables") or []
+        for item in tables:
+            if not isinstance(item, dict):
+                continue
+            table_name = item.get("table")
+            tab_label = item.get("tab_label", table_name)
+            if not table_name:
+                continue
+            user_extra = item.get("user_extra_columns") or []
+            raw_tuples = [
+                (t[0], t[1], t[2])
+                for t in user_extra
+                if isinstance(t, (list, tuple)) and len(t) >= 3
+            ]
+            # Deduplicate by (fk, target_table, target_column) to avoid
+            # DuplicateAlias when the same join is listed more than once.
+            user_extra_tuples = list(dict.fromkeys(raw_tuples))
+            table_state = {
+                k: item[k]
+                for k in (
+                    "column_order",
+                    "filters",
+                    "sort_column",
+                    "sort_direction",
+                )
+                if k in item
+            }
+            try:
+                self._viewer.open_table(
+                    engine=self._engine,
+                    schema=self._schema,
+                    table=table_name,
+                    tab_label=tab_label,
+                    user_extra_columns=user_extra_tuples or None,
+                    workspace_state=table_state or None,
+                )
+            except Exception as e:
+                logger.debug(
+                    "DbViewer: failed to open table %s from workspace: %s",
+                    table_name,
+                    e,
+                    exc_info=True,
+                )
+        if self._viewer._tabs.count() > 0:
+            self._stack.setCurrentIndex(PAGE_VIEWER)
         self._update_ui_state()
 
     def _on_all_tabs_closed(self) -> None:

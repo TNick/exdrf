@@ -156,6 +156,8 @@ class TableViewer(QWidget, QtUseContext):
         schema: Optional[str],
         table: str,
         tab_label: Optional[str] = None,
+        user_extra_columns: Optional[List[Tuple[str, str, str]]] = None,
+        workspace_state: Optional[Dict[str, Any]] = None,
     ) -> None:
         """Open a table in a new tab.
 
@@ -164,6 +166,10 @@ class TableViewer(QWidget, QtUseContext):
             schema: Optional schema name.
             table: Table name (used for loading data).
             tab_label: Optional label for the tab; if None, uses table.
+            user_extra_columns: Optional user-added join columns (from workspace
+                load); merged with plugin default columns.
+            workspace_state: Optional state dict to apply after the tab is
+                created (column order, filters, sort).
         """
         label = tab_label if tab_label is not None else table
         logger.log(
@@ -183,11 +189,13 @@ class TableViewer(QWidget, QtUseContext):
                     type(plg).__name__,
                     exc_info=True,
                 )
+        user_extra = user_extra_columns or []
+        all_extra = list(default_extra) + list(user_extra)
         model = SqlTableModel(
             engine=engine,
             schema=schema,
             table=table,
-            extra_columns=default_extra if default_extra else None,
+            extra_columns=all_extra if all_extra else None,
         )
         proxy = ColumnFilterProxy()
         proxy.setSourceModel(model)
@@ -212,10 +220,11 @@ class TableViewer(QWidget, QtUseContext):
             headers=model.raw_headers(),
             on_text_changed=lambda c, t: proxy.set_filter(c, t),
         )
-        # Ensure sorting is enabled after replacing the header
+        # Enable sorting and column reordering after replacing the header
         try:
             header.setSortIndicatorShown(True)
             header.setSectionsClickable(True)
+            header.setSectionsMovable(True)
         except Exception as e:
             logger.log(
                 VERBOSE,
@@ -234,7 +243,7 @@ class TableViewer(QWidget, QtUseContext):
             model=model,
             proxy=proxy,
             editing=False,
-            extra_columns=list(default_extra),
+            extra_columns=list(default_extra) + list(user_extra),
         )
         self._views.append(ctx)
         for plg in self._plugins:
@@ -246,6 +255,8 @@ class TableViewer(QWidget, QtUseContext):
         idx = self._tabs.addTab(view, label)
         self._tabs.setCurrentIndex(idx)
         self._apply_editing_state(ctx)
+        if workspace_state:
+            self.apply_workspace_state(ctx, workspace_state)
 
     def get_open_tables(self) -> List[Tuple[str, str]]:
         """Return (table_name, tab_label) for each open tab in order.
@@ -283,6 +294,96 @@ class TableViewer(QWidget, QtUseContext):
         while self._tabs.count() > 0:
             self._close_tab(0)
         self._views = []
+
+    def get_workspace_state_for_tab(self, ctx: TableViewCtx) -> Dict[str, Any]:
+        """Return a serializable state dict for one tab (for workspace save).
+
+        Includes column order, filters, sort, and user-added extra columns only
+        (those with a string column name, not a callable).
+
+        Args:
+            ctx: The tab context.
+
+        Returns:
+            Dict with column_order, filters, sort_column, sort_direction,
+            user_extra_columns.
+        """
+        model = ctx.model
+        proxy = ctx.proxy
+        header = ctx.view.horizontalHeader()
+        headers = model.raw_headers()
+        column_order = [
+            str(headers[header.logicalIndex(vis)])
+            for vis in range(header.count())
+        ]
+        filters = {
+            str(headers[col]): str(proxy._filters.get(col, "") or "")
+            for col in range(len(headers))
+        }
+        filters = {k: v for k, v in filters.items() if v}
+        sort_logical = header.sortIndicatorSection()
+        sort_column = str(headers[sort_logical]) if sort_logical >= 0 else None
+        sort_direction = (
+            "desc"
+            if header.sortIndicatorOrder() == Qt.SortOrder.DescendingOrder
+            else "asc"
+        )
+        user_extra_columns = [
+            [str(fk), str(tt), str(tc)]
+            for (fk, tt, tc) in ctx.extra_columns
+            if not callable(tc)
+        ]
+        return {
+            "column_order": column_order,
+            "filters": filters,
+            "sort_column": sort_column,
+            "sort_direction": sort_direction,
+            "user_extra_columns": user_extra_columns,
+        }
+
+    def apply_workspace_state(
+        self, ctx: TableViewCtx, state: Dict[str, Any]
+    ) -> None:
+        """Apply a saved workspace state to a tab (column order, filters, sort).
+
+        Args:
+            ctx: The tab context (tab must already be created).
+            state: Dict from get_workspace_state_for_tab.
+        """
+        model = ctx.model
+        view = ctx.view
+        header = ctx.view.horizontalHeader()
+        if not isinstance(header, FilterHeader):
+            return
+        headers = model.raw_headers()
+        headers_str = [str(h) for h in headers]
+        column_order = state.get("column_order") or []
+        if column_order and set(column_order) == set(headers_str):
+            for target_visual, col_name in enumerate(column_order):
+                try:
+                    logical = headers_str.index(col_name)
+                except ValueError:
+                    continue
+                current_visual = header.visualIndex(logical)
+                if current_visual != target_visual:
+                    header.moveSection(current_visual, target_visual)
+        filters = state.get("filters") or {}
+        for col_index, col_name in enumerate(headers_str):
+            if col_name in filters and filters[col_name]:
+                header.set_filter_value(col_index, filters[col_name])
+        sort_column = state.get("sort_column")
+        sort_direction = state.get("sort_direction") or "asc"
+        if sort_column and sort_column in headers_str:
+            try:
+                logical = headers_str.index(sort_column)
+                order = (
+                    Qt.SortOrder.DescendingOrder
+                    if sort_direction == "desc"
+                    else Qt.SortOrder.AscendingOrder
+                )
+                view.sortByColumn(logical, order)
+            except ValueError:
+                pass
 
     def _ctx_for_view(self, view: "QTableView") -> Optional[TableViewCtx]:
         """Find the view context for a given QTableView, if any.

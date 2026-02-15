@@ -472,6 +472,10 @@ class SqlTableModel(QAbstractTableModel):
         self._primary_key_names = [c.name for c in t.primary_key.columns]
         self._base_column_count = len(base_headers)
 
+        # Deduplicate extra_columns to avoid DuplicateAlias (same table
+        # joined more than once).
+        extra_columns = list(dict.fromkeys(extra_columns))
+
         # Build select: base columns + optional joined columns
         stmt = select(*[t.c[h] for h in base_headers])
         extra_headers: List[str] = []
