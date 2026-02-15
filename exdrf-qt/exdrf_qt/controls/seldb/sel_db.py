@@ -55,7 +55,8 @@ class SelectDatabaseDlg(QDialog, Ui_SelectDatabase, QtUseContext):
 
         Args:
             ctx: The Qt application context.
-            show_transfer_button: Whether to show the Transfer button in this dialog.
+            show_transfer_button: Whether to show the Transfer button in
+                this dialog.
         """
         super().__init__(**kwargs)
         self.ctx = ctx

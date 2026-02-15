@@ -218,6 +218,27 @@ class ColumnFilterProxy(QSortFilterProxyModel):
         self._filters[column] = text or ""
         self.invalidateFilter()
 
+    def headerData(
+        self,
+        section: int,
+        orientation: Qt.Orientation,
+        role: int = Qt.ItemDataRole.DisplayRole,
+    ):
+        """Forward header data from the source model so the header shows labels.
+
+        Args:
+            section: Section index.
+            orientation: Horizontal or Vertical.
+            role: Qt role (Display role is used for labels).
+
+        Returns:
+            Header label from source model, or None.
+        """
+        src = self.sourceModel()
+        if src is not None:
+            return src.headerData(section, orientation, role)
+        return None
+
     def filterAcceptsRow(
         self, source_row: int, source_parent: QModelIndex
     ) -> bool:  # noqa: N802
