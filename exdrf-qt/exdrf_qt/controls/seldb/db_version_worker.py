@@ -35,6 +35,7 @@ class DbVersionCheckerWorker(QThread):
             parent: Parent QObject.
         """
         super().__init__(parent)
+        self.setObjectName("DbVersionCheckerWorker")
         self._configs = configs
         self._migrations_dir = migrations_dir
 

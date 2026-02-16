@@ -1046,6 +1046,7 @@ class PdfImageViewer(QWidget, QtUseContext):
         if self._pdf_path is None or self._temp_dir is None:
             return
         self._thread = QThread(self)
+        self._thread.setObjectName("PdfRenderWorkerThread")
         self._worker = PdfRenderWorker(
             self._pdf_path, self._temp_dir, self._dpi
         )

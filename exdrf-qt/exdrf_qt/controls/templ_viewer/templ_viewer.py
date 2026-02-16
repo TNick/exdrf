@@ -154,6 +154,7 @@ class TemplateRenderWorker(QThread):
             parent: The parent QObject.
         """
         super().__init__(parent)
+        self.setObjectName("TemplateRenderWorker-%s" % job_id)
         self.job_id = job_id
         self.render_func = render_func
         self.render_kwargs = render_kwargs
