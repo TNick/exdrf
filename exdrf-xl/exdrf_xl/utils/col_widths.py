@@ -3,11 +3,12 @@ from typing import TYPE_CHECKING, cast
 
 from openpyxl.utils import get_column_letter
 from openpyxl.utils.cell import range_boundaries
+from openpyxl.worksheet.table import Table as OpenpyxlTable
+from openpyxl.worksheet.worksheet import Worksheet
 
 if TYPE_CHECKING:
     from openpyxl import Workbook
     from openpyxl.worksheet.table import Table, TableColumn
-    from openpyxl.worksheet.worksheet import Worksheet
 
 logger = logging.getLogger(__name__)
 
@@ -32,9 +33,22 @@ def read_column_widths_from_existing_file(
         if not isinstance(ws, Worksheet):
             continue
 
-        # For each Table object in the worksheet's tables
-        for table_name, table in ws.tables.items():
+        # For each table in the worksheet.
+        #
+        # Depending on openpyxl version, iterating `ws.tables.items()` may
+        # return values that are not `Table` objects (for example table range
+        # strings). Resolve the object by key access to keep compatibility.
+        for table_name in ws.tables.keys():
             table_widths: dict[str, float] = {}
+            table = ws.tables[table_name]
+            if not isinstance(table, OpenpyxlTable):
+                logger.log(
+                    1,
+                    "Skipping non-table entry %s (%s)",
+                    table_name,
+                    type(table).__name__,
+                )
+                continue
             table = cast("Table", table)
             if not table.ref:
                 logger.error("Missing ref in table %s", table_name)

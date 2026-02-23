@@ -439,12 +439,12 @@ class TablesModel(QAbstractTableModel, QtUseContext):
             table_names: List of table names (from inspector, not user input).
 
         Returns:
-            Dict mapping table name to count. Missing or failed tables are not
-            in the dict (caller should treat as -1). On full query failure
-            returns empty dict.
+            Dict mapping table name to count. Missing or failed tables are set
+            to 0. If the bulk query fails, falls back to per-table counts.
         """
         if not table_names:
             return {}
+        counts_by_table = {name: 0 for name in table_names}
         dialect_name = db.engine.dialect.name
         use_schema = (
             None if dialect_name == "sqlite" else (schema if schema else None)
@@ -460,7 +460,8 @@ class TablesModel(QAbstractTableModel, QtUseContext):
         try:
             result = db.execute(stmt)
             rows = result.all()
-            return {row[0]: int(row[1] or 0) for row in rows}
+            counts_by_table.update({row[0]: int(row[1] or 0) for row in rows})
+            return counts_by_table
         except Exception as e:
             logger.warning(
                 "Count-all query failed for %s: %s",
@@ -477,7 +478,22 @@ class TablesModel(QAbstractTableModel, QtUseContext):
                     rb_e,
                     exc_info=True,
                 )
-            return {}
+
+            # Fall back to counting each table separately so existing tables
+            # still get proper counts while missing ones remain 0.
+            schema_name = schema or ""
+            for table_name in table_names:
+                cnt, _err, is_fatal = self._count_with_connection(
+                    db,
+                    schema_name,
+                    table_name,
+                )
+                if cnt is not None:
+                    counts_by_table[table_name] = int(cnt)
+                if is_fatal:
+                    break
+
+            return counts_by_table
 
     def count_all_tables(
         self,
@@ -516,7 +532,10 @@ class TablesModel(QAbstractTableModel, QtUseContext):
             return {}
 
     def invalidate_counts(self) -> None:
-        """Clear all counts in this model; widget should run sync count after."""
+        """Clear all counts in this model.
+
+        The widget should run sync count after.
+        """
         for r in self._rows:
             r.cnt_src = None
             r.cnt_dst = None
