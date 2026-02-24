@@ -298,9 +298,17 @@ class DbVer:
                     table_name = f"{quoted_schema}.{alembic_version_table}"
                 else:
                     table_name = alembic_version_table
-                result = conn.execute(
-                    text(f"SELECT version_num FROM {table_name}")
-                )
+                try:
+                    result = conn.execute(
+                        text(f"SELECT version_num FROM {table_name}")
+                    )
+                except Exception as exc:
+                    logging.getLogger(__name__).debug(
+                        "Error getting current version of the database: %s.",
+                        exc,
+                        exc_info=True,
+                    )
+                    return None
                 row = result.fetchone()
                 if row is not None and len(row) > 0:
                     return row[0]
