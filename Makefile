@@ -71,9 +71,7 @@ init-d:
 
 # Runs all the tests in the mono-repo.
 test:
-	@for %%d in ($(DIRS)) do ( \
-		echo Running tests in $(CURDIR)\%%d ... && \
-		pushd "$(CURDIR)\%%d" && pytest . && popd)
+	python -m exdrf_dev.pytest_dirs --root "$(CURDIR)" $(DIRS)
 
 
 # Checks the code style in all the packages in the mono-repo.
