@@ -768,7 +768,7 @@ class TransferWidget(QWidget, QtUseContext):
         menu.addAction(act_view)
 
         if is_src:
-            act_transfer = QAction(self.t("tr.transfer", "Transfer"), menu)
+            act_transfer = QAction(self.t("tr.transfer.t", "Transfer"), menu)
             icon: Optional[QIcon]
             try:
                 icon = self.get_icon("layer_aspect_arrow")

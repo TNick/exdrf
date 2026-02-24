@@ -48,7 +48,7 @@ class TranslateCollector(LocalSettings):
                 if isinstance(e, AttributeError) and (
                     "'str' object has no attribute 'get'" in str(e)
                 ):
-                    logger.error("Duplicate root translation string %s", key)
+                    logger.warning("Duplicate root translation string %s", key)
                 else:
                     logger.error(
                         "Failed to save translation string %s: %s",
