@@ -4,9 +4,11 @@ import logging
 from typing import TYPE_CHECKING, Dict, List, Optional
 
 from exdrf_al.connection import DbConn
-from PyQt5.QtCore import QThread, pyqtSignal
+from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import QWidget
 from sqlalchemy import MetaData, Table, inspect
+
+from exdrf_qt.utils.native_threads import PythonThread
 
 if TYPE_CHECKING:
     from sqlalchemy.engine import Engine
@@ -15,7 +17,7 @@ logger = logging.getLogger(__name__)
 VERBOSE = 1
 
 
-class TransferRowsWorker(QThread):
+class TransferRowsWorker(PythonThread):
     """Worker that inserts a list of provided rows into the destination table.
 
     Attributes:

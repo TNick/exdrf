@@ -29,7 +29,7 @@ from exdrf.var_bag import VarBag
 from exdrf_al.tools import count_relationship
 from exdrf_gen.jinja_support import jinja_env, recreate_global_env
 from jinja2 import Environment, Template
-from PyQt5.QtCore import QPoint, Qt, QThread, QTimer, QUrl, pyqtSignal
+from PyQt5.QtCore import QPoint, Qt, QTimer, QUrl, pyqtSignal
 from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtWebEngineWidgets import QWebEnginePage
 from PyQt5.QtWidgets import (
@@ -60,6 +60,7 @@ from exdrf_qt.controls.templ_viewer.templ_viewer_ui import Ui_TemplViewer
 from exdrf_qt.controls.templ_viewer.view_page import (  # noqa: F401
     WebEnginePage,
 )
+from exdrf_qt.utils.native_threads import PythonThread
 from exdrf_qt.utils.tlh import top_level_handler
 
 if TYPE_CHECKING:
@@ -116,7 +117,7 @@ class CountField(ExField):
     type_name: str = FIELD_TYPE_INTEGER
 
 
-class TemplateRenderWorker(QThread):
+class TemplateRenderWorker(PythonThread):
     """Worker thread for rendering templates.
 
     Attributes:

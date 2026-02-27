@@ -14,7 +14,6 @@ from PyQt5.QtCore import (
     QRect,
     QSize,
     Qt,
-    QThread,
     QUrl,
     pyqtSignal,
 )
@@ -45,7 +44,7 @@ from PyQt5.QtWidgets import (
 
 from exdrf_qt.context_use import QtUseContext
 from exdrf_qt.controls.pdf_viewer.image_graphics_view import ImageGraphicsView
-from exdrf_qt.controls.pdf_viewer.pdf_render_worker import PdfRenderWorker
+from exdrf_qt.controls.pdf_viewer.pdf_render_worker import PdfRenderService
 
 try:  # pragma: no cover - optional dependency
     _paddle_module = importlib.import_module("paddleocr")
@@ -100,7 +99,6 @@ class PdfImageViewer(QWidget, QtUseContext):
         _pix_items: List of graphics pixmap items currently displayed.
     """
 
-    requestRender = pyqtSignal(list)
     pageImageReady = pyqtSignal(int)
 
     def __init__(self, ctx: "QtContext", parent: Optional[QWidget] = None):
@@ -131,9 +129,8 @@ class PdfImageViewer(QWidget, QtUseContext):
         self._page_to_path: Dict[int, str] = {}
         self._pix_cache: Dict[int, QPixmap] = {}
 
-        # Worker thread (created on load for PDFs)
-        self._thread: Optional[QThread] = None
-        self._worker: Optional[PdfRenderWorker] = None
+        # Queue-backed renderer (created on load for PDFs)
+        self._worker: Optional[PdfRenderService] = None
 
         # UI
         self._scene = QGraphicsScene(self)
@@ -638,7 +635,7 @@ class PdfImageViewer(QWidget, QtUseContext):
             if index in self._rendered_pages or index in self._queued_pages:
                 continue
             self._queued_pages.add(index)
-            self.requestRender.emit([index])
+            self._worker.submit_pages([index])
 
     def get_cached_pixmap(self, page_number: int) -> Optional[QPixmap]:
         """Return the cached pixmap for the requested 1-based page.
@@ -1045,34 +1042,26 @@ class PdfImageViewer(QWidget, QtUseContext):
         self._stop_worker()
         if self._pdf_path is None or self._temp_dir is None:
             return
-        self._thread = QThread(self)
-        self._thread.setObjectName("PdfRenderWorkerThread")
-        self._worker = PdfRenderWorker(
+        self._worker = PdfRenderService(
             self._pdf_path, self._temp_dir, self._dpi
         )
-        self._worker.moveToThread(self._thread)
-        self._thread.start()
         self._worker.pageRendered.connect(self._on_page_rendered)
         self._worker.renderFinished.connect(self._on_render_finished)
         self._worker.error.connect(self._on_render_error)
-        # Bridge: emit from GUI -> worker slot in its thread
-        self.requestRender.connect(self._worker.render_pages)
 
     def _stop_worker(self):
         """Stop and cleanup the PDF rendering worker thread."""
-        if self._thread is not None:
-            self._thread.quit()
-            self._thread.wait(1500)
-            self._thread = None
+        if self._worker is not None:
+            self._worker.stop(timeout_ms=1500)
             self._worker = None
 
     def _queue_initial_render(self):
         """Queue the initial page rendering for the current view."""
-        if self._worker is None or self._thread is None:
+        if self._worker is None:
             return
         pages = self._build_render_window(self._current_index)
         self._queued_pages.update(pages)
-        self.requestRender.emit(pages)
+        self._worker.submit_pages(pages)
         self._render_and_show_current_group()
 
     def _maybe_queue_lookahead(self, center_index: int):
@@ -1081,7 +1070,7 @@ class PdfImageViewer(QWidget, QtUseContext):
         Args:
             center_index: Center page index for the lookahead window.
         """
-        if self._worker is None or self._thread is None:
+        if self._worker is None:
             return
         pages = self._build_render_window(center_index)
         pages = [
@@ -1092,7 +1081,7 @@ class PdfImageViewer(QWidget, QtUseContext):
         if not pages:
             return
         self._queued_pages.update(pages)
-        self.requestRender.emit(pages)
+        self._worker.submit_pages(pages)
 
     def _build_render_window(self, center: int) -> List[int]:
         """Build a list of page indices to render around a center page.
@@ -1429,7 +1418,8 @@ class PdfImageViewer(QWidget, QtUseContext):
             if idx not in self._rendered_pages:
                 if idx not in self._queued_pages:
                     self._queued_pages.add(idx)
-                    self.requestRender.emit([idx])
+                    if self._worker is not None:
+                        self._worker.submit_pages([idx])
         # Show available items
         self._display_pages(vis)
 

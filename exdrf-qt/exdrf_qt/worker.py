@@ -19,8 +19,10 @@ from uuid import uuid4
 
 import sqlparse
 from attrs import define, field
-from PyQt5.QtCore import QObject, QThread, pyqtSignal
+from PyQt5.QtCore import QObject, pyqtSignal
 from sqlalchemy import Select
+
+from exdrf_qt.utils.native_threads import PythonThread
 
 if TYPE_CHECKING:
     from exdrf_al.connection import DbConn
@@ -507,7 +509,7 @@ class Relay(QObject):
         return work
 
 
-class Worker(QThread):
+class Worker(PythonThread):
     """The worker that reads the data from the database and emits the results
     to the relay object.
 

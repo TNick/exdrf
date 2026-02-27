@@ -4,7 +4,7 @@ from collections import OrderedDict
 from typing import TYPE_CHECKING, List, Optional, Tuple
 
 from exdrf_util.task import Task, TaskState
-from PyQt5.QtCore import QThread, pyqtSignal
+from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import (
     QButtonGroup,
     QDialog,
@@ -17,6 +17,7 @@ from PyQt5.QtWidgets import (
 from exdrf_qt.context_use import QtUseContext
 from exdrf_qt.controls.param_controls import TaskParameterControlsMixin
 from exdrf_qt.controls.task_runner.task_runner_ui import Ui_TaskRunner
+from exdrf_qt.utils.native_threads import PythonThread
 
 if TYPE_CHECKING:
     from exdrf_util.task import TaskParameter
@@ -24,7 +25,7 @@ if TYPE_CHECKING:
     from exdrf_qt.context import QtContext
 
 
-class QThreadVehicle(QThread):
+class QThreadVehicle(PythonThread):
     """A thread that executes a task."""
 
     progressChanged = pyqtSignal(int)

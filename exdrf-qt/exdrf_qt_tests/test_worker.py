@@ -1,3 +1,4 @@
+import logging
 from queue import Queue
 from unittest.mock import MagicMock, patch
 
@@ -30,10 +31,10 @@ def test_relay_push_work_starts_worker(relay):
     mock_statement = MagicMock(spec=select)
     mock_callback = MagicMock()
 
-    work = relay.push_work(statement=mock_statement, callback=mock_callback)
+    work = relay.push_work(mock_statement, callback=mock_callback)
 
     assert work in relay.data.values()
-    assert relay.worker.isRunning()
+    assert any(worker.isRunning() for worker in relay.workers)
 
 
 def test_relay_handle_result_success(relay):
@@ -50,6 +51,7 @@ def test_relay_handle_result_success(relay):
 
 def test_relay_handle_result_missing_work(relay, caplog):
     """Test that handle_result logs a message if work is missing."""
+    caplog.set_level(logging.DEBUG)
     relay.handle_result(999)
 
     assert "Work with ID 999 not found in data" in caplog.text
@@ -64,6 +66,9 @@ def test_worker_run_processes_work(mock_db_conn):
     queue.put(mock_work)
 
     with patch.object(worker, "haveResult") as mock_signal:
+        mock_signal.emit.side_effect = lambda *_args: setattr(
+            worker, "should_stop", True
+        )
         worker.run()
 
     assert mock_work.result == [1, 2, 3]
@@ -82,6 +87,9 @@ def test_worker_run_handles_exception(mock_db_conn, caplog):
     queue.put(mock_work)
 
     with patch.object(worker, "haveResult") as mock_signal:
+        mock_signal.emit.side_effect = lambda *_args: setattr(
+            worker, "should_stop", True
+        )
         worker.run()
 
     assert mock_work.error is not None
@@ -91,8 +99,9 @@ def test_worker_run_handles_exception(mock_db_conn, caplog):
 
 def test_relay_stop_stops_worker(relay):
     """Test that stopping the relay stops the worker thread."""
-    relay.worker.start()
-    assert relay.worker.isRunning()
+    first = relay.workers[0]
+    first.start()
+    assert first.isRunning()
 
     relay.stop()
-    assert not relay.worker.isRunning()
+    assert not first.isRunning()

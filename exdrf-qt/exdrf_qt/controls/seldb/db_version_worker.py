@@ -1,14 +1,15 @@
 import logging
 from typing import List
 
-from PyQt5.QtCore import QThread, pyqtSignal
+from PyQt5.QtCore import pyqtSignal
 
 from exdrf_qt.controls.seldb.manage_model import DatabaseConfig, DbVersionInfo
+from exdrf_qt.utils.native_threads import PythonThread
 
 logger = logging.getLogger(__name__)
 
 
-class DbVersionCheckerWorker(QThread):
+class DbVersionCheckerWorker(PythonThread):
     """Worker thread that checks database versions for all configurations.
 
     This worker goes through each database configuration, attempts to connect,
