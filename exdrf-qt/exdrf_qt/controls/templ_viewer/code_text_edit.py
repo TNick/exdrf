@@ -33,6 +33,7 @@ if TYPE_CHECKING:
     from exdrf_qt.context import QtContext  # noqa: F401
 
 logger = logging.getLogger(__name__)
+VERBOSE = 1
 
 
 class LineNumberArea(QWidget):
@@ -95,7 +96,7 @@ class JinjaHtmlHighlighter(QSyntaxHighlighter):
             self.lexer = get_lexer_by_name("html+jinja")
         except Exception:
             logger.log(
-                1,
+                VERBOSE,
                 "html+jinja lexer not available, using HtmlLexer",
                 exc_info=True,
             )

@@ -421,7 +421,7 @@ class TransferWidget(QWidget, QtUseContext):
                 )
         except Exception as e:
             logger.log(
-                1,
+                VERBOSE,
                 "TransferWidget: failed to schedule restore view state: %s",
                 e,
                 exc_info=True,

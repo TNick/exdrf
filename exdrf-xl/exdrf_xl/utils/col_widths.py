@@ -11,6 +11,7 @@ if TYPE_CHECKING:
     from openpyxl.worksheet.table import Table, TableColumn
 
 logger = logging.getLogger(__name__)
+VERBOSE = 1
 
 
 def read_column_widths_from_existing_file(
@@ -43,7 +44,7 @@ def read_column_widths_from_existing_file(
             table = ws.tables[table_name]
             if not isinstance(table, OpenpyxlTable):
                 logger.log(
-                    1,
+                    VERBOSE,
                     "Skipping non-table entry %s (%s)",
                     table_name,
                     type(table).__name__,

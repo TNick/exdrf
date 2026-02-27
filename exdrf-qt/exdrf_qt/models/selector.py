@@ -26,6 +26,7 @@ if TYPE_CHECKING:
 
 DBM = TypeVar("DBM")
 logger = logging.getLogger(__name__)
+VERBOSE = 1
 
 
 @define(kw_only=True, slots=True)
@@ -292,7 +293,7 @@ class Selector(Generic[DBM]):
                     )
                 elif del_choice == DelChoice.ALL:
                     logger.log(
-                        1,
+                        VERBOSE,
                         "M: %s DelChoice.ALL, so no del filter applied",
                         self.qt_model.name,
                     )
@@ -300,7 +301,7 @@ class Selector(Generic[DBM]):
                     assert False, f"Invalid DelChoice {del_choice}"
             else:
                 logger.log(
-                    1,
+                    VERBOSE,
                     "No soft delete field found for model %s",
                     self.qt_model.name,
                 )

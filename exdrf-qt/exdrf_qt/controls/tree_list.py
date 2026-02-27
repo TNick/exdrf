@@ -69,7 +69,7 @@ class TreeView(QTreeView, Generic[DBM]):
         self.itemSelected.emit(item)
 
         logger.log(
-            1,
+            VERBOSE,
             "TreeView.currentChanged: %s",
             item.db_id if item else None,
         )

@@ -580,7 +580,7 @@ class Worker(QThread):
                 with self.cn.session() as session:
                     work.perform(session)
                 logger.log(
-                    1,
+                    VERBOSE,
                     "\n\nWork with ID %s completed in worker thread, "
                     "%d results from statement: %s\n\n",
                     work.req_id,

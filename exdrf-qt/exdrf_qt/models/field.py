@@ -33,7 +33,7 @@ if TYPE_CHECKING:
 
 DBM = TypeVar("DBM")
 logger = logging.getLogger(__name__)
-
+VERBOSE = 1
 ROLE_MAP = {
     "DisplayRole": Qt.ItemDataRole.DisplayRole,
     "DecorationRole": Qt.ItemDataRole.DecorationRole,
@@ -119,7 +119,7 @@ class QtField(ExField, QtUseContext, Generic[DBM]):
             return True
         except Exception:
             logger.log(
-                1,
+                VERBOSE,
                 "Failed to determine PK editability for %s.%s",
                 getattr(self.resource, "name", "?"),
                 self.name,

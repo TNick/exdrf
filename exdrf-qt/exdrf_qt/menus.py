@@ -243,7 +243,7 @@ class NewMenus(QtUseContext):
             if isinstance(def_item, ActionDef)
         ]
         logger.log(
-            1,
+            VERBOSE,
             "%d menu definitions, %d action definitions",
             len(menu_defs),
             len(action_defs),

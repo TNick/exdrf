@@ -35,7 +35,9 @@ if TYPE_CHECKING:
     from exdrf.field_types.str_field import StrField
     from exdrf.resource import ExResource
     from jinja2 import Environment
+
 logger = logging.getLogger(__name__)
+VERBOSE = 1
 
 
 def get_field_value(value) -> str:
@@ -421,7 +423,7 @@ def generate_qt_from_alchemy(
         field: "ExField", fld_attrs: Dict[str, Any], fld_base_class: str
     ) -> Generator[Tuple[str, str, Any], None, None]:
         logger.log(
-            1,
+            VERBOSE,
             "Getting changed parts for field %s in resource %s",
             field.name,
             field.resource.name,

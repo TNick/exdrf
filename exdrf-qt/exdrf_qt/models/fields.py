@@ -73,6 +73,7 @@ if TYPE_CHECKING:
     from exdrf_qt.models.selector import Selector
 
 logger = logging.getLogger(__name__)
+VERBOSE = 1
 
 
 def _resolve_ref_item(session: "Session", model_cls: Any, value: Any) -> Any:
@@ -1090,7 +1091,7 @@ class QtRefManyToOneField(RefManyToOneField, RefFilterByPart, QtField[DBM]):
         """Compute sorting using the underlying foreign key column."""
         if self.fk_from is None:
             logger.log(
-                1,
+                VERBOSE,
                 "No fk_from for %s.%s; skipping sorting.",
                 self.resource.name,
                 self.name,
@@ -1205,7 +1206,7 @@ class QtRefOneToManyField(RefOneToManyField, RefFilterByPart, QtField[DBM]):
     def apply_sorting(self, ascending: bool) -> Any:
         """Skip sorting for collection relationships."""
         logger.log(
-            1,
+            VERBOSE,
             "Skipping sorting for collection field %s.%s",
             self.resource.name,
             self.name,
@@ -1338,7 +1339,7 @@ class QtRefOneToOneField(RefOneToOneField, RefFilterByPart, QtField[DBM]):
         """Compute sorting using the underlying foreign key column."""
         if self.fk_from is None:
             logger.log(
-                1,
+                VERBOSE,
                 "No fk_from for %s.%s; skipping sorting.",
                 self.resource.name,
                 self.name,
@@ -1449,7 +1450,7 @@ class QtRefManyToManyField(RefManyToManyField, RefFilterByPart, QtField[DBM]):
     def apply_sorting(self, ascending: bool) -> Any:
         """Skip sorting for collection relationships."""
         logger.log(
-            1,
+            VERBOSE,
             "Skipping sorting for collection field %s.%s",
             self.resource.name,
             self.name,

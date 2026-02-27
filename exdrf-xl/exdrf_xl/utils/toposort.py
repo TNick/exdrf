@@ -1,6 +1,7 @@
 import logging
 
 logger = logging.getLogger(__name__)
+VERBOSE = 1
 
 
 def toposort_tables(
@@ -63,7 +64,7 @@ def toposort_tables(
     if remaining:
         cyclic = sorted(list(remaining), key=sort_key)
         logger.log(
-            1,
+            VERBOSE,
             (
                 "FK topo-sort found cyclic or unresolved dependencies; falling "
                 "back to original order for: %r"

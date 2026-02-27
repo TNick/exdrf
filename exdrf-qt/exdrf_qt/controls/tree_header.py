@@ -108,7 +108,7 @@ class ListDbHeader(QHeaderView, QtUseContext, Generic[DBM]):
         self, logical_index: int, old_visual_index: int, new_visual_index: int
     ):
         logger.log(
-            1,
+            VERBOSE,
             "sectionMoved: %s, %s, %s",
             logical_index,
             old_visual_index,
@@ -125,7 +125,11 @@ class ListDbHeader(QHeaderView, QtUseContext, Generic[DBM]):
         self, logical_index: int, old_size: int, new_size: int
     ):
         logger.log(
-            1, "sectionResized: %s, %s, %s", logical_index, old_size, new_size
+            VERBOSE,
+            "sectionResized: %s, %s, %s",
+            logical_index,
+            old_size,
+            new_size,
         )
         if new_size < 1:
             return

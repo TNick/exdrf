@@ -362,7 +362,7 @@ class WebEnginePage(QWebEnginePage, QtUseContext):
 
         url_str = url.toString()
         logger.log(
-            1,
+            VERBOSE,
             "acceptNavigationRequest url=%s scheme=%s host=%s main=%s",
             url_str,
             scheme,

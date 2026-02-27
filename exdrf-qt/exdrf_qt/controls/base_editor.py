@@ -109,7 +109,7 @@ class ExdrfEditorBase(QWidget, QtUseContext):
             self.install_editor(w)
 
         logger.log(
-            1,
+            VERBOSE,
             "ExdrfEditorBase has been initialized with %d fields",
             len(self.edit_fields),
         )
@@ -138,7 +138,7 @@ class ExdrfEditorBase(QWidget, QtUseContext):
             fld_editor: The field editor to install.
         """
         logger.log(
-            1,
+            VERBOSE,
             "install_editor %s (id %s)",
             fld_editor.name,
             id(fld_editor),
@@ -169,7 +169,7 @@ class ExdrfEditorBase(QWidget, QtUseContext):
         fld_editor.set_form(self)
 
         logger.log(
-            1,
+            VERBOSE,
             "install_editor done for %s",
             fld_editor.name,
         )
@@ -227,7 +227,7 @@ class ExdrfEditorBase(QWidget, QtUseContext):
         for ed in self.edit_fields:
             if not ed.is_valid():
                 valid = False
-                logger.log(10, "Field %s is not valid", ed.name)
+                logger.log(VERBOSE, "Field %s is not valid", ed.name)
 
         logger.log(
             VERBOSE,
@@ -307,7 +307,7 @@ class ExdrfEditorBase(QWidget, QtUseContext):
         """
         if not self.is_editing:
             logger.log(
-                1,
+                VERBOSE,
                 "validate_cancel: not editing",
             )
             return True
@@ -407,7 +407,7 @@ class ExdrfEditor(ExdrfEditorBase, Generic[DBM]):
         parent_form: Optional["ExdrfEditor"] = None,
     ):
         logger.log(
-            1,
+            VERBOSE,
             "Creating an ExdrfEditor for %s(id=%s)",
             db_model.__name__,
             record_id,

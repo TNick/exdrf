@@ -410,7 +410,7 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
         # Prevent clearing if not in edit mode.
         if not self._in_editing:
             logger.log(
-                1,
+                VERBOSE,
                 "%s.set_to_null(): not in editing mode",
                 self.__class__.__name__,
             )
@@ -443,7 +443,7 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
         # Prevent changes if the field is read-only.
         if self._read_only:
             logger.log(
-                1,
+                VERBOSE,
                 "%s.change_field_value(): read only",
                 self.__class__.__name__,
             )
@@ -452,7 +452,7 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
         # Handle None values by clearing the field.
         if new_value is None:
             logger.log(
-                1,
+                VERBOSE,
                 "%s.change_field_value(): None",
                 self.__class__.__name__,
             )
@@ -491,7 +491,7 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
             record = self.qt_model.cache[row]
             if record.loaded:
                 logger.log(
-                    1,
+                    VERBOSE,
                     "%s.change_field_value(): " "record found in cache:",
                     self.__class__.__name__,
                 )
@@ -501,7 +501,7 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
         with self.qt_model.get_one_db_item_by_id(record_id) as db_item:
             if db_item is None:
                 logger.log(
-                    1,
+                    VERBOSE,
                     "%s.change_field_value(): "
                     "record not found: %s; setting to null",
                     self.__class__.__name__,
@@ -511,7 +511,7 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
                 return ""
             record = self.qt_model.db_item_to_record(db_item)
             logger.log(
-                1,
+                VERBOSE,
                 "%s.change_field_value(): " "record loaded from database:",
                 self.__class__.__name__,
             )
@@ -620,7 +620,7 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
             if not self._qt_model.partially_initialized:
                 if self._qt_model.total_count == 0:
                     logger.log(
-                        1,
+                        VERBOSE,
                         "Model is initialized and total count is 0, "
                         "nothing to check",
                     )
@@ -805,11 +805,14 @@ class DrfSelOneEditor(DrfSelBase[DBM_O]):
             if row is not None:
                 index = self.qt_model.index(row, 0)
                 logger.log(
-                    1, "Found index %s for value %s", index, self.field_value
+                    VERBOSE,
+                    "Found index %s for value %s",
+                    index,
+                    self.field_value,
                 )
             else:
                 logger.log(
-                    1,
+                    VERBOSE,
                     "No row found for value %s",
                     self.field_value,
                 )
@@ -821,7 +824,10 @@ class DrfSelOneEditor(DrfSelBase[DBM_O]):
     def on_item_selected(self, item: "QtRecord"):
         # Handle selection of a record from the popup.
         logger.log(
-            1, "%s.on_item_selected(%s)", self.__class__.__name__, item.db_id
+            VERBOSE,
+            "%s.on_item_selected(%s)",
+            self.__class__.__name__,
+            item.db_id,
         )
 
         # Update the line edit with the selected record's display text.
@@ -854,14 +860,14 @@ class DrfSelOneEditor(DrfSelBase[DBM_O]):
         # Convert database record objects to their IDs.
         if hasattr(new_value, "metadata"):
             logger.log(
-                1,
+                VERBOSE,
                 "%s.change_field_value(): database record",
                 self.__class__.__name__,
             )
             new_value = self.qt_model.get_db_item_id(new_value)  # type: ignore
 
         logger.log(
-            1,
+            VERBOSE,
             "%s.change_field_value() to %s (%s)",
             self.__class__.__name__,
             new_value,
@@ -871,7 +877,7 @@ class DrfSelOneEditor(DrfSelBase[DBM_O]):
         # Skip update if the value hasn't changed.
         if new_value == self.field_value:
             logger.log(
-                1,
+                VERBOSE,
                 "%s.change_field_value(): same value: %s",
                 self.__class__.__name__,
                 new_value,

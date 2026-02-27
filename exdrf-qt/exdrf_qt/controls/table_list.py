@@ -774,8 +774,8 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
                         "WARNING!\n"
                         "\n"
                         "This database table does not support soft-delete.\n"
-                        "All {count} items will be permanently deleted, with no \n"
-                        "way of recovering them.\n"
+                        "All {count} items will be permanently deleted, \n"
+                        "with no way of recovering them.\n"
                         "\n"
                         "Are REALLY REALLY sure you want to continue?",
                         count=self.qt_model.total_count,

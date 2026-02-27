@@ -56,6 +56,7 @@ if TYPE_CHECKING:
     from exdrf_al.base import Base
 
 logger = logging.getLogger(__name__)
+VERBOSE = 1
 
 
 def res_by_table_name(dataset: "ExDataset", table_name: str) -> "ExResource":
@@ -267,7 +268,7 @@ def field_from_sql_hybrid(
         return_type = hints.get("return")
     except Exception as e:
         logger.log(
-            1,
+            VERBOSE,
             "No return type for hybrid %s.%s: %s",
             resource.name,
             name,

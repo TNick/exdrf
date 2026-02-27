@@ -41,6 +41,7 @@ from PyQt5.QtWidgets import (
 )
 
 logger = logging.getLogger(__name__)
+VERBOSE = 1
 
 
 class _ListEditDialog(QDialog):
@@ -583,7 +584,7 @@ class VarItemDelegate(QStyledItemDelegate):
                 self.closeEditor.emit(editor)  # type: ignore[arg-type]
             except Exception:
                 logger.log(
-                    1,
+                    VERBOSE,
                     "Error emitting closeEditor for list editor",
                     exc_info=True,
                 )

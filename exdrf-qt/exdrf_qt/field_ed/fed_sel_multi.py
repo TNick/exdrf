@@ -101,7 +101,7 @@ class DrfSelMultiEditor(DrfSelBase[DBM_M]):
                 selection.select(index, index)
             else:
                 logger.log(
-                    1,
+                    VERBOSE,
                     "No row found for value %s",
                     crt_id,
                 )
@@ -119,7 +119,10 @@ class DrfSelMultiEditor(DrfSelBase[DBM_M]):
     def on_items_selected(self, items: List["QtRecord"]):
         # Handle selection of a record from the popup.
         logger.log(
-            1, "%s.on_item_selected(%s)", self.__class__.__name__, len(items)
+            VERBOSE,
+            "%s.on_item_selected(%s)",
+            self.__class__.__name__,
+            len(items),
         )
         self._sel_field_value([i.db_id for i in items], False)
 
@@ -143,7 +146,7 @@ class DrfSelMultiEditor(DrfSelBase[DBM_M]):
         for itr in new_value:
             if hasattr(itr, "metadata"):
                 logger.log(
-                    1,
+                    VERBOSE,
                     "%s.change_field_value(): database record",
                     self.__class__.__name__,
                 )
@@ -235,7 +238,7 @@ class DrfSelMultiEditor(DrfSelBase[DBM_M]):
         # Prevent clearing if not in edit mode.
         if not self._in_editing:
             logger.log(
-                1,
+                VERBOSE,
                 "%s.set_to_null(): not in editing mode",
                 self.__class__.__name__,
             )

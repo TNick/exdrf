@@ -42,6 +42,7 @@ if TYPE_CHECKING:
     from exdrf_qt.context import QtContext
 
 logger = logging.getLogger(__name__)
+VERBOSE = 1
 
 
 def _format_duration_s(val: Any) -> str:
@@ -211,7 +212,7 @@ class WorkerListModel(QAbstractListModel):
                 return (int(wid), str(wid))
             except Exception as e:
                 logger.log(
-                    1,
+                    VERBOSE,
                     "Non-integer worker id %s: %s",
                     wid,
                     e,
@@ -697,7 +698,7 @@ class ExamineThreadsWidget(QWidget, QtUseContext):
             self._timer.stop()
         except Exception as e:
             logger.log(
-                1,
+                VERBOSE,
                 "Failed to stop ExamineThreadsWidget timer: %s",
                 e,
                 exc_info=True,
@@ -991,7 +992,7 @@ class ExamineThreadsWidget(QWidget, QtUseContext):
             return int(val)
         except Exception as e:
             logger.log(
-                1,
+                VERBOSE,
                 "Invalid results_count %s for req_id %s: %s",
                 val,
                 req_id,
@@ -1039,7 +1040,7 @@ class ExamineThreadsWidget(QWidget, QtUseContext):
         if act == act_copy_sql:
             if not pretty_sql:
                 logger.log(
-                    1,
+                    VERBOSE,
                     "No formatted SQL for req_id=%s, copying empty string",
                     req_id,
                 )

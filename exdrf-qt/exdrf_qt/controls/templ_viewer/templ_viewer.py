@@ -1329,7 +1329,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
                 self._queue_set_html(html)
             elif self._current_template is not None:
                 logger.log(
-                    1, "Rendering template %s...", self._current_template
+                    VERBOSE, "Rendering template %s...", self._current_template
                 )
                 # Render in a separate thread
                 self._render_template_async(**kwargs)
@@ -1409,7 +1409,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
         """Handle successful template rendering."""
         if job_id != self._active_render_job_id:
             logger.log(
-                1,
+                VERBOSE,
                 "Ignoring rendered HTML for stale job_id=%d (active=%d)",
                 job_id,
                 self._active_render_job_id,
@@ -1441,7 +1441,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
         """Handle template rendering error."""
         if job_id != self._active_render_job_id:
             logger.log(
-                1,
+                VERBOSE,
                 "Ignoring render error for stale job_id=%d (active=%d): %s",
                 job_id,
                 self._active_render_job_id,
