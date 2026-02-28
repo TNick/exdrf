@@ -23,20 +23,44 @@ from exdrf_qt.comparator.logic.nodes import (
     Value,
 )
 from exdrf_qt.comparator.models.tree import ComparatorTreeModel
+from exdrf_qt.comparator.widgets.merge_delegate import ComparatorMergeDelegate
 
 logger = logging.getLogger(__name__)
 
 
 class ComparatorTreeView(QTreeView):
-    """A tree view bound to a `ComparatorTreeModel`."""
+    """A tree view bound to a `ComparatorTreeModel`.
+
+    When merge_enabled is True, two extra columns (Method, Result) are shown
+    and a merge delegate is installed for editing. Use get_merged_payload() to
+    retrieve the current merge decisions.
+    """
 
     def __init__(
-        self, manager: ComparatorManager, parent: Optional[QWidget] = None
+        self,
+        manager: ComparatorManager,
+        parent: Optional[QWidget] = None,
+        *,
+        merge_enabled: bool = False,
     ) -> None:
         super().__init__(parent)
         self._manager = manager
-        self._model = ComparatorTreeModel(manager=self._manager, parent=self)
+        self._merge_enabled = merge_enabled
+        self._model = ComparatorTreeModel(
+            manager=self._manager,
+            parent=self,
+            merge_enabled=merge_enabled,
+        )
         self.setModel(self._model)
+
+        if merge_enabled:
+            merge_delegate = ComparatorMergeDelegate(self)
+            self.setItemDelegateForColumn(
+                self._model._method_column(), merge_delegate
+            )
+            self.setItemDelegateForColumn(
+                self._model._result_column(), merge_delegate
+            )
 
         # Cosmetic defaults.
         self.setUniformRowHeights(True)
@@ -66,6 +90,17 @@ class ComparatorTreeView(QTreeView):
         for c in range(self._model.columnCount()):
             self.resizeColumnToContents(c)
         self.expand_diff_branches()
+
+    def get_merged_payload(self) -> Dict[str, Any]:
+        """Return merge result for all leaves (dotted key path -> value).
+
+        Only meaningful when merge_enabled; otherwise returns manager default
+        resolution (e.g. first not null) for all leaves.
+
+        Returns:
+            Dict mapping dotted key path to resolved value.
+        """
+        return self._manager.get_merged_payload()
 
     # Expansion helpers
     # --------------------------------------------------------------------- #

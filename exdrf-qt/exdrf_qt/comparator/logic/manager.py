@@ -1,24 +1,36 @@
-from typing import TYPE_CHECKING, Dict, List, cast
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, cast
 
 from attrs import define, field
 
 from exdrf_qt.comparator.logic.adapter import ComparatorAdapter
 
 if TYPE_CHECKING:
-    from exdrf_qt.comparator.logic.nodes import BaseNode, ParentNode
+    from exdrf_qt.comparator.logic.merge import (
+        MergeContext,
+        MergeMethodOption,
+        MergeStrategy,
+    )
+    from exdrf_qt.comparator.logic.nodes import BaseNode, LeafNode, ParentNode
 
 
 @define(eq=False)
 class ComparatorManager:
     """Manages the comparison between two or more items.
 
+    When merge mode is enabled, merge_strategy and adapter hooks control
+    method labels, available methods, and value resolution.
+
     Attributes:
         sources: List of sources that will be queried for comparison.
+        root: Unified root node after compare().
+        data: Per-source roots from get_compare_data().
+        merge_strategy: Optional merge strategy; None uses default behavior.
     """
 
     sources: List["ComparatorAdapter"] = field(factory=list)
     root: "ParentNode" = field(default=None, repr=False)
     data: List["BaseNode"] = field(factory=list)
+    merge_strategy: Optional["MergeStrategy"] = field(default=None)
 
     def __attrs_post_init__(self) -> None:
         """Post-initialization hook."""
@@ -195,3 +207,115 @@ class ComparatorManager:
                         }
                     )
                 destination.add_child(new_node)
+
+    # Merge mode helpers (no-op if merge not used).
+    # -------------------------------------------------------------------------
+
+    def _get_strategy(self) -> "MergeStrategy":
+        """Return the effective merge strategy (never None)."""
+        from exdrf_qt.comparator.logic.merge import DefaultMergeStrategy
+
+        if self.merge_strategy is not None:
+            return self.merge_strategy
+        return DefaultMergeStrategy()
+
+    def get_merge_context(self, leaf: "LeafNode") -> "MergeContext":
+        """Build merge context for a leaf (values and source labels).
+
+        Args:
+            leaf: The leaf node.
+
+        Returns:
+            MergeContext with values and source_labels (from adapters or
+            strategy).
+        """
+        from exdrf_qt.comparator.logic.merge import MergeContext
+
+        strategy = self._get_strategy()
+        num_sources = len(self.sources)
+        source_labels = []
+        for i in range(num_sources):
+            label = None
+            if i < len(self.sources):
+                adapter = self.sources[i]
+                label = adapter.get_merge_item_label(self, i)
+            if label is None:
+                ctx = MergeContext(leaf=leaf, manager=self, values=leaf.values)
+                labels = strategy.get_item_labels(ctx, num_sources)
+                label = labels[i] if i < len(labels) else "Item %d" % (i + 1)
+            source_labels.append(label)
+        return MergeContext(
+            leaf=leaf,
+            manager=self,
+            values=list(leaf.values),
+            source_labels=source_labels,
+        )
+
+    def get_available_merge_methods(
+        self, leaf: "LeafNode"
+    ) -> List["MergeMethodOption"]:
+        """Return merge methods for this leaf (adapter override or strategy).
+
+        Args:
+            leaf: The leaf node.
+
+        Returns:
+            List of method options.
+        """
+        for adapter in self.sources:
+            opts = adapter.get_available_merge_methods_for_leaf(self, leaf)
+            if opts is not None:
+                return opts
+        context = self.get_merge_context(leaf)
+        return self._get_strategy().get_available_methods(context)
+
+    def resolve_merge_value(self, leaf: "LeafNode") -> Any:
+        """Resolve the merged value for a leaf from its merge state.
+
+        Args:
+            leaf: The leaf node (merge_state set when merge mode used).
+
+        Returns:
+            Resolved value (may be None).
+        """
+        from exdrf_qt.comparator.logic.merge import LeafMergeState
+
+        state = getattr(leaf, "merge_state", None)
+        if state is None:
+            state = LeafMergeState()
+        context = self.get_merge_context(leaf)
+        resolved = self._get_strategy().resolve_value(context, state)
+        if getattr(leaf, "merge_state", None) is not None:
+            leaf.merge_state.resolved_value = resolved
+        return resolved
+
+    def get_merged_payload(self) -> Dict[str, Any]:
+        """Walk all leaves and return flat key-path -> resolved value map.
+
+        Keys are dotted paths from root (e.g. "grp.nested_equal"). Only leaf
+        nodes are included. Merge state is initialized on leaves by the tree
+        model in merge mode.
+
+        Returns:
+            Dict mapping dotted key path to resolved value.
+        """
+        from exdrf_qt.comparator.logic.nodes import LeafNode, ParentNode
+
+        result: Dict[str, Any] = {}
+
+        def walk(node: "BaseNode", path_prefix: List[str]) -> None:
+            if isinstance(node, LeafNode):
+                key_path = ".".join(path_prefix) if path_prefix else node.key
+                result[key_path] = self.resolve_merge_value(node)
+            elif isinstance(node, ParentNode):
+                for child in node.children:
+                    child_path = (
+                        path_prefix + [child.key] if child.key else path_prefix
+                    )
+                    walk(child, child_path)
+
+        if self.root is not None:
+            for child in self.root.children:
+                walk(child, [child.key] if child.key else [])
+
+        return result

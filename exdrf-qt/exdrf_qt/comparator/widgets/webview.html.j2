@@ -120,6 +120,9 @@
       {% for name in source_names %}
       <div>Source {{ loop.index }}: {{ name }}</div>
       {% endfor %}
+      {% if merge_enabled %}
+      <div><strong>Result</strong></div>
+      {% endif %}
     </div>
   </header>
 
@@ -133,12 +136,19 @@
                 <span class="name">{{ node.label }}</span>
               </td>
               {% for cell in node.cells %}
-              <td class="cell" style="width: {{ (100 - 20) / num_sources }}%;">
+              <td class="cell" style="width: {{ (100 - 20) / (num_sources + (1 if merge_enabled else 0)) }}%;">
                 <div>
                   <span class="val">{{ cell.html | safe }}</span>
                 </div>
               </td>
               {% endfor %}
+              {% if merge_enabled %}
+              <td class="cell result-cell" style="width: {{ (100 - 20) / (num_sources + 1) }}%;">
+                <div>
+                  <span class="val">{{ node.merge_result_html | safe }}</span>
+                </div>
+              </td>
+              {% endif %}
             </tr>
           </tbody>
         </table>

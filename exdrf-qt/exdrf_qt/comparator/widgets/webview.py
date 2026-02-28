@@ -40,6 +40,8 @@ class ComparatorWebView(TemplViewer, QtUseContext):
         ctx: "QtContext",
         manager: ComparatorManager,
         parent=None,
+        *,
+        merge_enabled: bool = False,
     ) -> None:
         """Initialize the comparator web view.
 
@@ -47,9 +49,12 @@ class ComparatorWebView(TemplViewer, QtUseContext):
             ctx: The Qt context for translations and icons.
             manager: The comparator manager with sources and comparison data.
             parent: Optional parent widget.
+            merge_enabled: When True, one extra Result column is shown with
+                the resolved merge value per leaf.
         """
-        # Store manager reference.
+        # Store manager reference and merge mode.
         self.manager = manager
+        self._merge_enabled = merge_enabled
 
         # Ensure comparison data is ready.
         if not self.manager.data:
@@ -107,6 +112,7 @@ class ComparatorWebView(TemplViewer, QtUseContext):
             "source_names": source_names,
             "num_sources": len(source_names),
             "tree": tree_data,
+            "merge_enabled": self._merge_enabled,
         }
 
     def _convert_tree_to_dict(
@@ -127,15 +133,20 @@ class ComparatorWebView(TemplViewer, QtUseContext):
             if isinstance(child, LeafNode):
                 # Leaf node: extract values for each source.
                 cell_data = self._extract_leaf_values(child)
-                children_data.append(
-                    {
-                        "type": "leaf",
-                        "key": child.key,
-                        "label": child.label,
-                        "cells": cell_data,
-                        "status": self._get_leaf_status(child),
-                    }
-                )
+                leaf_dict: Dict[str, Any] = {
+                    "type": "leaf",
+                    "key": child.key,
+                    "label": child.label,
+                    "cells": cell_data,
+                    "status": self._get_leaf_status(child),
+                }
+                if self._merge_enabled:
+                    resolved = self.manager.resolve_merge_value(child)
+                    leaf_dict["merge_result"] = resolved
+                    leaf_dict["merge_result_html"] = LeafNode._html_escape(
+                        self._to_str(resolved)
+                    )
+                children_data.append(leaf_dict)
             elif isinstance(child, ParentNode):
                 # Parent node: recurse.
                 children_data.append(

@@ -7,6 +7,11 @@ from PyQt5.QtCore import QAbstractItemModel, QModelIndex, Qt
 from PyQt5.QtGui import QBrush, QColor
 
 from exdrf_qt.comparator.logic.manager import ComparatorManager
+from exdrf_qt.comparator.logic.merge import (
+    MERGE_METHOD_FIRST_NOT_NULL,
+    MERGE_METHOD_MANUAL,
+    LeafMergeState,
+)
 from exdrf_qt.comparator.logic.nodes import (
     BaseNode,
     LeafNode,
@@ -24,7 +29,14 @@ HORIZONTAL = int(getattr(Qt, "Horizontal", 1))
 NO_ITEM_FLAGS = int(getattr(Qt, "NoItemFlags", 0))
 ITEM_IS_ENABLED = int(getattr(Qt, "ItemIsEnabled", 1))
 ITEM_IS_SELECTABLE = int(getattr(Qt, "ItemIsSelectable", 1 << 1))
+ITEM_IS_EDITABLE = int(getattr(Qt, "ItemIsEditable", 1 << 2))
 HTML_ROLE = int(getattr(Qt, "UserRole", 0)) + 1
+# Merge column roles (for delegate and display).
+MERGE_METHOD_ROLE = int(getattr(Qt, "UserRole", 0)) + 2
+MERGE_RESULT_ROLE = int(getattr(Qt, "UserRole", 0)) + 3
+MERGE_OPTIONS_ROLE = int(getattr(Qt, "UserRole", 0)) + 4
+MERGE_STATE_ROLE = int(getattr(Qt, "UserRole", 0)) + 5
+MERGE_CONTEXT_ROLE = int(getattr(Qt, "UserRole", 0)) + 6
 
 
 class ComparatorTreeModel(QAbstractItemModel):
@@ -32,27 +44,50 @@ class ComparatorTreeModel(QAbstractItemModel):
 
     The model merges the per-source trees provided by the manager into a single
     combined tree keyed by each node's `key` (falling back to the `label`
-    when the key is empty). The model shows 1 + N columns, where the first
-    column contains the node label and the next N columns contain values for
-    each source (only leaf nodes have values; non-leaf nodes show empty cells).
+    when the key is empty). The model shows 1 + N columns (or 1 + N + 2 when
+    merge_enabled: Method and Result). Only leaf nodes have values and merge
+    cells.
 
     Attributes:
         manager: The comparator manager providing the sources and data.
         root: The combined root node used by the model.
         num_sources: Number of sources provided by the manager.
+        merge_enabled: When True, two extra columns (Method, Result) are shown
+            and leaves are editable for merge.
     """
 
     def __init__(
-        self, manager: ComparatorManager, parent: Optional[Any] = None
+        self,
+        manager: ComparatorManager,
+        parent: Optional[Any] = None,
+        *,
+        merge_enabled: bool = False,
     ) -> None:
         super().__init__(parent)
 
         # Store manager and number of sources.
         self.manager: ComparatorManager = manager
         self.num_sources: int = len(self.manager.sources)
+        self.merge_enabled: bool = merge_enabled
 
         # Use unified tree already built into manager.root by compare().
         self.root: ParentNode = self.manager.root
+
+    def _method_column(self) -> int:
+        """Column index for merge method when merge_enabled."""
+        return 1 + self.num_sources
+
+    def _result_column(self) -> int:
+        """Column index for merge result when merge_enabled."""
+        return 2 + self.num_sources
+
+    def _ensure_merge_state(self, node: LeafNode) -> LeafMergeState:
+        """Ensure leaf has merge_state; create with default if None."""
+        if node.merge_state is None:
+            node.merge_state = LeafMergeState(
+                selected_method=MERGE_METHOD_FIRST_NOT_NULL
+            )
+        return node.merge_state
 
     # Qt model interface
     # --------------------------------------------------------------------- #
@@ -99,8 +134,11 @@ class ComparatorTreeModel(QAbstractItemModel):
         return node.child_count
 
     def columnCount(self, parent: QModelIndex = QModelIndex()) -> int:
-        # One label column + one column per source.
-        return 1 + self.num_sources
+        # One label column + one per source + optionally Method and Result.
+        base = 1 + self.num_sources
+        if self.merge_enabled:
+            base += 2
+        return base
 
     def data(self, index: QModelIndex, role: int = DISPLAY_ROLE) -> Any:
         if not index.isValid():
@@ -163,6 +201,36 @@ class ComparatorTreeModel(QAbstractItemModel):
                     return right_html
             return None
 
+        # Merge column roles (for delegate).
+        if self.merge_enabled and isinstance(node, LeafNode):
+            state = self._ensure_merge_state(node)
+            if column == self._method_column():
+                if role == MERGE_METHOD_ROLE:
+                    return state.selected_method
+                if role == MERGE_OPTIONS_ROLE:
+                    return self.manager.get_available_merge_methods(node)
+                if role == MERGE_STATE_ROLE:
+                    return state
+                if role == MERGE_CONTEXT_ROLE:
+                    return self.manager.get_merge_context(node)
+                if role in (DISPLAY_ROLE, EDIT_ROLE):
+                    opts = self.manager.get_available_merge_methods(node)
+                    for opt in opts:
+                        if opt.id == state.selected_method:
+                            return opt.label
+                    return state.selected_method
+            if column == self._result_column():
+                if role == MERGE_RESULT_ROLE:
+                    return self.manager.resolve_merge_value(node)
+                if role == MERGE_STATE_ROLE:
+                    return state
+                if role == MERGE_CONTEXT_ROLE:
+                    return self.manager.get_merge_context(node)
+                if role in (DISPLAY_ROLE, EDIT_ROLE):
+                    val = self.manager.resolve_merge_value(node)
+                    return "" if val is None else str(val)
+                return None
+
         if role not in (DISPLAY_ROLE, EDIT_ROLE):
             return None
 
@@ -190,6 +258,10 @@ class ComparatorTreeModel(QAbstractItemModel):
             return None
         if section == 0:
             return "Field"
+        if self.merge_enabled and section == self._method_column():
+            return "Method"
+        if self.merge_enabled and section == self._result_column():
+            return "Result"
         src_idx = section - 1
         if 0 <= src_idx < self.num_sources:
             adapter = self.manager.sources[src_idx]
@@ -199,7 +271,54 @@ class ComparatorTreeModel(QAbstractItemModel):
         return ""
 
     def flags(self, index: QModelIndex) -> Qt.ItemFlags:
-        return QAbstractItemModel.flags(self, index)
+        base = QAbstractItemModel.flags(self, index)
+        if not self.merge_enabled or not index.isValid():
+            return base
+        node = self._node_from_index(index)
+        if not isinstance(node, LeafNode):
+            return base
+        col = index.column()
+        if col == self._method_column() or col == self._result_column():
+            return base | Qt.ItemFlags(ITEM_IS_EDITABLE)
+        return base
+
+    def setData(
+        self,
+        index: QModelIndex,
+        value: Any,
+        role: int = EDIT_ROLE,
+    ) -> bool:
+        if not index.isValid() or role != EDIT_ROLE:
+            return False
+        if not self.merge_enabled:
+            return False
+        node = self._node_from_index(index)
+        if not isinstance(node, LeafNode):
+            return False
+        state = self._ensure_merge_state(node)
+        col = index.column()
+        if col == self._method_column():
+            if not isinstance(value, str):
+                return False
+            state.selected_method = value
+            state.resolved_value = None
+            self.dataChanged.emit(index, index, [role])
+            result_idx = self.index(
+                index.row(), self._result_column(), index.parent()
+            )
+            self.dataChanged.emit(result_idx, result_idx, [role])
+            return True
+        if col == self._result_column():
+            state.manual_value = value
+            state.selected_method = MERGE_METHOD_MANUAL
+            state.resolved_value = value
+            self.dataChanged.emit(index, index, [role])
+            method_idx = self.index(
+                index.row(), self._method_column(), index.parent()
+            )
+            self.dataChanged.emit(method_idx, method_idx, [role])
+            return True
+        return False
 
     # Internal helpers
     # --------------------------------------------------------------------- #

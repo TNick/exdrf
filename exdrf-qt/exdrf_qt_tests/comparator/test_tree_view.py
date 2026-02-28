@@ -51,3 +51,16 @@ def test_expand_and_copy_yaml(manager_factory, qt_app: QApplication):
     assert "label: Group" in text_sel
     # Root-only fields should not appear in the group-only export
     assert "label: Partial Field" not in text_sel
+
+
+def test_merge_mode_columns_and_payload(manager_factory, qt_app):
+    """With merge_enabled, view has Method/Result columns and payload works."""
+    mgr = manager_factory()
+    view = ComparatorTreeView(manager=mgr, merge_enabled=True)
+    model = view.model()
+
+    assert model.columnCount() == 1 + len(mgr.sources) + 2
+    payload = view.get_merged_payload()
+    assert isinstance(payload, dict)
+    assert "k_equal" in payload
+    assert payload["k_equal"] == "SAME"

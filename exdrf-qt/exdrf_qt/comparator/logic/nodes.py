@@ -5,6 +5,8 @@ from typing import TYPE_CHECKING, Any, List, Optional
 
 from attrs import define, field
 
+from exdrf_qt.comparator.logic.merge import LeafMergeState
+
 if TYPE_CHECKING:
     from exdrf_qt.comparator.logic.adapter import ComparatorAdapter
     from exdrf_qt.comparator.logic.manager import ComparatorManager
@@ -116,16 +118,23 @@ class Value:
     source: "ComparatorAdapter"
 
 
-@define
+@define(eq=False)
 class LeafNode(BaseNode):
     """Represents a node that has its own value.
 
+    When merge mode is enabled, merge_state holds selected method and manual
+    value; resolved value is computed by the manager's strategy.
+
     Attributes:
         values: List of values that this node contains, one for each source.
+        are_equal_value: Cached equality result.
+        merge_state: Optional merge state (method, manual value, resolved);
+            None when merge mode not used or not yet initialized.
     """
 
     values: List[Value] = field(factory=list)
     are_equal_value: bool | None = field(default=None)
+    merge_state: Optional[LeafMergeState] = field(default=None)
 
     @property
     def is_leaf(self) -> bool:
@@ -227,3 +236,15 @@ class LeafNode(BaseNode):
         except Exception:
             logger.exception("Failed inline diff, using plain")
             return (self._html_escape(left), self._html_escape(right))
+
+    def get_resolved_merge_value(self) -> Any:
+        """Return the resolved merge value for this leaf via the manager.
+
+        Uses the leaf's merge_state and the manager's strategy to compute
+        the value. When merge_state is None, strategy default (e.g. first
+        not null) is used.
+
+        Returns:
+            Resolved value (may be None).
+        """
+        return self.manager.resolve_merge_value(self)

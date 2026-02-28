@@ -89,3 +89,31 @@ def test_webview_context_and_refresh(manager_factory, webview_module, context):
     vw.refresh()
     after = len(vw.render_calls) if hasattr(vw, "render_calls") else 0
     assert after >= before + 1
+
+    # Compare-only mode: no merge result column
+    assert ctx_dict.get("merge_enabled") is False
+    leaf_data = _find_leaf_by_key(tree, "k_equal")
+    assert leaf_data is not None
+    assert "merge_result_html" not in leaf_data
+
+
+def test_webview_merge_mode_result_column(
+    manager_factory, webview_module, context
+):
+    """With merge_enabled=True, context has merge_enabled and result column."""
+    ComparatorWebView = getattr(webview_module, "ComparatorWebView")
+    mgr = manager_factory()
+    vw = ComparatorWebView(
+        ctx=context, manager=mgr, parent=None, merge_enabled=True
+    )
+
+    ctx_dict = vw._build_context()
+    assert ctx_dict["merge_enabled"] is True
+
+    tree = ctx_dict["tree"]
+    leaf_data = _find_leaf_by_key(tree, "k_equal")
+    assert leaf_data is not None
+    assert "merge_result_html" in leaf_data
+    assert leaf_data["merge_result"] == "SAME"
+    mr_html = leaf_data["merge_result_html"]
+    assert "SAME" in mr_html or mr_html == "SAME"

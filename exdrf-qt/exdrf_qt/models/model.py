@@ -220,6 +220,8 @@ class QtModel(
             receives the request ID, the starting index, the number of items
             loaded, the number of requests in progress excluding this one,
             and the error message.
+        recordSaved: Emitted when a record is saved. It receives the database
+            record and the Qt record.
     """
 
     db_model: Type[DBM]
@@ -249,6 +251,7 @@ class QtModel(
     requestIssued = pyqtSignal(int, int, int, int)
     requestCompleted = pyqtSignal(int, int, int, int)
     requestError = pyqtSignal(int, int, int, int, str)
+    recordSaved = pyqtSignal(object, object)
 
     def __init__(
         self,
@@ -1665,25 +1668,27 @@ class QtModel(
             )
             return False
 
-        # Cache all display values to be able to determine f we should
-        # emit a dataChanged signal.
-        display_values = {
-            column_fields[i]
-            .name: record.values.get(i, {})
-            .get(Qt.ItemDataRole.DisplayRole, None)
-            for i in range(len(column_fields))
-            if i != column
-        }
+        with self.ctx.same_session(auto_commit=True) as session:
+            db_item: Optional[DBM] = None
 
-        if row < len(self.top_cache):
-            self.change_top_level_value(record, column, value)
-        else:
-            # Get the field that manages this record.
-            field = column_fields[column]
-            assert field.is_editable()
+            # Cache all display values to be able to determine f we should
+            # emit a dataChanged signal.
+            display_values = {
+                column_fields[i]
+                .name: record.values.get(i, {})
+                .get(Qt.ItemDataRole.DisplayRole, None)
+                for i in range(len(column_fields))
+                if i != column
+            }
 
-            try:
-                with self.ctx.same_session(auto_commit=True) as session:
+            if row < len(self.top_cache):
+                self.change_top_level_value(record, column, value)
+            else:
+                # Get the field that manages this record.
+                field = column_fields[column]
+                assert field.is_editable()
+
+                try:
                     conditions = self.item_by_id_conditions(record.db_id)
                     db_item = session.scalar(
                         select(self.db_model).where(*conditions)
@@ -1699,54 +1704,55 @@ class QtModel(
                     field.apply_edit_value(db_item, value, session)
                     session.commit()
                     self.db_item_to_record(db_item, record)
-            except Exception as e:
-                logger.error(
-                    "M: %s Error setting field %s for row %d (ID: %s): %s",
-                    self.name,
-                    field.name,
-                    row - len(self.top_cache),
-                    record.db_id,
-                    e,
-                    exc_info=True,
-                )
-                return False
-
-        # Current cell is always updated.
-        record.clear_cached_flags()
-        self.dataChanged.emit(
-            index,
-            index,
-            [
-                Qt.ItemDataRole.DisplayRole,
-                Qt.ItemDataRole.EditRole,
-                Qt.ItemDataRole.ToolTipRole,
-                Qt.ItemDataRole.StatusTipRole,
-            ],
-        )
-
-        # Other cells might have changed, so we need to emit a
-        # dataChanged signal for them, too.
-        for i in range(len(self.column_fields)):
-            if i != column:
-                if display_values.get(
-                    self.column_fields[i].name
-                ) != record.values.get(i, {}).get(
-                    Qt.ItemDataRole.DisplayRole, None
-                ):
-                    self.dataChanged.emit(
-                        self.index(row, i),
-                        self.index(row, i),
-                        [Qt.ItemDataRole.DisplayRole],
+                except Exception as e:
+                    logger.error(
+                        "M: %s Error setting field %s for row %d (ID: %s): %s",
+                        self.name,
+                        field.name,
+                        row - len(self.top_cache),
+                        record.db_id,
+                        e,
+                        exc_info=True,
                     )
+                    return False
 
-        logger.debug(
-            "M: %s Data changed for item ID: %s at row %d, column %d",
-            self.name,
-            record.db_id,
-            row,
-            column,
-        )
-        return True
+            # Current cell is always updated.
+            record.clear_cached_flags()
+            self.dataChanged.emit(
+                index,
+                index,
+                [
+                    Qt.ItemDataRole.DisplayRole,
+                    Qt.ItemDataRole.EditRole,
+                    Qt.ItemDataRole.ToolTipRole,
+                    Qt.ItemDataRole.StatusTipRole,
+                ],
+            )
+
+            # Other cells might have changed, so we need to emit a
+            # dataChanged signal for them, too.
+            for i in range(len(self.column_fields)):
+                if i != column:
+                    if display_values.get(
+                        self.column_fields[i].name
+                    ) != record.values.get(i, {}).get(
+                        Qt.ItemDataRole.DisplayRole, None
+                    ):
+                        self.dataChanged.emit(
+                            self.index(row, i),
+                            self.index(row, i),
+                            [Qt.ItemDataRole.DisplayRole],
+                        )
+
+            logger.debug(
+                "M: %s Data changed for item ID: %s at row %d, column %d",
+                self.name,
+                record.db_id,
+                row,
+                column,
+            )
+            self.recordSaved.emit(db_item, record)
+            return True
 
     def sort(
         self, column: int, order: Qt.SortOrder = Qt.SortOrder.AscendingOrder
