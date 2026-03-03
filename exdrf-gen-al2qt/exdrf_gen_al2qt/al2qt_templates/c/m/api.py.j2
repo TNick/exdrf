@@ -27,6 +27,9 @@ from {{ out_module }}.{{ r.categories[0] }}.{{ r.snake_case_name_plural }}.widge
 from {{ out_module }}.{{ r.categories[0] }}.{{ r.snake_case_name_plural }}.widgets.{{ res_snake }}_tv import (
     Qt{{ ResPascal }}Tv,
 )
+from {{ out_module }}.{{ r.categories[0] }}.{{ r.snake_case_name_plural }}.widgets.{{ res_snake }}_cmp import (
+    Qt{{ ResPascal }}Cmp,
+)
 from {{ out_module }}.{{ r.categories[0] }}.{{ r.snake_case_name_plural }}.widgets.{{ res_snake }}_rel import (
     Qt{{ ResPascal }}Rel,
 {%- for other_r, fld, int_r in r.iter_many(include_bridge=True) %}

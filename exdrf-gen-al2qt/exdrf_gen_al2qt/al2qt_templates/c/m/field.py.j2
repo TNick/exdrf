@@ -173,6 +173,13 @@ class {{ FldPascal }}Field(Qt{{ fld_bc }}Field["{{ ResPascal }}"]):
     {#- Only for reference fields -#}
     {# --------------------------------------------------------------------- #}
 
+    # Comparator/merge hooks: override cmp_extract_value, cmp_normalize_value,
+    # cmp_available_methods, cmp_create_manual_editor, cmp_apply_resolved_value
+    # as needed (defaults from QtField).
+    # exdrf-keep-start cmp_methods -------------------------------------------
+{{cmp_methods}}
+    # exdrf-keep-end cmp_methods ----------------------------------------------
+
     # exdrf-keep-start extra_field_content ------------------------------------
 {{extra_field_content}}
     # exdrf-keep-end extra_field_content --------------------------------------

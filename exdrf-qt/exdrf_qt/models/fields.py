@@ -1061,6 +1061,19 @@ class QtRefManyToOneField(RefManyToOneField, RefFilterByPart, QtField[DBM]):
         _finalize_editor(editor, self.nullable, self.read_only)
         return editor
 
+    def cmp_create_manual_editor(
+        self,
+        parent: Any,
+        context: Any,
+        state: Any,
+        current_value: Any,
+    ) -> Optional[DrfSelOneEditor]:
+        """Create a single-selector editor for the merge result cell."""
+        editor = self.create_editor(parent)
+        if editor is not None and hasattr(editor, "change_field_value"):
+            editor.change_field_value(current_value)
+        return editor
+
     def configure_editor(self, editor, commit_cb) -> None:
         """Attach signals to the editor for inline editing."""
         if hasattr(editor, "controlChanged"):
@@ -1154,6 +1167,19 @@ class QtRefOneToManyField(RefOneToManyField, RefFilterByPart, QtField[DBM]):
             nullable=False,
         )
         _finalize_editor(editor, self.nullable, self.read_only)
+        return editor
+
+    def cmp_create_manual_editor(
+        self,
+        parent: Any,
+        context: Any,
+        state: Any,
+        current_value: Any,
+    ) -> Optional[DrfSelMultiEditor]:
+        """Create a multi-selector editor for the merge result cell."""
+        editor = self.create_editor(parent)
+        if editor is not None and hasattr(editor, "change_field_value"):
+            editor.change_field_value(current_value)
         return editor
 
     def configure_editor(self, editor, commit_cb) -> None:

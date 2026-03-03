@@ -336,6 +336,7 @@ def generate_qt_from_alchemy(
     base_ui_class: Callable[["ExField"], str] = d_base_ui_class,
     set_fld_category: Callable[["ExField"], str] = d_fld_category,
     read_only_fields: Dict[str, Any] = {},
+    cmp_load_options_config: Optional[Dict[str, Dict[str, str]]] = None,
     **kwargs: Any,
 ):
     """Generate Qt widgets and models from SqlAlchemy models.
@@ -365,6 +366,12 @@ def generate_qt_from_alchemy(
                 * ui_xml: this is a string that contains the XML for the field
                   in the .ui file of the editor; by default a line edit is
                   created with readOnly set to true.
+        cmp_load_options_config: Optional per-resource config for comparator
+            widgets. Keys are resource snake_case names (e.g. "parcel",
+            "immobile"). Each value is a dict with:
+                * body: Python source for _get_cmp_load_options implementation.
+                * imports: (optional) Extra imports needed (e.g. selectinload,
+                  DbModel). Used when other_imports is empty.
         **kwargs: Additional keyword arguments to pass to the generator.
     """
     click.echo("Generating Qt from exdrf...")
@@ -626,6 +633,10 @@ def generate_qt_from_alchemy(
                                             "classify_bridge_fields": classify_bridge_fields,
                                         },
                                     ),
+                                    File(
+                                        "{res_snake}_cmp.py",
+                                        "c/m/w/cmp.py.j2",
+                                    ),
                                 ],
                             ),
                         ],
@@ -647,5 +658,6 @@ def generate_qt_from_alchemy(
         get_read_only_field_data=get_read_only_field_data,
         get_res_ro_field_data=get_res_ro_field_data,
         use_selectinload_for_nested_scalars=use_selectinload_for_nested_scalars,
+        cmp_load_options_config=cmp_load_options_config or {},
         **kwargs,
     )

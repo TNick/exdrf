@@ -17,12 +17,13 @@ if TYPE_CHECKING:
 {%- for res_name in sorted(c_res) -%}
 {%- set mdl = dset[res_name] %}
     from {{ out_module }}.{{ mdl.categories[0] }}.{{ mdl.snake_case_name_plural }}.api import (
-        Qt{{ mdl.pascal_case_name }}FuMo,  # noqa: F401
-        Qt{{ mdl.pascal_case_name }}NaMo,  # noqa: F401
+        Qt{{ mdl.pascal_case_name }}Cmp,  # noqa: F401
         Qt{{ mdl.pascal_case_name }}Editor,  # noqa: F401
+        Qt{{ mdl.pascal_case_name }}FuMo,  # noqa: F401
         Qt{{ mdl.pascal_case_name }}List,  # noqa: F401
-        Qt{{ mdl.pascal_case_name }}SiSe,  # noqa: F401
         Qt{{ mdl.pascal_case_name }}MuSe,  # noqa: F401
+        Qt{{ mdl.pascal_case_name }}NaMo,  # noqa: F401
+        Qt{{ mdl.pascal_case_name }}SiSe,  # noqa: F401
         Qt{{ mdl.pascal_case_name }}Tv,  # noqa: F401
     )
 {%-  endfor %}
@@ -105,6 +106,14 @@ class {{ mdl.pascal_case_name }}Hooks:
         widget: "Qt{{ mdl.pascal_case_name }}Tv"
     ) -> None:
         """Called when a template-based viewer is created."""
+        raise NotImplementedError
+
+    @hook_spec
+    def {{ mdl.snake_case_name }}_cmp_created(
+        self,
+        widget: "Qt{{ mdl.pascal_case_name }}Cmp"
+    ) -> None:
+        """Called when a compare/merge widget is created."""
         raise NotImplementedError
 
 {%  endfor %}

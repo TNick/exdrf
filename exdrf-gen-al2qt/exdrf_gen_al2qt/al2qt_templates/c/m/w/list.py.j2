@@ -2,7 +2,8 @@
 # Source: {{ source_module }} -> {{ source_templ }}
 # Don't change it manually.
 
-from typing import TYPE_CHECKING
+import logging
+from typing import TYPE_CHECKING, Type
 
 from exdrf_qt.controls.table_list import ListDb
 from exdrf_qt.plugins import exdrf_qt_pm
@@ -14,11 +15,14 @@ from exdrf_qt.utils.plugins import safe_hook_call
 
 if TYPE_CHECKING:
     from exdrf_qt.context import QtContext  # noqa: F401
+    from exdrf_qt.comparator.widgets.record_cmp_base import RecordComparatorBase
     from {{ db_module }}.{{ r.categories[0] }}.api import {{ ResPascal }}  # noqa: F401
 
 # exdrf-keep-start other_globals ----------------------------------------------
 {{other_globals}}
 # exdrf-keep-end other_globals ------------------------------------------------
+
+logger = logging.getLogger(__name__)
 
 
 class Qt{{ ResPascal }}List(ListDb["{{ ResPascal }}"]):
@@ -39,6 +43,14 @@ class Qt{{ ResPascal }}List(ListDb["{{ ResPascal }}"]):
                 "{{ out_module }}.{{ r.categories[0] }}.{{ res_p_snake }}.list.extra-menus",
                 None
             )),
+            compare_merge_enabled=kwargs.pop(
+                "compare_merge_enabled",
+                ctx.get_ovr("list.compare_merge_enabled", True),
+            ),
+            compare_merge_max_selection=kwargs.pop(
+                "compare_merge_max_selection",
+                ctx.get_ovr("list.compare_merge_max_selection", 10),
+            ),
             **kwargs
         )
         self.setModel(
@@ -66,6 +78,11 @@ class Qt{{ ResPascal }}List(ListDb["{{ ResPascal }}"]):
         # exdrf-keep-start extra_init -----------------------------------------
 {{extra_init}}
         # exdrf-keep-end extra_init -------------------------------------------
+
+    def compare_merge_widget_class(self) -> Type["RecordComparatorBase"]:
+        from .{{ res_snake }}_cmp import Qt{{ ResPascal }}Cmp
+
+        return Qt{{ ResPascal }}Cmp
 
     # exdrf-keep-start extra_list_content ------------------------------------
 {{extra_list_content}}

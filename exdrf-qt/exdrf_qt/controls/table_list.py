@@ -6,13 +6,14 @@ from typing import (
     List,
     Optional,
     Tuple,
+    Type,
     TypeVar,
     Union,
     cast,
 )
 
 from exdrf.constants import RecIdType
-from PyQt5.QtCore import QModelIndex, QPoint, Qt
+from PyQt5.QtCore import QItemSelectionModel, QModelIndex, QPoint, Qt
 from PyQt5.QtWidgets import (
     QAbstractItemView,
     QAction,
@@ -42,8 +43,9 @@ from exdrf_qt.models.field import NO_EDITOR_VALUE
 from exdrf_qt.utils.tlh import top_level_handler
 
 if TYPE_CHECKING:
-    from PyQt5.QtCore import QItemSelection, QItemSelectionModel  # noqa: F401
+    from PyQt5.QtCore import QItemSelection  # noqa: F401
 
+    from exdrf_qt.comparator.widgets.record_cmp_base import RecordComparatorBase
     from exdrf_qt.context import QtContext  # noqa: F401
     from exdrf_qt.controls.search_lines.base import SearchData
     from exdrf_qt.models import QtModel  # noqa: F401
@@ -83,9 +85,35 @@ class ListDb(QWidget, QtUseContext, Generic[DBM]):
         other_actions: Optional[
             List[Union[Tuple[str, str, str], "AcBase", QAction, None]]
         ] = None,
+        *,
+        compare_merge_enabled: Optional[bool] = None,
+        compare_merge_max_selection: Optional[int] = None,
     ):
+        """Build the list.
+
+        Args:
+            ctx: Qt context.
+            parent: Optional parent widget.
+            menu_handler: Optional custom context menu handler.
+            other_actions: Optional extra context menu actions.
+            compare_merge_enabled: If None, taken from ctx.get_ovr(
+                "list.compare_merge_enabled", True). If False, Compare/Merge
+                menu actions are hidden.
+            compare_merge_max_selection: If None, taken from ctx.get_ovr(
+                "list.compare_merge_max_selection", 10). Max selected items
+                for compare/merge; above this an error is shown.
+        """
         super().__init__(parent=parent)
         self.ctx = ctx
+
+        if compare_merge_enabled is None:
+            compare_merge_enabled = ctx.get_ovr(
+                "list.compare_merge_enabled", True
+            )
+        if compare_merge_max_selection is None:
+            compare_merge_max_selection = ctx.get_ovr(
+                "list.compare_merge_max_selection", 10
+            )
 
         self.ly = QVBoxLayout()
         self.ly.setContentsMargins(1, 1, 1, 1)
@@ -96,6 +124,8 @@ class ListDb(QWidget, QtUseContext, Generic[DBM]):
             parent=self,
             menu_handler=menu_handler,
             other_actions=other_actions,
+            compare_merge_enabled=bool(compare_merge_enabled),
+            compare_merge_max_selection=int(compare_merge_max_selection or 10),
         )
         self.ly.addWidget(self.tree)
 
@@ -220,6 +250,10 @@ class ListDb(QWidget, QtUseContext, Generic[DBM]):
         """Apply a simple search to the model."""
         self.qt_model.apply_simple_search(data.term, data.search_type)
 
+    def compare_merge_widget_class(self) -> Type["RecordComparatorBase"]:
+        """Get the class for the compare/merge widget."""
+        raise NotImplementedError("compare_merge_widget_class not implemented")
+
 
 class DbFieldDelegate(QStyledItemDelegate):
     """Delegate that edits model fields using QtField editors."""
@@ -315,6 +349,10 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
         ac_set_null: Action to set the selected item to NULL.
         ac_reload: Action to reload the items.
         ac_filter: Action to filter the items.
+        _compare_merge_enabled: Whether Compare/Merge context menu actions
+            are shown.
+        _compare_merge_max_selection: Max number of selected items for
+            compare/merge.
     """
 
     ac_new: OpenCreateAc
@@ -338,9 +376,14 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
         other_actions: Optional[
             List[Union[Tuple[str, str, str], "AcBase", QAction, None]]
         ] = None,
+        *,
+        compare_merge_enabled: bool = True,
+        compare_merge_max_selection: int = 10,
     ):
         super().__init__(parent=parent)
         self.ctx = ctx
+        self._compare_merge_enabled = compare_merge_enabled
+        self._compare_merge_max_selection = compare_merge_max_selection
         self.setAlternatingRowColors(True)
         self.setRootIsDecorated(False)
         self.setSortingEnabled(True)
@@ -643,6 +686,61 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
             for record in self.get_selected_records(exclude_top=exclude_top)
         ]
 
+    def _on_compare_merge_selected(self, *, merge_enabled: bool) -> None:
+        """Open compare/merge widget for selected records; enforce max
+        selection.
+
+        Args:
+            merge_enabled: If True, merge is enabled.
+        """
+        selected_ids = self.get_selected_db_ids()
+        logger.debug(
+            "Compare/merge triggered: merge_enabled=%s, selected_ids count=%s",
+            merge_enabled,
+            len(selected_ids),
+        )
+        if not selected_ids:
+            logger.warning(
+                "Compare/merge: no selected IDs "
+                "(get_selected_db_ids returned empty)"
+            )
+            return
+
+        if len(selected_ids) > self._compare_merge_max_selection:
+            logger.debug(
+                "Compare/merge: selection %d exceeds max %d",
+                len(selected_ids),
+                self._compare_merge_max_selection,
+            )
+            QMessageBox.critical(
+                self,
+                self.t("cmn.list.too_many_selected", "Too many selected"),
+                self.t(
+                    "cmn.list.too_many_selected_msg",
+                    "At most {max} items can be compared or merged.",
+                    max=self._compare_merge_max_selection,
+                ),
+            )
+            return
+
+        parent = self.parent()
+        if parent is None or not isinstance(parent, ListDb):
+            logger.warning("Compare/merge: tree parent is None or not a ListDb")
+            return
+
+        cmp_widget_class = parent.compare_merge_widget_class()
+        if cmp_widget_class is None:
+            logger.warning("Compare/merge: cmp widget class is None")
+            return
+
+        cmp_widget = cmp_widget_class(
+            ctx=self.ctx,
+            parent=self,
+            record_ids=selected_ids,
+            merge_enabled=merge_enabled,
+        )
+        self.ctx.create_window(cmp_widget, "Compare/Merge")
+
     def add_other_view_actions(self, menu: QMenu):
         """Add the other actions to the context menu."""
         actual_actions = 0
@@ -654,6 +752,27 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
                 menu.addSeparator()
         if actual_actions:
             menu.addSeparator()
+
+    def _set_single_selection(self) -> None:
+        """Switch to single selection mode."""
+        self.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        sm = self.selectionModel()
+        if sm is not None:
+            curr = self.currentIndex()
+            sm.clearSelection()
+            if curr.isValid():
+                sm.select(
+                    curr,
+                    cast(
+                        "QItemSelectionModel.SelectionFlags",
+                        QItemSelectionModel.SelectionFlag.Select
+                        | QItemSelectionModel.SelectionFlag.Rows,
+                    ),
+                )
+
+    def _set_multi_selection(self) -> None:
+        """Switch to multi selection mode."""
+        self.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
 
     @top_level_handler
     def show_context_menu(self, point: "QPoint") -> None:
@@ -698,6 +817,47 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
         if self.ac_export is not None:
             menu.addSeparator()
             menu.addAction(self.ac_export)
+
+        # Compare / Merge: when enabled and 2+ items selected.
+        if self._compare_merge_enabled:
+            selected_ids = self.get_selected_db_ids()
+            if len(selected_ids) >= 2:
+                menu.addSeparator()
+                ac_compare = QAction(
+                    self.t("cmn.list.compare", "Compare"), self
+                )
+                ac_compare.triggered.connect(
+                    lambda: self._on_compare_merge_selected(merge_enabled=False)
+                )
+                menu.addAction(ac_compare)
+                ac_merge = QAction(self.t("cmn.list.merge", "Merge"), self)
+                ac_merge.triggered.connect(
+                    lambda: self._on_compare_merge_selected(merge_enabled=True)
+                )
+                menu.addAction(ac_merge)
+
+        # Selection mode: single vs multi.
+        menu.addSeparator()
+        ac_single = QAction(
+            self.t("cmn.list.single_selection", "Single selection"), self
+        )
+        ac_single.setCheckable(True)
+        ac_single.setChecked(
+            self.selectionMode()
+            == QAbstractItemView.SelectionMode.SingleSelection
+        )
+        ac_single.triggered.connect(self._set_single_selection)
+        menu.addAction(ac_single)
+        ac_multi = QAction(
+            self.t("cmn.list.multi_selection", "Multi selection"), self
+        )
+        ac_multi.setCheckable(True)
+        ac_multi.setChecked(
+            self.selectionMode()
+            == QAbstractItemView.SelectionMode.ExtendedSelection
+        )
+        ac_multi.triggered.connect(self._set_multi_selection)
+        menu.addAction(ac_multi)
 
         # Show the menu.
         vp = self.viewport()

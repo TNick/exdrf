@@ -36,6 +36,10 @@ class ComparatorMergeDelegate(QStyledItemDelegate):
 
     Method column: combo box of available methods. Result column: for manual
     method, line edit or custom editor from adapter; otherwise read-only.
+
+    Attributes:
+        None. This delegate is stateless; column indices are derived from
+        the model at runtime.
     """
 
     def createEditor(
@@ -44,9 +48,20 @@ class ComparatorMergeDelegate(QStyledItemDelegate):
         option: QStyleOptionViewItem,
         index: QModelIndex,
     ) -> Optional[QWidget]:
+        """Create editor for Method (combo) or Result (line/custom) column.
+
+        Args:
+            parent: Parent widget for the editor.
+            option: Style options for the item.
+            index: Model index of the cell.
+
+        Returns:
+            Editor widget or None if no editor needed.
+        """
         model = index.model()
         if model is None:
             return None
+
         col = index.column()
 
         # Method column: always combo of options.
@@ -78,9 +93,16 @@ class ComparatorMergeDelegate(QStyledItemDelegate):
         return None
 
     def setEditorData(self, editor: QWidget, index: QModelIndex) -> None:
+        """Load model data into the editor.
+
+        Args:
+            editor: The editor widget to populate.
+            index: Model index of the cell.
+        """
         model = index.model()
         if model is None:
             return
+
         col = index.column()
 
         if col == self._method_column(model):
@@ -94,8 +116,10 @@ class ComparatorMergeDelegate(QStyledItemDelegate):
 
         if col == self._result_column(model):
             val = model.data(index, MERGE_RESULT_ROLE)
-            text = "" if val is None else str(val)
-            if isinstance(editor, QLineEdit):
+            if hasattr(editor, "change_field_value"):
+                editor.change_field_value(val)
+            elif isinstance(editor, QLineEdit):
+                text = "" if val is None else str(val)
                 editor.setText(text)
 
     def setModelData(
@@ -104,8 +128,16 @@ class ComparatorMergeDelegate(QStyledItemDelegate):
         model: Any,
         index: QModelIndex,
     ) -> None:
+        """Write editor value back to the model.
+
+        Args:
+            editor: The editor widget containing the new value.
+            model: The model to update.
+            index: Model index of the cell.
+        """
         if model is None:
             return
+
         col = index.column()
 
         if col == self._method_column(model):
@@ -116,7 +148,9 @@ class ComparatorMergeDelegate(QStyledItemDelegate):
             return
 
         if col == self._result_column(model):
-            if isinstance(editor, QLineEdit):
+            if hasattr(editor, "field_value"):
+                model.setData(index, editor.field_value, Qt.EditRole)
+            elif isinstance(editor, QLineEdit):
                 model.setData(index, editor.text(), Qt.EditRole)
 
     def updateEditorGeometry(
@@ -125,14 +159,35 @@ class ComparatorMergeDelegate(QStyledItemDelegate):
         option: QStyleOptionViewItem,
         index: QModelIndex,
     ) -> None:
+        """Position the editor over the cell.
+
+        Args:
+            editor: The editor widget.
+            option: Style options with rect for the cell.
+            index: Model index of the cell.
+        """
         editor.setGeometry(option.rect)
 
     def _method_column(self, model: Any) -> int:
-        """Method column index from model."""
+        """Method column index from model.
+
+        Args:
+            model: The tree model (must have num_sources attribute).
+
+        Returns:
+            Column index for the Method column.
+        """
         num = getattr(model, "num_sources", 0)
         return 1 + num
 
     def _result_column(self, model: Any) -> int:
-        """Result column index from model."""
+        """Result column index from model.
+
+        Args:
+            model: The tree model (must have num_sources attribute).
+
+        Returns:
+            Column index for the Result column.
+        """
         num = getattr(model, "num_sources", 0)
         return 2 + num

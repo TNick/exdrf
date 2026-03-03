@@ -27,6 +27,12 @@ if TYPE_CHECKING:
     from PyQt5.QtWidgets import QWidget  # noqa: F401
     from sqlalchemy.orm.session import Session
 
+    from exdrf_qt.comparator.logic.merge import (
+        LeafMergeState,
+        MergeContext,
+        MergeMethodOption,
+    )
+    from exdrf_qt.comparator.logic.nodes import LeafNode
     from exdrf_qt.context import QtContext  # noqa: F401
     from exdrf_qt.models.model import QtModel  # noqa: F401
     from exdrf_qt.models.selector import Selector
@@ -384,6 +390,84 @@ class QtField(ExField, QtUseContext, Generic[DBM]):
             result[ROLE_MAP[k]] = kwargs[k]
 
         return result
+
+    # Comparator/merge extension hooks (used by cmp widgets and adapters).
+    # ---------------------------------------------------------------------
+
+    def cmp_extract_value(self, record: DBM) -> Any:
+        """Extract value from record for comparison.
+
+        Override for custom display or serialization in the comparator.
+
+        Args:
+            record: The database record.
+
+        Returns:
+            Value to use in the comparator tree for this field.
+        """
+        return getattr(record, self.name, None)
+
+    def cmp_normalize_value(self, value: Any) -> Any:
+        """Normalize a value for display or comparison in the comparator.
+
+        Override for types that need formatting (e.g. dates, FKs as labels).
+
+        Args:
+            value: Raw value from the record or merge result.
+
+        Returns:
+            Normalized value for display/comparison.
+        """
+        return value
+
+    def cmp_available_methods(
+        self,
+        manager: Any,
+        leaf: "LeafNode",
+    ) -> Optional[List["MergeMethodOption"]]:
+        """Return merge method options for this field, or None for strategy default.
+
+        Args:
+            manager: The comparator manager.
+            leaf: The leaf node (key/label identify the property).
+
+        Returns:
+            List of method options, or None to use manager strategy default.
+        """
+        return None
+
+    def cmp_create_manual_editor(
+        self,
+        parent: Any,
+        context: "MergeContext",
+        state: "LeafMergeState",
+        current_value: Any,
+    ) -> Optional[Any]:
+        """Create a custom editor for the merge result cell, or None for default.
+
+        Args:
+            parent: Parent Qt widget for the editor.
+            context: Merge context for the leaf.
+            state: Current merge state.
+            current_value: Current value to show in the editor.
+
+        Returns:
+            Editor widget, or None to use default (e.g. line edit).
+        """
+        return None
+
+    def cmp_apply_resolved_value(self, value: Any) -> Any:
+        """Transform resolved merge value before applying to record/serialization.
+
+        Override for relation fields that need to resolve IDs to records.
+
+        Args:
+            value: Resolved value from the merge strategy.
+
+        Returns:
+            Value to apply (e.g. ID, record, or list of same).
+        """
+        return value
 
     def save_value_to(
         self, record: DBM, value: Any, session: "Session"
