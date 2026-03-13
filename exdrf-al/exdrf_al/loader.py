@@ -290,9 +290,74 @@ def field_from_sql_hybrid(
     return result
 
 
+def _backref_name(backref_arg: Any) -> Optional[str]:
+    """Extract the backref relation name from ORMBackrefArgument.
+
+    Args:
+        backref_arg: Either a string or a tuple (name, kwargs).
+
+    Returns:
+        The backref name, or None if not a valid backref.
+    """
+    if backref_arg is None:
+        return None
+    if isinstance(backref_arg, str):
+        return backref_arg
+    if isinstance(backref_arg, (tuple, list)) and len(backref_arg) >= 1:
+        return backref_arg[0]
+    return None
+
+
+def _infer_direction_from_backref(
+    model: Type["Base"],
+    relation: "RelationshipProperty",
+) -> Optional["RelType"]:
+    """Infer direction for a backref-created relationship from its forward side.
+
+    When a relationship is created via backref, it has no explicit direction in
+    its info. We find the forward relation on the remote model that created
+    this backref, get its direction, and invert it:
+    ManyToOne <-> OneToMany, OneToOne <-> OneToOne, ManyToMany <-> ManyToMany.
+
+    Args:
+        model: The model that owns the current (backref) relationship.
+        relation: The relationship that has no direction in info.
+
+    Returns:
+        The inferred direction, or None if the forward relation was not found.
+    """
+    remote_class = relation.mapper.class_
+    backref_key = relation.key
+
+    for fwd_prop in remote_class.__mapper__.relationships.values():
+        if fwd_prop.key == backref_key:
+            continue
+        fwd_backref = _backref_name(getattr(fwd_prop, "backref", None))
+        if fwd_backref != backref_key:
+            continue
+        if fwd_prop.mapper.class_ is not model:
+            continue
+
+        fwd_info = getattr(fwd_prop, "info", None) or {}
+        fwd_dir = fwd_info.get("direction")
+        if fwd_dir not in ("OneToMany", "ManyToOne", "OneToOne", "ManyToMany"):
+            return None
+
+        inversions: Dict[str, "RelType"] = {
+            "ManyToOne": "OneToMany",
+            "OneToMany": "ManyToOne",
+            "ManyToMany": "ManyToMany",
+            "OneToOne": "OneToOne",
+        }
+        return cast("RelType", inversions.get(fwd_dir))
+
+    return None
+
+
 def field_from_sql_rel(
     resource: "ExResource",
     relation: "RelationshipProperty",
+    model: Optional[Type["Base"]] = None,
     **kwargs: Any,
 ) -> "ExField":
     """Create a field object from a SQLAlchemy relationship.
@@ -300,6 +365,7 @@ def field_from_sql_rel(
     Args:
         resource: The resource to which the field belongs.
         relation: The SQLAlchemy relationship to convert.
+        model: The ORM model class (for backref direction inference).
         **kwargs: Additional arguments to pass to the Field constructor.
     """
     parsed_info = RelExtraInfo.model_validate(relation.info, strict=True)
@@ -315,7 +381,12 @@ def field_from_sql_rel(
         if value is not None:
             extra[key] = value
 
-    # Get the direction of the relationship.
+    # Get the direction of the relationship (explicit or inferred from backref).
+    if "direction" not in extra and model is not None:
+        inferred = _infer_direction_from_backref(model, relation)
+        if inferred is not None:
+            extra["direction"] = inferred
+
     assert "direction" in extra, (
         "Direction must be specified for all relationships; "
         f"missing in {resource.name}.{relation.key}"
@@ -477,7 +548,7 @@ def dataset_from_sqlalchemy(
             self, model: Type["Base"], relation: "RelationshipProperty"
         ) -> None:
             res = models_by_name[model.__name__]
-            field_from_sql_rel(resource=res, relation=relation)
+            field_from_sql_rel(resource=res, relation=relation, model=model)
 
     # Iterate all models and create resources and fields for columns.
     Visitor.run(base=base)

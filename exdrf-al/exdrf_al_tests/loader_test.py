@@ -6,12 +6,27 @@ from sqlalchemy import Integer
 from sqlalchemy.orm import mapped_column
 
 from exdrf_al.loader import (
+    _backref_name,
     dataset_from_sqlalchemy,
     field_from_sql_col,
     field_from_sql_rel,
     res_by_table_name,
     sql_col_to_type,
 )
+
+
+class TestBackrefName:
+    def test_backref_name_string(self):
+        assert _backref_name("mayor_of_towns") == "mayor_of_towns"
+
+    def test_backref_name_tuple(self):
+        assert _backref_name(("name", {})) == "name"
+
+    def test_backref_name_none(self):
+        assert _backref_name(None) is None
+
+    def test_backref_name_invalid(self):
+        assert _backref_name(123) is None
 
 
 class TestResByTableName:
@@ -283,6 +298,52 @@ class TestFieldFromSqlRel:
         # Call the function and assert exception
         with pytest.raises(AssertionError, match="Direction must be specified"):
             field_from_sql_rel(resource=mock_resource, relation=mock_relation)
+
+    def test_backref_inference_direction(self, mocker):
+        # When direction is missing but model is passed, infer from forward
+        # relation that created this backref (ManyToOne -> OneToMany).
+        mock_resource = MagicMock(name="ExResource")
+        mock_resource.name = "Entity"
+        mock_resource.dataset = {"Town": MagicMock()}
+
+        mock_relation = MagicMock()
+        mock_relation.key = "mayor_of_towns"
+        mock_relation.info = {}
+        mock_relation.uselist = True
+        mock_relation.secondary = None
+        mock_relation.mapper.class_.__name__ = "Town"
+        mock_relation.local_columns = []
+
+        mock_entity = MagicMock()
+        mock_town = MagicMock()
+        mock_town.__name__ = "Town"
+
+        mock_fwd_prop = MagicMock()
+        mock_fwd_prop.key = "mayor"
+        mock_fwd_prop.backref = "mayor_of_towns"
+        mock_fwd_prop.info = {"direction": "ManyToOne"}
+        mock_fwd_prop.mapper.class_ = mock_entity
+
+        mock_town.__mapper__ = MagicMock()
+        mock_town.__mapper__.relationships = {"mayor": mock_fwd_prop}
+
+        mock_relation.mapper.class_ = mock_town
+
+        mock_parser = mocker.patch("exdrf_al.loader.RelExtraInfo")
+        mock_parser.model_validate.return_value.model_dump.return_value = {}
+
+        mock_ctor = mocker.patch("exdrf_al.loader.RefOneToManyField")
+
+        field_from_sql_rel(
+            resource=mock_resource,
+            relation=mock_relation,
+            model=mock_entity,  # type: ignore
+        )
+
+        mock_ctor.assert_called_once()
+        call_kwargs = mock_ctor.call_args[1]
+        assert call_kwargs["ref"] == mock_resource.dataset["Town"]
+        assert call_kwargs.get("is_list") is True
 
     def test_invalid_uselist(self, mocker):
         # Mock dependencies

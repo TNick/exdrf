@@ -188,6 +188,7 @@ class Fixer:
     _custom_widgets: List[str]
     _var_defs: List[Tuple[str, str]]
     _imports: List[str]
+    _pyside6_imports: List[str]
     _has_qt_core: bool
     _has_qt_gui: bool
     _has_qt_widgets: bool
@@ -199,6 +200,7 @@ class Fixer:
         self.initial_text = initial_text
         self._modified_text = initial_text.splitlines(False)
         self._imports = []
+        self._pyside6_imports = []
         self._has_qt_core = False
         self._has_qt_gui = False
         self._has_qt_widgets = False
@@ -240,9 +242,22 @@ class Fixer:
         prefix = ""
         in_setup_ui = False
         skip_import_continuation = False
+        skip_pyside6_import_continuation = False
         for line in self._modified_text:
             line = prefix + line
             prefix = ""
+
+            # Skip continuation lines of multi-line PySide6 import (...)
+            if skip_pyside6_import_continuation:
+                if self._pyside6_imports:
+                    last = self._pyside6_imports[-1]
+                    if last.rstrip().endswith(",") or "(" in last:
+                        self._pyside6_imports[-1] = (
+                            last.rstrip() + " " + line.strip()
+                        )
+                if ")" in line:
+                    skip_pyside6_import_continuation = False
+                continue
 
             # Skip continuation lines of multi-line import (...)
             if skip_import_continuation:
@@ -275,9 +290,9 @@ class Fixer:
                     if " import (" in line and not line.rstrip().endswith(")"):
                         skip_import_continuation = True
                 else:
-                    # Skip continuation of "from PySide6.X import (..."
+                    self._pyside6_imports.append(line)
                     if " import (" in line and not line.rstrip().endswith(")"):
-                        skip_import_continuation = True
+                        skip_pyside6_import_continuation = True
                 continue
 
             s_line = line.strip()
@@ -369,9 +384,13 @@ class Fixer:
             self._modified_text.append(
                 "from typing import TYPE_CHECKING\n",
             )
-        self._modified_text.append(
-            "from PySide6 import " + ", ".join(py_import)
-        )
+        if self._pyside6_imports:
+            for imp in self._pyside6_imports:
+                self._modified_text.append(imp)
+        else:
+            self._modified_text.append(
+                "from PySide6 import " + ", ".join(py_import)
+            )
 
         if len(self._imports):
             self._modified_text.append("if TYPE_CHECKING:")
