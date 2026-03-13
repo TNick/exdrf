@@ -3,7 +3,7 @@
 import unittest
 from unittest.mock import MagicMock
 
-from PySide6.QtCore import Qt
+from PyQt6.QtCore import Qt
 
 from exdrf_qt.models.record import (
     ERROR_BRUSH,

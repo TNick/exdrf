@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING, Optional
 
-from PySide6.QtCore import Property
+from PyQt6.QtCore import pyqtProperty as Property
 
 from exdrf_qt.field_ed.base_number import NumberBase
 from exdrf_qt.field_ed.choices_mixin import EditorWithChoices
@@ -64,7 +64,7 @@ class DrfRealEditor(NumberBase[float], EditorWithChoices):
 
 
 if __name__ == "__main__":
-    from PySide6.QtWidgets import QApplication, QVBoxLayout, QWidget
+    from PyQt6.QtWidgets import QApplication, QVBoxLayout, QWidget
 
     from exdrf_qt.context import QtContext as LocalContext
 

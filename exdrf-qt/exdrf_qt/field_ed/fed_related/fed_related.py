@@ -13,8 +13,8 @@ from typing import (
 )
 
 from exdrf.validator import ValidationResult
-from PySide6.QtCore import QItemSelection
-from PySide6.QtWidgets import (
+from PyQt6.QtCore import QItemSelection
+from PyQt6.QtWidgets import (
     QHBoxLayout,
     QPushButton,
     QSizePolicy,
@@ -34,7 +34,7 @@ from exdrf_qt.utils.tlh import top_level_handler
 if TYPE_CHECKING:
     pass
 
-    from PySide6.QtGui import QAction
+    from PyQt6.QtGui import QAction
 
     from exdrf_qt.context import QtContext
     from exdrf_qt.field_ed.fed_related.base_adapter import BaseAdapter

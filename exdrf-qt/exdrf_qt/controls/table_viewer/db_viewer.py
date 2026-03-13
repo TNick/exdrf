@@ -7,8 +7,8 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional, cast
 
 import yaml
 from exdrf_al.connection import DbConn
-from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import (
     QCompleter,
     QFileDialog,
     QHBoxLayout,
@@ -404,7 +404,7 @@ class DbViewer(QWidget, QtUseContext):
             item = QListWidgetItem(name)
             item.setFlags(
                 cast(
-                    Qt.ItemFlags,
+                    Qt.ItemFlag,
                     Qt.ItemFlag.ItemIsUserCheckable | Qt.ItemFlag.ItemIsEnabled,
                 )
             )

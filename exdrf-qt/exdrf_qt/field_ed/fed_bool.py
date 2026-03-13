@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING, Any, Optional
 
-from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import (
     QCheckBox,
     QVBoxLayout,
     QWidget,
@@ -41,7 +41,11 @@ class DrfBoolEditor(QCheckBox, DrfFieldEd):
         null_str: Optional[str] = None,
         **kwargs,
     ) -> None:
-        super().__init__(parent, ctx=ctx, **kwargs)  # type: ignore
+        # Init both bases explicitly: QCheckBox first (Qt widget), then
+        # DrfFieldEd (sets _nullable etc). A single super() would only
+        # call QCheckBox, leaving DrfFieldEd uninitialized.
+        QCheckBox.__init__(self, parent)
+        DrfFieldEd.__init__(self, ctx=ctx, **kwargs)
         if true_str is None:
             true_str = self.t("cmn.TRUE", "True")
         if false_str is None:
@@ -132,7 +136,7 @@ class DrfBoolEditor(QCheckBox, DrfFieldEd):
 
 
 if __name__ == "__main__":
-    from PySide6.QtWidgets import QApplication
+    from PyQt6.QtWidgets import QApplication
 
     from exdrf_qt.context import QtContext as LocalContext
 

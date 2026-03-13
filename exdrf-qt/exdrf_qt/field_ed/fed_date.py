@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
-from PySide6.QtWidgets import QLineEdit
+from PyQt6.QtWidgets import QLineEdit
 
 from exdrf_qt.field_ed.base_date import DateBase
 
@@ -60,7 +60,7 @@ class DrfDateEditor(DateBase):
 if __name__ == "__main__":
     from datetime import date
 
-    from PySide6.QtWidgets import QApplication, QVBoxLayout, QWidget
+    from PyQt6.QtWidgets import QApplication, QVBoxLayout, QWidget
 
     from exdrf_qt.context import QtContext as LocalContext
 

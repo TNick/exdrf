@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any, Dict
 
 from attrs import define, field
 from exdrf_qt.models.fields import QtStringField
-from PySide6.QtCore import Qt
+from PyQt6.QtCore import Qt
 
 # exdrf-keep-start other_imports ----------------------------------------------
 

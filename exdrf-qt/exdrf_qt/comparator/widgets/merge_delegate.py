@@ -10,8 +10,8 @@ from __future__ import annotations
 import logging
 from typing import Any, Optional
 
-from PySide6.QtCore import QModelIndex, Qt
-from PySide6.QtWidgets import (
+from PyQt6.QtCore import QModelIndex, Qt
+from PyQt6.QtWidgets import (
     QComboBox,
     QLineEdit,
     QStyledItemDelegate,

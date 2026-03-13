@@ -29,8 +29,8 @@ from exdrf.field_types.api import (
     StrListField,
     TimeField,
 )
-from PySide6.QtCore import QDate, QDateTime, Qt, QTime
-from PySide6.QtWidgets import (
+from PyQt6.QtCore import QDate, QDateTime, Qt, QTime
+from PyQt6.QtWidgets import (
     QComboBox,
     QDateEdit,
     QDateTimeEdit,

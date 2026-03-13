@@ -3,9 +3,9 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, List, cast
 
-from PySide6.QtCore import QAbstractProxyModel, QModelIndex, QPoint, Qt, QTimer
-from PySide6.QtGui import QAction, QActionGroup
-from PySide6.QtWidgets import (
+from PyQt6.QtCore import QAbstractProxyModel, QModelIndex, QPoint, Qt, QTimer
+from PyQt6.QtGui import QAction, QActionGroup
+from PyQt6.QtWidgets import (
     QCompleter,
     QHBoxLayout,
     QLabel,

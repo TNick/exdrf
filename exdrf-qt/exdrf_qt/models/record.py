@@ -2,11 +2,11 @@ from typing import TYPE_CHECKING, Any, Dict, List
 
 from attrs import define, field
 from exdrf.constants import RecIdType
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QBrush, QColor
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QBrush, QColor
 
 if TYPE_CHECKING:
-    from PySide6.QtCore import QModelIndex
+    from PyQt6.QtCore import QModelIndex
 
     from exdrf_qt.models.model import QtModel  # noqa: F401
 

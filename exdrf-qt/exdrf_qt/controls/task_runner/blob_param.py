@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING, Optional, TypedDict, cast
 
-from PySide6.QtWidgets import (
+from PyQt6.QtWidgets import (
     QFileDialog,
     QHBoxLayout,
     QLabel,

@@ -2,7 +2,7 @@
 
 from typing import TYPE_CHECKING, List, Optional, Tuple
 
-from PySide6.QtGui import QAction
+from PyQt6.QtGui import QAction
 
 from exdrf_qt.controls.table_viewer.table_view_ctx import TableViewCtx
 

@@ -1,7 +1,7 @@
 import json
 from typing import Any, Tuple
 
-from PySide6 import QtWidgets
+from PyQt6 import QtWidgets
 
 from exdrf_qt.controls.json_editor.editor import JsonEditor
 
@@ -49,7 +49,7 @@ class JsonEditorDialog(QtWidgets.QDialog):
             data, nullable, read_only_keys, undeletable_keys, parent
         )
         result = dialog.exec()
-        if result == QtWidgets.QDialog.Accepted:
+        if result == QtWidgets.QDialog.DialogCode.Accepted:
             return True, dialog.get_data()
         return False, None
 

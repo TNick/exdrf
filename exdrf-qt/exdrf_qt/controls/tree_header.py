@@ -3,9 +3,9 @@ from contextlib import contextmanager
 from typing import TYPE_CHECKING, Generic, Optional, Set, TypeVar, Union, cast
 
 from exdrf.filter import FieldFilter, FilterVisitor, insert_quick_search
-from PySide6.QtCore import QPoint, QRect, Qt
-from PySide6.QtGui import QAction, QPainter, QPen
-from PySide6.QtWidgets import (
+from PyQt6.QtCore import QPoint, QRect, Qt
+from PyQt6.QtGui import QAction, QPainter, QPen
+from PyQt6.QtWidgets import (
     QDialog,
     QHeaderView,
     QMenu,
@@ -284,7 +284,7 @@ class ListDbHeader(QHeaderView, QtUseContext, Generic[DBM]):
     def on_choose_columns(self):
         """Show the dialog for choosing which columns to show."""
         dlg = ColumnSelDlg(self.ctx, self)
-        if dlg.exec() == QDialog.Accepted:
+        if dlg.exec() == QDialog.DialogCode.Accepted:
             dlg.apply_changes()
 
     def _load_current_filter(self, section: int):

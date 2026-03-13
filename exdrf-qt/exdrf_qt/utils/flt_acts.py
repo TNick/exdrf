@@ -1,8 +1,8 @@
 import logging
 from typing import TYPE_CHECKING, List, Optional
 
-from PySide6.QtCore import QObject
-from PySide6.QtGui import QAction
+from PyQt6.QtCore import QObject
+from PyQt6.QtGui import QAction
 
 if TYPE_CHECKING:
     from exdrf_util.typedefs import HasTranslate

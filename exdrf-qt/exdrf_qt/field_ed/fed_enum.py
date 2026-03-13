@@ -1,8 +1,9 @@
 from contextlib import contextmanager
 from typing import TYPE_CHECKING, Any, List, Tuple, Union, cast
 
-from PySide6.QtCore import Qt, QTimer, Signal
-from PySide6.QtWidgets import (
+from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtCore import pyqtSignal as Signal
+from PyQt6.QtWidgets import (
     QFrame,
     QListWidget,
     QListWidgetItem,
@@ -395,7 +396,7 @@ class DrfEnumEditor(DropBase, EditorWithChoices):
 if __name__ == "__main__":
     import sys
 
-    from PySide6.QtWidgets import QApplication
+    from PyQt6.QtWidgets import QApplication
 
     from exdrf_qt.context import QtContext as LocalContext
 

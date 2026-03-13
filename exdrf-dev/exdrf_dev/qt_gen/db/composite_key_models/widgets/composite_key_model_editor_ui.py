@@ -1,4 +1,6 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
+
+from PyQt6 import QtCore, QtWidgets
 
 if TYPE_CHECKING:
     from exdrf_qt.field_ed.api import (
@@ -48,22 +50,23 @@ class Ui_QtCompositeKeyModelEditor:
     c_some_float: "DrfRealEditor"
     c_some_json: "DrfTextEditor"
     c_some_time: "DrfTimeEditor"
-    formLayout: "QFormLayout"
-    formLayout1: "QFormLayout"
-    lbl_description: "QLabel"
-    lbl_key_part1: "QLabel"
-    lbl_key_part2: "QLabel"
-    lbl_related_items: "QLabel"
-    lbl_some_binary: "QLabel"
-    lbl_some_date: "QLabel"
-    lbl_some_enum: "QLabel"
-    lbl_some_float: "QLabel"
-    lbl_some_json: "QLabel"
-    lbl_some_time: "QLabel"
-    main_tab: "QTabWidget"
-    tab_general: "QWidget"
-    tab_keys: "QWidget"
-    verticalLayout: "QVBoxLayout"
+    formLayout: "QtWidgets.QFormLayout"
+    formLayout1: "QtWidgets.QFormLayout"
+    lbl_description: "QtWidgets.QLabel"
+    lbl_key_part1: "QtWidgets.QLabel"
+    lbl_key_part2: "QtWidgets.QLabel"
+    lbl_related_items: "QtWidgets.QLabel"
+    lbl_some_binary: "QtWidgets.QLabel"
+    lbl_some_date: "QtWidgets.QLabel"
+    lbl_some_enum: "QtWidgets.QLabel"
+    lbl_some_float: "QtWidgets.QLabel"
+    lbl_some_json: "QtWidgets.QLabel"
+    lbl_some_time: "QtWidgets.QLabel"
+    main_tab: "QtWidgets.QTabWidget"
+    tab_general: "QtWidgets.QWidget"
+    tab_keys: "QtWidgets.QWidget"
+    verticalLayout: "QtWidgets.QVBoxLayout"
+    ctx: "Any"  # Injected by host widget when used as mixin
 
     def setup_ui(self, QtCompositeKeyModelEditor):
         from exdrf_qt.field_ed.api import (
@@ -79,195 +82,152 @@ class Ui_QtCompositeKeyModelEditor:
 
         from exdrf_dev.qt_gen.db.related_items.api import QtRelatedItemMuSe
 
-        if not QtCompositeKeyModelEditor.objectName():
-            QtCompositeKeyModelEditor.setObjectName("QtCompositeKeyModelEditor")
+        QtCompositeKeyModelEditor.setObjectName("QtCompositeKeyModelEditor")
         QtCompositeKeyModelEditor.resize(480, 640)
-        self.verticalLayout = QVBoxLayout(QtCompositeKeyModelEditor)
+        self.verticalLayout = QtWidgets.QVBoxLayout(QtCompositeKeyModelEditor)
         self.verticalLayout.setObjectName("verticalLayout")
-        self.main_tab = QTabWidget(QtCompositeKeyModelEditor)
+        self.main_tab = QtWidgets.QTabWidget(parent=QtCompositeKeyModelEditor)
         self.main_tab.setObjectName("main_tab")
-        self.tab_general = QWidget()
+        self.tab_general = QtWidgets.QWidget()
         self.tab_general.setObjectName("tab_general")
-        self.formLayout = QFormLayout(self.tab_general)
+        self.formLayout = QtWidgets.QFormLayout(self.tab_general)
         self.formLayout.setObjectName("formLayout")
-        self.lbl_description = QLabel(self.tab_general)
+        self.lbl_description = QtWidgets.QLabel(parent=self.tab_general)
         self.lbl_description.setObjectName("lbl_description")
-
         self.formLayout.setWidget(
-            0, QFormLayout.ItemRole.LabelRole, self.lbl_description
+            0, QtWidgets.QFormLayout.ItemRole.LabelRole, self.lbl_description
         )
-
         self.c_description = DrfTextEditor(
             parent=self.tab_general, ctx=self.ctx
         )
-        self.c_description.setObjectName("c_description")
         self.c_description.setProperty("name", "description")
         self.c_description.setProperty("clearable", True)
-
+        self.c_description.setObjectName("c_description")
         self.formLayout.setWidget(
-            0, QFormLayout.ItemRole.FieldRole, self.c_description
+            0, QtWidgets.QFormLayout.ItemRole.FieldRole, self.c_description
         )
-
-        self.lbl_some_binary = QLabel(self.tab_general)
+        self.lbl_some_binary = QtWidgets.QLabel(parent=self.tab_general)
         self.lbl_some_binary.setObjectName("lbl_some_binary")
-
         self.formLayout.setWidget(
-            1, QFormLayout.ItemRole.LabelRole, self.lbl_some_binary
+            1, QtWidgets.QFormLayout.ItemRole.LabelRole, self.lbl_some_binary
         )
-
         self.c_some_binary = DrfBlobEditor(
             parent=self.tab_general, ctx=self.ctx
         )
-        self.c_some_binary.setObjectName("c_some_binary")
         self.c_some_binary.setProperty("name", "some_binary")
         self.c_some_binary.setProperty("clearable", True)
-
+        self.c_some_binary.setObjectName("c_some_binary")
         self.formLayout.setWidget(
-            1, QFormLayout.ItemRole.FieldRole, self.c_some_binary
+            1, QtWidgets.QFormLayout.ItemRole.FieldRole, self.c_some_binary
         )
-
-        self.lbl_some_date = QLabel(self.tab_general)
+        self.lbl_some_date = QtWidgets.QLabel(parent=self.tab_general)
         self.lbl_some_date.setObjectName("lbl_some_date")
-
         self.formLayout.setWidget(
-            2, QFormLayout.ItemRole.LabelRole, self.lbl_some_date
+            2, QtWidgets.QFormLayout.ItemRole.LabelRole, self.lbl_some_date
         )
-
         self.c_some_date = DrfDateEditor(parent=self.tab_general, ctx=self.ctx)
-        self.c_some_date.setObjectName("c_some_date")
         self.c_some_date.setProperty("name", "some_date")
         self.c_some_date.setProperty("clearable", True)
-
+        self.c_some_date.setObjectName("c_some_date")
         self.formLayout.setWidget(
-            2, QFormLayout.ItemRole.FieldRole, self.c_some_date
+            2, QtWidgets.QFormLayout.ItemRole.FieldRole, self.c_some_date
         )
-
-        self.lbl_some_enum = QLabel(self.tab_general)
+        self.lbl_some_enum = QtWidgets.QLabel(parent=self.tab_general)
         self.lbl_some_enum.setObjectName("lbl_some_enum")
-
         self.formLayout.setWidget(
-            3, QFormLayout.ItemRole.LabelRole, self.lbl_some_enum
+            3, QtWidgets.QFormLayout.ItemRole.LabelRole, self.lbl_some_enum
         )
-
         self.c_some_enum = DrfEnumEditor(parent=self.tab_general, ctx=self.ctx)
-        self.c_some_enum.setObjectName("c_some_enum")
         self.c_some_enum.setProperty("name", "some_enum")
         self.c_some_enum.setProperty(
             "choices",
             "PENDING:Pending,PROCESSING:Processing,COMPLETED:Completed,FAILED:Failed",
         )
         self.c_some_enum.setProperty("clearable", True)
-
+        self.c_some_enum.setObjectName("c_some_enum")
         self.formLayout.setWidget(
-            3, QFormLayout.ItemRole.FieldRole, self.c_some_enum
+            3, QtWidgets.QFormLayout.ItemRole.FieldRole, self.c_some_enum
         )
-
-        self.lbl_some_float = QLabel(self.tab_general)
+        self.lbl_some_float = QtWidgets.QLabel(parent=self.tab_general)
         self.lbl_some_float.setObjectName("lbl_some_float")
-
         self.formLayout.setWidget(
-            4, QFormLayout.ItemRole.LabelRole, self.lbl_some_float
+            4, QtWidgets.QFormLayout.ItemRole.LabelRole, self.lbl_some_float
         )
-
         self.c_some_float = DrfRealEditor(parent=self.tab_general, ctx=self.ctx)
-        self.c_some_float.setObjectName("c_some_float")
         self.c_some_float.setProperty("name", "some_float")
         self.c_some_float.setProperty("clearable", True)
         self.c_some_float.setProperty("precision", 2)
-
+        self.c_some_float.setObjectName("c_some_float")
         self.formLayout.setWidget(
-            4, QFormLayout.ItemRole.FieldRole, self.c_some_float
+            4, QtWidgets.QFormLayout.ItemRole.FieldRole, self.c_some_float
         )
-
-        self.lbl_some_json = QLabel(self.tab_general)
+        self.lbl_some_json = QtWidgets.QLabel(parent=self.tab_general)
         self.lbl_some_json.setObjectName("lbl_some_json")
-
         self.formLayout.setWidget(
-            5, QFormLayout.ItemRole.LabelRole, self.lbl_some_json
+            5, QtWidgets.QFormLayout.ItemRole.LabelRole, self.lbl_some_json
         )
-
         self.c_some_json = DrfTextEditor(parent=self.tab_general, ctx=self.ctx)
-        self.c_some_json.setObjectName("c_some_json")
         self.c_some_json.setProperty("name", "some_json")
         self.c_some_json.setProperty("clearable", True)
-
+        self.c_some_json.setObjectName("c_some_json")
         self.formLayout.setWidget(
-            5, QFormLayout.ItemRole.FieldRole, self.c_some_json
+            5, QtWidgets.QFormLayout.ItemRole.FieldRole, self.c_some_json
         )
-
-        self.lbl_some_time = QLabel(self.tab_general)
+        self.lbl_some_time = QtWidgets.QLabel(parent=self.tab_general)
         self.lbl_some_time.setObjectName("lbl_some_time")
-
         self.formLayout.setWidget(
-            6, QFormLayout.ItemRole.LabelRole, self.lbl_some_time
+            6, QtWidgets.QFormLayout.ItemRole.LabelRole, self.lbl_some_time
         )
-
         self.c_some_time = DrfTimeEditor(parent=self.tab_general, ctx=self.ctx)
-        self.c_some_time.setObjectName("c_some_time")
         self.c_some_time.setProperty("name", "some_time")
         self.c_some_time.setProperty("clearable", True)
-
+        self.c_some_time.setObjectName("c_some_time")
         self.formLayout.setWidget(
-            6, QFormLayout.ItemRole.FieldRole, self.c_some_time
+            6, QtWidgets.QFormLayout.ItemRole.FieldRole, self.c_some_time
         )
-
-        self.lbl_related_items = QLabel(self.tab_general)
+        self.lbl_related_items = QtWidgets.QLabel(parent=self.tab_general)
         self.lbl_related_items.setObjectName("lbl_related_items")
-
         self.formLayout.setWidget(
-            7, QFormLayout.ItemRole.LabelRole, self.lbl_related_items
+            7, QtWidgets.QFormLayout.ItemRole.LabelRole, self.lbl_related_items
         )
-
         self.c_related_items = QtRelatedItemMuSe(
             parent=self.tab_general, ctx=self.ctx
         )
-        self.c_related_items.setObjectName("c_related_items")
         self.c_related_items.setProperty("name", "related_items")
         self.c_related_items.setProperty("clearable", True)
-
+        self.c_related_items.setObjectName("c_related_items")
         self.formLayout.setWidget(
-            7, QFormLayout.ItemRole.FieldRole, self.c_related_items
+            7, QtWidgets.QFormLayout.ItemRole.FieldRole, self.c_related_items
         )
-
         self.main_tab.addTab(self.tab_general, "")
-        self.tab_keys = QWidget()
+        self.tab_keys = QtWidgets.QWidget()
         self.tab_keys.setObjectName("tab_keys")
-        self.formLayout1 = QFormLayout(self.tab_keys)
+        self.formLayout1 = QtWidgets.QFormLayout(self.tab_keys)
         self.formLayout1.setObjectName("formLayout1")
-        self.lbl_key_part1 = QLabel(self.tab_keys)
+        self.lbl_key_part1 = QtWidgets.QLabel(parent=self.tab_keys)
         self.lbl_key_part1.setObjectName("lbl_key_part1")
-
         self.formLayout1.setWidget(
-            0, QFormLayout.ItemRole.LabelRole, self.lbl_key_part1
+            0, QtWidgets.QFormLayout.ItemRole.LabelRole, self.lbl_key_part1
         )
-
         self.c_key_part1 = DrfLineEditor(parent=self.tab_keys, ctx=self.ctx)
-        self.c_key_part1.setObjectName("c_key_part1")
         self.c_key_part1.setProperty("name", "key_part1")
-
+        self.c_key_part1.setObjectName("c_key_part1")
         self.formLayout1.setWidget(
-            0, QFormLayout.ItemRole.FieldRole, self.c_key_part1
+            0, QtWidgets.QFormLayout.ItemRole.FieldRole, self.c_key_part1
         )
-
-        self.lbl_key_part2 = QLabel(self.tab_keys)
+        self.lbl_key_part2 = QtWidgets.QLabel(parent=self.tab_keys)
         self.lbl_key_part2.setObjectName("lbl_key_part2")
-
         self.formLayout1.setWidget(
-            1, QFormLayout.ItemRole.LabelRole, self.lbl_key_part2
+            1, QtWidgets.QFormLayout.ItemRole.LabelRole, self.lbl_key_part2
         )
-
         self.c_key_part2 = DrfIntEditor(parent=self.tab_keys, ctx=self.ctx)
-        self.c_key_part2.setObjectName("c_key_part2")
         self.c_key_part2.setProperty("name", "key_part2")
-
+        self.c_key_part2.setObjectName("c_key_part2")
         self.formLayout1.setWidget(
-            1, QFormLayout.ItemRole.FieldRole, self.c_key_part2
+            1, QtWidgets.QFormLayout.ItemRole.FieldRole, self.c_key_part2
         )
-
         self.main_tab.addTab(self.tab_keys, "")
-
         self.verticalLayout.addWidget(self.main_tab)
-
         self.lbl_description.setBuddy(self.c_description)
         self.lbl_some_binary.setBuddy(self.c_some_binary)
         self.lbl_some_date.setBuddy(self.c_some_date)
@@ -280,83 +240,80 @@ class Ui_QtCompositeKeyModelEditor:
         self.lbl_key_part2.setBuddy(self.c_key_part2)
 
         self.retranslate_ui(QtCompositeKeyModelEditor)
-
         self.main_tab.setCurrentIndex(0)
-
-        QMetaObject.connectSlotsByName(QtCompositeKeyModelEditor)
-
-    # setupUi
+        QtCore.QMetaObject.connectSlotsByName(QtCompositeKeyModelEditor)
 
     def retranslate_ui(self, QtCompositeKeyModelEditor):
         QtCompositeKeyModelEditor.setWindowTitle(
-            QCoreApplication.translate(
-                "QtCompositeKeyModelEditor", "Composite key model Editor", None
+            self.ctx.t(
+                "gui.qt_composite_key_model_editor.window_title",
+                "Composite key model Editor",
             )
         )
         self.lbl_description.setText(
-            QCoreApplication.translate(
-                "QtCompositeKeyModelEditor", "Description ", None
+            self.ctx.t(
+                "gui.qt_composite_key_model_editor.lbl_description",
+                "Description ",
             )
         )
         self.lbl_some_binary.setText(
-            QCoreApplication.translate(
-                "QtCompositeKeyModelEditor", "Some Binary ", None
+            self.ctx.t(
+                "gui.qt_composite_key_model_editor.lbl_some_binary",
+                "Some Binary ",
             )
         )
         self.lbl_some_date.setText(
-            QCoreApplication.translate(
-                "QtCompositeKeyModelEditor", "Some Date ", None
+            self.ctx.t(
+                "gui.qt_composite_key_model_editor.lbl_some_date", "Some Date "
             )
         )
         self.lbl_some_enum.setText(
-            QCoreApplication.translate(
-                "QtCompositeKeyModelEditor", "Some Enum ", None
+            self.ctx.t(
+                "gui.qt_composite_key_model_editor.lbl_some_enum", "Some Enum "
             )
         )
         self.lbl_some_float.setText(
-            QCoreApplication.translate(
-                "QtCompositeKeyModelEditor", "Some Float ", None
+            self.ctx.t(
+                "gui.qt_composite_key_model_editor.lbl_some_float",
+                "Some Float ",
             )
         )
         self.lbl_some_json.setText(
-            QCoreApplication.translate(
-                "QtCompositeKeyModelEditor", "Some Json ", None
+            self.ctx.t(
+                "gui.qt_composite_key_model_editor.lbl_some_json", "Some Json "
             )
         )
         self.lbl_some_time.setText(
-            QCoreApplication.translate(
-                "QtCompositeKeyModelEditor", "Some Time ", None
+            self.ctx.t(
+                "gui.qt_composite_key_model_editor.lbl_some_time", "Some Time "
             )
         )
         self.lbl_related_items.setText(
-            QCoreApplication.translate(
-                "QtCompositeKeyModelEditor", "Related Items ", None
+            self.ctx.t(
+                "gui.qt_composite_key_model_editor.lbl_related_items",
+                "Related Items ",
             )
         )
         self.main_tab.setTabText(
             self.main_tab.indexOf(self.tab_general),
-            QCoreApplication.translate(
-                "QtCompositeKeyModelEditor", "General", None
+            self.ctx.t(
+                "gui.qt_composite_key_model_editor.tab_general", "General"
             ),
         )
         self.lbl_key_part1.setText(
-            QCoreApplication.translate(
-                "QtCompositeKeyModelEditor", "Key Part1 ", None
+            self.ctx.t(
+                "gui.qt_composite_key_model_editor.lbl_key_part1", "Key Part1 "
             )
         )
         self.lbl_key_part2.setText(
-            QCoreApplication.translate(
-                "QtCompositeKeyModelEditor", "Key Part2 ", None
+            self.ctx.t(
+                "gui.qt_composite_key_model_editor.lbl_key_part2", "Key Part2 "
             )
         )
         self.main_tab.setTabText(
             self.main_tab.indexOf(self.tab_keys),
-            QCoreApplication.translate(
-                "QtCompositeKeyModelEditor", "Keys", None
-            ),
+            self.ctx.t("gui.qt_composite_key_model_editor.tab_keys", "Keys"),
         )
-
-    # retranslate_ui
 
     def enum_controls(self):
         """Enumerate the controls in the form."""

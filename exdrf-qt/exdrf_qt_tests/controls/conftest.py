@@ -3,7 +3,7 @@
 import os
 
 import pytest
-from PySide6.QtWidgets import QApplication
+from PyQt6.QtWidgets import QApplication
 
 from exdrf_qt.context import LocalSettings, QtContext
 

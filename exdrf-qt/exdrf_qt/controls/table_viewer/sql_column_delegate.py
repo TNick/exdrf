@@ -11,8 +11,8 @@ import logging
 from datetime import date, datetime
 from typing import Any, Callable, Optional, cast
 
-from PySide6.QtCore import QModelIndex, QSortFilterProxyModel, Qt
-from PySide6.QtGui import (
+from PyQt6.QtCore import QModelIndex, QSortFilterProxyModel, Qt
+from PyQt6.QtGui import (
     QAction,
     QColor,
     QDoubleValidator,
@@ -20,7 +20,7 @@ from PySide6.QtGui import (
     QPainter,
     QPalette,
 )
-from PySide6.QtWidgets import (
+from PyQt6.QtWidgets import (
     QCheckBox,
     QDateEdit,
     QDateTimeEdit,

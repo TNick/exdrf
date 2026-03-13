@@ -1,7 +1,7 @@
 from typing import Any, Generic, Optional, TypeVar, cast
 
 from exdrf.validator import ValidationResult
-from PySide6.QtCore import Qt
+from PyQt6.QtCore import Qt
 
 from exdrf_qt.field_ed.base_line import LineBase
 

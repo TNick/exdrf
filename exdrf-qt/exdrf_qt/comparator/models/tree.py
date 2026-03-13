@@ -3,8 +3,8 @@ from __future__ import annotations
 import logging
 from typing import Any, Optional
 
-from PySide6.QtCore import QAbstractItemModel, QModelIndex, Qt
-from PySide6.QtGui import QBrush, QColor
+from PyQt6.QtCore import QAbstractItemModel, QModelIndex, Qt
+from PyQt6.QtGui import QBrush, QColor
 
 from exdrf_qt.comparator.logic.manager import ComparatorManager
 from exdrf_qt.comparator.logic.merge import (
@@ -279,7 +279,7 @@ class ComparatorTreeModel(QAbstractItemModel):
             return name
         return ""
 
-    def flags(self, index: QModelIndex) -> Qt.ItemFlags:
+    def flags(self, index: QModelIndex) -> Qt.ItemFlag:
         base = QAbstractItemModel.flags(self, index)
         if not self.merge_enabled or not index.isValid():
             return base
@@ -288,7 +288,7 @@ class ComparatorTreeModel(QAbstractItemModel):
             return base
         col = index.column()
         if col == self._method_column() or col == self._result_column():
-            return base | Qt.ItemFlags(ITEM_IS_EDITABLE)
+            return base | Qt.ItemFlag.ItemIsEditable
         return base
 
     def setData(

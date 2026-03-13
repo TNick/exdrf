@@ -1,16 +1,16 @@
 import json
 
 import yaml
-from PySide6 import QtCore, QtGui, QtWidgets
-from PySide6.QtCore import QUrl
-from PySide6.QtGui import QDesktopServices
+from PyQt6 import QtCore, QtGui, QtWidgets
+from PyQt6.QtCore import QUrl
+from PyQt6.QtGui import QDesktopServices
 
 from exdrf_qt.controls.json_editor.delegate import JsonDelegate
 from exdrf_qt.controls.json_editor.model import JsonModel
 
 
 class JsonTreeView(QtWidgets.QTreeView):
-    edit_as_text_requested = QtCore.Signal()
+    edit_as_text_requested = QtCore.pyqtSignal()
 
     def __init__(
         self,

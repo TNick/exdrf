@@ -3,7 +3,8 @@ from typing import TYPE_CHECKING, Type
 
 from exdrf_qt.context_use import QtUseContext
 from exdrf_qt.controls.table_list import ListDb
-from PySide6.QtWidgets import QAction, QMenu
+from PyQt6.QtGui import QAction
+from PyQt6.QtWidgets import QMenu
 
 from exdrf_dev.qt.children.api import QtChildList
 from exdrf_dev.qt.composite_key_models.api import QtCompositeKeyModelList

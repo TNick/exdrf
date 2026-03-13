@@ -1,6 +1,6 @@
 from typing import cast
 
-from PySide6 import QtCore, QtGui, QtWidgets
+from PyQt6 import QtCore, QtGui, QtWidgets
 
 from exdrf_qt.controls.json_editor.model import JsonModel
 

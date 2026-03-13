@@ -1,4 +1,6 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
+
+from PyQt6 import QtCore, QtGui, QtWidgets
 
 if TYPE_CHECKING:
     from exdrf_qt.controls.filter_dlg.filter_editor import FilterEditor
@@ -15,46 +17,42 @@ class Ui_FilterDlg:
 
     """
 
-    bbox: "QDialogButtonBox"
+    bbox: "QtWidgets.QDialogButtonBox"
     c_text: "FilterEditor"
-    horizontalLayout: "QHBoxLayout"
-    l_btm_and: "QLabel"
-    l_error: "QLabel"
-    l_top_and: "QLabel"
-    verticalLayout: "QVBoxLayout"
+    horizontalLayout: "QtWidgets.QHBoxLayout"
+    l_btm_and: "QtWidgets.QLabel"
+    l_error: "QtWidgets.QLabel"
+    l_top_and: "QtWidgets.QLabel"
+    verticalLayout: "QtWidgets.QVBoxLayout"
+    ctx: "Any"  # Injected by host widget when used as mixin
 
     def setup_ui(self, FilterDlg):
         from exdrf_qt.controls.filter_dlg.filter_editor import FilterEditor
 
-        if not FilterDlg.objectName():
-            FilterDlg.setObjectName("FilterDlg")
+        FilterDlg.setObjectName("FilterDlg")
         FilterDlg.resize(382, 356)
-        self.verticalLayout = QVBoxLayout(FilterDlg)
+        self.verticalLayout = QtWidgets.QVBoxLayout(FilterDlg)
         self.verticalLayout.setObjectName("verticalLayout")
-        self.l_top_and = QLabel(FilterDlg)
+        self.l_top_and = QtWidgets.QLabel(parent=FilterDlg)
         self.l_top_and.setObjectName("l_top_and")
-
         self.verticalLayout.addWidget(self.l_top_and)
-
         self.c_text = FilterEditor(parent=FilterDlg, ctx=self.ctx)
         self.c_text.setObjectName("c_text")
-
         self.verticalLayout.addWidget(self.c_text)
-
-        self.horizontalLayout = QHBoxLayout()
+        self.horizontalLayout = QtWidgets.QHBoxLayout()
         self.horizontalLayout.setObjectName("horizontalLayout")
-        self.l_btm_and = QLabel(FilterDlg)
-        self.l_btm_and.setObjectName("l_btm_and")
+        self.l_btm_and = QtWidgets.QLabel(parent=FilterDlg)
         self.l_btm_and.setAlignment(
-            Qt.AlignLeading | Qt.AlignLeft | Qt.AlignTop
+            QtCore.Qt.AlignmentFlag.AlignLeading
+            | QtCore.Qt.AlignmentFlag.AlignLeft
+            | QtCore.Qt.AlignmentFlag.AlignTop
         )
-
+        self.l_btm_and.setObjectName("l_btm_and")
         self.horizontalLayout.addWidget(self.l_btm_and)
-
-        self.l_error = QLabel(FilterDlg)
-        self.l_error.setObjectName("l_error")
-        sizePolicy = QSizePolicy(
-            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred
+        self.l_error = QtWidgets.QLabel(parent=FilterDlg)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Expanding,
+            QtWidgets.QSizePolicy.Policy.Preferred,
         )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -62,60 +60,57 @@ class Ui_FilterDlg:
             self.l_error.sizePolicy().hasHeightForWidth()
         )
         self.l_error.setSizePolicy(sizePolicy)
-        palette = QPalette()
-        brush = QBrush(QColor(255, 44, 37, 255))
-        brush.setStyle(Qt.BrushStyle.SolidPattern)
+        palette = QtGui.QPalette()
+        brush = QtGui.QBrush(QtGui.QColor(255, 44, 37))
+        brush.setStyle(QtCore.Qt.BrushStyle.SolidPattern)
         palette.setBrush(
-            QPalette.ColorGroup.Active, QPalette.ColorRole.WindowText, brush
+            QtGui.QPalette.ColorGroup.Active,
+            QtGui.QPalette.ColorRole.WindowText,
+            brush,
         )
+        brush = QtGui.QBrush(QtGui.QColor(255, 44, 37))
+        brush.setStyle(QtCore.Qt.BrushStyle.SolidPattern)
         palette.setBrush(
-            QPalette.ColorGroup.Inactive, QPalette.ColorRole.WindowText, brush
+            QtGui.QPalette.ColorGroup.Inactive,
+            QtGui.QPalette.ColorRole.WindowText,
+            brush,
         )
-        brush1 = QBrush(QColor(120, 120, 120, 255))
-        brush1.setStyle(Qt.BrushStyle.SolidPattern)
+        brush = QtGui.QBrush(QtGui.QColor(120, 120, 120))
+        brush.setStyle(QtCore.Qt.BrushStyle.SolidPattern)
         palette.setBrush(
-            QPalette.ColorGroup.Disabled, QPalette.ColorRole.WindowText, brush1
+            QtGui.QPalette.ColorGroup.Disabled,
+            QtGui.QPalette.ColorRole.WindowText,
+            brush,
         )
         self.l_error.setPalette(palette)
-        font = QFont()
+        font = QtGui.QFont()
         font.setItalic(True)
         self.l_error.setFont(font)
         self.l_error.setWordWrap(True)
-
+        self.l_error.setObjectName("l_error")
         self.horizontalLayout.addWidget(self.l_error)
-
         self.verticalLayout.addLayout(self.horizontalLayout)
-
-        self.bbox = QDialogButtonBox(FilterDlg)
-        self.bbox.setObjectName("bbox")
-        self.bbox.setOrientation(Qt.Horizontal)
+        self.bbox = QtWidgets.QDialogButtonBox(parent=FilterDlg)
+        self.bbox.setOrientation(QtCore.Qt.Orientation.Horizontal)
         self.bbox.setStandardButtons(
-            QDialogButtonBox.Apply | QDialogButtonBox.Cancel
+            QtWidgets.QDialogButtonBox.StandardButton.Apply
+            | QtWidgets.QDialogButtonBox.StandardButton.Cancel
         )
-
+        self.bbox.setObjectName("bbox")
         self.verticalLayout.addWidget(self.bbox)
 
         self.retranslate_ui(FilterDlg)
-        self.bbox.accepted.connect(FilterDlg.accept)
-        self.bbox.rejected.connect(FilterDlg.reject)
-
-        QMetaObject.connectSlotsByName(FilterDlg)
-
-    # setupUi
+        self.bbox.accepted.connect(FilterDlg.accept)  # type: ignore
+        self.bbox.rejected.connect(FilterDlg.reject)  # type: ignore
+        QtCore.QMetaObject.connectSlotsByName(FilterDlg)
 
     def retranslate_ui(self, FilterDlg):
         FilterDlg.setWindowTitle(
-            QCoreApplication.translate("FilterDlg", "Compose Filter", None)
+            self.ctx.t("gui.filter_dlg.window_title", "Compose Filter")
         )
-        self.l_top_and.setText(
-            QCoreApplication.translate("FilterDlg", "AND (", None)
-        )
-        self.l_btm_and.setText(
-            QCoreApplication.translate("FilterDlg", ")", None)
-        )
-        self.l_error.setText(QCoreApplication.translate("FilterDlg", "j", None))
-
-    # retranslate_ui
+        self.l_top_and.setText(self.ctx.t("gui.filter_dlg.l_top_and", "AND ("))
+        self.l_btm_and.setText(self.ctx.t("gui.filter_dlg.l_btm_and", ")"))
+        self.l_error.setText(self.ctx.t("gui.filter_dlg.l_error", "j"))
 
     def enum_controls(self):
         """Enumerate the controls in the form."""

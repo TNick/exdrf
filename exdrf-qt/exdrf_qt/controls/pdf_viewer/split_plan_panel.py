@@ -9,9 +9,10 @@ import re
 from functools import partial
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, cast
 
-from PySide6.QtCore import QEvent, QObject, QPoint, Qt, QTimer, Signal
-from PySide6.QtGui import QAction, QKeyEvent
-from PySide6.QtWidgets import (
+from PyQt6.QtCore import QEvent, QObject, QPoint, Qt, QTimer
+from PyQt6.QtCore import pyqtSignal as Signal
+from PyQt6.QtGui import QAction, QKeyEvent
+from PyQt6.QtWidgets import (
     QAbstractItemView,
     QCheckBox,
     QDialog,
@@ -225,7 +226,7 @@ class SplitPlanPanel(QWidget):
         # Index column (read-only)
         index_item = QTableWidgetItem(str(row + 1))
         index_flags = cast(
-            Qt.ItemFlags,
+            Qt.ItemFlag,
             Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable,
         )
         index_item.setFlags(index_flags)
@@ -662,7 +663,7 @@ class SplitPlanPanel(QWidget):
             else {}
         )
         dialog = RotationEditorDialog(self, pages, existing, translator=self._t)
-        if dialog.exec() == QDialog.Accepted:
+        if dialog.exec() == QDialog.DialogCode.Accepted:
             self._set_row_rotations(row, dialog.rotations())
             self._schedule_save()
 
@@ -1086,7 +1087,7 @@ class SplitPlanPanel(QWidget):
             if item is None:
                 item = QTableWidgetItem(str(row + 1))
                 index_flags = cast(
-                    Qt.ItemFlags,
+                    Qt.ItemFlag,
                     Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable,
                 )
                 item.setFlags(index_flags)

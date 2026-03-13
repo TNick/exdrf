@@ -15,8 +15,8 @@ from typing import (
 
 from exdrf.constants import RecIdType
 from exdrf.var_bag import VarBag
-from PySide6.QtCore import Signal
-from PySide6.QtWidgets import (
+from PyQt6.QtCore import pyqtSignal as Signal
+from PyQt6.QtWidgets import (
     QDialogButtonBox,
     QMessageBox,
     QPushButton,

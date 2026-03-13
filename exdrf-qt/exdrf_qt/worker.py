@@ -19,7 +19,8 @@ from uuid import uuid4
 
 import sqlparse
 from attrs import define, field
-from PySide6.QtCore import QObject, Signal
+from PyQt6.QtCore import QObject
+from PyQt6.QtCore import pyqtSignal as Signal
 from sqlalchemy import Select
 
 from exdrf_qt.utils.native_threads import PythonThread

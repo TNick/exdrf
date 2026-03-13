@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING, Any, Optional
 
-from PySide6.QtGui import QAction
-from PySide6.QtWidgets import QPlainTextEdit
+from PyQt6.QtGui import QAction
+from PyQt6.QtWidgets import QPlainTextEdit
 
 from exdrf_qt.field_ed.base import DrfFieldEd
 
@@ -192,7 +192,7 @@ class DrfTextEditor(QPlainTextEdit, DrfFieldEd):
 
 
 if __name__ == "__main__":
-    from PySide6.QtWidgets import QApplication, QVBoxLayout, QWidget
+    from PyQt6.QtWidgets import QApplication, QVBoxLayout, QWidget
 
     from exdrf_qt.context import QtContext as LocalContext
 

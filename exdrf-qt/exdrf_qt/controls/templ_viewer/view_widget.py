@@ -9,8 +9,8 @@ web view.
 import logging
 from typing import TYPE_CHECKING, Any
 
-from PySide6.QtCore import QEvent, QObject, Qt, Signal
-from PySide6.QtWebEngineWidgets import QWebEngineView
+from PyQt6.QtCore import QEvent, QObject, Qt, Signal
+from PyQt6.QtWebEngineWidgets import QWebEngineView
 
 from exdrf_qt.context_use import QtUseContext
 

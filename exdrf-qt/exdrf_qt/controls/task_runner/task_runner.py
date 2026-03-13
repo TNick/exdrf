@@ -4,8 +4,8 @@ from collections import OrderedDict
 from typing import TYPE_CHECKING, List, Optional, Tuple
 
 from exdrf_util.task import Task, TaskState
-from PySide6.QtCore import Signal
-from PySide6.QtWidgets import (
+from PyQt6.QtCore import pyqtSignal as Signal
+from PyQt6.QtWidgets import (
     QButtonGroup,
     QDialog,
     QMessageBox,
@@ -210,7 +210,7 @@ class TaskRunner(
                 if error:
                     errors.append(f"{param.title}: {error}")
             if errors:
-                from PySide6.QtWidgets import QMessageBox
+                from PyQt6.QtWidgets import QMessageBox
 
                 error_msg = "\n".join(errors)
                 QMessageBox.warning(

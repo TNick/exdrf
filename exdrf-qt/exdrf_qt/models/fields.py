@@ -27,9 +27,10 @@ from exdrf.api import (
 )
 from exdrf.constants import RecIdType
 from exdrf.moment import MomentFormat
-from PySide6.QtCore import QSize, Qt, Signal
-from PySide6.QtGui import QBrush, QPainter
-from PySide6.QtWidgets import (
+from PyQt6.QtCore import QSize, Qt
+from PyQt6.QtCore import pyqtSignal as Signal
+from PyQt6.QtGui import QBrush, QPainter
+from PyQt6.QtWidgets import (
     QComboBox,
     QDialog,
     QDialogButtonBox,
@@ -942,7 +943,7 @@ class _PlainTextButtonEditor(QToolButton):
     def _open_dialog(self) -> None:
         dlg = _PlainTextDialog(self, self._text)
         dlg.setWindowModality(Qt.WindowModality.ApplicationModal)
-        if dlg.exec() == QDialog.Accepted:
+        if dlg.exec() == QDialog.DialogCode.Accepted:
             self.setTextValue(dlg.text())
             self.editingFinished.emit()
 

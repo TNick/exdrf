@@ -10,14 +10,14 @@ import logging
 from typing import TYPE_CHECKING, Any, Dict, Optional, cast
 
 from exdrf.var_bag import VarBag
-from PySide6.QtCore import (
+from PyQt6.QtCore import (
     QAbstractItemModel,
     QModelIndex,
     QObject,
     Qt,
-    Signal,
 )
-from PySide6.QtGui import QBrush, QColor
+from PyQt6.QtCore import pyqtSignal as Signal
+from PyQt6.QtGui import QBrush, QColor
 from typing_extensions import List
 
 from exdrf_qt.context_use import QtUseContext
@@ -257,7 +257,7 @@ class VarModel(QAbstractItemModel, QtUseContext):
                 return f"{section + 1}"
         return None
 
-    def flags(self, index: QModelIndex) -> Qt.ItemFlags:
+    def flags(self, index: QModelIndex) -> Qt.ItemFlag:
         """Return item flags (enabled, selectable; value column editable).
 
         Args:
@@ -273,7 +273,7 @@ class VarModel(QAbstractItemModel, QtUseContext):
         base = Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable
         if column == 1:
             base |= Qt.ItemFlag.ItemIsEditable
-        return cast(Qt.ItemFlags, base)
+        return cast(Qt.ItemFlag, base)
 
     def setData(
         self,

@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Dict, Iterable, List, Set
 
-from PySide6.QtCore import Qt
+from PyQt6.QtCore import Qt
 
 from exdrf_qt.controls.checks.checks_model_base import (
     CheckSearchOptions,

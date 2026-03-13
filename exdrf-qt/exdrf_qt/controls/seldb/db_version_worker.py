@@ -1,7 +1,7 @@
 import logging
 from typing import List
 
-from PySide6.QtCore import Signal
+from PyQt6.QtCore import pyqtSignal as Signal
 
 from exdrf_qt.controls.seldb.manage_model import DatabaseConfig, DbVersionInfo
 from exdrf_qt.utils.native_threads import PythonThread

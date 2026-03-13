@@ -2,11 +2,11 @@ import logging
 from typing import TYPE_CHECKING, Generic, List, Optional, TypeVar
 
 from exdrf.filter import SearchType
-from PySide6.QtCore import QPoint
+from PyQt6.QtCore import QPoint
 
 if TYPE_CHECKING:
-    from PySide6.QtGui import QAction, QActionGroup
-    from PySide6.QtWidgets import QWidget
+    from PyQt6.QtGui import QAction, QActionGroup
+    from PyQt6.QtWidgets import QWidget
 
     from exdrf_qt.models import QtModel
     from exdrf_qt.utils.stay_open_menu import StayOpenMenu

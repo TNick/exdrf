@@ -21,8 +21,8 @@ from typing import (
     cast,
 )
 
-from PySide6.QtCore import QAbstractItemModel, QModelIndex, Qt, QVariant
-from PySide6.QtGui import QIcon
+from PyQt6.QtCore import QAbstractItemModel, QModelIndex, Qt
+from PyQt6.QtGui import QIcon
 
 from exdrf_qt.context import QtContext
 from exdrf_qt.context_use import QtUseContext
@@ -275,26 +275,26 @@ class ResultsModel(QAbstractItemModel, QtUseContext):
         row = parent_node.parent.children.index(parent_node)
         return self.createIndex(row, 0, parent_node)
 
-    def flags(self, index: QModelIndex) -> Qt.ItemFlags:  # noqa: N802
+    def flags(self, index: QModelIndex) -> Qt.ItemFlag:  # noqa: N802
         if not index.isValid():
-            return Qt.ItemFlags(Qt.ItemFlag.NoItemFlags)
+            return Qt.ItemFlag.NoItemFlags
         return cast(
-            Qt.ItemFlags,
+            Qt.ItemFlag,
             Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled,
         )
 
     def data(self, index: QModelIndex, role: int = Qt.ItemDataRole.DisplayRole):
         if not index.isValid():
-            return QVariant()
+            return None
 
         node = self._node_for_index(index)
         if node is None:
-            return QVariant()
+            return None
 
         if role == Qt.ItemDataRole.ToolTipRole:
             if node.kind == "result" and node.entry is not None:
                 return node.entry.description
-            return QVariant()
+            return None
 
         if role == Qt.ItemDataRole.DecorationRole and index.column() == 0:
             if node.kind == "result" and node.entry is not None:
@@ -305,10 +305,10 @@ class ResultsModel(QAbstractItemModel, QtUseContext):
                 return self.get_icon("folder")
             if node.kind == "check":
                 return self.get_icon("blueprint")
-            return QVariant()
+            return None
 
         if role not in (Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.EditRole):
-            return QVariant()
+            return None
 
         if self._view_mode == ResultsViewMode.FLAT:
             assert node.kind == "result"
@@ -317,11 +317,11 @@ class ResultsModel(QAbstractItemModel, QtUseContext):
                 return node.entry.description
             if index.column() == 1:
                 return node.entry.check_title
-            return QVariant()
+            return None
 
         # Grouped view: single column with node title.
         if index.column() != 0:
-            return QVariant()
+            return None
         return node.title
 
     # ------------------------------------------------------------------

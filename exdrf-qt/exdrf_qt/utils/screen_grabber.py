@@ -2,10 +2,10 @@ import logging
 from collections.abc import Callable
 from typing import Any, Dict, List, Optional
 
-from PySide6.QtCore import QRect, QSize, QTimer, QUrl
-from PySide6.QtGui import QPixmap
-from PySide6.QtWebEngineWidgets import QWebEngineView
-from PySide6.QtWidgets import QApplication
+from PyQt6.QtCore import QRect, QSize, QTimer, QUrl
+from PyQt6.QtGui import QPixmap
+from PyQt6.QtWebEngineWidgets import QWebEngineView
+from PyQt6.QtWidgets import QApplication
 
 logger = logging.getLogger(__name__)
 

@@ -1,8 +1,8 @@
 from typing import Optional, cast
 
-from PySide6.QtCore import QEvent, QObject, Qt
-from PySide6.QtGui import QKeyEvent
-from PySide6.QtWidgets import QApplication, QMenu, QStyle, QWidget
+from PyQt6.QtCore import QEvent, QObject, Qt
+from PyQt6.QtGui import QKeyEvent
+from PyQt6.QtWidgets import QApplication, QMenu, QStyle, QWidget
 
 
 class StayOpenMenu(QMenu):

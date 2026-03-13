@@ -8,7 +8,7 @@ import shutil
 import tempfile
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, cast
 
-from PySide6.QtCore import (
+from PyQt6.QtCore import (
     QEvent,
     QPoint,
     QRect,
@@ -17,7 +17,7 @@ from PySide6.QtCore import (
     QUrl,
     Signal,
 )
-from PySide6.QtGui import (
+from PyQt6.QtGui import (
     QBrush,
     QColor,
     QDesktopServices,
@@ -28,7 +28,7 @@ from PySide6.QtGui import (
     QPixmap,
     QTransform,
 )
-from PySide6.QtWidgets import (
+from PyQt6.QtWidgets import (
     QFrame,
     QGraphicsPixmapItem,
     QGraphicsRectItem,

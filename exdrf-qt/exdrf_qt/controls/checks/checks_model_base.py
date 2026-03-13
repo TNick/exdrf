@@ -20,8 +20,8 @@ from typing import (
     cast,
 )
 
-from PySide6.QtCore import QAbstractItemModel, QModelIndex, Qt, QVariant
-from PySide6.QtGui import QIcon
+from PyQt6.QtCore import QAbstractItemModel, QModelIndex, Qt
+from PyQt6.QtGui import QIcon
 
 from exdrf_qt.context_use import QtUseContext
 
@@ -330,41 +330,41 @@ class ChecksTreeTableModelBase(QAbstractItemModel, QtUseContext):
         row = parent_node.parent.children.index(parent_node)
         return self.createIndex(row, 0, parent_node)
 
-    def flags(self, index: QModelIndex) -> Qt.ItemFlags:  # noqa: N802
+    def flags(self, index: QModelIndex) -> Qt.ItemFlag:  # noqa: N802
         if not index.isValid():
-            return cast(Qt.ItemFlags, Qt.ItemFlag.NoItemFlags)
+            return cast(Qt.ItemFlag, Qt.ItemFlag.NoItemFlags)
 
         node = self._node_for_index(index)
         if node is None:
-            return cast(Qt.ItemFlags, Qt.ItemFlag.NoItemFlags)
+            return cast(Qt.ItemFlag, Qt.ItemFlag.NoItemFlags)
 
         # Categories are selectable too (for "add/remove all in category").
         return cast(
-            Qt.ItemFlags,
+            Qt.ItemFlag,
             Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled,
         )
 
     def data(self, index: QModelIndex, role: int = Qt.ItemDataRole.DisplayRole):
         if not index.isValid():
-            return QVariant()
+            return None
 
         node = self._node_for_index(index)
         if node is None:
-            return QVariant()
+            return None
 
         if role in (Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.EditRole):
             if index.column() == 0:
                 return node.title
-            return QVariant()
+            return None
 
         if role == Qt.ItemDataRole.DecorationRole:
             if index.column() != 0:
-                return QVariant()
+                return None
             if node.kind == "category":
                 return self._category_icon
             if node.kind == "check":
                 return self._check_icon
-            return QVariant()
+            return None
 
         if role == Qt.ItemDataRole.ToolTipRole:
             if node.kind == "category":
@@ -385,7 +385,7 @@ class ChecksTreeTableModelBase(QAbstractItemModel, QtUseContext):
         if role == Qt.ItemDataRole.UserRole + 4:
             return node.check.check_id if node.check is not None else ""
 
-        return QVariant()
+        return None
 
     # ------------------------------------------------------------------
     # Internals

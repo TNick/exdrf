@@ -2,9 +2,9 @@
 
 from typing import TYPE_CHECKING, Callable, Dict, List, Optional, cast
 
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QPixmap, QTransform
-from PySide6.QtWidgets import (
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QPixmap, QTransform
+from PyQt6.QtWidgets import (
     QLabel,
     QScrollArea,
     QSizePolicy,

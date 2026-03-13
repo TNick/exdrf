@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any, Deque, Optional, cast
 
 import sqlparse  # type: ignore
-from PySide6.QtCore import (
+from PyQt6.QtCore import (
     QAbstractItemModel,
     QAbstractListModel,
     QItemSelection,
@@ -16,8 +16,8 @@ from PySide6.QtCore import (
     Qt,
     QTimer,
 )
-from PySide6.QtGui import QColor, QIcon, QPainter, QPalette
-from PySide6.QtWidgets import (
+from PyQt6.QtGui import QColor, QIcon, QPainter, QPalette
+from PyQt6.QtWidgets import (
     QAbstractItemView,
     QApplication,
     QFrame,
@@ -184,12 +184,12 @@ class WorkerListModel(QAbstractListModel):
 
         return None
 
-    def flags(self, index: QModelIndex) -> Qt.ItemFlags:  # noqa: N802
+    def flags(self, index: QModelIndex) -> Qt.ItemFlag:  # noqa: N802
         if not index.isValid():
-            return cast(Qt.ItemFlags, Qt.ItemFlag.NoItemFlags)
+            return cast(Qt.ItemFlag, Qt.ItemFlag.NoItemFlags)
 
         return cast(
-            Qt.ItemFlags,
+            Qt.ItemFlag,
             Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable,
         )
 
@@ -513,11 +513,11 @@ class WorkerDetailsModel(QAbstractItemModel):
             return node.label if index.column() == 0 else node.value
         return None
 
-    def flags(self, index: QModelIndex) -> Qt.ItemFlags:  # noqa: N802
+    def flags(self, index: QModelIndex) -> Qt.ItemFlag:  # noqa: N802
         if not index.isValid():
-            return cast(Qt.ItemFlags, Qt.ItemFlag.NoItemFlags)
+            return cast(Qt.ItemFlag, Qt.ItemFlag.NoItemFlags)
         return cast(
-            Qt.ItemFlags,
+            Qt.ItemFlag,
             Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable,
         )  # noqa: E501
 

@@ -8,8 +8,9 @@ import logging
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
 from exdrf_al.connection import DbConn
-from PySide6.QtCore import QAbstractTableModel, QModelIndex, Qt, Signal
-from PySide6.QtGui import QBrush, QColor, QFont
+from PyQt6.QtCore import QAbstractTableModel, QModelIndex, Qt
+from PyQt6.QtCore import pyqtSignal as Signal
+from PyQt6.QtGui import QBrush, QColor, QFont
 from sqlalchemy import (
     MetaData,
     Table,

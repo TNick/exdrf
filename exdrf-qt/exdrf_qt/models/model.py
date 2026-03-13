@@ -32,7 +32,8 @@ from exdrf.filter import (
     validate_filter,
 )
 from exdrf_al.utils import DelChoice
-from PySide6.QtCore import QAbstractItemModel, QModelIndex, Qt, QTimer, Signal
+from PyQt6.QtCore import QAbstractItemModel, QModelIndex, Qt, QTimer
+from PyQt6.QtCore import pyqtSignal as Signal
 from sqlalchemy import (
     any_,
     bindparam,
@@ -56,7 +57,7 @@ from exdrf_qt.models.selector import Selector
 from exdrf_qt.worker import Work
 
 if TYPE_CHECKING:
-    from PySide6.QtCore import QObject  # noqa: F401
+    from PyQt6.QtCore import QObject  # noqa: F401
     from sqlalchemy import Select  # noqa: F401
     from sqlalchemy.orm import Session  # noqa: F401
 
@@ -1461,7 +1462,7 @@ class QtModel(
             return Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter
         return None
 
-    def flags(self, index: QModelIndex) -> Qt.ItemFlags:
+    def flags(self, index: QModelIndex) -> Qt.ItemFlag:
         """Return the item flags for the given index.
 
         Args:
@@ -1472,7 +1473,7 @@ class QtModel(
             if in checkable mode). Returns NoItemFlags for invalid indices.
         """
         if not index.isValid():
-            return cast(Qt.ItemFlags, Qt.ItemFlag.NoItemFlags)
+            return cast(Qt.ItemFlag, Qt.ItemFlag.NoItemFlags)
 
         row = index.row()
         column = index.column()
@@ -1491,7 +1492,7 @@ class QtModel(
         if record is not None:
             record.set_flags(column, value)
 
-        return cast(Qt.ItemFlags, value)
+        return cast(Qt.ItemFlag, value)
 
     def clear_cached_flags(self) -> None:
         """Clear the cached flags."""

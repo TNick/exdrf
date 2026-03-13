@@ -2,7 +2,7 @@ import json
 import logging
 from typing import cast
 
-from PySide6 import QtCore, QtGui, QtWidgets
+from PyQt6 import QtCore, QtGui, QtWidgets
 
 from exdrf_qt.controls.json_editor.item import JsonTreeItem
 
@@ -208,9 +208,9 @@ class JsonModel(QtCore.QAbstractItemModel):
     def columnCount(self, parent=QtCore.QModelIndex()):
         return 2
 
-    def flags(self, index: QtCore.QModelIndex) -> QtCore.Qt.ItemFlags:
+    def flags(self, index: QtCore.QModelIndex) -> QtCore.Qt.ItemFlag:
         if not index.isValid():
-            return cast(QtCore.Qt.ItemFlags, QtCore.Qt.ItemFlag.NoItemFlags)
+            return cast(QtCore.Qt.ItemFlag, QtCore.Qt.ItemFlag.NoItemFlags)
 
         flags = (
             QtCore.Qt.ItemFlag.ItemIsEnabled
@@ -220,7 +220,7 @@ class JsonModel(QtCore.QAbstractItemModel):
         path = item.path()
 
         if path in self._read_only_keys:
-            return cast(QtCore.Qt.ItemFlags, flags)
+            return cast(QtCore.Qt.ItemFlag, flags)
 
         # Key editing
         if (
@@ -235,7 +235,7 @@ class JsonModel(QtCore.QAbstractItemModel):
         if index.column() == 1 and item.type not in ["dict", "list"]:
             flags |= QtCore.Qt.ItemFlag.ItemIsEditable
 
-        return cast(QtCore.Qt.ItemFlags, flags)
+        return cast(QtCore.Qt.ItemFlag, flags)
 
     def to_python(self):
         return self._root_item.to_python()

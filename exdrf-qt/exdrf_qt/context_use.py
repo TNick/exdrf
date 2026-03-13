@@ -1,8 +1,8 @@
 from typing import TYPE_CHECKING, Any, Union
 
 if TYPE_CHECKING:
-    from PySide6.QtGui import QIcon
-    from PySide6.QtWidgets import QWidget  # noqa: F401
+    from PyQt6.QtGui import QIcon
+    from PyQt6.QtWidgets import QWidget  # noqa: F401
 
     from exdrf_qt.context import QtContext
 
@@ -11,6 +11,16 @@ class QtUseContext:
     """Utility methods for classes that have a context."""
 
     ctx: "QtContext"
+
+    def __init__(self, **kwargs: Any) -> None:
+        """Accept and consume kwargs so they never reach object.__init__.
+
+        QtUseContext is used as a mixin with QWidget-based classes. In multiple
+        inheritance, kwargs like parent, ctx flow through super().__init__().
+        object.__init__() accepts only self, so any kwargs must be consumed
+        here before calling super.
+        """
+        super().__init__()  # type: ignore[misc]
 
     def create_window(self, w: "QWidget", title: str):
         """Creates a stand-alone window.

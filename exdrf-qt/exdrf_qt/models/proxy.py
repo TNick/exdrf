@@ -8,7 +8,7 @@ search across the underlying record.
 import logging
 from typing import Any, Callable, Dict, Optional
 
-from PySide6.QtCore import (
+from PyQt6.QtCore import (
     QModelIndex,
     QRegularExpression,
     QSortFilterProxyModel,

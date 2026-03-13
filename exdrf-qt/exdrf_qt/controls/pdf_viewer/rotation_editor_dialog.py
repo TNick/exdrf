@@ -2,8 +2,8 @@
 
 from typing import TYPE_CHECKING, Dict, List, cast
 
-from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import (
     QAbstractItemView,
     QComboBox,
     QDialog,
@@ -56,7 +56,7 @@ class RotationEditorDialog(QDialog):
         for row, page in enumerate(pages):
             item = QTableWidgetItem(str(page))
             flags = cast(
-                Qt.ItemFlags,
+                Qt.ItemFlag,
                 Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable,
             )
             item.setFlags(flags)

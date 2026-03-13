@@ -4,8 +4,8 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 from exdrf.filter import FieldFilter
-from PySide6.QtCore import QSize, Qt
-from PySide6.QtGui import QBrush, QColor, QFont
+from PyQt6.QtCore import QSize, Qt
+from PyQt6.QtGui import QBrush, QColor, QFont
 
 from exdrf_qt.models.field import (
     QtField,

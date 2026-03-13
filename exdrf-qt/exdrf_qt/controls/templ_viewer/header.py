@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Any, Optional
 from exdrf_qt.controls.tree_header import ListDbHeader
 
 if TYPE_CHECKING:
-    from PySide6.QtWidgets import QTreeView
+    from PyQt6.QtWidgets import QTreeView
 
     from exdrf_qt.controls.templ_viewer.templ_viewer import TemplViewer
 

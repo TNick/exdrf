@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, List, Optional, cast
 
-from PySide6.QtCore import Qt, QTimer
-from PySide6.QtWidgets import (
+from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtWidgets import (
     QAbstractItemView,
     QCompleter,
     QListView,
@@ -21,7 +21,7 @@ from exdrf_qt.controls.command_palette.delegate import CompleterItemDelegate
 from exdrf_qt.controls.command_palette.model import CompleterItemModel
 
 if TYPE_CHECKING:
-    from PySide6.QtGui import QIcon, QShowEvent  # noqa: F401
+    from PyQt6.QtGui import QIcon, QShowEvent  # noqa: F401
 
     from exdrf_qt.context import QtContext  # noqa: F401
     from exdrf_qt.controls.command_palette.constants import (  # noqa: F401

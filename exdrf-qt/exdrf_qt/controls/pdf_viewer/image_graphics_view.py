@@ -9,12 +9,12 @@ other widgets without additional mixins.
 import logging
 from typing import TYPE_CHECKING, Callable, Optional
 
-from PySide6.QtCore import QPoint, QRect, QSize, Qt
-from PySide6.QtGui import QBrush, QColor, QPainter, QPixmap
-from PySide6.QtWidgets import QGraphicsView, QRubberBand
+from PyQt6.QtCore import QPoint, QRect, QSize, Qt
+from PyQt6.QtGui import QBrush, QColor, QPainter, QPixmap
+from PyQt6.QtWidgets import QGraphicsView, QRubberBand
 
 if TYPE_CHECKING:
-    from PySide6.QtWidgets import QWidget  # noqa: F401
+    from PyQt6.QtWidgets import QWidget  # noqa: F401
 
 logger = logging.getLogger(__name__)
 

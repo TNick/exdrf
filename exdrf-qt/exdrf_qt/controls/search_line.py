@@ -1,9 +1,10 @@
 import logging
 from typing import TYPE_CHECKING, Callable, Generic, Optional, TypeVar
 
-from PySide6.QtCore import QEvent, Qt, QTimer, Signal
-from PySide6.QtGui import QAction, QFocusEvent, QKeyEvent, QMouseEvent
-from PySide6.QtWidgets import QLineEdit, QWidget
+from PyQt6.QtCore import QEvent, Qt, QTimer
+from PyQt6.QtCore import pyqtSignal as Signal
+from PyQt6.QtGui import QAction, QFocusEvent, QKeyEvent, QMouseEvent
+from PyQt6.QtWidgets import QLineEdit, QWidget
 
 from exdrf_qt.context_use import QtUseContext
 from exdrf_qt.utils.tlh import top_level_handler

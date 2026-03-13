@@ -1,7 +1,7 @@
 from unittest.mock import MagicMock
 
 from exdrf_dev.db.models import get_dev_engine, get_populated_dev_engine
-from PySide6.QtWidgets import QWidget
+from PyQt6.QtWidgets import QWidget
 from pytest import fixture
 from sqlalchemy.orm import (
     sessionmaker,

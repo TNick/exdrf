@@ -1,4 +1,4 @@
-"""Reload modules widget for PySide6.
+"""Reload modules widget for PyQt6.
 
 This module provides a `ReloadModulesWidget` that lists currently loaded
 Python modules (from `sys.modules`). Each list item shows:
@@ -22,9 +22,9 @@ import sys
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, List, Optional
 
-from PySide6.QtCore import QPoint, QSize, Qt
-from PySide6.QtGui import QAction, QFont
-from PySide6.QtWidgets import (
+from PyQt6.QtCore import QPoint, QSize, Qt
+from PyQt6.QtGui import QAction, QFont
+from PyQt6.QtWidgets import (
     QCheckBox,
     QHBoxLayout,
     QLabel,
@@ -416,15 +416,15 @@ class ReloadModulesWidget(QWidget):
 
         ac = self.filter_menu.addAction(
             self.ctx.t(
-                "utils.reload_modules.filter.hide_pyside6",
-                "Hide PySide6 modules",
+                "utils.reload_modules.filter.hide_pyqt6",
+                "Hide PyQt6 modules",
             )
         )
         assert ac is not None
         ac.setCheckable(True)
         ac.setChecked(True)
         ac.toggled.connect(self._apply_filter)
-        self._filter_hide_pyside6: QAction = ac
+        self._filter_hide_pyqt6: QAction = ac
 
         ac = self.filter_menu.addAction(
             self.ctx.t(
@@ -706,7 +706,7 @@ class ReloadModulesWidget(QWidget):
 
         # Hide groups
         hide_system = self._filter_hide_system.isChecked()
-        hide_pyside6 = self._filter_hide_pyside6.isChecked()
+        hide_pyqt6 = self._filter_hide_pyqt6.isChecked()
         hide_qt_bindings = self._filter_hide_qt_bindings.isChecked()
         hide_builtins = self._filter_hide_builtins.isChecked()
         hide_third_party = self._filter_hide_third_party.isChecked()
@@ -765,15 +765,15 @@ class ReloadModulesWidget(QWidget):
                 item.setHidden(True)
                 continue
 
-            if hide_pyside6 and (
-                name_str.startswith("PySide6") or ("PySide6" in file_str)
+            if hide_pyqt6 and (
+                name_str.startswith("PyQt6") or ("PyQt6" in file_str)
             ):
                 item.setHidden(True)
                 continue
 
             if hide_qt_bindings and (
                 name_str.startswith("PySide2")
-                or name_str.startswith("PySide6")
+                or name_str.startswith("PyQt6")
                 or "PySide" in file_str
             ):
                 item.setHidden(True)

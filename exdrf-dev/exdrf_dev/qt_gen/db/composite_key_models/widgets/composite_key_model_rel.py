@@ -9,7 +9,10 @@ from exdrf_qt.field_ed.fed_related import DrfRelated
 
 if TYPE_CHECKING:
     from exdrf_qt.context import QtContext  # noqa: F401
-    from sqlalchemy.orm import Session  # noqa: F401
+
+    from exdrf_dev.db.api import (  # noqa: F401
+        CompositeKeyModel as CompositeKeyModel,
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +22,13 @@ logger = logging.getLogger(__name__)
 
 
 class QtCompositeKeyModelRel(DrfRelated):
-    """Relations editor where the target records are CompositeKeyModel instances."""
+    """Relations editor where the target records are CompositeKeyModel
+    instances.
+
+    Attributes:
+        src_model: The model of the source record.
+        src_db_model: The database model of the source record.
+    """
 
     # exdrf-keep-start other_attributes ----------------------------------------
 

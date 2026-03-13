@@ -13,8 +13,8 @@ from typing import (
 from attrs import define, field
 from exdrf.api import ExField
 from exdrf.filter import FieldFilter
-from PySide6.QtCore import QSize, Qt
-from PySide6.QtGui import QBrush, QColor, QFont
+from PyQt6.QtCore import QSize, Qt
+from PyQt6.QtGui import QBrush, QColor, QFont
 from sqlalchemy import inspect
 from sqlalchemy.orm.collections import InstrumentedList, InstrumentedSet
 from sqlalchemy.sql.operators import or_, regexp_match_op
@@ -24,7 +24,7 @@ from exdrf_qt.context_use import QtUseContext
 from exdrf_qt.models.fi_op import filter_op_registry
 
 if TYPE_CHECKING:
-    from PySide6.QtWidgets import QWidget  # noqa: F401
+    from PyQt6.QtWidgets import QWidget  # noqa: F401
     from sqlalchemy.orm.session import Session
 
     from exdrf_qt.comparator.logic.merge import (
@@ -61,10 +61,10 @@ ROLE_MAP = {
 
 NO_EDITOR_VALUE = object()
 
-regular_font = QFont("Arial", 10, QFont.Normal)
-italic_font = QFont("Arial", 10, QFont.Normal)
+regular_font = QFont("Arial", 10, QFont.Weight.Normal)
+italic_font = QFont("Arial", 10, QFont.Weight.Normal)
 italic_font.setItalic(True)
-small_font = QFont("Arial", 8, QFont.Normal)
+small_font = QFont("Arial", 8, QFont.Weight.Normal)
 dark_grey = QBrush(QColor(50, 50, 50))
 light_grey = QBrush(QColor(200, 200, 200))
 

@@ -1,7 +1,7 @@
 from typing import Optional, Tuple
 
-from PySide6.QtCore import QModelIndex
-from PySide6.QtGui import QBrush, QColor
+from PyQt6.QtCore import QModelIndex
+from PyQt6.QtGui import QBrush, QColor
 
 from exdrf_qt.comparator.models.tree import (
     BACKGROUND_ROLE,

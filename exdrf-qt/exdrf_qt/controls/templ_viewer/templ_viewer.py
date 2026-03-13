@@ -29,10 +29,11 @@ from exdrf.var_bag import VarBag
 from exdrf_al.tools import count_relationship
 from exdrf_gen.jinja_support import jinja_env, recreate_global_env
 from jinja2 import Environment, Template
-from PySide6.QtCore import QPoint, Qt, QTimer, QUrl, Signal
-from PySide6.QtGui import QAction, QDesktopServices
-from PySide6.QtWebEngineCore import QWebEnginePage
-from PySide6.QtWidgets import (
+from PyQt6.QtCore import QPoint, Qt, QTimer, QUrl
+from PyQt6.QtCore import pyqtSignal as Signal
+from PyQt6.QtGui import QAction, QDesktopServices
+from PyQt6.QtWebEngineCore import QWebEnginePage
+from PyQt6.QtWidgets import (
     QApplication,
     QDialog,
     QFileDialog,
@@ -689,7 +690,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
             ctx=self.ctx,
             invalid_names=set(self.model.var_bag.var_names),
         )
-        if dialog.exec() == QDialog.Accepted:
+        if dialog.exec() == QDialog.DialogCode.Accepted:
             fld, value = dialog.get_field()
             if fld:
                 self.model.add_field(fld, value)
@@ -1779,7 +1780,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
         dialog = SavePdfDialog(self.ctx, self)
         dialog.setFileMode(QFileDialog.AnyFile)
         dialog.setViewMode(QFileDialog.Detail)
-        if dialog.exec() == QFileDialog.Accepted:
+        if dialog.exec() == QFileDialog.DialogCode.Accepted:
             file_name = dialog.selectedFiles()[0]
             if file_name:
                 # Ensure the file name ends with .pdf.

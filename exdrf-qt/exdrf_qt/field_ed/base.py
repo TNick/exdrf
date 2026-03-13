@@ -2,8 +2,9 @@ import logging
 from typing import TYPE_CHECKING, Any, Optional
 
 from exdrf.validator import ValidationResult
-from PySide6.QtCore import Property, Signal
-from PySide6.QtWidgets import QWidget
+from PyQt6.QtCore import pyqtProperty as Property  # noqa: F401 - Property alias
+from PyQt6.QtCore import pyqtSignal as Signal
+from PyQt6.QtWidgets import QWidget
 
 from exdrf_qt.context_use import QtUseContext
 

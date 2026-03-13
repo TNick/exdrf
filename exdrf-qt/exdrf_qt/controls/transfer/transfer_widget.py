@@ -4,15 +4,15 @@ import logging
 from typing import TYPE_CHECKING, List, Optional, cast
 
 from exdrf_al.connection import DbConn
-from PySide6.QtCore import (
+from PyQt6.QtCore import (
     QItemSelectionModel,
     QPoint,
     QSortFilterProxyModel,
     Qt,
     QTimer,
 )
-from PySide6.QtGui import QAction, QIcon
-from PySide6.QtWidgets import (
+from PyQt6.QtGui import QAction, QIcon
+from PyQt6.QtWidgets import (
     QAbstractItemView,
     QHBoxLayout,
     QLabel,

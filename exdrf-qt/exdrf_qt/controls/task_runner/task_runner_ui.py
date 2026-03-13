@@ -1,4 +1,6 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
+
+from PyQt6 import QtCore, QtWidgets
 
 if TYPE_CHECKING:
     from exdrf_qt.controls.seldb.choose_db import ChooseDb
@@ -15,8 +17,6 @@ class Ui_TaskRunner:
         c_stacked: C stacked.
         c_task_tab: C task tab.
         horizontalLayout_2: The layout for the widget.
-        horizontalSpacer: Horizontalspacer.
-        horizontalSpacer_2: Horizontalspacer 2.
         lay_button_box: Lay button box.
         lay_main: Lay main.
         lay_page_1: Lay page 1.
@@ -25,75 +25,71 @@ class Ui_TaskRunner:
 
     """
 
-    c_cancel_button: "QPushButton"
+    c_cancel_button: "QtWidgets.QPushButton"
     c_db_connection: "ChooseDb"
-    c_main_button: "QPushButton"
-    c_progress: "QProgressBar"
-    c_stacked: "QStackedWidget"
-    c_task_tab: "QPushButton"
-    horizontalLayout_2: "QHBoxLayout"
-    horizontalSpacer: "QSpacerItem"
-    horizontalSpacer_2: "QSpacerItem"
-    lay_button_box: "QHBoxLayout"
-    lay_main: "QVBoxLayout"
-    lay_page_1: "QVBoxLayout"
-    lay_tab: "QHBoxLayout"
-    lbl_db_connection: "QLabel"
-    lbl_description: "QLabel"
-    page_1: "QWidget"
+    c_main_button: "QtWidgets.QPushButton"
+    c_progress: "QtWidgets.QProgressBar"
+    c_stacked: "QtWidgets.QStackedWidget"
+    c_task_tab: "QtWidgets.QPushButton"
+    horizontalLayout_2: "QtWidgets.QHBoxLayout"
+    lay_button_box: "QtWidgets.QHBoxLayout"
+    lay_main: "QtWidgets.QVBoxLayout"
+    lay_page_1: "QtWidgets.QVBoxLayout"
+    lay_tab: "QtWidgets.QHBoxLayout"
+    lbl_db_connection: "QtWidgets.QLabel"
+    lbl_description: "QtWidgets.QLabel"
+    page_1: "QtWidgets.QWidget"
+    ctx: "Any"  # Injected by host widget when used as mixin
 
     def setup_ui(self, TaskRunner):
         from exdrf_qt.controls.seldb.choose_db import ChooseDb
 
-        if not TaskRunner.objectName():
-            TaskRunner.setObjectName("TaskRunner")
+        TaskRunner.setObjectName("TaskRunner")
         TaskRunner.resize(543, 502)
-        self.lay_main = QVBoxLayout(TaskRunner)
+        self.lay_main = QtWidgets.QVBoxLayout(TaskRunner)
         self.lay_main.setObjectName("lay_main")
-        self.lay_tab = QHBoxLayout()
+        self.lay_tab = QtWidgets.QHBoxLayout()
         self.lay_tab.setSpacing(2)
         self.lay_tab.setObjectName("lay_tab")
-        self.c_task_tab = QPushButton(TaskRunner)
-        self.c_task_tab.setObjectName("c_task_tab")
+        self.c_task_tab = QtWidgets.QPushButton(parent=TaskRunner)
         self.c_task_tab.setCheckable(True)
         self.c_task_tab.setChecked(True)
-
+        self.c_task_tab.setObjectName("c_task_tab")
         self.lay_tab.addWidget(self.c_task_tab)
-
-        self.horizontalSpacer_2 = QSpacerItem(
-            40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum
+        spacerItem = QtWidgets.QSpacerItem(
+            40,
+            20,
+            QtWidgets.QSizePolicy.Policy.Expanding,
+            QtWidgets.QSizePolicy.Policy.Minimum,
         )
-
-        self.lay_tab.addItem(self.horizontalSpacer_2)
-
+        self.lay_tab.addItem(spacerItem)
         self.lay_main.addLayout(self.lay_tab)
-
-        self.c_stacked = QStackedWidget(TaskRunner)
+        self.c_stacked = QtWidgets.QStackedWidget(parent=TaskRunner)
         self.c_stacked.setObjectName("c_stacked")
-        self.page_1 = QWidget()
+        self.page_1 = QtWidgets.QWidget()
         self.page_1.setObjectName("page_1")
-        self.lay_page_1 = QVBoxLayout(self.page_1)
+        self.lay_page_1 = QtWidgets.QVBoxLayout(self.page_1)
         self.lay_page_1.setObjectName("lay_page_1")
-        self.lbl_description = QLabel(self.page_1)
-        self.lbl_description.setObjectName("lbl_description")
-        self.lbl_description.setFrameShape(QFrame.Panel)
-        self.lbl_description.setFrameShadow(QFrame.Sunken)
+        self.lbl_description = QtWidgets.QLabel(parent=self.page_1)
+        self.lbl_description.setFrameShape(QtWidgets.QFrame.Shape.Panel)
+        self.lbl_description.setFrameShadow(QtWidgets.QFrame.Shadow.Sunken)
         self.lbl_description.setWordWrap(True)
         self.lbl_description.setTextInteractionFlags(
-            Qt.LinksAccessibleByMouse
-            | Qt.TextSelectableByKeyboard
-            | Qt.TextSelectableByMouse
+            QtCore.Qt.TextInteractionFlag.LinksAccessibleByMouse
+            | QtCore.Qt.TextInteractionFlag.TextSelectableByKeyboard
+            | QtCore.Qt.TextInteractionFlag.TextSelectableByMouse
         )
-
+        self.lbl_description.setObjectName("lbl_description")
         self.lay_page_1.addWidget(self.lbl_description)
-
-        self.horizontalLayout_2 = QHBoxLayout()
+        self.horizontalLayout_2 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_2.setSizeConstraint(
+            QtWidgets.QLayout.SizeConstraint.SetDefaultConstraint
+        )
         self.horizontalLayout_2.setObjectName("horizontalLayout_2")
-        self.horizontalLayout_2.setSizeConstraint(QLayout.SetDefaultConstraint)
-        self.lbl_db_connection = QLabel(self.page_1)
-        self.lbl_db_connection.setObjectName("lbl_db_connection")
-        sizePolicy = QSizePolicy(
-            QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum
+        self.lbl_db_connection = QtWidgets.QLabel(parent=self.page_1)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Preferred,
+            QtWidgets.QSizePolicy.Policy.Maximum,
         )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -101,88 +97,71 @@ class Ui_TaskRunner:
             self.lbl_db_connection.sizePolicy().hasHeightForWidth()
         )
         self.lbl_db_connection.setSizePolicy(sizePolicy)
-
+        self.lbl_db_connection.setObjectName("lbl_db_connection")
         self.horizontalLayout_2.addWidget(self.lbl_db_connection)
-
         self.c_db_connection = ChooseDb(parent=self.page_1, ctx=self.ctx)
-        self.c_db_connection.setObjectName("c_db_connection")
-        sizePolicy1 = QSizePolicy(
-            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Maximum
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Expanding,
+            QtWidgets.QSizePolicy.Policy.Maximum,
         )
-        sizePolicy1.setHorizontalStretch(0)
-        sizePolicy1.setVerticalStretch(0)
-        sizePolicy1.setHeightForWidth(
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(
             self.c_db_connection.sizePolicy().hasHeightForWidth()
         )
-        self.c_db_connection.setSizePolicy(sizePolicy1)
-
+        self.c_db_connection.setSizePolicy(sizePolicy)
+        self.c_db_connection.setObjectName("c_db_connection")
         self.horizontalLayout_2.addWidget(self.c_db_connection)
-
         self.lay_page_1.addLayout(self.horizontalLayout_2)
-
         self.c_stacked.addWidget(self.page_1)
-
         self.lay_main.addWidget(self.c_stacked)
-
-        self.c_progress = QProgressBar(TaskRunner)
+        self.c_progress = QtWidgets.QProgressBar(parent=TaskRunner)
+        self.c_progress.setProperty("value", 24)
         self.c_progress.setObjectName("c_progress")
-        self.c_progress.setValue(24)
-
         self.lay_main.addWidget(self.c_progress)
-
-        self.lay_button_box = QHBoxLayout()
+        self.lay_button_box = QtWidgets.QHBoxLayout()
         self.lay_button_box.setObjectName("lay_button_box")
-        self.horizontalSpacer = QSpacerItem(
-            40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum
+        spacerItem1 = QtWidgets.QSpacerItem(
+            40,
+            20,
+            QtWidgets.QSizePolicy.Policy.Expanding,
+            QtWidgets.QSizePolicy.Policy.Minimum,
         )
-
-        self.lay_button_box.addItem(self.horizontalSpacer)
-
-        self.c_main_button = QPushButton(TaskRunner)
+        self.lay_button_box.addItem(spacerItem1)
+        self.c_main_button = QtWidgets.QPushButton(parent=TaskRunner)
         self.c_main_button.setObjectName("c_main_button")
-
         self.lay_button_box.addWidget(self.c_main_button)
-
-        self.c_cancel_button = QPushButton(TaskRunner)
+        self.c_cancel_button = QtWidgets.QPushButton(parent=TaskRunner)
         self.c_cancel_button.setObjectName("c_cancel_button")
-
         self.lay_button_box.addWidget(self.c_cancel_button)
-
         self.lay_main.addLayout(self.lay_button_box)
-
         self.lbl_db_connection.setBuddy(self.c_db_connection)
 
         self.retranslate_ui(TaskRunner)
-
         self.c_stacked.setCurrentIndex(0)
-
-        QMetaObject.connectSlotsByName(TaskRunner)
-
-    # setupUi
+        QtCore.QMetaObject.connectSlotsByName(TaskRunner)
 
     def retranslate_ui(self, TaskRunner):
         TaskRunner.setWindowTitle(
-            QCoreApplication.translate("TaskRunner", "TaskRunner", None)
+            self.ctx.t("gui.task_runner.window_title", "TaskRunner")
         )
         self.c_task_tab.setText(
-            QCoreApplication.translate("TaskRunner", "Task", None)
+            self.ctx.t("gui.task_runner.c_task_tab", "Task")
         )
         self.lbl_description.setText(
-            QCoreApplication.translate("TaskRunner", "Description", None)
+            self.ctx.t("gui.task_runner.lbl_description", "Description")
         )
         self.lbl_db_connection.setText(
-            QCoreApplication.translate(
-                "TaskRunner", "Database Connection:", None
+            self.ctx.t(
+                "gui.task_runner.lbl_db_connection", "Database Connection:"
             )
         )
         self.c_main_button.setText(
-            QCoreApplication.translate("TaskRunner", "Run", None)
+            self.ctx.t("gui.task_runner.c_main_button", "Run")
         )
         self.c_cancel_button.setText(
-            QCoreApplication.translate("TaskRunner", "Cancel", None)
+            self.ctx.t("gui.task_runner.c_cancel_button", "Cancel")
         )
-
-    # retranslate_ui
 
     def enum_controls(self):
         """Enumerate the controls in the form."""
@@ -193,7 +172,5 @@ class Ui_TaskRunner:
             self.c_progress,
             self.c_stacked,
             self.c_task_tab,
-            self.horizontalSpacer,
-            self.horizontalSpacer_2,
             self.page_1,
         ]

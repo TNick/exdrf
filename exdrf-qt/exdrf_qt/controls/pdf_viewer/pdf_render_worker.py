@@ -5,7 +5,8 @@ import queue
 import threading
 from typing import List, Optional
 
-from PySide6.QtCore import QObject, Signal
+from PyQt6.QtCore import QObject
+from PyQt6.QtCore import pyqtSignal as Signal
 
 logger = logging.getLogger(__name__)
 

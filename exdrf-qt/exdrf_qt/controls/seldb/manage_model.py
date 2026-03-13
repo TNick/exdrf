@@ -4,12 +4,12 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, TypedDict, cast
 
 import humanize
-from PySide6.QtCore import (
+from PyQt6.QtCore import (
     QAbstractItemModel,
     QModelIndex,
     Qt,
 )
-from PySide6.QtGui import QColor
+from PyQt6.QtGui import QColor
 
 from exdrf_qt.controls.seldb.utils import parse_sqlalchemy_conn_str
 
@@ -780,7 +780,7 @@ class DatabaseConfigModel(QAbstractItemModel):
 
         return True
 
-    def flags(self, index: QModelIndex) -> Qt.ItemFlags:
+    def flags(self, index: QModelIndex) -> Qt.ItemFlag:
         """Return the item flags for the given index.
 
         Args:
@@ -790,14 +790,14 @@ class DatabaseConfigModel(QAbstractItemModel):
             The item flags, including ItemIsEditable.
         """
         if not index.isValid():
-            return cast(Qt.ItemFlags, Qt.ItemFlag.NoItemFlags)
+            return cast(Qt.ItemFlag, Qt.ItemFlag.NoItemFlags)
 
         flags = Qt.ItemFlag.ItemIsEnabled
         flags |= Qt.ItemFlag.ItemIsSelectable
         # Created date and DB version columns are not editable
         if index.column() not in (COL_CREATED, COL_DB_VERSION):
             flags |= Qt.ItemFlag.ItemIsEditable
-        return cast(Qt.ItemFlags, flags)
+        return cast(Qt.ItemFlag, flags)
 
     def headerData(
         self,

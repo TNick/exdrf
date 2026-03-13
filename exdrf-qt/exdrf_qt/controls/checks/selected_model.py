@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Dict, Iterable, List, Optional, Set, Tuple
 
-from PySide6.QtCore import QModelIndex, Qt, QVariant
+from PyQt6.QtCore import QModelIndex, Qt
 
 from exdrf_qt.controls.checks.checks_model_base import (
     ChecksTreeTableModelBase,
@@ -166,11 +166,11 @@ class SelectedChecksModel(ChecksTreeTableModelBase):
 
     def data(self, index: QModelIndex, role: int = Qt.ItemDataRole.DisplayRole):
         if not index.isValid():
-            return QVariant()
+            return None
 
         node = self._node_for_index(index)
         if node is None:
-            return QVariant()
+            return None
 
         if index.column() == 0:
             return super().data(index, role)
@@ -187,10 +187,10 @@ class SelectedChecksModel(ChecksTreeTableModelBase):
 
         # Progress column.
         if role not in (Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.EditRole):
-            return QVariant()
+            return None
 
         if is_category or not check_id:
-            return QVariant()
+            return None
 
         return self._progress_text(check_id)
 
@@ -291,7 +291,9 @@ class SelectedChecksModel(ChecksTreeTableModelBase):
             progress = 100
         return f"{progress}%"
 
-    def _progress_payload(self, check_id: str, is_category: bool) -> QVariant:
+    def _progress_payload(
+        self, check_id: str, is_category: bool
+    ) -> Optional[Dict[str, object]]:
         """Build a payload with progress information for delegates.
 
         Args:
@@ -299,10 +301,10 @@ class SelectedChecksModel(ChecksTreeTableModelBase):
             is_category: Whether the row represents a category.
 
         Returns:
-            QVariant containing a mapping with progress details.
+            A mapping with progress details, or None.
         """
         if is_category or not check_id:
-            return QVariant()
+            return None
 
         progress = self._progress.get(check_id, -1)
         if progress is None:
@@ -311,13 +313,12 @@ class SelectedChecksModel(ChecksTreeTableModelBase):
         if progress > 100:
             progress = 100
 
-        payload = {
+        return {
             "value": progress,
             "indeterminate": check_id in self._indeterminate,
             "failed": check_id in self._failed,
             "text": self._progress_text(check_id),
         }
-        return QVariant(payload)
 
     # ------------------------------------------------------------------
     # Base hooks

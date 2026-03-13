@@ -3,15 +3,16 @@ from typing import TYPE_CHECKING, Callable, Optional, Union
 
 from attrs import define
 from exdrf.filter import SearchType
-from PySide6.QtCore import Qt, QTimer, Signal
-from PySide6.QtGui import QAction
-from PySide6.QtWidgets import QLineEdit, QMenu, QWidget
+from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtCore import pyqtSignal as Signal
+from PyQt6.QtGui import QAction
+from PyQt6.QtWidgets import QLineEdit, QMenu, QWidget
 
 from exdrf_qt.context_use import QtUseContext
 from exdrf_qt.utils.tlh import top_level_handler
 
 if TYPE_CHECKING:
-    from PySide6.QtGui import QKeyEvent
+    from PyQt6.QtGui import QKeyEvent
 
     from exdrf_qt.context import QtContext
 
@@ -299,7 +300,8 @@ class BasicSearchLine(QLineEdit, QtUseContext):
         # Disconnect previous timeout connection to avoid multiple calls with
         # stale state
         try:
-            timer.timeout.disconnect()
+            if timer is not None:
+                timer.timeout.disconnect()
         except TypeError:  # Thrown if no connections exist
             logger.log(
                 VERBOSE, "SearchLine on_search_term_changed: no connections"

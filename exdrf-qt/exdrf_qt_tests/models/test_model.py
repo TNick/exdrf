@@ -4,7 +4,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 from exdrf.filter import FieldFilter
-from PySide6.QtCore import QModelIndex, Qt
+from PyQt6.QtCore import QModelIndex, Qt
 
 from exdrf_qt.models.model import QtModel, compare_filters
 

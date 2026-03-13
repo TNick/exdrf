@@ -13,14 +13,15 @@ from datetime import datetime, timedelta
 from importlib import resources
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
-from PySide6.QtCore import QBuffer, QByteArray, QIODevice, QTimer, QUrl
-from PySide6.QtWebEngineCore import (
+from PyQt6.QtCore import QBuffer, QByteArray, QIODevice, QTimer, QUrl
+from PyQt6.QtWebEngineCore import (
     QWebEnginePage,
     QWebEngineProfile,
     QWebEngineUrlRequestJob,
     QWebEngineUrlScheme,
     QWebEngineUrlSchemeHandler,
 )
+from PyQt6.QtWebEngineWidgets import QWebEngineView
 
 from exdrf_qt.context_use import QtUseContext
 
@@ -124,6 +125,7 @@ class ExDrfHandler(QWebEngineUrlSchemeHandler, QtUseContext):
             "jquery-3.7.1.min.js",
             "bootstrap.bundle.min.js",
             "dataTables.bootstrap5.js",
+            "svg-pan-zoom.min.js",
         ):
             data = read_local_assets(path)
             mime = b"application/javascript"
@@ -370,7 +372,8 @@ class WebEnginePage(QWebEnginePage, QtUseContext):
             host,
             isMainFrame,
         )
-        view = self.view()
+        # Qt6: QWebEnginePage.view() removed; use QWebEngineView.forPage()
+        view = QWebEngineView.forPage(self)
         if view is None:
             return False
 

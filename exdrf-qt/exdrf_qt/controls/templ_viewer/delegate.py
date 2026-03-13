@@ -20,9 +20,10 @@ from exdrf.constants import (
     FIELD_TYPE_INTEGER,
     FIELD_TYPE_STRING_LIST,
 )
-from PySide6.QtCore import QModelIndex, Qt, Signal
-from PySide6.QtGui import QBrush, QColor, QDoubleValidator, QIntValidator
-from PySide6.QtWidgets import (
+from PyQt6.QtCore import QModelIndex, Qt
+from PyQt6.QtCore import pyqtSignal as Signal
+from PyQt6.QtGui import QBrush, QColor, QDoubleValidator, QIntValidator
+from PyQt6.QtWidgets import (
     QCheckBox,
     QDateEdit,
     QDateTimeEdit,
@@ -259,7 +260,7 @@ class _ListButtonEditor(QToolButton):
         dlg = _ListEditDialog(self, self._value_type)
         dlg.setWindowModality(Qt.WindowModality.ApplicationModal)
         dlg.set_values(self._values)
-        if dlg.exec() == QDialog.Accepted:
+        if dlg.exec() == QDialog.DialogCode.Accepted:
             self._values = dlg.values()
             self.editingFinished.emit()
 

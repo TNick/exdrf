@@ -1,7 +1,7 @@
 from typing import cast
 
-from PySide6.QtCore import QCoreApplication, Qt
-from PySide6.QtWidgets import QApplication
+from PyQt6.QtCore import QCoreApplication, Qt
+from PyQt6.QtWidgets import QApplication
 
 from exdrf_dev.__version__ import __version__
 from exdrf_dev.app.main_window import MainWindow
@@ -81,7 +81,7 @@ def main():
     import signal
     import sys
 
-    import PySide6.QtWebEngineWidgets  # noqa: F401
+    import PyQt6.QtWebEngineWidgets  # noqa: F401
 
     from exdrf_dev.db.models import Base  # noqa: F401, F403
     from exdrf_dev.qt_gen.plugins import register_all_hooks

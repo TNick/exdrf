@@ -61,7 +61,7 @@ class DrfTimeEditor(DateBase):
 
 
 if __name__ == "__main__":
-    from PySide6.QtWidgets import QApplication, QVBoxLayout, QWidget
+    from PyQt6.QtWidgets import QApplication, QVBoxLayout, QWidget
 
     from exdrf_qt.context import QtContext as LocalContext
 

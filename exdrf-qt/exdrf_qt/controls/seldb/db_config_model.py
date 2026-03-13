@@ -1,8 +1,8 @@
 from typing import TYPE_CHECKING, Any, Dict, Optional
 from urllib.parse import urlparse
 
-from PySide6.QtCore import QModelIndex, Qt
-from PySide6.QtGui import QStandardItem, QStandardItemModel
+from PyQt6.QtCore import QModelIndex, Qt
+from PyQt6.QtGui import QStandardItem, QStandardItemModel
 
 from exdrf_qt.context_use import QtUseContext
 from exdrf_qt.controls.seldb.utils import (

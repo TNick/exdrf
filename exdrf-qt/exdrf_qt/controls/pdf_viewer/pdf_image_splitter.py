@@ -5,8 +5,8 @@ import os
 import re
 from typing import List, Optional, Set, Tuple
 
-from PySide6.QtCore import QPoint, QRect, Qt
-from PySide6.QtWidgets import (
+from PyQt6.QtCore import QPoint, QRect, Qt
+from PyQt6.QtWidgets import (
     QHBoxLayout,
     QMenu,
     QMessageBox,

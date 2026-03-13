@@ -1,8 +1,8 @@
 from typing import Any
 
 from exdrf.field import ExField
-from PySide6.QtGui import QAction
-from PySide6.QtWidgets import (
+from PyQt6.QtGui import QAction
+from PyQt6.QtWidgets import (
     QApplication,
     QFileDialog,
     QLineEdit,

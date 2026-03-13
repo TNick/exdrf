@@ -4,8 +4,8 @@ import logging
 import sys
 from typing import Any, Dict, Optional, Set
 
-from PySide6.QtGui import QAction
-from PySide6.QtWidgets import (
+from PyQt6.QtGui import QAction
+from PyQt6.QtWidgets import (
     QApplication,
     QMenu,
     QTabWidget,
@@ -454,11 +454,11 @@ if __name__ == "__main__":
     # This must be done before QApplication is instantiated
     # Import QtWebEngineWidgets to initialize the plugin
     try:
-        import PySide6.QtWebEngineWidgets  # noqa: F401
+        import PyQt6.QtWebEngineWidgets  # noqa: F401
     except ImportError:
         # If import fails, try setting the attribute instead
         try:
-            from PySide6.QtCore import QCoreApplication, Qt
+            from PyQt6.QtCore import QCoreApplication, Qt
 
             QCoreApplication.setAttribute(  # type: ignore
                 Qt.AA_ShareOpenGLContexts, True  # type: ignore

@@ -1,14 +1,14 @@
 import logging
 from typing import TYPE_CHECKING, Generic, Optional, TypeVar, cast
 
-from PySide6.QtCore import (
+from PyQt6.QtCore import (
     QAbstractItemModel,
     QItemSelection,
     QModelIndex,
     Qt,
-    Signal,
 )
-from PySide6.QtWidgets import QTreeView
+from PyQt6.QtCore import pyqtSignal as Signal
+from PyQt6.QtWidgets import QTreeView
 
 if TYPE_CHECKING:
     from exdrf_qt.models import QtModel

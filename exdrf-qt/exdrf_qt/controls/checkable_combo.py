@@ -1,9 +1,9 @@
 import logging
 from typing import TYPE_CHECKING, Any, List, Optional, cast
 
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QStandardItem, QStandardItemModel
-from PySide6.QtWidgets import (
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QStandardItem, QStandardItemModel
+from PyQt6.QtWidgets import (
     QComboBox,
     QWidget,
 )
@@ -57,7 +57,7 @@ class CheckableComboBox(QComboBox, QtUseContext):
         it = QStandardItem(text)
         it.setFlags(
             cast(
-                Qt.ItemFlags,
+                Qt.ItemFlag,
                 Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsUserCheckable,
             )
         )

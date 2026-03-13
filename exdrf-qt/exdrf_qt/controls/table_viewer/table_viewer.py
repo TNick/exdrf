@@ -8,9 +8,10 @@ from datetime import date, datetime
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple
 
 import yaml
-from PySide6.QtCore import QPoint, Qt, Signal
-from PySide6.QtGui import QAction, QIcon
-from PySide6.QtWidgets import (
+from PyQt6.QtCore import QPoint, Qt
+from PyQt6.QtCore import pyqtSignal as Signal
+from PyQt6.QtGui import QAction, QIcon
+from PyQt6.QtWidgets import (
     QAbstractItemView,
     QApplication,
     QDialog,
@@ -727,7 +728,7 @@ class TableViewer(QWidget, QtUseContext):
             not header.isSectionHidden(i) for i in range(len(headers))
         ]
         dlg = ColumnVisibilityDialog(self, self.ctx, headers, initial_visible)
-        if dlg.exec() != QDialog.Accepted:
+        if dlg.exec() != QDialog.DialogCode.Accepted:
             return
         visibility = dlg.get_visibility()
         for i, vis in enumerate(visibility):

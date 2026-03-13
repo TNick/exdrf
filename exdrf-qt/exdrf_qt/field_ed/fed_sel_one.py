@@ -11,14 +11,14 @@ from typing import (
     cast,
 )
 
-from PySide6.QtCore import (
+from PyQt6.QtCore import (
     QModelIndex,
     QPoint,
     Qt,
-    Signal,
 )
-from PySide6.QtGui import QAction, QMouseEvent, QResizeEvent
-from PySide6.QtWidgets import (
+from PyQt6.QtCore import pyqtSignal as Signal
+from PyQt6.QtGui import QAction, QMouseEvent, QResizeEvent
+from PyQt6.QtWidgets import (
     QAbstractItemView,
     QHBoxLayout,
     QLineEdit,

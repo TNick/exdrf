@@ -1,9 +1,10 @@
 from functools import partial
 from typing import TYPE_CHECKING, Optional, cast
 
-from PySide6.QtCore import QEvent, QPoint, QRect, Qt, QTimer, Signal
-from PySide6.QtGui import QAction, QMoveEvent, QResizeEvent
-from PySide6.QtWidgets import (
+from PyQt6.QtCore import QEvent, QPoint, QRect, Qt, QTimer
+from PyQt6.QtCore import pyqtSignal as Signal
+from PyQt6.QtGui import QAction, QMoveEvent, QResizeEvent
+from PyQt6.QtWidgets import (
     QApplication,
     QLabel,
     QLineEdit,
@@ -12,7 +13,7 @@ from PySide6.QtWidgets import (
 )
 
 if TYPE_CHECKING:
-    from PySide6.QtWidgets import QCompleter
+    from PyQt6.QtWidgets import QCompleter
 
 from exdrf_qt.field_ed.base import DrfFieldEd
 

@@ -2,8 +2,8 @@ import logging
 from typing import TYPE_CHECKING, Optional, Union
 
 from exdrf_al.utils import DelChoice
-from PySide6.QtCore import QObject
-from PySide6.QtGui import QAction, QActionGroup
+from PyQt6.QtCore import QObject
+from PyQt6.QtGui import QAction, QActionGroup
 
 if TYPE_CHECKING:
     from exdrf_util.typedefs import HasTranslate

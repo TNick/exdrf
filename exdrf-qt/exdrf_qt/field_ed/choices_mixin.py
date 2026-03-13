@@ -1,7 +1,8 @@
 from typing import TYPE_CHECKING, List, Optional, Tuple, cast
 
-from PySide6.QtCore import Property, Qt
-from PySide6.QtWidgets import QCompleter
+from PyQt6.QtCore import Qt
+from PyQt6.QtCore import pyqtProperty as Property
+from PyQt6.QtWidgets import QCompleter
 
 if TYPE_CHECKING:
     from exdrf_qt.field_ed.base_line import LineBase

@@ -8,7 +8,7 @@ import logging
 from datetime import date, datetime
 from typing import TYPE_CHECKING, Any, List, Optional, Tuple
 
-from PySide6.QtCore import QAbstractTableModel, QModelIndex, Qt
+from PyQt6.QtCore import QAbstractTableModel, QModelIndex, Qt
 from sqlalchemy import MetaData, Table, select, update
 
 if TYPE_CHECKING:
@@ -210,7 +210,7 @@ class SqlTableModel(QAbstractTableModel):
             return section + 1
         return None
 
-    def flags(self, index: QModelIndex) -> Qt.ItemFlags:
+    def flags(self, index: QModelIndex) -> Qt.ItemFlag:
         """Return item flags for the given index.
 
         Args:

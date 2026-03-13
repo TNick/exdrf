@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING, Optional
 
-from PySide6.QtWidgets import (
+from PyQt6.QtWidgets import (
     QHBoxLayout,
     QLineEdit,
     QListWidget,

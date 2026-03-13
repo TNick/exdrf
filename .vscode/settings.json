@@ -109,6 +109,7 @@
         "pypackages",
         "pyproject",
         "PYQTDESIGNERPATH",
+        "pyside",
         "pysqlite",
         "pytestconfig",
         "QICON",

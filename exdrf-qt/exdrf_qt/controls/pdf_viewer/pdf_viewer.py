@@ -3,7 +3,7 @@
 from exdrf_qt.controls.pdf_viewer.image_graphics_view import ImageGraphicsView
 from exdrf_qt.controls.pdf_viewer.pdf_image_splitter import PdfImageSplitter
 from exdrf_qt.controls.pdf_viewer.pdf_image_viewer import PdfImageViewer
-from exdrf_qt.controls.pdf_viewer.pdf_render_worker import PdfRenderWorker
+from exdrf_qt.controls.pdf_viewer.pdf_render_worker import PdfRenderService
 from exdrf_qt.controls.pdf_viewer.rotation_editor_dialog import (
     RotationEditorDialog,
 )
@@ -15,7 +15,7 @@ from exdrf_qt.controls.pdf_viewer.split_preview_window import (
 
 __all__ = [
     "ImageGraphicsView",
-    "PdfRenderWorker",
+    "PdfRenderService",
     "PdfImageViewer",
     "PdfImageSplitter",
     "RotationEditorDialog",
@@ -29,7 +29,7 @@ if __name__ == "__main__":
     import os
     import sys
 
-    from PySide6.QtWidgets import (
+    from PyQt6.QtWidgets import (
         QApplication,
         QFileDialog,
         QMessageBox,

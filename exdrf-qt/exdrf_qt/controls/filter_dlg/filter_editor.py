@@ -23,15 +23,16 @@ from exdrf.filter_dsl import (
     raw_filter_to_text,
     serialize_filter,
 )
-from PySide6.QtCore import QStringListModel, Qt, Signal
-from PySide6.QtGui import (
+from PyQt6.QtCore import QStringListModel, Qt
+from PyQt6.QtCore import pyqtSignal as Signal
+from PyQt6.QtGui import (
     QColor,
     QFont,
     QKeyEvent,
     QTextCharFormat,
     QTextCursor,
 )
-from PySide6.QtWidgets import QCompleter, QLabel, QPlainTextEdit
+from PyQt6.QtWidgets import QCompleter, QLabel, QPlainTextEdit
 
 from exdrf_qt.context_use import QtUseContext
 

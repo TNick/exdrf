@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING, Generic
 
-from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QDialog, QDialogButtonBox, QListWidgetItem
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QDialog, QDialogButtonBox, QListWidgetItem
 
 from exdrf_qt.context_use import QtUseContext
 from exdrf_qt.controls.column_sel.column_sel_ui import Ui_ColumnSelDlg

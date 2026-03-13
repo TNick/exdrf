@@ -2,7 +2,7 @@ import os
 from typing import Callable, List, Optional
 
 import pytest
-from PySide6.QtWidgets import QApplication
+from PyQt6.QtWidgets import QApplication
 
 from exdrf_qt.comparator.logic.adapter import ComparatorAdapter
 from exdrf_qt.comparator.logic.manager import ComparatorManager

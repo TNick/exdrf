@@ -4,8 +4,8 @@ import logging
 from typing import TYPE_CHECKING, Dict, List, Optional
 
 from exdrf_al.connection import DbConn
-from PySide6.QtCore import Signal
-from PySide6.QtWidgets import QWidget
+from PyQt6.QtCore import pyqtSignal as Signal
+from PyQt6.QtWidgets import QWidget
 from sqlalchemy import MetaData, Table, inspect
 
 from exdrf_qt.utils.native_threads import PythonThread

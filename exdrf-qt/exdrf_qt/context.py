@@ -17,10 +17,10 @@ from typing import (
 
 from attrs import define, field
 from exdrf_al.connection import DbConn
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QIcon
+from PyQt6.QtWidgets import QMessageBox
 from pyrsistent import thaw
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import QMessageBox
 
 from exdrf_qt.controls.seldb.sel_db import SelectDatabaseDlg
 from exdrf_qt.local_settings import LocalSettings
@@ -32,7 +32,7 @@ from exdrf_qt.utils.sql_formatter import SQLPrettyFormatter  # noqa: F401
 from exdrf_qt.worker import Relay, Work
 
 if TYPE_CHECKING:
-    from PySide6.QtWidgets import QWidget  # noqa: F401
+    from PyQt6.QtWidgets import QWidget  # noqa: F401
     from sqlalchemy import Select  # noqa: F401
     from sqlalchemy.orm import Session
 

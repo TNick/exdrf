@@ -1,11 +1,11 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
+
+from PyQt6 import QtCore, QtWidgets
 
 if TYPE_CHECKING:
-    from exdrf_qt.field_ed.api import (
-        DrfIntEditor,
-        DrfLineEditor,
-        QtTagRelParent,
-    )
+    from exdrf_qt.field_ed.api import DrfIntEditor, DrfLineEditor
+
+    from exdrf_dev.qt_gen.db.parents.api import QtTagRelParent
 
 
 class Ui_QtTagEditor:
@@ -27,109 +27,87 @@ class Ui_QtTagEditor:
     c_id: "DrfIntEditor"
     c_name: "DrfLineEditor"
     c_parents: "QtTagRelParent"
-    formLayout: "QFormLayout"
-    formLayout1: "QVBoxLayout"
-    lbl_id: "QLabel"
-    lbl_name: "QLabel"
-    main_tab: "QTabWidget"
-    tab_general: "QWidget"
-    tab_parents_rel: "QWidget"
-    verticalLayout: "QVBoxLayout"
+    formLayout: "QtWidgets.QFormLayout"
+    formLayout1: "QtWidgets.QVBoxLayout"
+    lbl_id: "QtWidgets.QLabel"
+    lbl_name: "QtWidgets.QLabel"
+    main_tab: "QtWidgets.QTabWidget"
+    tab_general: "QtWidgets.QWidget"
+    tab_parents_rel: "QtWidgets.QWidget"
+    verticalLayout: "QtWidgets.QVBoxLayout"
+    ctx: "Any"  # Injected by host widget when used as mixin
 
     def setup_ui(self, QtTagEditor):
-        from exdrf_qt.field_ed.api import (
-            DrfIntEditor,
-            DrfLineEditor,
-            QtTagRelParent,
-        )
+        from exdrf_qt.field_ed.api import DrfIntEditor, DrfLineEditor
 
-        if not QtTagEditor.objectName():
-            QtTagEditor.setObjectName("QtTagEditor")
+        from exdrf_dev.qt_gen.db.parents.api import QtTagRelParent
+
+        QtTagEditor.setObjectName("QtTagEditor")
         QtTagEditor.resize(480, 640)
-        self.verticalLayout = QVBoxLayout(QtTagEditor)
+        self.verticalLayout = QtWidgets.QVBoxLayout(QtTagEditor)
         self.verticalLayout.setObjectName("verticalLayout")
-        self.main_tab = QTabWidget(QtTagEditor)
+        self.main_tab = QtWidgets.QTabWidget(parent=QtTagEditor)
         self.main_tab.setObjectName("main_tab")
-        self.tab_general = QWidget()
+        self.tab_general = QtWidgets.QWidget()
         self.tab_general.setObjectName("tab_general")
-        self.formLayout = QFormLayout(self.tab_general)
+        self.formLayout = QtWidgets.QFormLayout(self.tab_general)
         self.formLayout.setObjectName("formLayout")
-        self.lbl_name = QLabel(self.tab_general)
+        self.lbl_name = QtWidgets.QLabel(parent=self.tab_general)
         self.lbl_name.setObjectName("lbl_name")
-
         self.formLayout.setWidget(
-            0, QFormLayout.ItemRole.LabelRole, self.lbl_name
+            0, QtWidgets.QFormLayout.ItemRole.LabelRole, self.lbl_name
         )
-
         self.c_name = DrfLineEditor(parent=self.tab_general, ctx=self.ctx)
-        self.c_name.setObjectName("c_name")
         self.c_name.setProperty("name", "name")
-
+        self.c_name.setObjectName("c_name")
         self.formLayout.setWidget(
-            0, QFormLayout.ItemRole.FieldRole, self.c_name
+            0, QtWidgets.QFormLayout.ItemRole.FieldRole, self.c_name
         )
-
-        self.lbl_id = QLabel(self.tab_general)
+        self.lbl_id = QtWidgets.QLabel(parent=self.tab_general)
         self.lbl_id.setObjectName("lbl_id")
-
         self.formLayout.setWidget(
-            1, QFormLayout.ItemRole.LabelRole, self.lbl_id
+            1, QtWidgets.QFormLayout.ItemRole.LabelRole, self.lbl_id
         )
-
         self.c_id = DrfIntEditor(parent=self.tab_general, ctx=self.ctx)
-        self.c_id.setObjectName("c_id")
         self.c_id.setProperty("name", "id")
-
-        self.formLayout.setWidget(1, QFormLayout.ItemRole.FieldRole, self.c_id)
-
+        self.c_id.setObjectName("c_id")
+        self.formLayout.setWidget(
+            1, QtWidgets.QFormLayout.ItemRole.FieldRole, self.c_id
+        )
         self.main_tab.addTab(self.tab_general, "")
-        self.tab_parents_rel = QWidget()
+        self.tab_parents_rel = QtWidgets.QWidget()
         self.tab_parents_rel.setObjectName("tab_parents_rel")
-        self.formLayout1 = QVBoxLayout(self.tab_parents_rel)
+        self.formLayout1 = QtWidgets.QVBoxLayout(self.tab_parents_rel)
         self.formLayout1.setObjectName("formLayout1")
         self.c_parents = QtTagRelParent(
             parent=self.tab_parents_rel, ctx=self.ctx
         )
-        self.c_parents.setObjectName("c_parents")
         self.c_parents.setProperty("name", "parents")
-
+        self.c_parents.setObjectName("c_parents")
         self.formLayout1.addWidget(self.c_parents)
-
         self.main_tab.addTab(self.tab_parents_rel, "")
-
         self.verticalLayout.addWidget(self.main_tab)
-
         self.lbl_name.setBuddy(self.c_name)
         self.lbl_id.setBuddy(self.c_id)
 
         self.retranslate_ui(QtTagEditor)
-
         self.main_tab.setCurrentIndex(0)
-
-        QMetaObject.connectSlotsByName(QtTagEditor)
-
-    # setupUi
+        QtCore.QMetaObject.connectSlotsByName(QtTagEditor)
 
     def retranslate_ui(self, QtTagEditor):
         QtTagEditor.setWindowTitle(
-            QCoreApplication.translate("QtTagEditor", "Tag Editor", None)
+            self.ctx.t("gui.qt_tag_editor.window_title", "Tag Editor")
         )
-        self.lbl_name.setText(
-            QCoreApplication.translate("QtTagEditor", "Name ", None)
-        )
-        self.lbl_id.setText(
-            QCoreApplication.translate("QtTagEditor", "Id ", None)
-        )
+        self.lbl_name.setText(self.ctx.t("gui.qt_tag_editor.lbl_name", "Name "))
+        self.lbl_id.setText(self.ctx.t("gui.qt_tag_editor.lbl_id", "Id "))
         self.main_tab.setTabText(
             self.main_tab.indexOf(self.tab_general),
-            QCoreApplication.translate("QtTagEditor", "General", None),
+            self.ctx.t("gui.qt_tag_editor.tab_general", "General"),
         )
         self.main_tab.setTabText(
             self.main_tab.indexOf(self.tab_parents_rel),
-            QCoreApplication.translate("QtTagEditor", "Parents", None),
+            self.ctx.t("gui.qt_tag_editor.tab_parents_rel", "Parents"),
         )
-
-    # retranslate_ui
 
     def enum_controls(self):
         """Enumerate the controls in the form."""

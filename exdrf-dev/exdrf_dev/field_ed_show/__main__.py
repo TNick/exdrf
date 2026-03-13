@@ -1,5 +1,5 @@
-from PySide6.QtCore import QCoreApplication, Qt
-from PySide6.QtWidgets import QApplication
+from PyQt6.QtCore import QCoreApplication, Qt
+from PyQt6.QtWidgets import QApplication
 
 from exdrf_dev.__version__ import __version__
 from exdrf_dev.field_ed_show.main_window import MainWindow

@@ -10,13 +10,13 @@ from typing import (
     Union,
 )
 
-from PySide6.QtCore import (
+from PyQt6.QtCore import (
     Qt,
     QTimer,
-    Signal,
 )
-from PySide6.QtGui import QKeyEvent
-from PySide6.QtWidgets import (
+from PyQt6.QtCore import pyqtSignal as Signal
+from PyQt6.QtGui import QKeyEvent
+from PyQt6.QtWidgets import (
     QAbstractItemView,
     QProgressBar,
     QVBoxLayout,

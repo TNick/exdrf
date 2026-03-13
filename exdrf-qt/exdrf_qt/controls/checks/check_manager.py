@@ -10,7 +10,7 @@ from collections import OrderedDict, defaultdict
 from html import escape as html_escape
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
-from PySide6.QtCore import (
+from PyQt6.QtCore import (
     QEvent,
     QItemSelection,
     QItemSelectionModel,
@@ -18,10 +18,10 @@ from PySide6.QtCore import (
     QObject,
     Qt,
     QTimer,
-    Signal,
 )
-from PySide6.QtGui import QAction
-from PySide6.QtWidgets import (
+from PyQt6.QtCore import pyqtSignal as Signal
+from PyQt6.QtGui import QAction
+from PyQt6.QtWidgets import (
     QAbstractItemView,
     QButtonGroup,
     QFormLayout,
@@ -35,7 +35,7 @@ from PySide6.QtWidgets import (
 )
 
 try:
-    from PySide6.QtWinExtras import (
+    from PyQt6.QtWinExtras import (
         QWinTaskbarButton,
         QWinTaskbarProgress,
     )
@@ -67,7 +67,7 @@ if TYPE_CHECKING:
 
     from exdrf_util.check import Check
     from exdrf_util.task import TaskParameter
-    from PySide6.QtWinExtras import QWinTaskbarButton, QWinTaskbarProgress
+    from PyQt6.QtWinExtras import QWinTaskbarButton, QWinTaskbarProgress
 
     from exdrf_qt.context import QtContext
 

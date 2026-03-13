@@ -8,9 +8,9 @@ from typing import (
     cast,
 )
 
-from PySide6.QtCore import QRect, QSize, Qt, QTimer
-from PySide6.QtGui import QPainter
-from PySide6.QtWidgets import (
+from PyQt6.QtCore import QRect, QSize, Qt, QTimer
+from PyQt6.QtGui import QPainter
+from PyQt6.QtWidgets import (
     QHeaderView,
     QLineEdit,
     QStyle,

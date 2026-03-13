@@ -4,9 +4,9 @@ import os
 import unittest
 from unittest.mock import MagicMock
 
-from PySide6.QtCore import QModelIndex, QObject, Qt
-from PySide6.QtGui import QStandardItem, QStandardItemModel
-from PySide6.QtWidgets import QApplication
+from PyQt6.QtCore import QModelIndex, QObject, Qt
+from PyQt6.QtGui import QStandardItem, QStandardItemModel
+from PyQt6.QtWidgets import QApplication
 
 from exdrf_qt.models.proxy import SORT_ROLE, ProxyModel
 

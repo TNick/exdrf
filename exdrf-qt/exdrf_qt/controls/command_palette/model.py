@@ -1,7 +1,7 @@
 import logging
 from typing import TYPE_CHECKING, Any, List, Optional, cast
 
-from PySide6.QtCore import QAbstractListModel, QModelIndex, Qt, QVariant
+from PyQt6.QtCore import QAbstractListModel, QModelIndex, Qt
 
 from exdrf_qt.context_use import QtUseContext
 from exdrf_qt.controls.command_palette.constants import (
@@ -13,8 +13,8 @@ from exdrf_qt.controls.command_palette.constants import (
 )
 
 if TYPE_CHECKING:
-    from PySide6.QtCore import QObject  # noqa: F401
-    from PySide6.QtGui import QIcon  # noqa: F401
+    from PyQt6.QtCore import QObject  # noqa: F401
+    from PyQt6.QtGui import QIcon  # noqa: F401
 
     from exdrf_qt.context import QtContext  # noqa: F401
     from exdrf_qt.menus import ActionDef  # noqa: F401
@@ -67,12 +67,12 @@ class CompleterItemModel(QAbstractListModel, QtUseContext):
     ) -> Any:
         """Return data for the given role."""
         if not index.isValid():
-            return QVariant()
+            return None
 
         row = index.row()
         if row < 0 or row >= len(self._action_defs):
             logger.error("Invalid index: %s", index)
-            return QVariant()
+            return None
 
         action_def = self._action_defs[row]
 
@@ -91,7 +91,7 @@ class CompleterItemModel(QAbstractListModel, QtUseContext):
             if self._search_location & SearchLocation.TAGS:
                 result.append("\n".join(action_def.tags))
             return "\n".join(result)
-        return QVariant()
+        return None
 
     def get_title(self, row: int) -> str:
         """Get the title for the given row."""

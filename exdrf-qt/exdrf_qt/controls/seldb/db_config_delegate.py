@@ -1,9 +1,9 @@
 from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
-from PySide6.QtCore import QRect, QSize, Qt
-from PySide6.QtGui import QFont, QFontMetrics, QPainter
-from PySide6.QtWidgets import QStyle, QStyledItemDelegate, QStyleOptionViewItem
+from PyQt6.QtCore import QRect, QSize, Qt
+from PyQt6.QtGui import QFont, QFontMetrics, QPainter
+from PyQt6.QtWidgets import QStyle, QStyledItemDelegate, QStyleOptionViewItem
 
 from exdrf_qt.context_use import QtUseContext
 from exdrf_qt.controls.seldb.utils import (

@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING, Literal, Optional, TypedDict, cast
 
-from PySide6.QtWidgets import QTextEdit, QWidget
+from PyQt6.QtWidgets import QTextEdit, QWidget
 
 from exdrf_qt.controls.task_runner.param_widget import (
     HasParamRunner,

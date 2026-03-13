@@ -2,7 +2,7 @@ import pytest
 from exdrf.filter import FilterType
 from exdrf_qt.context import QtContext
 from exdrf_qt.worker import Work
-from PySide6.QtCore import Qt
+from PyQt6.QtCore import Qt
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
