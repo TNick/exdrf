@@ -7,8 +7,8 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional, cast
 
 import yaml
 from exdrf_al.connection import DbConn
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import (
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import (
     QCompleter,
     QFileDialog,
     QHBoxLayout,
@@ -306,7 +306,7 @@ class DbViewer(QWidget, QtUseContext):
             dlg = SelectDatabaseDlg(
                 ctx=self.ctx, parent=self, show_transfer_button=False
             )
-            dlg.exec_()
+            dlg.exec()
         except Exception as e:
             logger.error(
                 "DbViewer: failed to open database settings: %s",
@@ -469,7 +469,7 @@ class DbViewer(QWidget, QtUseContext):
             self.t("db_viewer.check_invert", "Invert check"),
             self._invert_table_checks,
         )
-        menu.exec_(self._list_widget.mapToGlobal(position))
+        menu.exec(self._list_widget.mapToGlobal(position))
 
     def _check_all_tables(self) -> None:
         """Set all table list items to checked."""

@@ -7,14 +7,14 @@ or when the tab is shown (if connected).
 import html
 from typing import Any, Callable, Dict, Optional
 
-from PyQt5.QtWidgets import (
+from PySide6.QtWidgets import (
     QTextEdit,
     QVBoxLayout,
     QWidget,
 )
 
 try:
-    from PyQt5.QtWebEngineWidgets import QWebEngineView
+    from PySide6.QtWebEngineWidgets import QWebEngineView
 except ImportError:
     QWebEngineView = None  # type: ignore[misc, assignment]
 

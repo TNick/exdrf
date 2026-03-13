@@ -12,15 +12,15 @@ from typing import (
 )
 
 from attrs import define, field
-from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QAction, QMenu, QMenuBar
+from PySide6.QtGui import QAction, QIcon
+from PySide6.QtWidgets import QMenu, QMenuBar
 
 from exdrf_qt.context_use import QtUseContext
 from exdrf_qt.plugins import exdrf_qt_pm, hook_spec
 from exdrf_qt.utils.plugins import safe_hook_call
 
 if TYPE_CHECKING:
-    from PyQt5.QtWidgets import QWidget  # noqa: F401
+    from PySide6.QtWidgets import QWidget  # noqa: F401
 
     from exdrf_qt.context import QtContext  # noqa: F401
     from exdrf_qt.controls.command_palette.line_edit import (  # noqa: F401

@@ -5,8 +5,14 @@ import os
 import re
 from typing import List, Optional, Set, Tuple
 
-from PyQt5.QtCore import QPoint, QRect, Qt
-from PyQt5.QtWidgets import QHBoxLayout, QMenu, QMessageBox, QSplitter, QWidget
+from PySide6.QtCore import QPoint, QRect, Qt
+from PySide6.QtWidgets import (
+    QHBoxLayout,
+    QMenu,
+    QMessageBox,
+    QSplitter,
+    QWidget,
+)
 
 from exdrf_qt.controls.pdf_viewer.pdf_image_viewer import PdfImageViewer
 from exdrf_qt.controls.pdf_viewer.split_entry import SplitEntry
@@ -302,7 +308,7 @@ class PdfImageSplitter(PdfImageViewer):
         assert act_new_entry is not None
         act_new_entry.triggered.connect(self._create_entry_from_current_page)
 
-        menu.exec_(viewport.mapToGlobal(pos))
+        menu.exec(viewport.mapToGlobal(pos))
 
     def _trigger_page_entry_action(self, key: int):
         """Dispatch keyboard shortcuts tied to split planner actions.

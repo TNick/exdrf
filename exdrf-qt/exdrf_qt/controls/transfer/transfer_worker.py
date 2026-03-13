@@ -4,8 +4,8 @@ import logging
 from typing import TYPE_CHECKING, Dict, List, Optional
 
 from exdrf_al.connection import DbConn
-from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtWidgets import QWidget
+from PySide6.QtCore import Signal
+from PySide6.QtWidgets import QWidget
 from sqlalchemy import MetaData, Table, func, inspect, select
 
 from exdrf_qt.utils.native_threads import PythonThread
@@ -41,11 +41,11 @@ class TransferWorker(PythonThread):
     _chunk: int
 
     # table, total rows (may be 0 if unknown)
-    table_started = pyqtSignal(str, int)
-    progress = pyqtSignal(str, int, int)  # table, done, total
-    table_done = pyqtSignal(str, int)
-    error = pyqtSignal(str, str)
-    finished_all = pyqtSignal()
+    table_started = Signal(str, int)
+    progress = Signal(str, int, int)  # table, done, total
+    table_done = Signal(str, int)
+    error = Signal(str, str)
+    finished_all = Signal()
 
     def __init__(
         self,

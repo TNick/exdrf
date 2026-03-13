@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 
-from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QAction, QMenu
+from PySide6.QtGui import QAction, QIcon
+from PySide6.QtWidgets import QMenu
 from sqlalchemy import Select
 
 from exdrf_qt.context_use import QtUseContext

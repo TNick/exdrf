@@ -69,7 +69,7 @@ class QtTagEditor(ExdrfEditor["Tag"], Ui_QtTagEditor):
         )
 
     def populate(self, record: Union["Tag", None]):
-        self._populate(record, [])
+        self._populate(record, ignore=[])
 
     def get_id_of_record(self, record: "Tag") -> RecIdType:
         return record.id

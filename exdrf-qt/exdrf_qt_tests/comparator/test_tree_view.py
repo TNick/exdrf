@@ -1,5 +1,5 @@
-from PyQt5.QtCore import QItemSelectionModel, QModelIndex
-from PyQt5.QtWidgets import QApplication
+from PySide6.QtCore import QItemSelectionModel, QModelIndex
+from PySide6.QtWidgets import QApplication
 
 from exdrf_qt.comparator.widgets.tree import ComparatorTreeView
 

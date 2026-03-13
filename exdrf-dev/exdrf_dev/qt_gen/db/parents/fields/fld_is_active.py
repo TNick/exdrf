@@ -38,6 +38,13 @@ class IsActiveField(QtBoolField["Parent"]):
 
     # exdrf-keep-end other_attributes -----------------------------------------
 
+    # Comparator/merge hooks: override cmp_extract_value, cmp_normalize_value,
+    # cmp_available_methods, cmp_create_manual_editor, cmp_apply_resolved_value
+    # as needed (defaults from QtField).
+    # exdrf-keep-start cmp_methods -------------------------------------------
+
+    # exdrf-keep-end cmp_methods ----------------------------------------------
+
     # exdrf-keep-start extra_field_content ------------------------------------
 
     # exdrf-keep-end extra_field_content --------------------------------------

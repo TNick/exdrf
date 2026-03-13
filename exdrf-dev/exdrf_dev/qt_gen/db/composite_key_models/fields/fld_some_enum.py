@@ -28,7 +28,7 @@ class SomeEnumField(QtEnumField["CompositeKeyModel"]):
     description: str = field(default=("An enum value representing status."))
     category: str = field(default="general")
     preferred_width: int = field(default=100)
-    enum_values: List[Tuple] = field(
+    enum_values: List[Tuple[str, str]] = field(
         factory=lambda: [
             ("PENDING", "Pending"),
             ("PROCESSING", "Processing"),
@@ -40,6 +40,13 @@ class SomeEnumField(QtEnumField["CompositeKeyModel"]):
     # exdrf-keep-start other_attributes ---------------------------------------
 
     # exdrf-keep-end other_attributes -----------------------------------------
+
+    # Comparator/merge hooks: override cmp_extract_value, cmp_normalize_value,
+    # cmp_available_methods, cmp_create_manual_editor, cmp_apply_resolved_value
+    # as needed (defaults from QtField).
+    # exdrf-keep-start cmp_methods -------------------------------------------
+
+    # exdrf-keep-end cmp_methods ----------------------------------------------
 
     # exdrf-keep-start extra_field_content ------------------------------------
 

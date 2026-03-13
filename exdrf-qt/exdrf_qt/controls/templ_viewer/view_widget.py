@@ -9,8 +9,8 @@ web view.
 import logging
 from typing import TYPE_CHECKING, Any
 
-from PyQt5.QtCore import QEvent, QObject, Qt, pyqtSignal
-from PyQt5.QtWebEngineWidgets import QWebEngineView
+from PySide6.QtCore import QEvent, QObject, Qt, Signal
+from PySide6.QtWebEngineWidgets import QWebEngineView
 
 from exdrf_qt.context_use import QtUseContext
 
@@ -37,9 +37,9 @@ class WebView(QWebEngineView, QtUseContext):
             created on first show_devtools call, cleared when closed.
     """
 
-    simpleRefresh = pyqtSignal()
-    fullRefresh = pyqtSignal()
-    printRequested = pyqtSignal()
+    simpleRefresh = Signal()
+    fullRefresh = Signal()
+    printRequested = Signal()
 
     def __init__(self, ctx: "QtContext", *args: Any, **kwargs: Any) -> None:
         """Initialize the web view with context and install event filter.

@@ -2,11 +2,11 @@ from typing import TYPE_CHECKING, Any, Dict, List
 
 from attrs import define, field
 from exdrf.constants import RecIdType
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QBrush, QColor
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QBrush, QColor
 
 if TYPE_CHECKING:
-    from PyQt5.QtCore import QModelIndex
+    from PySide6.QtCore import QModelIndex
 
     from exdrf_qt.models.model import QtModel  # noqa: F401
 
@@ -78,7 +78,7 @@ class QtRecord:
             str(
                 self.values[i].get(
                     Qt.ItemDataRole.DisplayRole,
-                    self.values.get(
+                    self.values[i].get(
                         Qt.ItemDataRole.EditRole,
                         self.model.t("cmn.null", "NULL"),
                     ),
@@ -99,7 +99,7 @@ class QtRecord:
             return in its `data()` method.
         """
         if self.error or not self.loaded:
-            if role == Qt.ItemDataRole.BackgroundColorRole:
+            if role == Qt.ItemDataRole.BackgroundRole:
                 return ERROR_BRUSH if self.error else LOADING_BRUSH
             elif role == Qt.ItemDataRole.ForegroundRole:
                 return ERROR_COLOR

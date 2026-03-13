@@ -36,13 +36,15 @@ class QtParentSiSe(DrfSelOneEditor):
             QtParentEditor,
         )
 
-        super().__init__(
+        DrfSelOneEditor.__init__(
+            self,
             qt_model=kwargs.pop(
                 "qt_model",
                 ctx.get_c_ovr(
                     "exdrf_dev.qt_gen.db.parents.selector.model",
                     QtParentNaMo,
                     ctx=ctx,
+                    prevent_total_count=True,
                 ),
             ),
             editor_class=kwargs.pop(
@@ -84,13 +86,15 @@ class QtParentMuSe(DrfSelMultiEditor):
             QtParentEditor,
         )
 
-        super().__init__(
+        DrfSelMultiEditor.__init__(
+            self,
             qt_model=kwargs.pop(
                 "qt_model",
                 ctx.get_c_ovr(
                     "exdrf_dev.qt_gen.db.parents.selector.model",
                     QtParentNaMo,
                     ctx=ctx,
+                    prevent_total_count=True,
                 ),
             ),
             editor_class=kwargs.pop(

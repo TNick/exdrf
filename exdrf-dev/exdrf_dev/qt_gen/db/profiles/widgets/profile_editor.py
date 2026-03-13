@@ -77,7 +77,7 @@ class QtProfileEditor(ExdrfEditor["Profile"], Ui_QtProfileEditor):
     def populate(self, record: Union["Profile", None]):
         self._populate(
             record,
-            [
+            ignore=[
                 "parent_id",
             ],
         )

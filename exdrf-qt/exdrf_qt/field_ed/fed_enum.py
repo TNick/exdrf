@@ -1,8 +1,8 @@
 from contextlib import contextmanager
 from typing import TYPE_CHECKING, Any, List, Tuple, Union, cast
 
-from PyQt5.QtCore import Qt, QTimer, pyqtSignal
-from PyQt5.QtWidgets import (
+from PySide6.QtCore import Qt, QTimer, Signal
+from PySide6.QtWidgets import (
     QFrame,
     QListWidget,
     QListWidgetItem,
@@ -28,7 +28,7 @@ class DropdownList(QFrame, QtUseContext):
             two parameters: the key and the label of the selected item.
     """
 
-    itemSelected = pyqtSignal(str, str)
+    itemSelected = Signal(str, str)
 
     def __init__(self, ctx: "QtContext", parent: "DrfEnumEditor"):
         super().__init__(parent)
@@ -395,7 +395,7 @@ class DrfEnumEditor(DropBase, EditorWithChoices):
 if __name__ == "__main__":
     import sys
 
-    from PyQt5.QtWidgets import QApplication
+    from PySide6.QtWidgets import QApplication
 
     from exdrf_qt.context import QtContext as LocalContext
 
@@ -441,4 +441,4 @@ if __name__ == "__main__":
 
     main_window.setLayout(layout)
     main_window.show()
-    sys.exit(app.exec_())
+    sys.exit(app.exec())

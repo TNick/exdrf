@@ -2,8 +2,8 @@ import logging
 from typing import TYPE_CHECKING, Any, Optional
 
 from exdrf.validator import ValidationResult
-from PyQt5.QtCore import pyqtProperty, pyqtSignal  # type: ignore
-from PyQt5.QtWidgets import QWidget
+from PySide6.QtCore import Property, Signal
+from PySide6.QtWidgets import QWidget
 
 from exdrf_qt.context_use import QtUseContext
 
@@ -52,8 +52,8 @@ class DrfFieldEd(QtUseContext):
     description: Optional[str]
     form: Optional["ExdrfEditorBase"] = None
 
-    controlChanged = pyqtSignal()
-    enteredErrorState = pyqtSignal(str)
+    controlChanged = Signal()
+    enteredErrorState = Signal(str)
 
     def __init__(  # type: ignore
         self,
@@ -271,7 +271,7 @@ class DrfFieldEd(QtUseContext):
         """
         self.nullable = clearable
 
-    clearable = pyqtProperty(bool, fget=getClearable, fset=setClearable)
+    clearable = Property(bool, fget=getClearable, fset=setClearable)
 
     def getName(self) -> str:
         """Get the name of the field in the database record.
@@ -287,7 +287,7 @@ class DrfFieldEd(QtUseContext):
         """
         self._name = value
 
-    name = pyqtProperty(str, fget=getName, fset=setName)
+    name = Property(str, fget=getName, fset=setName)
 
     def getModifiable(self) -> bool:
         """Get the modifiable property.
@@ -303,7 +303,7 @@ class DrfFieldEd(QtUseContext):
         """
         self.read_only = not value
 
-    modifiable = pyqtProperty(bool, fget=getModifiable, fset=setModifiable)
+    modifiable = Property(bool, fget=getModifiable, fset=setModifiable)
 
     @property
     def read_only(self) -> bool:

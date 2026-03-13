@@ -1,11 +1,34 @@
 """Tests for proxy module."""
 
+import os
 import unittest
 from unittest.mock import MagicMock
 
-from PyQt5.QtCore import QModelIndex, Qt
+from PySide6.QtCore import QModelIndex, QObject, Qt
+from PySide6.QtGui import QStandardItem, QStandardItemModel
+from PySide6.QtWidgets import QApplication
 
 from exdrf_qt.models.proxy import SORT_ROLE, ProxyModel
+
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+if QApplication.instance() is None:
+    QApplication([])
+
+
+def _make_source_model(
+    rows: list,
+    sort_values: list | None = None,
+) -> QStandardItemModel:
+    """Build a QStandardItemModel with one column and given row data."""
+    model = QStandardItemModel()
+    for i, val in enumerate(rows):
+        item = QStandardItem()
+        if val is not None:
+            item.setData(val, Qt.ItemDataRole.DisplayRole)
+        if sort_values is not None and i < len(sort_values):
+            item.setData(sort_values[i], SORT_ROLE)
+        model.setItem(i, 0, item)
+    return model
 
 
 class TestProxyModelInit(unittest.TestCase):
@@ -24,9 +47,9 @@ class TestProxyModelInit(unittest.TestCase):
 
     def test_init_with_parent(self) -> None:
         """Test initialization with parent."""
-        parent = MagicMock()
+        parent = QObject()
         proxy = ProxyModel(parent)
-        self.assertEqual(proxy.parent(), parent)
+        self.assertIs(proxy.parent(), parent)
 
 
 class TestProxyModelSetFilterCaseSensitivity(unittest.TestCase):
@@ -139,10 +162,6 @@ class TestProxyModelFilterAcceptsRow(unittest.TestCase):
     def setUp(self) -> None:
         """Set up test fixtures."""
         self.proxy = ProxyModel()
-        self.mock_model = MagicMock()
-        self.mock_index = MagicMock()
-        self.mock_index.isValid.return_value = True
-        self.mock_model.index.return_value = self.mock_index
 
     def test_filter_accepts_row_no_source_model(self) -> None:
         """Test filter accepts row when no source model."""
@@ -152,42 +171,42 @@ class TestProxyModelFilterAcceptsRow(unittest.TestCase):
 
     def test_filter_accepts_row_no_filters(self) -> None:
         """Test filter accepts row when no filters are set."""
-        self.proxy.setSourceModel(self.mock_model)
+        source = _make_source_model(["any"])
+        self.proxy.setSourceModel(source)
         self.proxy._row_predicate = None
         result = self.proxy.filterAcceptsRow(0, QModelIndex())
         self.assertTrue(result)
 
     def test_filter_accepts_row_column_filter_matches(self) -> None:
         """Test filter accepts row when column filter matches."""
-        self.proxy.setSourceModel(self.mock_model)
+        source = _make_source_model(["test value"])
+        self.proxy.setSourceModel(source)
         self.proxy.set_column_filter(0, "test")
-        self.mock_index.isValid.return_value = True
-        self.mock_model.data.return_value = "test value"
         self.proxy._row_predicate = None
         result = self.proxy.filterAcceptsRow(0, QModelIndex())
         self.assertTrue(result)
 
     def test_filter_accepts_row_column_filter_no_match(self) -> None:
         """Test filter rejects row when column filter doesn't match."""
-        self.proxy.setSourceModel(self.mock_model)
+        source = _make_source_model(["other value"])
+        self.proxy.setSourceModel(source)
         self.proxy.set_column_filter(0, "test")
-        self.mock_index.isValid.return_value = True
-        self.mock_model.data.return_value = "other value"
         self.proxy._row_predicate = None
         result = self.proxy.filterAcceptsRow(0, QModelIndex())
         self.assertFalse(result)
 
     def test_filter_accepts_row_invalid_index(self) -> None:
         """Test filter rejects row when index is invalid."""
-        self.proxy.setSourceModel(self.mock_model)
+        source = _make_source_model([])
+        self.proxy.setSourceModel(source)
         self.proxy.set_column_filter(0, "test")
-        self.mock_index.isValid.return_value = False
         result = self.proxy.filterAcceptsRow(0, QModelIndex())
         self.assertFalse(result)
 
     def test_filter_accepts_row_with_predicate_accepts(self) -> None:
         """Test filter accepts row when predicate accepts."""
-        self.proxy.setSourceModel(self.mock_model)
+        source = _make_source_model(["x"])
+        self.proxy.setSourceModel(source)
         predicate = MagicMock(return_value=True)
         self.proxy.set_row_predicate(predicate)
         result = self.proxy.filterAcceptsRow(0, QModelIndex())
@@ -196,7 +215,8 @@ class TestProxyModelFilterAcceptsRow(unittest.TestCase):
 
     def test_filter_accepts_row_with_predicate_rejects(self) -> None:
         """Test filter rejects row when predicate rejects."""
-        self.proxy.setSourceModel(self.mock_model)
+        source = _make_source_model(["x"])
+        self.proxy.setSourceModel(source)
         predicate = MagicMock(return_value=False)
         self.proxy.set_row_predicate(predicate)
         result = self.proxy.filterAcceptsRow(0, QModelIndex())
@@ -204,7 +224,8 @@ class TestProxyModelFilterAcceptsRow(unittest.TestCase):
 
     def test_filter_accepts_row_predicate_exception(self) -> None:
         """Test filter handles predicate exception."""
-        self.proxy.setSourceModel(self.mock_model)
+        source = _make_source_model(["x"])
+        self.proxy.setSourceModel(source)
         predicate = MagicMock(side_effect=Exception("Test error"))
         self.proxy.set_row_predicate(predicate)
         result = self.proxy.filterAcceptsRow(0, QModelIndex())
@@ -212,10 +233,9 @@ class TestProxyModelFilterAcceptsRow(unittest.TestCase):
 
     def test_filter_accepts_row_none_value(self) -> None:
         """Test filter handles None values in data."""
-        self.proxy.setSourceModel(self.mock_model)
+        source = _make_source_model([None])
+        self.proxy.setSourceModel(source)
         self.proxy.set_column_filter(0, ".*")
-        self.mock_index.isValid.return_value = True
-        self.mock_model.data.return_value = None
         self.proxy._row_predicate = None
         result = self.proxy.filterAcceptsRow(0, QModelIndex())
         self.assertTrue(result)
@@ -227,127 +247,85 @@ class TestProxyModelLessThan(unittest.TestCase):
     def setUp(self) -> None:
         """Set up test fixtures."""
         self.proxy = ProxyModel()
-        self.mock_model = MagicMock()
-        self.proxy.setSourceModel(self.mock_model)
 
     def test_less_than_no_source_model(self) -> None:
         """Test lessThan delegates to parent when no source model."""
         self.proxy.setSourceModel(None)
-        left = MagicMock()
-        right = MagicMock()
+        left = QModelIndex()
+        right = QModelIndex()
         result = self.proxy.lessThan(left, right)
-        # Should call parent, verify it doesn't crash
         self.assertIsInstance(result, bool)
 
     def test_less_than_uses_sort_role(self) -> None:
         """Test lessThan uses SORT_ROLE when available."""
-        left = MagicMock()
-        right = MagicMock()
-        left.column.return_value = 0
-        self.mock_model.data.side_effect = lambda idx, role: (
-            "sort_value" if role == SORT_ROLE else "display_value"
+        source = _make_source_model(
+            ["a", "b"],
+            sort_values=["sort_a", "sort_b"],
         )
+        self.proxy.setSourceModel(source)
+        left = source.index(0, 0, QModelIndex())
+        right = source.index(1, 0, QModelIndex())
         result = self.proxy.lessThan(left, right)
-        self.assertIsInstance(result, bool)
+        self.assertTrue(result)  # "sort_a" < "sort_b"
 
     def test_less_than_falls_back_to_display_role(self) -> None:
         """Test lessThan falls back to DisplayRole when SORT_ROLE is None."""
-        left = MagicMock()
-        right = MagicMock()
-        left.column.return_value = 0
-
-        def data_side_effect(idx, role):
-            if role == SORT_ROLE:
-                return None
-            return "display_value"
-
-        self.mock_model.data.side_effect = data_side_effect
+        source = _make_source_model(["apple", "banana"])
+        self.proxy.setSourceModel(source)
+        left = source.index(0, 0, QModelIndex())
+        right = source.index(1, 0, QModelIndex())
         result = self.proxy.lessThan(left, right)
-        self.assertIsInstance(result, bool)
+        self.assertTrue(result)  # "apple" < "banana"
 
     def test_less_than_numeric_sorting(self) -> None:
         """Test lessThan with numeric sorting enabled."""
+        source = _make_source_model(["5", "10"])
+        self.proxy.setSourceModel(source)
         self.proxy.set_numeric_sort_column(0)
-        left = MagicMock()
-        right = MagicMock()
-        left.column.return_value = 0
-        self.mock_model.data.return_value = "5"
-        right_data = MagicMock()
-        right_data.column.return_value = 0
+        left = source.index(0, 0, QModelIndex())
+        right = source.index(1, 0, QModelIndex())
         result = self.proxy.lessThan(left, right)
-        self.assertIsInstance(result, bool)
+        self.assertTrue(result)  # 5 < 10
 
     def test_less_than_numeric_sorting_parses_integers(self) -> None:
         """Test lessThan numeric sorting parses integers correctly."""
+        source = _make_source_model(["10", "2"])
+        self.proxy.setSourceModel(source)
         self.proxy.set_numeric_sort_column(0)
-        left = MagicMock()
-        right = MagicMock()
-        left.column.return_value = 0
-
-        def data_side_effect(idx, role):
-            if idx == left:
-                return "10"
-            elif idx == right:
-                return "2"
-            return None
-
-        self.mock_model.data.side_effect = data_side_effect
+        left = source.index(0, 0, QModelIndex())
+        right = source.index(1, 0, QModelIndex())
         result = self.proxy.lessThan(left, right)
         self.assertFalse(result)  # 10 is not < 2
 
     def test_less_than_numeric_sorting_non_numeric_fallback(self) -> None:
         """Test lessThan numeric sorting falls back to string compare."""
+        source = _make_source_model(["abc", "xyz"])
+        self.proxy.setSourceModel(source)
         self.proxy.set_numeric_sort_column(0)
         self.proxy.setFilterCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
-        left = MagicMock()
-        right = MagicMock()
-        left.column.return_value = 0
-
-        def data_side_effect(idx, role):
-            if idx == left:
-                return "abc"
-            elif idx == right:
-                return "xyz"
-            return None
-
-        self.mock_model.data.side_effect = data_side_effect
+        left = source.index(0, 0, QModelIndex())
+        right = source.index(1, 0, QModelIndex())
         result = self.proxy.lessThan(left, right)
         self.assertTrue(result)  # "abc" < "xyz"
 
     def test_less_than_case_sensitive_string_comparison(self) -> None:
         """Test lessThan with case sensitive string comparison."""
+        source = _make_source_model(["A", "a"])
+        self.proxy.setSourceModel(source)
         self.proxy.set_numeric_sort_column(0)
         self.proxy.setFilterCaseSensitivity(Qt.CaseSensitivity.CaseSensitive)
-        left = MagicMock()
-        right = MagicMock()
-        left.column.return_value = 0
-
-        def data_side_effect(idx, role):
-            if idx == left:
-                return "A"
-            elif idx == right:
-                return "a"
-            return None
-
-        self.mock_model.data.side_effect = data_side_effect
+        left = source.index(0, 0, QModelIndex())
+        right = source.index(1, 0, QModelIndex())
         result = self.proxy.lessThan(left, right)
-        self.assertIsInstance(result, bool)
+        self.assertTrue(result)  # "A" < "a" in ASCII
 
     def test_less_than_case_insensitive_string_comparison(self) -> None:
         """Test lessThan with case insensitive string comparison."""
+        source = _make_source_model(["apple", "banana"])
+        self.proxy.setSourceModel(source)
         self.proxy.set_numeric_sort_column(0)
         self.proxy.setFilterCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
-        left = MagicMock()
-        right = MagicMock()
-        left.column.return_value = 0
-
-        def data_side_effect(idx, role):
-            if idx == left:
-                return "apple"
-            elif idx == right:
-                return "banana"
-            return None
-
-        self.mock_model.data.side_effect = data_side_effect
+        left = source.index(0, 0, QModelIndex())
+        right = source.index(1, 0, QModelIndex())
         result = self.proxy.lessThan(left, right)
         self.assertTrue(result)  # "apple" < "banana"

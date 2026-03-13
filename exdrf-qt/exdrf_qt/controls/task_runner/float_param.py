@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING, List, Optional, Tuple, TypedDict, cast
 
-from PyQt5.QtWidgets import QComboBox, QDoubleSpinBox, QWidget
+from PySide6.QtWidgets import QComboBox, QDoubleSpinBox, QWidget
 
 from exdrf_qt.controls.task_runner.param_widget import (
     HasParamRunner,

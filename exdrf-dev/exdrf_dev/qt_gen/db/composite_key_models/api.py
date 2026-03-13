@@ -14,11 +14,17 @@ from exdrf_dev.qt_gen.db.composite_key_models.models.composite_key_model_ful imp
 from exdrf_dev.qt_gen.db.composite_key_models.models.composite_key_model_ocm import (
     QtCompositeKeyModelNaMo,
 )
+from exdrf_dev.qt_gen.db.composite_key_models.widgets.composite_key_model_cmp import (
+    QtCompositeKeyModelCmp,
+)
 from exdrf_dev.qt_gen.db.composite_key_models.widgets.composite_key_model_editor import (
     QtCompositeKeyModelEditor,
 )
 from exdrf_dev.qt_gen.db.composite_key_models.widgets.composite_key_model_list import (
     QtCompositeKeyModelList,
+)
+from exdrf_dev.qt_gen.db.composite_key_models.widgets.composite_key_model_rel import (
+    QtCompositeKeyModelRel,
 )
 from exdrf_dev.qt_gen.db.composite_key_models.widgets.composite_key_model_selector import (
     QtCompositeKeyModelMuSe,

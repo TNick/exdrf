@@ -7,8 +7,8 @@ from typing import (
     cast,
 )
 
-from PyQt5.QtCore import QItemSelection, QItemSelectionModel
-from PyQt5.QtWidgets import QAbstractItemView
+from PySide6.QtCore import QItemSelection, QItemSelectionModel
+from PySide6.QtWidgets import QAbstractItemView
 from sqlalchemy import inspect
 
 from exdrf_qt.field_ed.fed_sel_one import DrfSelBase

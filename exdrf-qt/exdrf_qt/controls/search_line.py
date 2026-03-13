@@ -1,9 +1,9 @@
 import logging
 from typing import TYPE_CHECKING, Callable, Generic, Optional, TypeVar
 
-from PyQt5.QtCore import QEvent, Qt, QTimer, pyqtSignal
-from PyQt5.QtGui import QFocusEvent, QKeyEvent, QMouseEvent
-from PyQt5.QtWidgets import QAction, QLineEdit, QWidget
+from PySide6.QtCore import QEvent, Qt, QTimer, Signal
+from PySide6.QtGui import QAction, QFocusEvent, QKeyEvent, QMouseEvent
+from PySide6.QtWidgets import QLineEdit, QWidget
 
 from exdrf_qt.context_use import QtUseContext
 from exdrf_qt.utils.tlh import top_level_handler
@@ -47,10 +47,10 @@ class SearchLine(QLineEdit, QtUseContext, Generic[DBM]):
 
     # Signal to indicate search should be applied and the line hidden
     # Arguments: search_text (str), is_exact_match (bool)
-    hide_and_apply_search = pyqtSignal(str, bool)
+    hide_and_apply_search = Signal(str, bool)
 
     # Signal to indicate search should be cancelled and the line hidden
-    hide_and_cancel_search = pyqtSignal()
+    hide_and_cancel_search = Signal()
 
     _search_timer: Optional[QTimer]
     _callback: Callable[[str, bool], None]

@@ -133,7 +133,12 @@ class DbConn:
         if supports_schema:
             self._set_search_path()
 
-        mgh = self.get_migration_handler()
+        final_mig_loc = os.environ.get("EXDRF_DB_MIGRATIONS_DIR", None)
+        if not final_mig_loc:
+            self.db_version = None
+            return self.engine
+
+        mgh = self.get_migration_handler(final_mig_loc)
         if self.auto_migrate:
             current_version = mgh.get_current_version()
             latest_version = mgh.get_latest_version()

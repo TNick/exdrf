@@ -1,8 +1,9 @@
 import logging
 from typing import TYPE_CHECKING, Optional
 
-from PyQt5.QtCore import QTimer, pyqtSignal
-from PyQt5.QtWidgets import QAction, QLineEdit, QWidget
+from PySide6.QtCore import QTimer, Signal
+from PySide6.QtGui import QAction
+from PySide6.QtWidgets import QLineEdit, QWidget
 
 from exdrf_qt.context_use import QtUseContext
 
@@ -33,8 +34,8 @@ class SearchLine(QLineEdit, QtUseContext):
     _search_timer: Optional[QTimer]
     _add_action: Optional[QAction]
 
-    searchTermChanged = pyqtSignal(str)
-    addButtonClicked = pyqtSignal(str)
+    searchTermChanged = Signal(str)
+    addButtonClicked = Signal(str)
 
     def __init__(
         self,

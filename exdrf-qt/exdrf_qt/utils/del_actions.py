@@ -2,8 +2,8 @@ import logging
 from typing import TYPE_CHECKING, Optional, Union
 
 from exdrf_al.utils import DelChoice
-from PyQt5.QtCore import QObject
-from PyQt5.QtWidgets import QAction, QActionGroup
+from PySide6.QtCore import QObject
+from PySide6.QtGui import QAction, QActionGroup
 
 if TYPE_CHECKING:
     from exdrf_util.typedefs import HasTranslate
@@ -70,7 +70,7 @@ def apply_del_action(
 ) -> Union[DelChoice, None]:
     """Apply the deleted choice to the model.
 
-    You can use this function with the result of calling menu.exec_() to apply
+    You can use this function with the result of calling menu.exec() to apply
     the deleted choice if the user selected an action created by
     create_del_actions().
 

@@ -10,7 +10,7 @@ classifiers = [
   "Typing :: Typed",
 ]
 dependencies = [
-  "PyQt5>=5.15.11",
+  "PySide6>=6.6.0",
 ]
 description = "Generate Qt-related classes content using DRF from sqlalchemy models."
 dynamic = ["version"]
@@ -55,7 +55,7 @@ profile = "black"
 
 [tool.black]
 line-length = 80
-target-version = ['py312', 'py313']
+target-version = ['py312']
 
 [tool.flake8]
 docstring-convention = "google"

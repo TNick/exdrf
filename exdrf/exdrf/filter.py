@@ -412,12 +412,13 @@ class SearchType(StrEnum):
             The prepared input.
         """
         if self == SearchType.EXTENDED:
-            if "%" not in value:
-                if "*" not in value:
-                    value = f"%{value}%"
-            else:
-                value = value.replace("*", "%")
+            if "%" not in value and "*" not in value:
+                value = f"%{value}%"
+            value = value.replace("*", "%")
             value = value.replace(" ", "%")
+            # Collapse consecutive % into one (e.g. "test* value" -> "test%value").
+            while "%%" in value:
+                value = value.replace("%%", "%")
         return value
 
     def create_filter(self, field: str, value: str) -> "FieldFilterDict":

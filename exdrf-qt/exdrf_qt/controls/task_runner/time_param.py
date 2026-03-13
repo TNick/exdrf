@@ -1,8 +1,8 @@
 from datetime import time
 from typing import TYPE_CHECKING, Optional, TypedDict, cast
 
-from PyQt5.QtCore import QTime
-from PyQt5.QtWidgets import QTimeEdit, QWidget
+from PySide6.QtCore import QTime
+from PySide6.QtWidgets import QTimeEdit, QWidget
 
 from exdrf_qt.controls.task_runner.param_widget import (
     HasParamRunner,

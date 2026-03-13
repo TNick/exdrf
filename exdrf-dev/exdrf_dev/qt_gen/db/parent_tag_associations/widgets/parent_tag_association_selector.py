@@ -38,13 +38,15 @@ class QtParentTagAssociationSiSe(DrfSelOneEditor):
             QtParentTagAssociationEditor,
         )
 
-        super().__init__(
+        DrfSelOneEditor.__init__(
+            self,
             qt_model=kwargs.pop(
                 "qt_model",
                 ctx.get_c_ovr(
                     "exdrf_dev.qt_gen.db.parent_tag_associations.selector.model",
                     QtParentTagAssociationNaMo,
                     ctx=ctx,
+                    prevent_total_count=True,
                 ),
             ),
             editor_class=kwargs.pop(
@@ -90,13 +92,15 @@ class QtParentTagAssociationMuSe(DrfSelMultiEditor):
             QtParentTagAssociationEditor,
         )
 
-        super().__init__(
+        DrfSelMultiEditor.__init__(
+            self,
             qt_model=kwargs.pop(
                 "qt_model",
                 ctx.get_c_ovr(
                     "exdrf_dev.qt_gen.db.parent_tag_associations.selector.model",
                     QtParentTagAssociationNaMo,
                     ctx=ctx,
+                    prevent_total_count=True,
                 ),
             ),
             editor_class=kwargs.pop(

@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING, Optional, cast
 
-from PyQt5.QtWidgets import (
+from PySide6.QtWidgets import (
     QHBoxLayout,
     QListWidget,
     QPushButton,

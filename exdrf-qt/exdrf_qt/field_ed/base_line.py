@@ -1,10 +1,9 @@
 from functools import partial
 from typing import TYPE_CHECKING, Optional, cast
 
-from PyQt5.QtCore import QEvent, QPoint, QRect, Qt, QTimer, pyqtSignal
-from PyQt5.QtGui import QMoveEvent, QResizeEvent
-from PyQt5.QtWidgets import (
-    QAction,
+from PySide6.QtCore import QEvent, QPoint, QRect, Qt, QTimer, Signal
+from PySide6.QtGui import QAction, QMoveEvent, QResizeEvent
+from PySide6.QtWidgets import (
     QApplication,
     QLabel,
     QLineEdit,
@@ -13,7 +12,7 @@ from PyQt5.QtWidgets import (
 )
 
 if TYPE_CHECKING:
-    from PyQt5.QtWidgets import QCompleter
+    from PySide6.QtWidgets import QCompleter
 
 from exdrf_qt.field_ed.base import DrfFieldEd
 
@@ -201,7 +200,7 @@ class InfoLabel(QLabel):
 
 class SpecialLine(QLineEdit):
 
-    geometryChange = pyqtSignal()
+    geometryChange = Signal()
 
     def keyPressEvent(self, event):  # type: ignore[override]
         result = super().keyPressEvent(event)
@@ -235,7 +234,7 @@ class LineBase(QWidget, DrfFieldEd):
     lay_main: "QVBoxLayout"
 
     ac_clear: Optional[QAction] = None  # type: ignore
-    showChoices = pyqtSignal()
+    showChoices = Signal()
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

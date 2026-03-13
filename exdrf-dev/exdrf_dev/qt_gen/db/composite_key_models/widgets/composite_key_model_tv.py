@@ -45,6 +45,9 @@ class QtCompositeKeyModelTv(RecordTemplViewer):
 
     def __init__(self, ctx: "QtContext", **kwargs):
         from exdrf_dev.db.api import CompositeKeyModel as DbCompositeKeyModel
+        from exdrf_dev.qt_gen.db.composite_key_models.widgets.composite_key_model_editor import (
+            QtCompositeKeyModelEditor,
+        )
 
         super().__init__(
             db_model=kwargs.pop(
@@ -76,6 +79,10 @@ class QtCompositeKeyModelTv(RecordTemplViewer):
                 ),
             ),
             ctx=ctx,
+            editor_ctor=ctx.get_ovr(
+                "exdrf_dev.qt_gen.db.composite_key_models.tv.editor_class",
+                QtCompositeKeyModelEditor,
+            ),
             **kwargs,
         )
         if not self.windowTitle():
@@ -117,7 +124,7 @@ class QtCompositeKeyModelTv(RecordTemplViewer):
                 label = self.t(
                     "composite_key_model.tv.title-found",
                     "Composite key model: view {name}",
-                    name=composite_key_model_label(result),
+                    name=composite_key_model_label(result, self.ctx),
                 )
             except Exception as e:
                 logger.error("Error getting label: %s", e, exc_info=True)
@@ -132,56 +139,88 @@ class QtCompositeKeyModelTv(RecordTemplViewer):
                 (
                     StrField(
                         name="description",
-                        title="Description",
-                        description=("A description for this record."),
+                        title=self.t(
+                            "composite_key_model.tv.description.t",
+                            "Description",
+                        ),
+                        description=self.t(
+                            "composite_key_model.tv.description.d",
+                            "A description for this record.",
+                        ),
                     ),
                     record.description,
                 ),
                 (
-                    RefOneToManyField(
-                        name="related_items",
-                        title="Related Items",
-                    ),
-                    record.related_items,
-                ),
-                (
                     DateField(
                         name="some_date",
-                        title="Some Date",
-                        description=("A date value."),
+                        title=self.t(
+                            "composite_key_model.tv.some_date.t", "Some Date"
+                        ),
+                        description=self.t(
+                            "composite_key_model.tv.some_date.d",
+                            "A date value.",
+                        ),
                     ),
                     record.some_date,
                 ),
                 (
                     EnumField(
                         name="some_enum",
-                        title="Some Enum",
-                        description=("An enum value representing status."),
+                        title=self.t(
+                            "composite_key_model.tv.some_enum.t", "Some Enum"
+                        ),
+                        description=self.t(
+                            "composite_key_model.tv.some_enum.d",
+                            "An enum value representing status.",
+                        ),
                     ),
                     record.some_enum,
                 ),
                 (
                     FloatField(
                         name="some_float",
-                        title="Some Float",
-                        description=("A floating-point number."),
+                        title=self.t(
+                            "composite_key_model.tv.some_float.t", "Some Float"
+                        ),
+                        description=self.t(
+                            "composite_key_model.tv.some_float.d",
+                            "A floating-point number.",
+                        ),
                     ),
                     record.some_float,
                 ),
                 (
                     TimeField(
                         name="some_time",
-                        title="Some Time",
-                        description=("A time value."),
+                        title=self.t(
+                            "composite_key_model.tv.some_time.t", "Some Time"
+                        ),
+                        description=self.t(
+                            "composite_key_model.tv.some_time.d",
+                            "A time value.",
+                        ),
                     ),
                     record.some_time,
                 ),
                 (
+                    RefOneToManyField(
+                        name="related_items",
+                        title=self.t(
+                            "composite_key_model.tv.related_items.t",
+                            "Related Items",
+                        ),
+                    ),
+                    record.related_items,
+                ),
+                (
                     StrField(
                         name="key_part1",
-                        title="Key Part1",
-                        description=(
-                            "First part of the composite primary key (string)."
+                        title=self.t(
+                            "composite_key_model.tv.key_part1.t", "Key Part1"
+                        ),
+                        description=self.t(
+                            "composite_key_model.tv.key_part1.d",
+                            "First part of the composite primary key (string).",
                         ),
                     ),
                     record.key_part1,
@@ -189,9 +228,12 @@ class QtCompositeKeyModelTv(RecordTemplViewer):
                 (
                     IntField(
                         name="key_part2",
-                        title="Key Part2",
-                        description=(
-                            "Second part of the composite primary key (integer)."
+                        title=self.t(
+                            "composite_key_model.tv.key_part2.t", "Key Part2"
+                        ),
+                        description=self.t(
+                            "composite_key_model.tv.key_part2.d",
+                            "Second part of the composite primary key (integer).",
                         ),
                     ),
                     record.key_part2,

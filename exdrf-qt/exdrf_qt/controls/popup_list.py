@@ -10,13 +10,13 @@ from typing import (
     Union,
 )
 
-from PyQt5.QtCore import (
+from PySide6.QtCore import (
     Qt,
     QTimer,
-    pyqtSignal,
+    Signal,
 )
-from PyQt5.QtGui import QKeyEvent
-from PyQt5.QtWidgets import (
+from PySide6.QtGui import QKeyEvent
+from PySide6.QtWidgets import (
     QAbstractItemView,
     QProgressBar,
     QVBoxLayout,
@@ -52,7 +52,7 @@ class PopupWidget(QWidget, Generic[DBM], QtUseContext):
     closed: Signal emitted when the popup hides.
     """
 
-    closed = pyqtSignal(bool)
+    closed = Signal(bool)
 
     tree: "TreeView"
     filter_edit: "ModelSearchLine"

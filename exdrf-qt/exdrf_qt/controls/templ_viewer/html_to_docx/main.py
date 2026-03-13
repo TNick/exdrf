@@ -12,9 +12,9 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Inches, Pt, RGBColor
 from minify_html import minify
-from PyQt5.QtCore import QBuffer, QByteArray, QIODevice, QUrl
-from PyQt5.QtGui import QDesktopServices, QImage
-from PyQt5.QtWebEngineWidgets import QWebEngineView
+from PySide6.QtCore import QBuffer, QByteArray, QIODevice, QUrl
+from PySide6.QtGui import QDesktopServices, QImage
+from PySide6.QtWebEngineWidgets import QWebEngineView
 
 from exdrf_qt.controls.templ_viewer.html_to_docx.screen_grabber import (
     FullPageGrabber,

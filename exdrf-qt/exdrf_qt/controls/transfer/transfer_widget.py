@@ -4,17 +4,16 @@ import logging
 from typing import TYPE_CHECKING, List, Optional, cast
 
 from exdrf_al.connection import DbConn
-from PyQt5.QtCore import (
+from PySide6.QtCore import (
     QItemSelectionModel,
     QPoint,
     QSortFilterProxyModel,
     Qt,
     QTimer,
 )
-from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import (
+from PySide6.QtGui import QAction, QIcon
+from PySide6.QtWidgets import (
     QAbstractItemView,
-    QAction,
     QHBoxLayout,
     QLabel,
     QMenu,
@@ -642,7 +641,7 @@ class TransferWidget(QWidget, QtUseContext):
             dlg = SelectDatabaseDlg(
                 ctx=self.ctx, parent=self, show_transfer_button=False
             )
-            dlg.exec_()
+            dlg.exec()
         except Exception as e:
             logger.error("Failed to open settings dialog: %s", e, exc_info=True)
         finally:
@@ -809,7 +808,7 @@ class TransferWidget(QWidget, QtUseContext):
         if vp is None:
             return
 
-        menu.exec_(vp.mapToGlobal(point))
+        menu.exec(vp.mapToGlobal(point))
 
     def _on_refresh_counts(self, view: QTableView) -> None:
         """Refresh counts: clear both models and run sync count for both sides.

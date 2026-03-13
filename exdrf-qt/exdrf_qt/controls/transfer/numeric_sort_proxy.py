@@ -3,7 +3,7 @@
 import logging
 from typing import Dict
 
-from PyQt5.QtCore import QModelIndex, QSortFilterProxyModel, Qt
+from PySide6.QtCore import QModelIndex, QSortFilterProxyModel, Qt
 
 logger = logging.getLogger(__name__)
 VERBOSE = 1

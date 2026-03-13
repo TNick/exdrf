@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any, Dict
 
 from attrs import define, field
 from exdrf_qt.models.fields import QtStringField
-from PyQt5.QtCore import Qt
+from PySide6.QtCore import Qt
 
 # exdrf-keep-start other_imports ----------------------------------------------
 
@@ -44,9 +44,10 @@ class LabelField(QtStringField["Parent"]):
     # exdrf-keep-end other_label_attributes -----------------------------------
 
     def values(self, record: "Parent") -> Dict[Qt.ItemDataRole, Any]:
+        from .db.parent import parent_label
+
         return self.expand_value(
-            (str("ID:") + str(record.id) + str(" Name:") + str(record.name)),
-            EditRole=record.id,
+            parent_label(record, self.ctx), EditRole=record.id
         )
 
     # exdrf-keep-start extra_label_content ------------------------------------

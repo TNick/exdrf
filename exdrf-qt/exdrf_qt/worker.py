@@ -19,7 +19,7 @@ from uuid import uuid4
 
 import sqlparse
 from attrs import define, field
-from PyQt5.QtCore import QObject, pyqtSignal
+from PySide6.QtCore import QObject, Signal
 from sqlalchemy import Select
 
 from exdrf_qt.utils.native_threads import PythonThread
@@ -533,7 +533,7 @@ class Worker(PythonThread):
     work: Optional["Work"]
     _stats: WorkerStats
 
-    haveResult = pyqtSignal(object)
+    haveResult = Signal(object)
 
     def __init__(
         self,

@@ -17,6 +17,7 @@ class MockQtField:
         sortable: bool = False,
         visible: bool = False,
         exportable: bool = False,
+        primary: bool = False,
     ):
         """Initialize a mock field."""
         self.name = name
@@ -25,6 +26,7 @@ class MockQtField:
         self.sortable = sortable
         self.visible = visible
         self.exportable = exportable
+        self.primary = primary
 
 
 class TestFieldsListFieldsProperty(unittest.TestCase):
@@ -108,15 +110,14 @@ class TestFieldsListFieldsProperty(unittest.TestCase):
         mock_field_class.return_value = self.field1
         mock_field_class.name = "field1"
 
-        # Mock ctx and resource on fields_list
+        # Mock ctx on fields_list (resource is the FieldsList itself)
         self.fields_list.ctx = MagicMock()
-        self.fields_list.resource = MagicMock()
 
         self.fields_list.fields = [mock_field_class]
 
-        # Verify the field was instantiated
+        # Verify the field was instantiated with ctx and resource=self
         mock_field_class.assert_called_once_with(
-            ctx=self.fields_list.ctx, resource=self.fields_list.resource
+            ctx=self.fields_list.ctx, resource=self.fields_list
         )
 
     def test_fields_setter_with_callable_instantiates(self):
@@ -125,15 +126,14 @@ class TestFieldsListFieldsProperty(unittest.TestCase):
         mock_callable_field.return_value = self.field1
         self.field1.name = "field1"
 
-        # Mock ctx and resource on fields_list
+        # Mock ctx on fields_list (resource is the FieldsList itself)
         self.fields_list.ctx = MagicMock()
-        self.fields_list.resource = MagicMock()
 
         self.fields_list.fields = [mock_callable_field]
 
-        # Verify the field was instantiated
+        # Verify the field was instantiated with ctx and resource=self
         mock_callable_field.assert_called_once_with(
-            ctx=self.fields_list.ctx, resource=self.fields_list.resource
+            ctx=self.fields_list.ctx, resource=self.fields_list
         )
 
 

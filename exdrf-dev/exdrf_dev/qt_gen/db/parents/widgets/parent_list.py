@@ -2,7 +2,8 @@
 # Source: exdrf_gen_al2qt.creator -> c/m/w/list.py.j2
 # Don't change it manually.
 
-from typing import TYPE_CHECKING
+import logging
+from typing import TYPE_CHECKING, Type
 
 from exdrf_qt.controls.table_list import ListDb
 from exdrf_qt.plugins import exdrf_qt_pm
@@ -13,6 +14,7 @@ from exdrf_qt.utils.plugins import safe_hook_call
 # exdrf-keep-end other_imports ------------------------------------------------
 
 if TYPE_CHECKING:
+    from exdrf_qt.comparator.widgets.record_cmp_base import RecordComparatorBase
     from exdrf_qt.context import QtContext  # noqa: F401
 
     from exdrf_dev.db.api import Parent  # noqa: F401
@@ -20,6 +22,8 @@ if TYPE_CHECKING:
 # exdrf-keep-start other_globals ----------------------------------------------
 
 # exdrf-keep-end other_globals ------------------------------------------------
+
+logger = logging.getLogger(__name__)
 
 
 class QtParentList(ListDb["Parent"]):
@@ -43,6 +47,14 @@ class QtParentList(ListDb["Parent"]):
                     "exdrf_dev.qt_gen.db.parents.list.extra-menus", None
                 ),
             ),
+            compare_merge_enabled=kwargs.pop(
+                "compare_merge_enabled",
+                ctx.get_ovr("list.compare_merge_enabled", True),
+            ),
+            compare_merge_max_selection=kwargs.pop(
+                "compare_merge_max_selection",
+                ctx.get_ovr("list.compare_merge_max_selection", 10),
+            ),
             **kwargs,
         )
         self.setModel(
@@ -64,6 +76,11 @@ class QtParentList(ListDb["Parent"]):
         # exdrf-keep-start extra_init -----------------------------------------
 
         # exdrf-keep-end extra_init -------------------------------------------
+
+    def compare_merge_widget_class(self) -> Type["RecordComparatorBase"]:
+        from .parent_cmp import QtParentCmp
+
+        return QtParentCmp
 
     # exdrf-keep-start extra_list_content ------------------------------------
 

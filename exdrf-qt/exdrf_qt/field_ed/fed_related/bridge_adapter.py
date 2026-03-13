@@ -6,8 +6,8 @@ from typing import TYPE_CHECKING, Any, Dict, List, Sequence, Tuple, Type
 from attrs import define, field
 from exdrf.constants import RecIdType
 from exdrf.validator import ValidationResult
-from PyQt5.QtCore import QModelIndex, Qt
-from PyQt5.QtWidgets import QAbstractItemView
+from PySide6.QtCore import QModelIndex, Qt
+from PySide6.QtWidgets import QAbstractItemView
 from sqlalchemy import delete, select
 
 from exdrf_qt.field_ed.fed_related.base_adapter import BaseAdapter

@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any, Dict
 
 from attrs import define, field
 from exdrf_qt.models.fields import QtStringField
-from PyQt5.QtCore import Qt
+from PySide6.QtCore import Qt
 
 # exdrf-keep-start other_imports ----------------------------------------------
 
@@ -44,8 +44,10 @@ class LabelField(QtStringField["CompositeKeyModel"]):
     # exdrf-keep-end other_label_attributes -----------------------------------
 
     def values(self, record: "CompositeKeyModel") -> Dict[Qt.ItemDataRole, Any]:
+        from .db.composite_key_model import composite_key_model_label
+
         return self.expand_value(
-            (str("Description:") + str(record.description)),
+            composite_key_model_label(record, self.ctx),
             EditRole=(
                 record.key_part1,
                 record.key_part2,

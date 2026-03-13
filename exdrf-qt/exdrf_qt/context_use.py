@@ -1,8 +1,8 @@
 from typing import TYPE_CHECKING, Any, Union
 
 if TYPE_CHECKING:
-    from PyQt5.QtGui import QIcon
-    from PyQt5.QtWidgets import QWidget  # noqa: F401
+    from PySide6.QtGui import QIcon
+    from PySide6.QtWidgets import QWidget  # noqa: F401
 
     from exdrf_qt.context import QtContext
 

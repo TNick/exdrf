@@ -10,11 +10,17 @@
 
 from exdrf_dev.qt_gen.db.children.models.child_ful import QtChildFuMo
 from exdrf_dev.qt_gen.db.children.models.child_ocm import QtChildNaMo
+from exdrf_dev.qt_gen.db.children.widgets.child_cmp import (
+    QtChildCmp,
+)
 from exdrf_dev.qt_gen.db.children.widgets.child_editor import (
     QtChildEditor,
 )
 from exdrf_dev.qt_gen.db.children.widgets.child_list import (
     QtChildList,
+)
+from exdrf_dev.qt_gen.db.children.widgets.child_rel import (
+    QtChildRel,
 )
 from exdrf_dev.qt_gen.db.children.widgets.child_selector import (
     QtChildMuSe,

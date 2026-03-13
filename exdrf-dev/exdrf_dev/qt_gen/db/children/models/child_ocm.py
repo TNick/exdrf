@@ -2,6 +2,8 @@
 # Source: exdrf_gen_al2qt.creator -> c/m/m_ocm.py.j2
 # Don't change it manually.
 
+import logging
+from functools import lru_cache
 from typing import TYPE_CHECKING, Union
 
 from exdrf_qt.plugins import exdrf_qt_pm
@@ -28,25 +30,47 @@ if TYPE_CHECKING:
 # exdrf-keep-end other_globals ------------------------------------------------
 
 
-def default_child_ocm_selection():
+@lru_cache(maxsize=1)
+def _default_child_ocm_selection_base():
     from exdrf_dev.db.api import Child as DbChild
     from exdrf_dev.db.api import Parent as DbParent
 
-    return (
-        select(DbChild)
-        .options(
-            load_only(
-                DbChild.data,
-                DbChild.id,
+    try:
+        return (
+            select(DbChild)
+            .options(
+                load_only(
+                    DbChild.data,
+                    DbChild.id,
+                )
+            )
+            .options(
+                joinedload(
+                    DbChild.parent,
+                ).load_only(
+                    DbParent.id,
+                    DbParent.name,
+                ),
             )
         )
-        .options(
-            joinedload(DbChild.parent).load_only(
-                DbParent.id,
-                DbParent.name,
-            ),
+    except Exception:
+        logging.getLogger(__name__).error(
+            "Error creating default selection for child",
+            exc_info=True,
         )
-    )
+        return select(DbChild)
+
+
+def default_child_ocm_selection(db_model: object):
+    from exdrf_dev.db.api import Child as DbChild
+
+    # If an override changes the ORM model class, the statically generated
+    # eager-loading options will not match. Fall back to a plain select on the
+    # overridden model to keep the query valid on all dialects.
+    if db_model is not DbChild:
+        return select(db_model)
+
+    return _default_child_ocm_selection_base()
 
 
 class QtChildNaMo(QtChildFuMo):
@@ -63,13 +87,15 @@ class QtChildNaMo(QtChildFuMo):
     def __init__(
         self, selection: Union["Select", None] = None, fields=None, **kwargs
     ):
-        pass
+        from exdrf_dev.db.api import Child as DbChild
 
         super().__init__(
             selection=(
                 selection
                 if selection is not None
-                else default_child_ocm_selection()
+                else default_child_ocm_selection(
+                    kwargs.get("db_model", DbChild)
+                )
             ),
             fields=(
                 fields
@@ -85,6 +111,7 @@ class QtChildNaMo(QtChildFuMo):
             **kwargs,
         )
         self.column_fields = ["label"]
+        self.remove_from_ssf("label")
 
         # Inform plugins that the model has been created.
         safe_hook_call(exdrf_qt_pm.hook.child_namo_created, model=self)

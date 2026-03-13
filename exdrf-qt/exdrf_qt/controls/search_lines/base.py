@@ -3,14 +3,15 @@ from typing import TYPE_CHECKING, Callable, Optional, Union
 
 from attrs import define
 from exdrf.filter import SearchType
-from PyQt5.QtCore import Qt, QTimer, pyqtSignal
-from PyQt5.QtWidgets import QAction, QLineEdit, QMenu, QWidget
+from PySide6.QtCore import Qt, QTimer, Signal
+from PySide6.QtGui import QAction
+from PySide6.QtWidgets import QLineEdit, QMenu, QWidget
 
 from exdrf_qt.context_use import QtUseContext
 from exdrf_qt.utils.tlh import top_level_handler
 
 if TYPE_CHECKING:
-    from PyQt5.QtGui import QKeyEvent
+    from PySide6.QtGui import QKeyEvent
 
     from exdrf_qt.context import QtContext
 
@@ -69,10 +70,10 @@ class BasicSearchLine(QLineEdit, QtUseContext):
 
     search_data: SearchData
 
-    searchDataChanged = pyqtSignal(object)
-    returnPressed = pyqtSignal()
-    escapePressed = pyqtSignal()
-    addButtonClicked = pyqtSignal(str)
+    searchDataChanged = Signal(object)
+    returnPressed = Signal()
+    escapePressed = Signal()
+    addButtonClicked = Signal(str)
 
     def __init__(
         self,
@@ -340,7 +341,7 @@ class BasicSearchLine(QLineEdit, QtUseContext):
         menu_pos = self.mapToGlobal(self.rect().bottomRight())
         menu_size = menu.sizeHint()
         menu_pos.setX(menu_pos.x() - menu_size.width())
-        menu.exec_(menu_pos)
+        menu.exec(menu_pos)
 
         # Apply changes to the search type.
         search_type = apply_search_action(ac_group_search)

@@ -123,8 +123,13 @@ class TestRegexFiOp(unittest.TestCase):
 
     def test_predicate_attribute(self) -> None:
         """Test that RegexFiOp has correct predicate attribute."""
+        from functools import partial
+
         op = RegexFiOp()
-        self.assertEqual(op.predicate, regexp_match_op)
+        self.assertIsInstance(op.predicate, partial)
+        self.assertEqual(op.predicate.keywords, {"flags": "im"})
+        if hasattr(op.predicate, "func"):
+            self.assertIs(op.predicate.func, regexp_match_op)
 
 
 class TestIsNoneFunction(unittest.TestCase):

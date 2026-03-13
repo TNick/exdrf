@@ -2,7 +2,7 @@ import logging
 import weakref
 from typing import Optional, cast
 
-from PyQt5.QtCore import (
+from PySide6.QtCore import (
     QEasingCurve,
     QEvent,
     QObject,
@@ -11,8 +11,8 @@ from PyQt5.QtCore import (
     Qt,
     QTimer,
 )
-from PyQt5.QtGui import QFont, QMouseEvent
-from PyQt5.QtWidgets import (
+from PySide6.QtGui import QFont, QMouseEvent
+from PySide6.QtWidgets import (
     QGraphicsOpacityEffect,
     QHBoxLayout,
     QLabel,

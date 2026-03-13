@@ -21,8 +21,8 @@ from typing import (
     cast,
 )
 
-from PyQt5.QtCore import QAbstractItemModel, QModelIndex, Qt, QVariant
-from PyQt5.QtGui import QIcon
+from PySide6.QtCore import QAbstractItemModel, QModelIndex, Qt, QVariant
+from PySide6.QtGui import QIcon
 
 from exdrf_qt.context import QtContext
 from exdrf_qt.context_use import QtUseContext

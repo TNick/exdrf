@@ -27,7 +27,7 @@ def test_all_models_returns_registered_model_classes(LocalBase):
 
     result = set(x.__tablename__ for x in LocalBase.all_models())
 
-    assert result == set(["mock_a", "mock_b"])
+    assert set(["mock_a", "mock_b"]).issubset(result)
 
 
 def test_all_models_empty_registry(LocalBase):

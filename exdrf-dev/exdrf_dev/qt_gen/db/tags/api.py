@@ -10,11 +10,18 @@
 
 from exdrf_dev.qt_gen.db.tags.models.tag_ful import QtTagFuMo
 from exdrf_dev.qt_gen.db.tags.models.tag_ocm import QtTagNaMo
+from exdrf_dev.qt_gen.db.tags.widgets.tag_cmp import (
+    QtTagCmp,
+)
 from exdrf_dev.qt_gen.db.tags.widgets.tag_editor import (
     QtTagEditor,
 )
 from exdrf_dev.qt_gen.db.tags.widgets.tag_list import (
     QtTagList,
+)
+from exdrf_dev.qt_gen.db.tags.widgets.tag_rel import (
+    QtParentRelTag,
+    QtTagRel,
 )
 from exdrf_dev.qt_gen.db.tags.widgets.tag_selector import (
     QtTagMuSe,

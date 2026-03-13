@@ -16,7 +16,7 @@ from typing import (
     Type,
 )
 
-from PyQt5.QtWidgets import (
+from PySide6.QtWidgets import (
     QTabWidget,
     QVBoxLayout,
     QWidget,

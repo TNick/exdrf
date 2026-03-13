@@ -13,8 +13,8 @@ from typing import (
 from attrs import define, field
 from exdrf.api import ExField
 from exdrf.filter import FieldFilter
-from PyQt5.QtCore import QSize, Qt
-from PyQt5.QtGui import QBrush, QColor, QFont
+from PySide6.QtCore import QSize, Qt
+from PySide6.QtGui import QBrush, QColor, QFont
 from sqlalchemy import inspect
 from sqlalchemy.orm.collections import InstrumentedList, InstrumentedSet
 from sqlalchemy.sql.operators import or_, regexp_match_op
@@ -24,7 +24,7 @@ from exdrf_qt.context_use import QtUseContext
 from exdrf_qt.models.fi_op import filter_op_registry
 
 if TYPE_CHECKING:
-    from PyQt5.QtWidgets import QWidget  # noqa: F401
+    from PySide6.QtWidgets import QWidget  # noqa: F401
     from sqlalchemy.orm.session import Session
 
     from exdrf_qt.comparator.logic.merge import (

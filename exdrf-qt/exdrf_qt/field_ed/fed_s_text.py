@@ -124,7 +124,7 @@ class DrfLineEditor(LineBase, EditorWithChoices):
 
 
 if __name__ == "__main__":
-    from PyQt5.QtWidgets import QApplication, QVBoxLayout, QWidget
+    from PySide6.QtWidgets import QApplication, QVBoxLayout, QWidget
 
     from exdrf_qt.context import QtContext as LocalContext
 
@@ -159,4 +159,4 @@ if __name__ == "__main__":
 
     main_window.setLayout(layout)
     main_window.show()
-    app.exec_()
+    app.exec()

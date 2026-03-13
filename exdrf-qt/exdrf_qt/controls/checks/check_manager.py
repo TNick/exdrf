@@ -10,7 +10,7 @@ from collections import OrderedDict, defaultdict
 from html import escape as html_escape
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
-from PyQt5.QtCore import (
+from PySide6.QtCore import (
     QEvent,
     QItemSelection,
     QItemSelectionModel,
@@ -18,11 +18,11 @@ from PyQt5.QtCore import (
     QObject,
     Qt,
     QTimer,
-    pyqtSignal,
+    Signal,
 )
-from PyQt5.QtWidgets import (
+from PySide6.QtGui import QAction
+from PySide6.QtWidgets import (
     QAbstractItemView,
-    QAction,
     QButtonGroup,
     QFormLayout,
     QHeaderView,
@@ -35,7 +35,7 @@ from PyQt5.QtWidgets import (
 )
 
 try:
-    from PyQt5.QtWinExtras import (
+    from PySide6.QtWinExtras import (
         QWinTaskbarButton,
         QWinTaskbarProgress,
     )
@@ -67,7 +67,7 @@ if TYPE_CHECKING:
 
     from exdrf_util.check import Check
     from exdrf_util.task import TaskParameter
-    from PyQt5.QtWinExtras import QWinTaskbarButton, QWinTaskbarProgress
+    from PySide6.QtWinExtras import QWinTaskbarButton, QWinTaskbarProgress
 
     from exdrf_qt.context import QtContext
 
@@ -142,10 +142,10 @@ class CheckManager(
     _taskbar_button: Optional[Any]
     _taskbar_progress: Optional[Any]
 
-    shouldClose = pyqtSignal()
-    shouldStart = pyqtSignal()
-    shouldRestart = pyqtSignal()
-    progressChanged = pyqtSignal(int)
+    shouldClose = Signal()
+    shouldStart = Signal()
+    shouldRestart = Signal()
+    progressChanged = Signal(int)
 
     def __init__(
         self,
@@ -476,7 +476,7 @@ class CheckManager(
         types_menu = menu.addMenu(self.t("results.types.t", "Types"))
         self._populate_results_type_menu(types_menu)
 
-        menu.exec_(self.c_results.viewport().mapToGlobal(pos))
+        menu.exec(self.c_results.viewport().mapToGlobal(pos))
 
     def _rebuild_results_type_menu(self) -> None:
         """Rebuild the toolbutton menu for filtering result types."""
@@ -1203,7 +1203,7 @@ class CheckManager(
                 )
             )
             box.setDetailedText("\n".join(lines))
-            box.exec_()
+            box.exec()
 
     def _on_filter_text_changed(self, text: str) -> None:
         """Handle filter typing with a debounce timer.
@@ -1292,7 +1292,7 @@ class CheckManager(
         menu.addAction(act_sort_asc)
         menu.addAction(act_sort_desc)
 
-        menu.exec_(self.c_available.viewport().mapToGlobal(pos))
+        menu.exec(self.c_available.viewport().mapToGlobal(pos))
 
     def _on_selected_context_menu(self, pos) -> None:
         """Show context menu for the selected checks view.
@@ -1366,7 +1366,7 @@ class CheckManager(
         menu.addAction(act_sort_asc)
         menu.addAction(act_sort_desc)
 
-        menu.exec_(self.c_selected.viewport().mapToGlobal(pos))
+        menu.exec(self.c_selected.viewport().mapToGlobal(pos))
 
     def _on_refresh_available(self) -> None:
         """Reload available checks and re-apply exclusions."""

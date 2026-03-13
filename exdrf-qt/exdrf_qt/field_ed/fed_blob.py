@@ -1,8 +1,8 @@
 from typing import Any
 
 from exdrf.field import ExField
-from PyQt5.QtWidgets import (
-    QAction,
+from PySide6.QtGui import QAction
+from PySide6.QtWidgets import (
     QApplication,
     QFileDialog,
     QLineEdit,
@@ -170,4 +170,4 @@ if __name__ == "__main__":
 
     main_window.setLayout(layout)
     main_window.show()
-    app.exec_()
+    app.exec()

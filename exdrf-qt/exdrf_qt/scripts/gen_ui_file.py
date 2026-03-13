@@ -1,6 +1,7 @@
-import io
 import os
 import re
+import subprocess
+import tempfile
 from typing import List, Optional, Set, Tuple
 
 import click
@@ -238,9 +239,20 @@ class Fixer:
         changed = []
         prefix = ""
         in_setup_ui = False
+        skip_import_continuation = False
         for line in self._modified_text:
             line = prefix + line
             prefix = ""
+
+            # Skip continuation lines of multi-line import (...)
+            if skip_import_continuation:
+                if self._imports and isinstance(self._imports[-1], str):
+                    last = self._imports[-1]
+                    if last.rstrip().endswith(",") or "(" in last:
+                        self._imports[-1] = last.rstrip() + " " + line.strip()
+                if ")" in line:
+                    skip_import_continuation = False
+                continue
 
             # Get rid of the comments.
             if line.startswith("#"):
@@ -249,8 +261,23 @@ class Fixer:
                 prefix = line
                 continue
             if line.startswith("from "):
-                if "PyQt5" not in line:
+                if "QtCore" in line:
+                    self._has_qt_core = True
+                if "QtGui" in line:
+                    self._has_qt_gui = True
+                if "QtWidgets" in line:
+                    self._has_qt_widgets = True
+                if "QtWebEngineWidgets" in line:
+                    self._has_qt_web_engine_widgets = True
+                if "PySide6" not in line:
                     self._imports.append(line)
+                    # Skip continuation of "from X import (..."
+                    if " import (" in line and not line.rstrip().endswith(")"):
+                        skip_import_continuation = True
+                else:
+                    # Skip continuation of "from PySide6.X import (..."
+                    if " import (" in line and not line.rstrip().endswith(")"):
+                        skip_import_continuation = True
                 continue
 
             s_line = line.strip()
@@ -342,7 +369,9 @@ class Fixer:
             self._modified_text.append(
                 "from typing import TYPE_CHECKING\n",
             )
-        self._modified_text.append("from PyQt5 import " + ", ".join(py_import))
+        self._modified_text.append(
+            "from PySide6 import " + ", ".join(py_import)
+        )
 
         if len(self._imports):
             self._modified_text.append("if TYPE_CHECKING:")
@@ -385,8 +414,6 @@ class Fixer:
 def convert_pair(
     ui_file: str, py_file: str, keep_original: Optional[str] = None
 ) -> int:
-    from PyQt5 import uic
-
     if not os.path.exists(ui_file):
         print("File not found:", ui_file)
         return 1
@@ -410,17 +437,23 @@ def convert_pair(
                         continue
                     custom_widgets.append(name)
 
-    output = io.StringIO()
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".py", delete=False
+    ) as tmp:
+        tmp_path = tmp.name
     try:
-        uic.compileUi(ui_file, output)
-    except Exception as e:
-        import traceback
-
-        traceback.print_exc()
-        print(f"Error compiling {ui_file}: {e}")
-        return 1
-
-    original = output.getvalue()
+        result = subprocess.run(
+            ["pyside6-uic", ui_file, "-o", tmp_path],
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            print("pyside6-uic error: %s" % (result.stderr or result.stdout))
+            return 1
+        with open(tmp_path, "r", encoding="utf-8") as f:
+            original = f.read()
+    finally:
+        os.unlink(tmp_path)
     if keep_original:
         with open(keep_original, "w", encoding="utf-8") as f:
             f.write(original)
@@ -428,7 +461,6 @@ def convert_pair(
     fx = Fixer(original, custom_widgets)
     if os.path.isfile(py_file):
         os.remove(py_file)
-    output.close()
 
     with open(py_file, "w", encoding="utf-8") as f:
         f.write(fx.fix().modified_text)

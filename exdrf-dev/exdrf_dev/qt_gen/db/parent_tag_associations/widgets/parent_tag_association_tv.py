@@ -41,6 +41,9 @@ class QtParentTagAssociationTv(RecordTemplViewer):
         from exdrf_dev.db.api import (
             ParentTagAssociation as DbParentTagAssociation,
         )
+        from exdrf_dev.qt_gen.db.parent_tag_associations.widgets.parent_tag_association_editor import (
+            QtParentTagAssociationEditor,
+        )
 
         super().__init__(
             db_model=kwargs.pop(
@@ -72,6 +75,10 @@ class QtParentTagAssociationTv(RecordTemplViewer):
                 ),
             ),
             ctx=ctx,
+            editor_ctor=ctx.get_ovr(
+                "exdrf_dev.qt_gen.db.parent_tag_associations.tv.editor_class",
+                QtParentTagAssociationEditor,
+            ),
             **kwargs,
         )
         if not self.windowTitle():
@@ -114,7 +121,7 @@ class QtParentTagAssociationTv(RecordTemplViewer):
                 label = self.t(
                     "parent_tag_association.tv.title-found",
                     "Parent tag association: view {name}",
-                    name=parent_tag_association_label(result),
+                    name=parent_tag_association_label(result, self.ctx),
                 )
             except Exception as e:
                 logger.error("Error getting label: %s", e, exc_info=True)
@@ -129,16 +136,26 @@ class QtParentTagAssociationTv(RecordTemplViewer):
                 (
                     IntField(
                         name="parent_id",
-                        title="Parent Id",
-                        description=("Foreign key to the parents table."),
+                        title=self.t(
+                            "parent_tag_association.tv.parent_id.t", "Parent Id"
+                        ),
+                        description=self.t(
+                            "parent_tag_association.tv.parent_id.d",
+                            "Foreign key to the parents table.",
+                        ),
                     ),
                     record.parent_id,
                 ),
                 (
                     IntField(
                         name="tag_id",
-                        title="Tag Id",
-                        description=("Foreign key to the tags table."),
+                        title=self.t(
+                            "parent_tag_association.tv.tag_id.t", "Tag Id"
+                        ),
+                        description=self.t(
+                            "parent_tag_association.tv.tag_id.d",
+                            "Foreign key to the tags table.",
+                        ),
                     ),
                     record.tag_id,
                 ),

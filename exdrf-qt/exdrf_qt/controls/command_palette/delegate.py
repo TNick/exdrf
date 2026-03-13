@@ -1,13 +1,13 @@
 from typing import cast
 
-from PyQt5.QtCore import (
+from PySide6.QtCore import (
     QModelIndex,
     QRect,
     QSize,
     Qt,
 )
-from PyQt5.QtGui import QFont, QIcon, QPainter, QTextDocument
-from PyQt5.QtWidgets import (
+from PySide6.QtGui import QFont, QIcon, QPainter, QTextDocument
+from PySide6.QtWidgets import (
     QListView,
     QStyle,
     QStyledItemDelegate,

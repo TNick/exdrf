@@ -3,8 +3,8 @@ from typing import Optional, TypeVar, Union
 
 from exdrf.moment import MomentFormat
 from exdrf.validator import ValidationResult
-from PyQt5.QtWidgets import (
-    QAction,
+from PySide6.QtGui import QAction
+from PySide6.QtWidgets import (
     QCalendarWidget,
     QDialog,
     QDialogButtonBox,
@@ -110,7 +110,7 @@ class DateBase(LineBase):
         calendar_dialog = CalendarPopup(
             current_date, self  # type: ignore[call-arg]
         )
-        if calendar_dialog.exec_() == QDialog.Accepted:
+        if calendar_dialog.exec() == QDialog.Accepted:
             cal_date = calendar_dialog.selected_date()
             if isinstance(self.field_value, datetime):
                 cal_date = datetime(

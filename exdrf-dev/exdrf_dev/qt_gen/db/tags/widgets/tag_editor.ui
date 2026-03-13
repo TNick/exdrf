@@ -20,12 +20,13 @@
       <number>0</number>
      </property>
      
+     
+     
      <widget class="QWidget" name="tab_general">
       <attribute name="title">
        <string>General</string>
       </attribute>
       <layout class="QFormLayout" name="formLayout">
-     
        
        <item row="0" column="0">
         <widget class="QLabel" name="lbl_name">
@@ -48,43 +49,8 @@
         </widget>
        </item>
      
-     
        
        <item row="1" column="0">
-        <widget class="QLabel" name="lbl_parents">
-         <property name="text">
-          <string>Parents </string>
-         </property>
-         <property name="buddy">
-          <cstring>c_parents</cstring>
-         </property>
-        </widget>
-       </item>
-       
-       <item row="1" column="1">
-        
-        
-        <widget class="QtParentMuSe" name="c_parents">
-         <property name="name" stdset="0">
-          <string notr="true">parents</string>
-         </property>
-         <property name="clearable" stdset="0">
-          <bool>true</bool>
-         </property>
-        </widget>
-       </item>
-     
-      </layout>
-     </widget>
-     
-     <widget class="QWidget" name="tab_keys">
-      <attribute name="title">
-       <string>Keys</string>
-      </attribute>
-      <layout class="QFormLayout" name="formLayout">
-     
-       
-       <item row="0" column="0">
         <widget class="QLabel" name="lbl_id">
          <property name="text">
           <string>Id </string>
@@ -95,7 +61,7 @@
         </widget>
        </item>
        
-       <item row="0" column="1">
+       <item row="1" column="1">
         
         
         <widget class="DrfIntEditor" name="c_id">
@@ -108,6 +74,21 @@
       </layout>
      </widget>
      
+     
+     <widget class="QWidget" name="tab_parents_rel">
+      <attribute name="title">
+       <string>Parents</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="formLayout">
+      <item row="0">
+        <widget class="QtTagRelParent" name="c_parents">
+         <property name="name" stdset="0">
+          <string notr="true">parents</string>
+         </property>
+        </widget>
+      </item>
+      </layout>
+     </widget>
     </widget>
    </item>
   </layout>
@@ -117,17 +98,20 @@
     <class>DrfLineEditor</class>
     <extends>QLineEdit</extends>
     <header>exdrf_qt.field_ed.api</header>
-  </customwidget>
-  <customwidget>
-    <class>QtParentMuSe</class>
-    <extends>QLineEdit</extends>
-    <header>exdrf_dev.qt_gen.db.parents.api</header>
-  </customwidget>
+  </customwidget> 
   <customwidget>
     <class>DrfIntEditor</class>
     <extends>QLineEdit</extends>
     <header>exdrf_qt.field_ed.api</header>
-  </customwidget>
+  </customwidget>   
+ 
+  <customwidget>
+    <class>QtTagRelParent</class>
+    <extends>QWidget</extends>
+    <header>exdrf_dev.qt_gen.db.parents.api</header>
+    <header>exdrf_qt.field_ed.api</header>
+  </customwidget> 
+
  </customwidgets>
  <resources/>
  <connections/>

@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING, Any, Optional
 
-from PyQt5.QtWidgets import QAction, QPlainTextEdit
+from PySide6.QtGui import QAction
+from PySide6.QtWidgets import QPlainTextEdit
 
 from exdrf_qt.field_ed.base import DrfFieldEd
 
@@ -50,7 +51,7 @@ class DrfTextEditor(QPlainTextEdit, DrfFieldEd):
             menu.addAction(self.ac_clear)
 
         assert e is not None
-        menu.exec_(e.globalPos())
+        menu.exec(e.globalPos())
 
     def change_field_value(self, new_value: Any) -> None:
         """Change the field value.
@@ -191,7 +192,7 @@ class DrfTextEditor(QPlainTextEdit, DrfFieldEd):
 
 
 if __name__ == "__main__":
-    from PyQt5.QtWidgets import QApplication, QVBoxLayout, QWidget
+    from PySide6.QtWidgets import QApplication, QVBoxLayout, QWidget
 
     from exdrf_qt.context import QtContext as LocalContext
 
@@ -228,4 +229,4 @@ if __name__ == "__main__":
 
     main_window.setLayout(layout)
     main_window.show()
-    app.exec_()
+    app.exec()

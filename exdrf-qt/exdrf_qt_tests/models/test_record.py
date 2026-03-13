@@ -3,7 +3,7 @@
 import unittest
 from unittest.mock import MagicMock
 
-from PyQt5.QtCore import Qt
+from PySide6.QtCore import Qt
 
 from exdrf_qt.models.record import (
     ERROR_BRUSH,
@@ -132,7 +132,7 @@ class TestQtRecordData(unittest.TestCase):
         record = QtRecord(model=self.mock_model, db_id=1)
         record.error = True
 
-        result = record.data(0, Qt.ItemDataRole.BackgroundColorRole)
+        result = record.data(0, Qt.ItemDataRole.BackgroundRole)
 
         self.assertEqual(result, ERROR_BRUSH)
 
@@ -140,7 +140,7 @@ class TestQtRecordData(unittest.TestCase):
         """Test data returns LOADING_BRUSH when not loaded and BackgroundColorRole."""
         record = QtRecord(model=self.mock_model, db_id=None)
 
-        result = record.data(0, Qt.ItemDataRole.BackgroundColorRole)
+        result = record.data(0, Qt.ItemDataRole.BackgroundRole)
 
         self.assertEqual(result, LOADING_BRUSH)
 

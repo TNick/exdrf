@@ -2,6 +2,8 @@
 # Source: exdrf_gen_al2qt.creator -> c/m/m_ocm.py.j2
 # Don't change it manually.
 
+import logging
+from functools import lru_cache
 from typing import TYPE_CHECKING, Union
 
 from exdrf_qt.plugins import exdrf_qt_pm
@@ -34,15 +36,35 @@ if TYPE_CHECKING:
 # exdrf-keep-end other_globals ------------------------------------------------
 
 
-def default_parent_tag_association_ocm_selection():
+@lru_cache(maxsize=1)
+def _default_parent_tag_association_ocm_selection_base():
     from exdrf_dev.db.api import ParentTagAssociation as DbParentTagAssociation
 
-    return select(DbParentTagAssociation).options(
-        load_only(
-            DbParentTagAssociation.parent_id,
-            DbParentTagAssociation.tag_id,
+    try:
+        return select(DbParentTagAssociation).options(
+            load_only(
+                DbParentTagAssociation.parent_id,
+                DbParentTagAssociation.tag_id,
+            )
         )
-    )
+    except Exception:
+        logging.getLogger(__name__).error(
+            "Error creating default selection for parent_tag_association",
+            exc_info=True,
+        )
+        return select(DbParentTagAssociation)
+
+
+def default_parent_tag_association_ocm_selection(db_model: object):
+    from exdrf_dev.db.api import ParentTagAssociation as DbParentTagAssociation
+
+    # If an override changes the ORM model class, the statically generated
+    # eager-loading options will not match. Fall back to a plain select on the
+    # overridden model to keep the query valid on all dialects.
+    if db_model is not DbParentTagAssociation:
+        return select(db_model)
+
+    return _default_parent_tag_association_ocm_selection_base()
 
 
 class QtParentTagAssociationNaMo(QtParentTagAssociationFuMo):
@@ -59,13 +81,17 @@ class QtParentTagAssociationNaMo(QtParentTagAssociationFuMo):
     def __init__(
         self, selection: Union["Select", None] = None, fields=None, **kwargs
     ):
-        pass
+        from exdrf_dev.db.api import (
+            ParentTagAssociation as DbParentTagAssociation,
+        )
 
         super().__init__(
             selection=(
                 selection
                 if selection is not None
-                else default_parent_tag_association_ocm_selection()
+                else default_parent_tag_association_ocm_selection(
+                    kwargs.get("db_model", DbParentTagAssociation)
+                )
             ),
             fields=(
                 fields
@@ -79,6 +105,7 @@ class QtParentTagAssociationNaMo(QtParentTagAssociationFuMo):
             **kwargs,
         )
         self.column_fields = ["label"]
+        self.remove_from_ssf("label")
 
         # Inform plugins that the model has been created.
         safe_hook_call(

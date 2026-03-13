@@ -3,10 +3,9 @@ from contextlib import contextmanager
 from typing import TYPE_CHECKING, Generic, Optional, Set, TypeVar, Union, cast
 
 from exdrf.filter import FieldFilter, FilterVisitor, insert_quick_search
-from PyQt5.QtCore import QPoint, QRect, Qt
-from PyQt5.QtGui import QPainter, QPen
-from PyQt5.QtWidgets import (
-    QAction,
+from PySide6.QtCore import QPoint, QRect, Qt
+from PySide6.QtGui import QAction, QPainter, QPen
+from PySide6.QtWidgets import (
     QDialog,
     QHeaderView,
     QMenu,
@@ -280,12 +279,12 @@ class ListDbHeader(QHeaderView, QtUseContext, Generic[DBM]):
         # Align the menu such that its center matches the section's center
         menu_pos = section_center_global
         menu_pos.setX(int(section_center_global.x() - menu_size.width() / 2))
-        menu.exec_(menu_pos)
+        menu.exec(menu_pos)
 
     def on_choose_columns(self):
         """Show the dialog for choosing which columns to show."""
         dlg = ColumnSelDlg(self.ctx, self)
-        if dlg.exec_() == QDialog.Accepted:
+        if dlg.exec() == QDialog.Accepted:
             dlg.apply_changes()
 
     def _load_current_filter(self, section: int):

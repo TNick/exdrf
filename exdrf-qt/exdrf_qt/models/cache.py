@@ -53,8 +53,13 @@ class SparseList(Generic[T]):
             The item at the specified index, creating it if necessary.
 
         Raises:
-            IndexError: If the index is out of range (index >= size).
+            IndexError: If the index is out of range (index >= size or
+                index < 0).
         """
+        if index < 0:
+            raise IndexError(
+                f"Index {index} out of range. Negative indices not supported."
+            )
         if index >= self._size:
             raise IndexError(
                 f"Index {index} out of range. List has {self._size} items."

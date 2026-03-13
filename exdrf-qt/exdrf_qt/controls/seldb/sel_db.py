@@ -3,9 +3,9 @@ import os
 from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Union
 from uuid import uuid4
 
-from PyQt5.QtCore import QModelIndex, QPoint, Qt
-from PyQt5.QtWidgets import (
-    QAction,
+from PySide6.QtCore import QModelIndex, QPoint, Qt
+from PySide6.QtGui import QAction
+from PySide6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
     QFileDialog,
@@ -641,6 +641,6 @@ class SelectDatabaseDlg(QDialog, Ui_SelectDatabase, QtUseContext):
             dlg.set_con_str(ctx.c_string)
         if ctx.schema:
             dlg.schema = ctx.schema
-        if dlg.exec_() == dlg.Accepted:
+        if dlg.exec() == dlg.Accepted:
             ctx.set_db_string(dlg.con_str, dlg.schema)
         return ctx.c_string, ctx.schema

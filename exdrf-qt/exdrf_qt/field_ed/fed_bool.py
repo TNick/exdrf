@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING, Any, Optional
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import (
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import (
     QCheckBox,
     QVBoxLayout,
     QWidget,
@@ -132,7 +132,7 @@ class DrfBoolEditor(QCheckBox, DrfFieldEd):
 
 
 if __name__ == "__main__":
-    from PyQt5.QtWidgets import QApplication
+    from PySide6.QtWidgets import QApplication
 
     from exdrf_qt.context import QtContext as LocalContext
 
@@ -170,4 +170,4 @@ if __name__ == "__main__":
 
     main_window.setLayout(layout)
     main_window.show()
-    app.exec_()
+    app.exec()

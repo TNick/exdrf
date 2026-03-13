@@ -4,8 +4,8 @@ import logging
 from typing import TYPE_CHECKING, Dict, List, Optional
 
 from exdrf_al.connection import DbConn
-from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtWidgets import QWidget
+from PySide6.QtCore import Signal
+from PySide6.QtWidgets import QWidget
 from sqlalchemy import MetaData, Table, inspect
 
 from exdrf_qt.utils.native_threads import PythonThread
@@ -34,8 +34,8 @@ class TransferRowsWorker(PythonThread):
     """
 
     # Public attributes (signals)
-    progress: pyqtSignal = pyqtSignal(int, int)
-    error: pyqtSignal = pyqtSignal(str)
+    progress: Signal = Signal(int, int)
+    error: Signal = Signal(str)
 
     # Private attributes
     _src_engine: "Engine"

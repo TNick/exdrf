@@ -14,11 +14,17 @@ from exdrf_dev.qt_gen.db.parent_tag_associations.models.parent_tag_association_f
 from exdrf_dev.qt_gen.db.parent_tag_associations.models.parent_tag_association_ocm import (
     QtParentTagAssociationNaMo,
 )
+from exdrf_dev.qt_gen.db.parent_tag_associations.widgets.parent_tag_association_cmp import (
+    QtParentTagAssociationCmp,
+)
 from exdrf_dev.qt_gen.db.parent_tag_associations.widgets.parent_tag_association_editor import (
     QtParentTagAssociationEditor,
 )
 from exdrf_dev.qt_gen.db.parent_tag_associations.widgets.parent_tag_association_list import (
     QtParentTagAssociationList,
+)
+from exdrf_dev.qt_gen.db.parent_tag_associations.widgets.parent_tag_association_rel import (
+    QtParentTagAssociationRel,
 )
 from exdrf_dev.qt_gen.db.parent_tag_associations.widgets.parent_tag_association_selector import (
     QtParentTagAssociationMuSe,

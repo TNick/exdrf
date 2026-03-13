@@ -11,16 +11,16 @@ import logging
 from datetime import date, datetime
 from typing import Any, Callable, Optional, cast
 
-from PyQt5.QtCore import QModelIndex, QSortFilterProxyModel, Qt
-from PyQt5.QtGui import (
+from PySide6.QtCore import QModelIndex, QSortFilterProxyModel, Qt
+from PySide6.QtGui import (
+    QAction,
     QColor,
     QDoubleValidator,
     QIntValidator,
     QPainter,
     QPalette,
 )
-from PyQt5.QtWidgets import (
-    QAction,
+from PySide6.QtWidgets import (
     QCheckBox,
     QDateEdit,
     QDateTimeEdit,

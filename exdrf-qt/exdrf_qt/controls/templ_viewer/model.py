@@ -10,14 +10,14 @@ import logging
 from typing import TYPE_CHECKING, Any, Dict, Optional, cast
 
 from exdrf.var_bag import VarBag
-from PyQt5.QtCore import (
+from PySide6.QtCore import (
     QAbstractItemModel,
     QModelIndex,
     QObject,
     Qt,
-    pyqtSignal,
+    Signal,
 )
-from PyQt5.QtGui import QBrush, QColor
+from PySide6.QtGui import QBrush, QColor
 from typing_extensions import List
 
 from exdrf_qt.context_use import QtUseContext
@@ -58,7 +58,7 @@ class VarModel(QAbstractItemModel, QtUseContext):
     filtered_bag: "VarBag"
     extra_context: Dict[str, Any]
 
-    varDataChanged = pyqtSignal()
+    varDataChanged = Signal()
 
     def __init__(
         self,

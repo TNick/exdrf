@@ -20,20 +20,21 @@
       <number>0</number>
      </property>
      
+     
+     
      <widget class="QWidget" name="tab_general">
       <attribute name="title">
        <string>General</string>
       </attribute>
       <layout class="QFormLayout" name="formLayout">
-     
        
        <item row="0" column="0">
-        <widget class="QLabel" name="lbl_children">
+        <widget class="QLabel" name="lbl_name">
          <property name="text">
-          <string>Children </string>
+          <string>Name </string>
          </property>
          <property name="buddy">
-          <cstring>c_children</cstring>
+          <cstring>c_name</cstring>
          </property>
         </widget>
        </item>
@@ -41,16 +42,12 @@
        <item row="0" column="1">
         
         
-        <widget class="QtChildMuSe" name="c_children">
+        <widget class="DrfLineEditor" name="c_name">
          <property name="name" stdset="0">
-          <string notr="true">children</string>
-         </property>
-         <property name="clearable" stdset="0">
-          <bool>true</bool>
+          <string notr="true">name</string>
          </property>
         </widget>
        </item>
-     
      
        
        <item row="1" column="0">
@@ -74,7 +71,6 @@
         </widget>
        </item>
      
-     
        
        <item row="2" column="0">
         <widget class="QLabel" name="lbl_is_active">
@@ -97,32 +93,8 @@
         </widget>
        </item>
      
-     
        
        <item row="3" column="0">
-        <widget class="QLabel" name="lbl_name">
-         <property name="text">
-          <string>Name </string>
-         </property>
-         <property name="buddy">
-          <cstring>c_name</cstring>
-         </property>
-        </widget>
-       </item>
-       
-       <item row="3" column="1">
-        
-        
-        <widget class="DrfLineEditor" name="c_name">
-         <property name="name" stdset="0">
-          <string notr="true">name</string>
-         </property>
-        </widget>
-       </item>
-     
-     
-       
-       <item row="4" column="0">
         <widget class="QLabel" name="lbl_profile">
          <property name="text">
           <string>Profile </string>
@@ -133,7 +105,7 @@
         </widget>
        </item>
        
-       <item row="4" column="1">
+       <item row="3" column="1">
         
         
         <widget class="QtProfileSiSe" name="c_profile">
@@ -146,25 +118,24 @@
         </widget>
        </item>
      
-     
        
-       <item row="5" column="0">
-        <widget class="QLabel" name="lbl_tags">
+       <item row="4" column="0">
+        <widget class="QLabel" name="lbl_children">
          <property name="text">
-          <string>Tags </string>
+          <string>Children </string>
          </property>
          <property name="buddy">
-          <cstring>c_tags</cstring>
+          <cstring>c_children</cstring>
          </property>
         </widget>
        </item>
        
-       <item row="5" column="1">
+       <item row="4" column="1">
         
         
-        <widget class="QtTagMuSe" name="c_tags">
+        <widget class="QtChildMuSe" name="c_children">
          <property name="name" stdset="0">
-          <string notr="true">tags</string>
+          <string notr="true">children</string>
          </property>
          <property name="clearable" stdset="0">
           <bool>true</bool>
@@ -180,7 +151,6 @@
        <string>Keys</string>
       </attribute>
       <layout class="QFormLayout" name="formLayout">
-     
        
        <item row="0" column="0">
         <widget class="QLabel" name="lbl_id">
@@ -206,46 +176,64 @@
       </layout>
      </widget>
      
+     
+     <widget class="QWidget" name="tab_tags_rel">
+      <attribute name="title">
+       <string>Tags</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="formLayout">
+      <item row="0">
+        <widget class="QtParentRelTag" name="c_tags">
+         <property name="name" stdset="0">
+          <string notr="true">tags</string>
+         </property>
+        </widget>
+      </item>
+      </layout>
+     </widget>
     </widget>
    </item>
   </layout>
  </widget>
  <customwidgets>
   <customwidget>
-    <class>QtChildMuSe</class>
+    <class>DrfLineEditor</class>
     <extends>QLineEdit</extends>
-    <header>exdrf_dev.qt_gen.db.children.api</header>
-  </customwidget>
+    <header>exdrf_qt.field_ed.api</header>
+  </customwidget> 
   <customwidget>
     <class>DrfDateTimeEditor</class>
     <extends>QLineEdit</extends>
     <header>exdrf_qt.field_ed.api</header>
-  </customwidget>
+  </customwidget> 
   <customwidget>
     <class>DrfBoolEditor</class>
     <extends>QLineEdit</extends>
     <header>exdrf_qt.field_ed.api</header>
-  </customwidget>
-  <customwidget>
-    <class>DrfLineEditor</class>
-    <extends>QLineEdit</extends>
-    <header>exdrf_qt.field_ed.api</header>
-  </customwidget>
+  </customwidget> 
   <customwidget>
     <class>QtProfileSiSe</class>
     <extends>QLineEdit</extends>
     <header>exdrf_dev.qt_gen.db.profiles.api</header>
-  </customwidget>
+  </customwidget> 
   <customwidget>
-    <class>QtTagMuSe</class>
+    <class>QtChildMuSe</class>
     <extends>QLineEdit</extends>
-    <header>exdrf_dev.qt_gen.db.tags.api</header>
-  </customwidget>
+    <header>exdrf_dev.qt_gen.db.children.api</header>
+  </customwidget>  
   <customwidget>
     <class>DrfIntEditor</class>
     <extends>QLineEdit</extends>
     <header>exdrf_qt.field_ed.api</header>
-  </customwidget>
+  </customwidget>   
+ 
+  <customwidget>
+    <class>QtParentRelTag</class>
+    <extends>QWidget</extends>
+    <header>exdrf_dev.qt_gen.db.tags.api</header>
+    <header>exdrf_qt.field_ed.api</header>
+  </customwidget> 
+
  </customwidgets>
  <resources/>
  <connections/>

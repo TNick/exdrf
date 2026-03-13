@@ -13,13 +13,14 @@ from datetime import datetime, timedelta
 from importlib import resources
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
-from PyQt5.QtCore import QBuffer, QByteArray, QIODevice, QTimer, QUrl
-from PyQt5.QtWebEngineCore import (
+from PySide6.QtCore import QBuffer, QByteArray, QIODevice, QTimer, QUrl
+from PySide6.QtWebEngineCore import (
+    QWebEnginePage,
+    QWebEngineProfile,
     QWebEngineUrlRequestJob,
     QWebEngineUrlScheme,
     QWebEngineUrlSchemeHandler,
 )
-from PyQt5.QtWebEngineWidgets import QWebEnginePage, QWebEngineProfile
 
 from exdrf_qt.context_use import QtUseContext
 

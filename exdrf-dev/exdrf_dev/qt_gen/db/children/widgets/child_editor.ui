@@ -20,12 +20,13 @@
       <number>0</number>
      </property>
      
+     
+     
      <widget class="QWidget" name="tab_general">
       <attribute name="title">
        <string>General</string>
       </attribute>
       <layout class="QFormLayout" name="formLayout">
-     
        
        <item row="0" column="0">
         <widget class="QLabel" name="lbl_data">
@@ -50,7 +51,6 @@
          </property>
         </widget>
        </item>
-     
      
        
        <item row="1" column="0">
@@ -77,19 +77,8 @@
         </widget>
        </item>
      
-     
-     
-      </layout>
-     </widget>
-     
-     <widget class="QWidget" name="tab_keys">
-      <attribute name="title">
-       <string>Keys</string>
-      </attribute>
-      <layout class="QFormLayout" name="formLayout">
-     
        
-       <item row="0" column="0">
+       <item row="2" column="0">
         <widget class="QLabel" name="lbl_id">
          <property name="text">
           <string>Id </string>
@@ -100,7 +89,7 @@
         </widget>
        </item>
        
-       <item row="0" column="1">
+       <item row="2" column="1">
         
         
         <widget class="DrfIntEditor" name="c_id">
@@ -113,6 +102,7 @@
       </layout>
      </widget>
      
+     
     </widget>
    </item>
   </layout>
@@ -122,17 +112,19 @@
     <class>DrfTextEditor</class>
     <extends>QLineEdit</extends>
     <header>exdrf_qt.field_ed.api</header>
-  </customwidget>
+  </customwidget> 
   <customwidget>
     <class>QtParentSiSe</class>
     <extends>QLineEdit</extends>
     <header>exdrf_dev.qt_gen.db.parents.api</header>
-  </customwidget>
+  </customwidget> 
   <customwidget>
     <class>DrfIntEditor</class>
     <extends>QLineEdit</extends>
     <header>exdrf_qt.field_ed.api</header>
-  </customwidget>
+  </customwidget>   
+ 
+
  </customwidgets>
  <resources/>
  <connections/>

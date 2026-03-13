@@ -8,16 +8,16 @@ import shutil
 import tempfile
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, cast
 
-from PyQt5.QtCore import (
+from PySide6.QtCore import (
     QEvent,
     QPoint,
     QRect,
     QSize,
     Qt,
     QUrl,
-    pyqtSignal,
+    Signal,
 )
-from PyQt5.QtGui import (
+from PySide6.QtGui import (
     QBrush,
     QColor,
     QDesktopServices,
@@ -28,7 +28,7 @@ from PyQt5.QtGui import (
     QPixmap,
     QTransform,
 )
-from PyQt5.QtWidgets import (
+from PySide6.QtWidgets import (
     QFrame,
     QGraphicsPixmapItem,
     QGraphicsRectItem,
@@ -99,7 +99,7 @@ class PdfImageViewer(QWidget, QtUseContext):
         _pix_items: List of graphics pixmap items currently displayed.
     """
 
-    pageImageReady = pyqtSignal(int)
+    pageImageReady = Signal(int)
 
     def __init__(self, ctx: "QtContext", parent: Optional[QWidget] = None):
         """Initialize the PDF/image viewer widget.

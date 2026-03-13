@@ -10,11 +10,18 @@
 
 from exdrf_dev.qt_gen.db.parents.models.parent_ful import QtParentFuMo
 from exdrf_dev.qt_gen.db.parents.models.parent_ocm import QtParentNaMo
+from exdrf_dev.qt_gen.db.parents.widgets.parent_cmp import (
+    QtParentCmp,
+)
 from exdrf_dev.qt_gen.db.parents.widgets.parent_editor import (
     QtParentEditor,
 )
 from exdrf_dev.qt_gen.db.parents.widgets.parent_list import (
     QtParentList,
+)
+from exdrf_dev.qt_gen.db.parents.widgets.parent_rel import (
+    QtParentRel,
+    QtTagRelParent,
 )
 from exdrf_dev.qt_gen.db.parents.widgets.parent_selector import (
     QtParentMuSe,

@@ -1,14 +1,14 @@
 import logging
 from typing import TYPE_CHECKING, Generic, Optional, TypeVar, cast
 
-from PyQt5.QtCore import (
+from PySide6.QtCore import (
     QAbstractItemModel,
     QItemSelection,
     QModelIndex,
     Qt,
-    pyqtSignal,
+    Signal,
 )
-from PyQt5.QtWidgets import QTreeView
+from PySide6.QtWidgets import QTreeView
 
 if TYPE_CHECKING:
     from exdrf_qt.models import QtModel
@@ -22,8 +22,8 @@ DBM = TypeVar("DBM")
 class TreeView(QTreeView, Generic[DBM]):
     """A tree view that emits a signal when the Enter key is pressed."""
 
-    itemSelected = pyqtSignal(object)
-    itemsSelected = pyqtSignal(object)
+    itemSelected = Signal(object)
+    itemsSelected = Signal(object)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

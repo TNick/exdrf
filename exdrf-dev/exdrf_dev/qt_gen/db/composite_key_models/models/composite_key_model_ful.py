@@ -2,9 +2,12 @@
 # Source: exdrf_gen_al2qt.creator -> c/m/m_ful.py.j2
 # Don't change it manually.
 
+import logging
+from functools import lru_cache
 from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Union
 
 from exdrf.constants import RecIdType
+from exdrf.filter import SearchType
 from exdrf_qt.models import QtModel
 from exdrf_qt.plugins import exdrf_qt_pm
 from exdrf_qt.utils.plugins import safe_hook_call
@@ -58,15 +61,37 @@ if TYPE_CHECKING:
 # exdrf-keep-end other_globals ------------------------------------------------
 
 
-def default_composite_key_model_list_selection():
+@lru_cache(maxsize=1)
+def _default_composite_key_model_list_selection_base():
     from exdrf_dev.db.api import CompositeKeyModel as DbCompositeKeyModel
     from exdrf_dev.db.api import RelatedItem as DbRelatedItem
 
-    return select(DbCompositeKeyModel).options(
-        selectinload(DbCompositeKeyModel.related_items).load_only(
-            DbRelatedItem.id,
-        ),
-    )
+    try:
+        return select(DbCompositeKeyModel).options(
+            selectinload(
+                DbCompositeKeyModel.related_items,
+            ).load_only(
+                DbRelatedItem.id,
+            ),
+        )
+    except Exception:
+        logging.getLogger(__name__).error(
+            "Error creating default selection for composite_key_model",
+            exc_info=True,
+        )
+        return select(DbCompositeKeyModel)
+
+
+def default_composite_key_model_list_selection(db_model: Any):
+    from exdrf_dev.db.api import CompositeKeyModel as DbCompositeKeyModel
+
+    # If an override changes the ORM model class, the statically generated
+    # eager-loading options will not match. Fall back to a plain select on the
+    # overridden model to keep the query valid on all dialects.
+    if db_model is not DbCompositeKeyModel:
+        return select(db_model)
+
+    return _default_composite_key_model_list_selection_base()
 
 
 class QtCompositeKeyModelFuMo(QtModel["CompositeKeyModel"]):
@@ -85,35 +110,57 @@ class QtCompositeKeyModelFuMo(QtModel["CompositeKeyModel"]):
     ):
         from exdrf_dev.db.api import CompositeKeyModel as DbCompositeKeyModel
 
-        super().__init__(
-            ctx=ctx,
-            db_model=ctx.get_ovr(
+        # Use db_model from kwargs if provided (e.g., from clone_me),
+        # otherwise calculate it from context overrides
+        db_model = kwargs.pop("db_model", None)
+        if db_model is None:
+            db_model = ctx.get_ovr(
                 "exdrf_dev.qt_gen.db.composite_key_models.ful.model",
                 DbCompositeKeyModel,
-            ),
+            )
+
+        super().__init__(
+            ctx=ctx,
+            db_model=db_model,
             selection=(
                 selection
                 if selection is not None
-                else default_composite_key_model_list_selection()
+                else default_composite_key_model_list_selection(db_model)
             ),
             fields=(
                 fields
                 if fields is not None
                 else [
                     DescriptionField,
-                    RelatedItemsField,
                     SomeBinaryField,
                     SomeDateField,
                     SomeEnumField,
                     SomeFloatField,
                     SomeJsonField,
                     SomeTimeField,
+                    RelatedItemsField,
                     KeyPart1Field,
                     KeyPart2Field,
                 ]
             ),
             **kwargs,
         )
+
+        # The fields that are visible in the UI. Excluded from here are
+        # the the foreign key fields that are already represented by
+        # a resource field and derived fields (e.g. diacritic-less values):
+        # - some_binary
+        self.column_fields = [
+            "description",
+            "some_date",
+            "some_enum",
+            "some_float",
+            "some_json",
+            "some_time",
+            "related_items",
+            "key_part1",
+            "key_part2",
+        ]
 
         # Inform plugins that the model has been created.
         safe_hook_call(
@@ -129,10 +176,10 @@ class QtCompositeKeyModelFuMo(QtModel["CompositeKeyModel"]):
     def get_db_item_id(
         self, item: "CompositeKeyModel"
     ) -> Union[int, Tuple[int, ...]]:
-        return [
+        return (
             item.key_part1,
             item.key_part2,
-        ]
+        )
 
     def item_by_id_conditions(self, rec_id: RecIdType) -> List[Any]:
         """Return the conditions that filter by ID.
@@ -153,7 +200,7 @@ class QtCompositeKeyModelFuMo(QtModel["CompositeKeyModel"]):
     def text_to_filter(
         self,
         text: str,
-        exact: Optional[bool] = False,
+        search_type: Optional[SearchType] = SearchType.EXTENDED,
         limit: Optional[str] = None,
     ) -> "FilterType":
         """Convert a text to a filter.
@@ -161,13 +208,13 @@ class QtCompositeKeyModelFuMo(QtModel["CompositeKeyModel"]):
         The function converts a text to a filter. The text is converted to a
         filter using the `simple_search_fields` property.
         """
-        filters = super().text_to_filter(text, exact, limit)
+        filters = super().text_to_filter(text, search_type, limit)
         safe_hook_call(
             exdrf_qt_pm.hook.composite_key_model_fumo_ttf,
             model=self,
             filters=filters,
             text=text,
-            exact=exact,
+            search_type=search_type,
             limit=limit,
         )
         return filters

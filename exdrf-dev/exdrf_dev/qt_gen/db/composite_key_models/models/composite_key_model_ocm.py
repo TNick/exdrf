@@ -2,6 +2,8 @@
 # Source: exdrf_gen_al2qt.creator -> c/m/m_ocm.py.j2
 # Don't change it manually.
 
+import logging
+from functools import lru_cache
 from typing import TYPE_CHECKING, Union
 
 from exdrf_qt.plugins import exdrf_qt_pm
@@ -56,16 +58,36 @@ if TYPE_CHECKING:
 # exdrf-keep-end other_globals ------------------------------------------------
 
 
-def default_composite_key_model_ocm_selection():
+@lru_cache(maxsize=1)
+def _default_composite_key_model_ocm_selection_base():
     from exdrf_dev.db.api import CompositeKeyModel as DbCompositeKeyModel
 
-    return select(DbCompositeKeyModel).options(
-        load_only(
-            DbCompositeKeyModel.description,
-            DbCompositeKeyModel.key_part1,
-            DbCompositeKeyModel.key_part2,
+    try:
+        return select(DbCompositeKeyModel).options(
+            load_only(
+                DbCompositeKeyModel.description,
+                DbCompositeKeyModel.key_part1,
+                DbCompositeKeyModel.key_part2,
+            )
         )
-    )
+    except Exception:
+        logging.getLogger(__name__).error(
+            "Error creating default selection for composite_key_model",
+            exc_info=True,
+        )
+        return select(DbCompositeKeyModel)
+
+
+def default_composite_key_model_ocm_selection(db_model: object):
+    from exdrf_dev.db.api import CompositeKeyModel as DbCompositeKeyModel
+
+    # If an override changes the ORM model class, the statically generated
+    # eager-loading options will not match. Fall back to a plain select on the
+    # overridden model to keep the query valid on all dialects.
+    if db_model is not DbCompositeKeyModel:
+        return select(db_model)
+
+    return _default_composite_key_model_ocm_selection_base()
 
 
 class QtCompositeKeyModelNaMo(QtCompositeKeyModelFuMo):
@@ -82,26 +104,28 @@ class QtCompositeKeyModelNaMo(QtCompositeKeyModelFuMo):
     def __init__(
         self, selection: Union["Select", None] = None, fields=None, **kwargs
     ):
-        pass
+        from exdrf_dev.db.api import CompositeKeyModel as DbCompositeKeyModel
 
         super().__init__(
             selection=(
                 selection
                 if selection is not None
-                else default_composite_key_model_ocm_selection()
+                else default_composite_key_model_ocm_selection(
+                    kwargs.get("db_model", DbCompositeKeyModel)
+                )
             ),
             fields=(
                 fields
                 if fields is not None
                 else [
                     DescriptionField,
-                    RelatedItemsField,
                     SomeBinaryField,
                     SomeDateField,
                     SomeEnumField,
                     SomeFloatField,
                     SomeJsonField,
                     SomeTimeField,
+                    RelatedItemsField,
                     KeyPart1Field,
                     KeyPart2Field,
                     LabelField,
@@ -110,6 +134,7 @@ class QtCompositeKeyModelNaMo(QtCompositeKeyModelFuMo):
             **kwargs,
         )
         self.column_fields = ["label"]
+        self.remove_from_ssf("label")
 
         # Inform plugins that the model has been created.
         safe_hook_call(

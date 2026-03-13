@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Dict, Iterable, List, Optional, Set, Tuple
 
-from PyQt5.QtCore import QModelIndex, Qt, QVariant
+from PySide6.QtCore import QModelIndex, Qt, QVariant
 
 from exdrf_qt.controls.checks.checks_model_base import (
     ChecksTreeTableModelBase,

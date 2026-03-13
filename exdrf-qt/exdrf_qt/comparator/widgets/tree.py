@@ -4,8 +4,8 @@ import logging
 import sys
 from typing import Any, Dict, Optional, Set
 
-from PyQt5.QtWidgets import (
-    QAction,
+from PySide6.QtGui import QAction
+from PySide6.QtWidgets import (
     QApplication,
     QMenu,
     QTabWidget,
@@ -174,7 +174,7 @@ class ComparatorTreeView(QTreeView):
         act_copy_all.triggered.connect(self.copy_all_as_yaml)
         menu.addAction(act_copy_all)
 
-        menu.exec_(event.globalPos())
+        menu.exec(event.globalPos())
 
     def copy_selection_as_yaml(self) -> None:
         """Copy selected subtree(s) as YAML to the clipboard.
@@ -454,11 +454,11 @@ if __name__ == "__main__":
     # This must be done before QApplication is instantiated
     # Import QtWebEngineWidgets to initialize the plugin
     try:
-        import PyQt5.QtWebEngineWidgets  # noqa: F401
+        import PySide6.QtWebEngineWidgets  # noqa: F401
     except ImportError:
         # If import fails, try setting the attribute instead
         try:
-            from PyQt5.QtCore import QCoreApplication, Qt
+            from PySide6.QtCore import QCoreApplication, Qt
 
             QCoreApplication.setAttribute(  # type: ignore
                 Qt.AA_ShareOpenGLContexts, True  # type: ignore
@@ -520,4 +520,4 @@ if __name__ == "__main__":
     host.setWindowTitle("Comparator Demo - Tree & Web View")
     host.show()
 
-    sys.exit(app.exec_())
+    sys.exit(app.exec())

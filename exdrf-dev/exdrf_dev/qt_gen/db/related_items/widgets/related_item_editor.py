@@ -78,7 +78,7 @@ class QtRelatedItemEditor(ExdrfEditor["RelatedItem"], Ui_QtRelatedItemEditor):
         )
 
     def populate(self, record: Union["RelatedItem", None]):
-        self._populate(record, [])
+        self._populate(record, ignore=[])
 
     def get_id_of_record(self, record: "RelatedItem") -> RecIdType:
         return record.id

@@ -13,8 +13,8 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional
 from pygments import lex  # type: ignore
 from pygments.lexers import HtmlLexer, get_lexer_by_name  # type: ignore
 from pygments.token import Token  # type: ignore
-from PyQt5.QtCore import QRect, QSize, Qt
-from PyQt5.QtGui import (
+from PySide6.QtCore import QRect, QSize, Qt
+from PySide6.QtGui import (
     QColor,
     QFocusEvent,
     QFont,
@@ -25,7 +25,7 @@ from PyQt5.QtGui import (
     QTextCursor,
     QTextFormat,
 )
-from PyQt5.QtWidgets import QPlainTextEdit, QTextEdit, QWidget
+from PySide6.QtWidgets import QPlainTextEdit, QTextEdit, QWidget
 
 from exdrf_qt.context_use import QtUseContext
 

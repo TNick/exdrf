@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Any, Callable, List, Union
 
 from attrs import define, field
 from parse import compile as parse_compile
-from PyQt5.QtWidgets import QMessageBox
+from PySide6.QtWidgets import QMessageBox
 from sqlalchemy import Select, and_, select
 
 from exdrf_qt.context_use import QtUseContext

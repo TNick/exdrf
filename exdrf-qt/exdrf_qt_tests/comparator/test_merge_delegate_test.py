@@ -1,7 +1,7 @@
 """Tests for the comparator merge delegate (method/result editors)."""
 
-from PyQt5.QtCore import QModelIndex
-from PyQt5.QtWidgets import QComboBox, QLineEdit, QWidget
+from PySide6.QtCore import QModelIndex
+from PySide6.QtWidgets import QComboBox, QLineEdit, QWidget
 
 from exdrf_qt.comparator.models.tree import (
     EDIT_ROLE,

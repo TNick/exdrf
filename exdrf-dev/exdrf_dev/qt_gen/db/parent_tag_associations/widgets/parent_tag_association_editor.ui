@@ -20,12 +20,13 @@
       <number>0</number>
      </property>
      
-     <widget class="QWidget" name="tab_keys">
+     
+     
+     <widget class="QWidget" name="tab_general">
       <attribute name="title">
-       <string>Keys</string>
+       <string>General</string>
       </attribute>
       <layout class="QFormLayout" name="formLayout">
-     
        
        <item row="0" column="0">
         <widget class="QLabel" name="lbl_parent_id">
@@ -47,7 +48,6 @@
          </property>
         </widget>
        </item>
-     
      
        
        <item row="1" column="0">
@@ -74,6 +74,7 @@
       </layout>
      </widget>
      
+     
     </widget>
    </item>
   </layout>
@@ -83,7 +84,9 @@
     <class>DrfIntEditor</class>
     <extends>QLineEdit</extends>
     <header>exdrf_qt.field_ed.api</header>
-  </customwidget>
+  </customwidget>    
+ 
+
  </customwidgets>
  <resources/>
  <connections/>

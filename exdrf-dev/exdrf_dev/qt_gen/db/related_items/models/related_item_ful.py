@@ -2,9 +2,12 @@
 # Source: exdrf_gen_al2qt.creator -> c/m/m_ful.py.j2
 # Don't change it manually.
 
+import logging
+from functools import lru_cache
 from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Union
 
 from exdrf.constants import RecIdType
+from exdrf.filter import SearchType
 from exdrf_qt.models import QtModel
 from exdrf_qt.plugins import exdrf_qt_pm
 from exdrf_qt.utils.plugins import safe_hook_call
@@ -40,17 +43,39 @@ if TYPE_CHECKING:
 # exdrf-keep-end other_globals ------------------------------------------------
 
 
-def default_related_item_list_selection():
+@lru_cache(maxsize=1)
+def _default_related_item_list_selection_base():
     from exdrf_dev.db.api import CompositeKeyModel as DbCompositeKeyModel
     from exdrf_dev.db.api import RelatedItem as DbRelatedItem
 
-    return select(DbRelatedItem).options(
-        joinedload(DbRelatedItem.comp_key_owner).load_only(
-            DbCompositeKeyModel.description,
-            DbCompositeKeyModel.key_part1,
-            DbCompositeKeyModel.key_part2,
-        ),
-    )
+    try:
+        return select(DbRelatedItem).options(
+            joinedload(
+                DbRelatedItem.comp_key_owner,
+            ).load_only(
+                DbCompositeKeyModel.description,
+                DbCompositeKeyModel.key_part1,
+                DbCompositeKeyModel.key_part2,
+            ),
+        )
+    except Exception:
+        logging.getLogger(__name__).error(
+            "Error creating default selection for related_item",
+            exc_info=True,
+        )
+        return select(DbRelatedItem)
+
+
+def default_related_item_list_selection(db_model: Any):
+    from exdrf_dev.db.api import RelatedItem as DbRelatedItem
+
+    # If an override changes the ORM model class, the statically generated
+    # eager-loading options will not match. Fall back to a plain select on the
+    # overridden model to keep the query valid on all dialects.
+    if db_model is not DbRelatedItem:
+        return select(db_model)
+
+    return _default_related_item_list_selection_base()
 
 
 class QtRelatedItemFuMo(QtModel["RelatedItem"]):
@@ -69,30 +94,48 @@ class QtRelatedItemFuMo(QtModel["RelatedItem"]):
     ):
         from exdrf_dev.db.api import RelatedItem as DbRelatedItem
 
+        # Use db_model from kwargs if provided (e.g., from clone_me),
+        # otherwise calculate it from context overrides
+        db_model = kwargs.pop("db_model", None)
+        if db_model is None:
+            db_model = ctx.get_ovr(
+                "exdrf_dev.qt_gen.db.related_items.ful.model", DbRelatedItem
+            )
+
         super().__init__(
             ctx=ctx,
-            db_model=ctx.get_ovr(
-                "exdrf_dev.qt_gen.db.related_items.ful.model", DbRelatedItem
-            ),
+            db_model=db_model,
             selection=(
                 selection
                 if selection is not None
-                else default_related_item_list_selection()
+                else default_related_item_list_selection(db_model)
             ),
             fields=(
                 fields
                 if fields is not None
                 else [
-                    CompKeyOwnerField,
                     CompKeyPart1Field,
                     CompKeyPart2Field,
                     ItemDataField,
                     SomeIntField,
+                    CompKeyOwnerField,
                     IdField,
                 ]
             ),
             **kwargs,
         )
+
+        # The fields that are visible in the UI. Excluded from here are
+        # the the foreign key fields that are already represented by
+        # a resource field and derived fields (e.g. diacritic-less values):
+        self.column_fields = [
+            "comp_key_part1",
+            "comp_key_part2",
+            "item_data",
+            "some_int",
+            "comp_key_owner",
+            "id",
+        ]
 
         # Inform plugins that the model has been created.
         safe_hook_call(exdrf_qt_pm.hook.related_item_fumo_created, model=self)
@@ -116,7 +159,7 @@ class QtRelatedItemFuMo(QtModel["RelatedItem"]):
     def text_to_filter(
         self,
         text: str,
-        exact: Optional[bool] = False,
+        search_type: Optional[SearchType] = SearchType.EXTENDED,
         limit: Optional[str] = None,
     ) -> "FilterType":
         """Convert a text to a filter.
@@ -124,13 +167,13 @@ class QtRelatedItemFuMo(QtModel["RelatedItem"]):
         The function converts a text to a filter. The text is converted to a
         filter using the `simple_search_fields` property.
         """
-        filters = super().text_to_filter(text, exact, limit)
+        filters = super().text_to_filter(text, search_type, limit)
         safe_hook_call(
             exdrf_qt_pm.hook.related_item_fumo_ttf,
             model=self,
             filters=filters,
             text=text,
-            exact=exact,
+            search_type=search_type,
             limit=limit,
         )
         return filters

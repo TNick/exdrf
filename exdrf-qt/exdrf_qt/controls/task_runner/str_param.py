@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING, List, Optional, Tuple, TypedDict, cast
 
-from PyQt5.QtWidgets import QLineEdit, QTextEdit, QWidget
+from PySide6.QtWidgets import QLineEdit, QTextEdit, QWidget
 
 from exdrf_qt.controls.task_runner.param_widget import (
     HasParamRunner,
@@ -9,7 +9,7 @@ from exdrf_qt.controls.task_runner.param_widget import (
 
 if TYPE_CHECKING:
     from exdrf_util.task import TaskParameter
-    from PyQt5.QtWidgets import QComboBox
+    from PySide6.QtWidgets import QComboBox
 
     from exdrf_qt.context import QtContext
 
@@ -80,7 +80,7 @@ class StrParam(QLineEdit, ParamWidget):
         # Create enum combo box if configured.
         enum_values = config.get("enum_values", [])
         if enum_values:
-            from PyQt5.QtWidgets import QComboBox
+            from PySide6.QtWidgets import QComboBox
 
             combo = QComboBox(parent)
             for value, display_name in enum_values:

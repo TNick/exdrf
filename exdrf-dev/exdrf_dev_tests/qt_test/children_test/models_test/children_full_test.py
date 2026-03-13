@@ -2,7 +2,7 @@ import pytest
 from exdrf.filter import FilterType
 from exdrf_qt.context import QtContext
 from exdrf_qt.worker import Work
-from PyQt5.QtCore import Qt
+from PySide6.QtCore import Qt
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -18,26 +18,34 @@ class TestQtContext(QtContext):
         self.engine = engine
         self.s_stack = s_stack
         self.top_widget = None
+        self._Session = sessionmaker(bind=engine)
+
+    def session(self):
+        """Yield a session for synchronous execution."""
+        return self._Session()
 
     def push_work(
-        self,
-        statement,
-        callback,
-        req_id=None,
+        self, statement_or_work, callback=None, req_id=None, **kwargs
     ) -> Work:
         """Execute the query synchronously and call the callback immediately."""
-        work = Work(
-            statement=statement,
-            callback=callback,
-            req_id=req_id,
-        )
+        if isinstance(statement_or_work, Work):
+            work = statement_or_work
+        else:
+            work = Work(
+                statement=statement_or_work,
+                callback=callback,
+                req_id=req_id,
+            )
 
         # Execute the query synchronously
-        with self.session() as session:
-            work.result = list(session.scalars(statement))
+        session = self._Session()
+        try:
+            work.perform(session)
+        finally:
+            session.close()
 
         # Call the callback immediately
-        callback(work)
+        work.callback(work)
         return work
 
 
@@ -66,9 +74,11 @@ def sample_data(memory_db):
     """Create sample data in the database."""
     _, session = memory_db
 
-    # Create parents
-    parent1 = Parent(name="Parent 1")
-    parent2 = Parent(name="Parent 2")
+    # Create parents (set attributes after construction for SQLAlchemy compat)
+    parent1 = Parent()
+    parent1.name = "Parent 1"
+    parent2 = Parent()
+    parent2.name = "Parent 2"
     session.add_all([parent1, parent2])
     session.commit()
 
@@ -104,18 +114,15 @@ def test_model_with_data(qt_context, sample_data):
     while model.loaded_count == 0 and (time.time() - start) < timeout:
         time.sleep(0.01)
 
-    # Test data access
-    index = model.index(0, 1)  # DataField column
+    # Test data access - column_fields: 0=data, 1=parent, 2=id
+    index = model.index(0, 0)  # DataField column
     # Data of first child
     assert model.data(index, Qt.ItemDataRole.DisplayRole) == "Child 1 data"
     assert model.data(index, Qt.ItemDataRole.EditRole) == "Child 1 data"
 
     # Test parent relationship
-    parent_index = model.index(0, 3)  # ParentField column
-    assert (
-        model.data(parent_index, Qt.ItemDataRole.DisplayRole)
-        == "ID:1 Name:Parent 1"
-    )
+    parent_index = model.index(0, 1)  # ParentField column
+    assert model.data(parent_index, Qt.ItemDataRole.DisplayRole) == "Parent 1"
 
 
 def test_model_sorting(qt_context, sample_data):
@@ -130,8 +137,8 @@ def test_model_sorting(qt_context, sample_data):
     while model.loaded_count == 0 and (time.time() - start) < timeout:
         time.sleep(0.01)
 
-    # Sort by data column (index 1) in ascending order
-    model.sort(1, Qt.SortOrder.AscendingOrder)
+    # Sort by data column (index 0) in ascending order
+    model.sort(0, Qt.SortOrder.AscendingOrder)
 
     # Wait for data to reload after sorting
     start = time.time()
@@ -139,20 +146,20 @@ def test_model_sorting(qt_context, sample_data):
         time.sleep(0.01)
 
     assert (
-        model.data(model.index(0, 1), Qt.ItemDataRole.DisplayRole)
+        model.data(model.index(0, 0), Qt.ItemDataRole.DisplayRole)
         == "Child 1 data"
     )
     assert (
-        model.data(model.index(1, 1), Qt.ItemDataRole.DisplayRole)
+        model.data(model.index(1, 0), Qt.ItemDataRole.DisplayRole)
         == "Child 2 data"
     )
     assert (
-        model.data(model.index(2, 1), Qt.ItemDataRole.DisplayRole)
+        model.data(model.index(2, 0), Qt.ItemDataRole.DisplayRole)
         == "Child 3 data"
     )
 
     # Sort in descending order
-    model.sort(1, Qt.SortOrder.DescendingOrder)
+    model.sort(0, Qt.SortOrder.DescendingOrder)
 
     # Wait for data to reload after sorting
     start = time.time()
@@ -160,15 +167,15 @@ def test_model_sorting(qt_context, sample_data):
         time.sleep(0.01)
 
     assert (
-        model.data(model.index(0, 1), Qt.ItemDataRole.DisplayRole)
+        model.data(model.index(0, 0), Qt.ItemDataRole.DisplayRole)
         == "Child 3 data"
     )
     assert (
-        model.data(model.index(1, 1), Qt.ItemDataRole.DisplayRole)
+        model.data(model.index(1, 0), Qt.ItemDataRole.DisplayRole)
         == "Child 2 data"
     )
     assert (
-        model.data(model.index(2, 1), Qt.ItemDataRole.DisplayRole)
+        model.data(model.index(2, 0), Qt.ItemDataRole.DisplayRole)
         == "Child 1 data"
     )
 
@@ -195,11 +202,11 @@ def test_model_filtering(qt_context, sample_data):
 
     # Verify filtered data
     assert (
-        model.data(model.index(0, 1), Qt.ItemDataRole.DisplayRole)
+        model.data(model.index(0, 0), Qt.ItemDataRole.DisplayRole)
         == "Child 1 data"
     )
     assert (
-        model.data(model.index(1, 1), Qt.ItemDataRole.DisplayRole)
+        model.data(model.index(1, 0), Qt.ItemDataRole.DisplayRole)
         == "Child 2 data"
     )
 
@@ -272,7 +279,7 @@ def test_model_cloning(qt_context, sample_data):
     while model.loaded_count == 0 and (time.time() - start) < timeout:
         time.sleep(0.01)
 
-    model.sort(1, Qt.SortOrder.AscendingOrder)
+    model.sort(0, Qt.SortOrder.AscendingOrder)
 
     # Wait for sorted data to load
     start = time.time()
@@ -286,7 +293,7 @@ def test_model_cloning(qt_context, sample_data):
     assert clone.total_count == 2  # Same filter applied
 
     # Trigger data loading for cloned model
-    _ = clone.data(clone.index(0, 1), Qt.ItemDataRole.DisplayRole)
+    _ = clone.data(clone.index(0, 0), Qt.ItemDataRole.DisplayRole)
 
     # Wait for cloned model data to load
     start = time.time()
@@ -295,7 +302,7 @@ def test_model_cloning(qt_context, sample_data):
 
     # Same sort order
     assert (
-        clone.data(clone.index(0, 1), Qt.ItemDataRole.DisplayRole)
+        clone.data(clone.index(0, 0), Qt.ItemDataRole.DisplayRole)
         == "Child 1 data"
     )
 
@@ -304,30 +311,24 @@ def test_model_header_data(qt_context, sample_data):
     """Test that the model provides correct header data."""
     model = QtChildFuMo(ctx=qt_context, wait_before_request=0)
 
-    # Test horizontal headers
+    # Test horizontal headers - column_fields: data, parent, id
     assert (
         model.headerData(
             0, Qt.Orientation.Horizontal, Qt.ItemDataRole.DisplayRole
-        )
-        == "ID"
-    )
-    assert (
-        model.headerData(
-            1, Qt.Orientation.Horizontal, Qt.ItemDataRole.DisplayRole
         )
         == "Data"
     )
     assert (
         model.headerData(
-            2, Qt.Orientation.Horizontal, Qt.ItemDataRole.DisplayRole
+            1, Qt.Orientation.Horizontal, Qt.ItemDataRole.DisplayRole
         )
-        == "Parent ID"
+        == "Parent"
     )
     assert (
         model.headerData(
-            3, Qt.Orientation.Horizontal, Qt.ItemDataRole.DisplayRole
+            2, Qt.Orientation.Horizontal, Qt.ItemDataRole.DisplayRole
         )
-        == "Parent"
+        == "Id"
     )
 
     # Load some data to test vertical headers

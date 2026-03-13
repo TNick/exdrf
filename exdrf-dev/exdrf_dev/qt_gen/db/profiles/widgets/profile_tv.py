@@ -39,6 +39,9 @@ class QtProfileTv(RecordTemplViewer):
 
     def __init__(self, ctx: "QtContext", **kwargs):
         from exdrf_dev.db.api import Profile as DbProfile
+        from exdrf_dev.qt_gen.db.profiles.widgets.profile_editor import (
+            QtProfileEditor,
+        )
 
         super().__init__(
             db_model=kwargs.pop(
@@ -69,6 +72,9 @@ class QtProfileTv(RecordTemplViewer):
                 ),
             ),
             ctx=ctx,
+            editor_ctor=ctx.get_ovr(
+                "exdrf_dev.qt_gen.db.profiles.tv.editor_class", QtProfileEditor
+            ),
             **kwargs,
         )
         if not self.windowTitle():
@@ -103,7 +109,7 @@ class QtProfileTv(RecordTemplViewer):
                 label = self.t(
                     "profile.tv.title-found",
                     "Profile: view {name}",
-                    name=profile_label(result),
+                    name=profile_label(result, self.ctx),
                 )
             except Exception as e:
                 logger.error("Error getting label: %s", e, exc_info=True)
@@ -118,24 +124,28 @@ class QtProfileTv(RecordTemplViewer):
                 (
                     StrField(
                         name="bio",
-                        title="Bio",
-                        description=("Biography text for the profile."),
+                        title=self.t("profile.tv.bio.t", "Bio"),
+                        description=self.t(
+                            "profile.tv.bio.d",
+                            "Biography text for the profile.",
+                        ),
                     ),
                     record.bio,
                 ),
                 (
                     RefOneToOneField(
                         name="parent",
-                        title="Parent",
+                        title=self.t("profile.tv.parent.t", "Parent"),
                     ),
                     record.parent,
                 ),
                 (
                     IntField(
                         name="parent_id",
-                        title="Parent Id",
-                        description=(
-                            "Foreign key linking to the parent (must be unique)."
+                        title=self.t("profile.tv.parent_id.t", "Parent Id"),
+                        description=self.t(
+                            "profile.tv.parent_id.d",
+                            "Foreign key linking to the parent (must be unique).",
                         ),
                     ),
                     record.parent_id,
@@ -143,8 +153,10 @@ class QtProfileTv(RecordTemplViewer):
                 (
                     IntField(
                         name="id",
-                        title="Id",
-                        description=("Primary key for the profile."),
+                        title=self.t("profile.tv.id.t", "Id"),
+                        description=self.t(
+                            "profile.tv.id.d", "Primary key for the profile."
+                        ),
                     ),
                     record.id,
                 ),

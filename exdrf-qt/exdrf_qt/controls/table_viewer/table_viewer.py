@@ -8,11 +8,10 @@ from datetime import date, datetime
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple
 
 import yaml
-from PyQt5.QtCore import QPoint, Qt, pyqtSignal
-from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import (
+from PySide6.QtCore import QPoint, Qt, Signal
+from PySide6.QtGui import QAction, QIcon
+from PySide6.QtWidgets import (
     QAbstractItemView,
-    QAction,
     QApplication,
     QDialog,
     QHeaderView,
@@ -74,7 +73,7 @@ class TableViewer(QWidget, QtUseContext):
             (engine_url, schema, table) for faster context menu display.
     """
 
-    all_tabs_closed = pyqtSignal()
+    all_tabs_closed = Signal()
 
     # Public attributes
     ctx: "QtContext"
@@ -711,7 +710,7 @@ class TableViewer(QWidget, QtUseContext):
         vp = view.viewport()
         if vp is None:
             return
-        menu.exec_(vp.mapToGlobal(point))
+        menu.exec(vp.mapToGlobal(point))
 
     def _open_column_visibility_dialog(self, ctx: TableViewCtx) -> None:
         """Open the column visibility dialog and apply chosen visibility.
@@ -728,7 +727,7 @@ class TableViewer(QWidget, QtUseContext):
             not header.isSectionHidden(i) for i in range(len(headers))
         ]
         dlg = ColumnVisibilityDialog(self, self.ctx, headers, initial_visible)
-        if dlg.exec_() != QDialog.Accepted:
+        if dlg.exec() != QDialog.Accepted:
             return
         visibility = dlg.get_visibility()
         for i, vis in enumerate(visibility):

@@ -4,15 +4,15 @@ from __future__ import annotations
 
 import html
 
-from PyQt5.QtCore import QModelIndex, QPoint, QRect, QSize, Qt
-from PyQt5.QtGui import (
+from PySide6.QtCore import QModelIndex, QPoint, QRect, QSize, Qt
+from PySide6.QtGui import (
     QAbstractTextDocumentLayout,
     QIcon,
     QPainter,
     QPalette,
     QTextDocument,
 )
-from PyQt5.QtWidgets import QStyle, QStyledItemDelegate, QStyleOptionViewItem
+from PySide6.QtWidgets import QStyle, QStyledItemDelegate, QStyleOptionViewItem
 
 
 class AvailableChecksDelegate(QStyledItemDelegate):

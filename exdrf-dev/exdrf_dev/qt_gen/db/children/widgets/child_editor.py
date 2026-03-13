@@ -75,7 +75,7 @@ class QtChildEditor(ExdrfEditor["Child"], Ui_QtChildEditor):
     def populate(self, record: Union["Child", None]):
         self._populate(
             record,
-            [
+            ignore=[
                 "parent_id",
             ],
         )

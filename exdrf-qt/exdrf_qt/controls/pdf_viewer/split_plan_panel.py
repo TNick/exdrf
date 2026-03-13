@@ -9,11 +9,10 @@ import re
 from functools import partial
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, cast
 
-from PyQt5.QtCore import QEvent, QObject, QPoint, Qt, QTimer, pyqtSignal
-from PyQt5.QtGui import QKeyEvent
-from PyQt5.QtWidgets import (
+from PySide6.QtCore import QEvent, QObject, QPoint, Qt, QTimer, Signal
+from PySide6.QtGui import QAction, QKeyEvent
+from PySide6.QtWidgets import (
     QAbstractItemView,
-    QAction,
     QCheckBox,
     QDialog,
     QHBoxLayout,
@@ -55,10 +54,10 @@ logger = logging.getLogger(__name__)
 class SplitPlanPanel(QWidget):
     """Right-hand panel that manages PDF split definitions."""
 
-    generateAllRequested = pyqtSignal()
-    generateSelectedRequested = pyqtSignal()
-    ocrModeChanged = pyqtSignal(str)
-    ocrEngineChanged = pyqtSignal(str)
+    generateAllRequested = Signal()
+    generateSelectedRequested = Signal()
+    ocrModeChanged = Signal(str)
+    ocrEngineChanged = Signal(str)
 
     def __init__(self, viewer: "PdfImageViewer"):
         """Compose the sidebar UI and initialize storage helpers."""
@@ -606,7 +605,7 @@ class SplitPlanPanel(QWidget):
             )
             menu.addAction(act_edit_rotation)
 
-        menu.exec_(global_pos)
+        menu.exec(global_pos)
 
     def _handle_add_row(self):
         """Add a default definition row seeded with the current page."""
@@ -663,7 +662,7 @@ class SplitPlanPanel(QWidget):
             else {}
         )
         dialog = RotationEditorDialog(self, pages, existing, translator=self._t)
-        if dialog.exec_() == QDialog.Accepted:
+        if dialog.exec() == QDialog.Accepted:
             self._set_row_rotations(row, dialog.rotations())
             self._schedule_save()
 
@@ -769,7 +768,7 @@ class SplitPlanPanel(QWidget):
                 act.setChecked(self._ocr_engine == key)
                 act.triggered.connect(partial(self._handle_engine_change, key))
 
-        menu.exec_(self.ocr_text.mapToGlobal(pos))
+        menu.exec(self.ocr_text.mapToGlobal(pos))
 
     def _handle_mode_change(self, mode: str, _checked: bool = False):
         """Handle OCR mode toggles.

@@ -2,6 +2,8 @@
 # Source: exdrf_gen_al2qt.creator -> c/m/m_ocm.py.j2
 # Don't change it manually.
 
+import logging
+from functools import lru_cache
 from typing import TYPE_CHECKING, Union
 
 from exdrf_qt.plugins import exdrf_qt_pm
@@ -31,15 +33,35 @@ if TYPE_CHECKING:
 # exdrf-keep-end other_globals ------------------------------------------------
 
 
-def default_parent_ocm_selection():
+@lru_cache(maxsize=1)
+def _default_parent_ocm_selection_base():
     from exdrf_dev.db.api import Parent as DbParent
 
-    return select(DbParent).options(
-        load_only(
-            DbParent.id,
-            DbParent.name,
+    try:
+        return select(DbParent).options(
+            load_only(
+                DbParent.id,
+                DbParent.name,
+            )
         )
-    )
+    except Exception:
+        logging.getLogger(__name__).error(
+            "Error creating default selection for parent",
+            exc_info=True,
+        )
+        return select(DbParent)
+
+
+def default_parent_ocm_selection(db_model: object):
+    from exdrf_dev.db.api import Parent as DbParent
+
+    # If an override changes the ORM model class, the statically generated
+    # eager-loading options will not match. Fall back to a plain select on the
+    # overridden model to keep the query valid on all dialects.
+    if db_model is not DbParent:
+        return select(db_model)
+
+    return _default_parent_ocm_selection_base()
 
 
 class QtParentNaMo(QtParentFuMo):
@@ -56,23 +78,25 @@ class QtParentNaMo(QtParentFuMo):
     def __init__(
         self, selection: Union["Select", None] = None, fields=None, **kwargs
     ):
-        pass
+        from exdrf_dev.db.api import Parent as DbParent
 
         super().__init__(
             selection=(
                 selection
                 if selection is not None
-                else default_parent_ocm_selection()
+                else default_parent_ocm_selection(
+                    kwargs.get("db_model", DbParent)
+                )
             ),
             fields=(
                 fields
                 if fields is not None
                 else [
-                    ChildrenField,
+                    NameField,
                     CreatedAtField,
                     IsActiveField,
-                    NameField,
                     ProfileField,
+                    ChildrenField,
                     TagsField,
                     IdField,
                     LabelField,
@@ -81,6 +105,7 @@ class QtParentNaMo(QtParentFuMo):
             **kwargs,
         )
         self.column_fields = ["label"]
+        self.remove_from_ssf("label")
 
         # Inform plugins that the model has been created.
         safe_hook_call(exdrf_qt_pm.hook.parent_namo_created, model=self)

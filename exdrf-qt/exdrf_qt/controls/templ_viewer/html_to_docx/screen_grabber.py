@@ -1,9 +1,9 @@
 import logging
 from typing import Callable
 
-from PyQt5.QtCore import QRect
-from PyQt5.QtGui import QColor, QPainter, QPen
-from PyQt5.QtWidgets import QApplication
+from PySide6.QtCore import QRect
+from PySide6.QtGui import QColor, QPainter, QPen
+from PySide6.QtWidgets import QApplication
 
 from exdrf_qt.utils.screen_grabber import FullPageGrabber as BaseGrabber
 

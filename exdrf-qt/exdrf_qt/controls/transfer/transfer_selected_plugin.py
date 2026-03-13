@@ -6,7 +6,8 @@ import logging
 from typing import TYPE_CHECKING, Callable, List, Optional
 
 from exdrf_al.connection import DbConn
-from PyQt5.QtWidgets import QAction, QProgressDialog
+from PySide6.QtGui import QAction
+from PySide6.QtWidgets import QProgressDialog
 
 from exdrf_qt.controls.table_viewer import (
     TableViewCtx,

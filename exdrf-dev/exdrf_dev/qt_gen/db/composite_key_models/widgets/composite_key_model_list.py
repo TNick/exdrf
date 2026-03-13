@@ -2,7 +2,8 @@
 # Source: exdrf_gen_al2qt.creator -> c/m/w/list.py.j2
 # Don't change it manually.
 
-from typing import TYPE_CHECKING
+import logging
+from typing import TYPE_CHECKING, Type
 
 from exdrf_qt.controls.table_list import ListDb
 from exdrf_qt.plugins import exdrf_qt_pm
@@ -13,6 +14,7 @@ from exdrf_qt.utils.plugins import safe_hook_call
 # exdrf-keep-end other_imports ------------------------------------------------
 
 if TYPE_CHECKING:
+    from exdrf_qt.comparator.widgets.record_cmp_base import RecordComparatorBase
     from exdrf_qt.context import QtContext  # noqa: F401
 
     from exdrf_dev.db.api import CompositeKeyModel  # noqa: F401
@@ -20,6 +22,8 @@ if TYPE_CHECKING:
 # exdrf-keep-start other_globals ----------------------------------------------
 
 # exdrf-keep-end other_globals ------------------------------------------------
+
+logger = logging.getLogger(__name__)
 
 
 class QtCompositeKeyModelList(ListDb["CompositeKeyModel"]):
@@ -43,6 +47,14 @@ class QtCompositeKeyModelList(ListDb["CompositeKeyModel"]):
                     "exdrf_dev.qt_gen.db.composite_key_models.list.extra-menus",
                     None,
                 ),
+            ),
+            compare_merge_enabled=kwargs.pop(
+                "compare_merge_enabled",
+                ctx.get_ovr("list.compare_merge_enabled", True),
+            ),
+            compare_merge_max_selection=kwargs.pop(
+                "compare_merge_max_selection",
+                ctx.get_ovr("list.compare_merge_max_selection", 10),
             ),
             **kwargs,
         )
@@ -69,6 +81,11 @@ class QtCompositeKeyModelList(ListDb["CompositeKeyModel"]):
         # exdrf-keep-start extra_init -----------------------------------------
 
         # exdrf-keep-end extra_init -------------------------------------------
+
+    def compare_merge_widget_class(self) -> Type["RecordComparatorBase"]:
+        from .composite_key_model_cmp import QtCompositeKeyModelCmp
+
+        return QtCompositeKeyModelCmp
 
     # exdrf-keep-start extra_list_content ------------------------------------
 

@@ -28,8 +28,8 @@ from exdrf.constants import (
     FIELD_TYPE_STRING_LIST,
     FIELD_TYPE_TIME,
 )
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QFormLayout, QLabel, QWidget
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QFormLayout, QLabel, QWidget
 
 if TYPE_CHECKING:
     from exdrf_util.task import TaskParameter

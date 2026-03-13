@@ -83,7 +83,7 @@ class QtCompositeKeyModelEditor(
         )
 
     def populate(self, record: Union["CompositeKeyModel", None]):
-        self._populate(record, [])
+        self._populate(record, ignore=[])
 
     def get_id_of_record(self, record: "CompositeKeyModel") -> RecIdType:
         return cast(

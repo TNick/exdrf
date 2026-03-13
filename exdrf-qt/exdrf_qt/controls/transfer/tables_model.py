@@ -8,8 +8,8 @@ import logging
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
 from exdrf_al.connection import DbConn
-from PyQt5.QtCore import QAbstractTableModel, QModelIndex, Qt, pyqtSignal
-from PyQt5.QtGui import QBrush, QColor, QFont
+from PySide6.QtCore import QAbstractTableModel, QModelIndex, Qt, Signal
+from PySide6.QtGui import QBrush, QColor, QFont
 from sqlalchemy import (
     MetaData,
     Table,
@@ -51,7 +51,7 @@ class TablesModel(QAbstractTableModel, QtUseContext):
         _rows: Backing storage with table entries.
     """
 
-    count_failed = pyqtSignal(str)
+    count_failed = Signal(str)
 
     # Public attributes
     ctx: "QtContext"

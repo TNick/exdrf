@@ -4,8 +4,8 @@ from collections import OrderedDict
 from typing import TYPE_CHECKING, List, Optional, Tuple
 
 from exdrf_util.task import Task, TaskState
-from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtWidgets import (
+from PySide6.QtCore import Signal
+from PySide6.QtWidgets import (
     QButtonGroup,
     QDialog,
     QMessageBox,
@@ -28,8 +28,8 @@ if TYPE_CHECKING:
 class QThreadVehicle(PythonThread):
     """A thread that executes a task."""
 
-    progressChanged = pyqtSignal(int)
-    stateChanged = pyqtSignal(object)
+    progressChanged = Signal(int)
+    stateChanged = Signal(object)
 
     def __init__(self, task: "Task", ctx: "QtContext"):
         super().__init__()
@@ -95,11 +95,11 @@ class TaskRunner(
     params: List[Tuple["TaskParameter", "QWidget"]]
     worker: Optional[QThreadVehicle]
 
-    stateChanged = pyqtSignal(object)
-    shouldClose = pyqtSignal()
-    shouldStart = pyqtSignal()
-    shouldRestart = pyqtSignal()
-    progressChanged = pyqtSignal(int)
+    stateChanged = Signal(object)
+    shouldClose = Signal()
+    shouldStart = Signal()
+    shouldRestart = Signal()
+    progressChanged = Signal(int)
 
     def __init__(
         self, ctx: "QtContext", task: "Task", parent: Optional[QWidget] = None
@@ -210,7 +210,7 @@ class TaskRunner(
                 if error:
                     errors.append(f"{param.title}: {error}")
             if errors:
-                from PyQt5.QtWidgets import QMessageBox
+                from PySide6.QtWidgets import QMessageBox
 
                 error_msg = "\n".join(errors)
                 QMessageBox.warning(

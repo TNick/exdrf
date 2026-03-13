@@ -39,6 +39,9 @@ class QtChildTv(RecordTemplViewer):
 
     def __init__(self, ctx: "QtContext", **kwargs):
         from exdrf_dev.db.api import Child as DbChild
+        from exdrf_dev.qt_gen.db.children.widgets.child_editor import (
+            QtChildEditor,
+        )
 
         super().__init__(
             db_model=kwargs.pop(
@@ -69,6 +72,9 @@ class QtChildTv(RecordTemplViewer):
                 ),
             ),
             ctx=ctx,
+            editor_ctor=ctx.get_ovr(
+                "exdrf_dev.qt_gen.db.children.tv.editor_class", QtChildEditor
+            ),
             **kwargs,
         )
         if not self.windowTitle():
@@ -103,7 +109,7 @@ class QtChildTv(RecordTemplViewer):
                 label = self.t(
                     "child.tv.title-found",
                     "Child: view {name}",
-                    name=child_label(result),
+                    name=child_label(result, self.ctx),
                 )
             except Exception as e:
                 logger.error("Error getting label: %s", e, exc_info=True)
@@ -118,31 +124,39 @@ class QtChildTv(RecordTemplViewer):
                 (
                     StrField(
                         name="data",
-                        title="Data",
-                        description=("Some data associated with the child."),
+                        title=self.t("child.tv.data.t", "Data"),
+                        description=self.t(
+                            "child.tv.data.d",
+                            "Some data associated with the child.",
+                        ),
                     ),
                     record.data,
                 ),
                 (
                     RefManyToOneField(
                         name="parent",
-                        title="Parent",
+                        title=self.t("child.tv.parent.t", "Parent"),
                     ),
                     record.parent,
                 ),
                 (
                     IntField(
                         name="parent_id",
-                        title="Parent Id",
-                        description=("Foreign key linking to the parent."),
+                        title=self.t("child.tv.parent_id.t", "Parent Id"),
+                        description=self.t(
+                            "child.tv.parent_id.d",
+                            "Foreign key linking to the parent.",
+                        ),
                     ),
                     record.parent_id,
                 ),
                 (
                     IntField(
                         name="id",
-                        title="Id",
-                        description=("Primary key for the child."),
+                        title=self.t("child.tv.id.t", "Id"),
+                        description=self.t(
+                            "child.tv.id.d", "Primary key for the child."
+                        ),
                     ),
                     record.id,
                 ),

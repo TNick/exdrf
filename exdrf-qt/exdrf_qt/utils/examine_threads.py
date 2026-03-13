@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any, Deque, Optional, cast
 
 import sqlparse  # type: ignore
-from PyQt5.QtCore import (
+from PySide6.QtCore import (
     QAbstractItemModel,
     QAbstractListModel,
     QItemSelection,
@@ -16,8 +16,8 @@ from PyQt5.QtCore import (
     Qt,
     QTimer,
 )
-from PyQt5.QtGui import QColor, QIcon, QPainter, QPalette
-from PyQt5.QtWidgets import (
+from PySide6.QtGui import QColor, QIcon, QPainter, QPalette
+from PySide6.QtWidgets import (
     QAbstractItemView,
     QApplication,
     QFrame,
@@ -1033,7 +1033,7 @@ class ExamineThreadsWidget(QWidget, QtUseContext):
         menu = QMenu(self._workers_view)
         act_copy_sql = menu.addAction("Copy formatted SQL")
         act_copy_info = menu.addAction("Copy request info")
-        act = menu.exec_(self._workers_view.viewport().mapToGlobal(pos))
+        act = menu.exec(self._workers_view.viewport().mapToGlobal(pos))
         if act is None:
             return
 

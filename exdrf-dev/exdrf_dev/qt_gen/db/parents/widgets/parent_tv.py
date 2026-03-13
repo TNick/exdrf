@@ -43,6 +43,9 @@ class QtParentTv(RecordTemplViewer):
 
     def __init__(self, ctx: "QtContext", **kwargs):
         from exdrf_dev.db.api import Parent as DbParent
+        from exdrf_dev.qt_gen.db.parents.widgets.parent_editor import (
+            QtParentEditor,
+        )
 
         super().__init__(
             db_model=kwargs.pop(
@@ -71,6 +74,9 @@ class QtParentTv(RecordTemplViewer):
                 ctx.get_ovr("exdrf_dev.qt_gen.db.parents.tv.extra-menus", None),
             ),
             ctx=ctx,
+            editor_ctor=ctx.get_ovr(
+                "exdrf_dev.qt_gen.db.parents.tv.editor_class", QtParentEditor
+            ),
             **kwargs,
         )
         if not self.windowTitle():
@@ -105,7 +111,7 @@ class QtParentTv(RecordTemplViewer):
                 label = self.t(
                     "parent.tv.title-found",
                     "Parent: view {name}",
-                    name=parent_label(result),
+                    name=parent_label(result, self.ctx),
                 )
             except Exception as e:
                 logger.error("Error getting label: %s", e, exc_info=True)
@@ -118,57 +124,65 @@ class QtParentTv(RecordTemplViewer):
         self.model.var_bag.add_fields(
             [
                 (
-                    RefOneToManyField(
-                        name="children",
-                        title="Children",
+                    StrField(
+                        name="name",
+                        title=self.t("parent.tv.name.t", "Name"),
+                        description=self.t(
+                            "parent.tv.name.d", "Name of the parent."
+                        ),
                     ),
-                    record.children,
+                    record.name,
                 ),
                 (
                     DateTimeField(
                         name="created_at",
-                        title="Created At",
-                        description=("Timestamp when the parent was created."),
+                        title=self.t("parent.tv.created_at.t", "Created At"),
+                        description=self.t(
+                            "parent.tv.created_at.d",
+                            "Timestamp when the parent was created.",
+                        ),
                     ),
                     record.created_at,
                 ),
                 (
                     BoolField(
                         name="is_active",
-                        title="Is Active",
-                        description=(
-                            "Flag indicating if the parent is active."
+                        title=self.t("parent.tv.is_active.t", "Is Active"),
+                        description=self.t(
+                            "parent.tv.is_active.d",
+                            "Flag indicating if the parent is active.",
                         ),
                     ),
                     record.is_active,
                 ),
                 (
-                    StrField(
-                        name="name",
-                        title="Name",
-                        description=("Name of the parent."),
-                    ),
-                    record.name,
-                ),
-                (
                     RefOneToOneField(
                         name="profile",
-                        title="Profile",
+                        title=self.t("parent.tv.profile.t", "Profile"),
                     ),
                     record.profile,
                 ),
                 (
+                    RefOneToManyField(
+                        name="children",
+                        title=self.t("parent.tv.children.t", "Children"),
+                    ),
+                    record.children,
+                ),
+                (
                     RefManyToManyField(
                         name="tags",
-                        title="Tags",
+                        title=self.t("parent.tv.tags.t", "Tags"),
                     ),
                     record.tags,
                 ),
                 (
                     IntField(
                         name="id",
-                        title="Id",
-                        description=("Primary key for the parent."),
+                        title=self.t("parent.tv.id.t", "Id"),
+                        description=self.t(
+                            "parent.tv.id.d", "Primary key for the parent."
+                        ),
                     ),
                     record.id,
                 ),

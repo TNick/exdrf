@@ -2,10 +2,11 @@ import logging
 from typing import TYPE_CHECKING, Generic, List, Optional, TypeVar
 
 from exdrf.filter import SearchType
-from PyQt5.QtCore import QPoint
+from PySide6.QtCore import QPoint
 
 if TYPE_CHECKING:
-    from PyQt5.QtWidgets import QAction, QActionGroup, QWidget
+    from PySide6.QtGui import QAction, QActionGroup
+    from PySide6.QtWidgets import QWidget
 
     from exdrf_qt.models import QtModel
     from exdrf_qt.utils.stay_open_menu import StayOpenMenu
@@ -128,7 +129,7 @@ class ModelSearchSettings(Generic[DBM]):
         # Align the menu such that its center matches the widget's center
         menu_pos = widget_center_global
         menu_pos.setX(int(widget_center_global.x() - menu_size.width() / 2))
-        self.menu.exec_(menu_pos)
+        self.menu.exec(menu_pos)
 
         # Handle simple filtering.
         if self.ac_simple:

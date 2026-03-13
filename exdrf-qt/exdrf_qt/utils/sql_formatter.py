@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any
 import sqlparse  # type: ignore
 
 if TYPE_CHECKING:
-    from PyQt5.QtWidgets import QWidget  # noqa: F401
+    from PySide6.QtWidgets import QWidget  # noqa: F401
     from sqlalchemy import Select  # noqa: F401
 
 

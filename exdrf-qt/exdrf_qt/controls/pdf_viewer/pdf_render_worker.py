@@ -5,7 +5,7 @@ import queue
 import threading
 from typing import List, Optional
 
-from PyQt5.QtCore import QObject, pyqtSignal
+from PySide6.QtCore import QObject, Signal
 
 logger = logging.getLogger(__name__)
 
@@ -13,9 +13,9 @@ logger = logging.getLogger(__name__)
 class PdfRenderService(QObject):
     """Queue-driven renderer that emits Qt signals from Python threads."""
 
-    pageRendered = pyqtSignal(int, str)  # page_index, image_path
-    renderFinished = pyqtSignal(object)  # list of rendered page indices
-    error = pyqtSignal(str)
+    pageRendered = Signal(int, str)  # page_index, image_path
+    renderFinished = Signal(object)  # list of rendered page indices
+    error = Signal(str)
 
     _pdf_path: str
     _out_dir: str

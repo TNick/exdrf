@@ -4,12 +4,12 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, TypedDict, cast
 
 import humanize
-from PyQt5.QtCore import (
+from PySide6.QtCore import (
     QAbstractItemModel,
     QModelIndex,
     Qt,
 )
-from PyQt5.QtGui import QColor
+from PySide6.QtGui import QColor
 
 from exdrf_qt.controls.seldb.utils import parse_sqlalchemy_conn_str
 

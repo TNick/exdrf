@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
-from PyQt5.QtCore import QModelIndex, QSize, Qt
-from PyQt5.QtGui import QPainter
-from PyQt5.QtWidgets import (
+from PySide6.QtCore import QModelIndex, QSize, Qt
+from PySide6.QtGui import QPainter
+from PySide6.QtWidgets import (
     QStyle,
     QStyledItemDelegate,
     QStyleOptionProgressBar,

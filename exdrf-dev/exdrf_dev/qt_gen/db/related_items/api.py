@@ -14,11 +14,17 @@ from exdrf_dev.qt_gen.db.related_items.models.related_item_ful import (
 from exdrf_dev.qt_gen.db.related_items.models.related_item_ocm import (
     QtRelatedItemNaMo,
 )
+from exdrf_dev.qt_gen.db.related_items.widgets.related_item_cmp import (
+    QtRelatedItemCmp,
+)
 from exdrf_dev.qt_gen.db.related_items.widgets.related_item_editor import (
     QtRelatedItemEditor,
 )
 from exdrf_dev.qt_gen.db.related_items.widgets.related_item_list import (
     QtRelatedItemList,
+)
+from exdrf_dev.qt_gen.db.related_items.widgets.related_item_rel import (
+    QtRelatedItemRel,
 )
 from exdrf_dev.qt_gen.db.related_items.widgets.related_item_selector import (
     QtRelatedItemMuSe,

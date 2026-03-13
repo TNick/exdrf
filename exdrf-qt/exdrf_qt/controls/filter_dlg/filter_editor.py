@@ -23,15 +23,15 @@ from exdrf.filter_dsl import (
     raw_filter_to_text,
     serialize_filter,
 )
-from PyQt5.QtCore import QStringListModel, Qt, pyqtSignal
-from PyQt5.QtGui import (
+from PySide6.QtCore import QStringListModel, Qt, Signal
+from PySide6.QtGui import (
     QColor,
     QFont,
     QKeyEvent,
     QTextCharFormat,
     QTextCursor,
 )
-from PyQt5.QtWidgets import QCompleter, QLabel, QPlainTextEdit
+from PySide6.QtWidgets import QCompleter, QLabel, QPlainTextEdit
 
 from exdrf_qt.context_use import QtUseContext
 
@@ -71,7 +71,7 @@ class FilterEditor(QPlainTextEdit, QtUseContext, Generic[DBM]):
     tokenizer: Optional[DSLTokenizer]
     validator: Optional[FieldValidator]
 
-    errorChanged = pyqtSignal(bool)
+    errorChanged = Signal(bool)
 
     def __init__(
         self,

@@ -39,6 +39,9 @@ class QtTagTv(RecordTemplViewer):
 
     def __init__(self, ctx: "QtContext", **kwargs):
         from exdrf_dev.db.api import Tag as DbTag
+        from exdrf_dev.qt_gen.db.tags.widgets.tag_editor import (
+            QtTagEditor,
+        )
 
         super().__init__(
             db_model=kwargs.pop(
@@ -67,6 +70,9 @@ class QtTagTv(RecordTemplViewer):
                 ctx.get_ovr("exdrf_dev.qt_gen.db.tags.tv.extra-menus", None),
             ),
             ctx=ctx,
+            editor_ctor=ctx.get_ovr(
+                "exdrf_dev.qt_gen.db.tags.tv.editor_class", QtTagEditor
+            ),
             **kwargs,
         )
         if not self.windowTitle():
@@ -101,7 +107,7 @@ class QtTagTv(RecordTemplViewer):
                 label = self.t(
                     "tag.tv.title-found",
                     "Tag: view {name}",
-                    name=tag_label(result),
+                    name=tag_label(result, self.ctx),
                 )
             except Exception as e:
                 logger.error("Error getting label: %s", e, exc_info=True)
@@ -116,23 +122,27 @@ class QtTagTv(RecordTemplViewer):
                 (
                     StrField(
                         name="name",
-                        title="Name",
-                        description=("Unique name of the tag."),
+                        title=self.t("tag.tv.name.t", "Name"),
+                        description=self.t(
+                            "tag.tv.name.d", "Unique name of the tag."
+                        ),
                     ),
                     record.name,
                 ),
                 (
                     RefManyToManyField(
                         name="parents",
-                        title="Parents",
+                        title=self.t("tag.tv.parents.t", "Parents"),
                     ),
                     record.parents,
                 ),
                 (
                     IntField(
                         name="id",
-                        title="Id",
-                        description=("Primary key for the tag."),
+                        title=self.t("tag.tv.id.t", "Id"),
+                        description=self.t(
+                            "tag.tv.id.d", "Primary key for the tag."
+                        ),
                     ),
                     record.id,
                 ),

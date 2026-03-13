@@ -1,7 +1,7 @@
 import logging
 
 from exdrf_qt.context import QtContext
-from PyQt5.QtWidgets import (
+from PySide6.QtWidgets import (
     QApplication,
     QMainWindow,
 )

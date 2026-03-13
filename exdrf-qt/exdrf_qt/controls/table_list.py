@@ -13,10 +13,10 @@ from typing import (
 )
 
 from exdrf.constants import RecIdType
-from PyQt5.QtCore import QItemSelectionModel, QModelIndex, QPoint, Qt
-from PyQt5.QtWidgets import (
+from PySide6.QtCore import QItemSelectionModel, QModelIndex, QPoint, Qt
+from PySide6.QtGui import QAction
+from PySide6.QtWidgets import (
     QAbstractItemView,
-    QAction,
     QHBoxLayout,
     QLabel,
     QMenu,
@@ -43,7 +43,7 @@ from exdrf_qt.models.field import NO_EDITOR_VALUE
 from exdrf_qt.utils.tlh import top_level_handler
 
 if TYPE_CHECKING:
-    from PyQt5.QtCore import QItemSelection  # noqa: F401
+    from PySide6.QtCore import QItemSelection  # noqa: F401
 
     from exdrf_qt.comparator.widgets.record_cmp_base import RecordComparatorBase
     from exdrf_qt.context import QtContext  # noqa: F401
@@ -862,7 +862,7 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
         # Show the menu.
         vp = self.viewport()
         assert vp is not None, "Viewport should not be None"
-        menu.exec_(vp.mapToGlobal(point))
+        menu.exec(vp.mapToGlobal(point))
 
     @top_level_handler
     def on_selection_changed(
@@ -1045,7 +1045,7 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
             qt_model=self.qt_model,
             parent=self,
         )
-        if dlg.exec_() == dlg.Accepted:
+        if dlg.exec() == dlg.Accepted:
             try:
                 self.qt_model.apply_filter(dlg.filter)  # type: ignore
             except Exception as e:

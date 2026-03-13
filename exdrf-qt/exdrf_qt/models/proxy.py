@@ -8,7 +8,12 @@ search across the underlying record.
 import logging
 from typing import Any, Callable, Dict, Optional
 
-from PyQt5.QtCore import QModelIndex, QRegExp, QSortFilterProxyModel, Qt
+from PySide6.QtCore import (
+    QModelIndex,
+    QRegularExpression,
+    QSortFilterProxyModel,
+    Qt,
+)
 
 SORT_ROLE = Qt.ItemDataRole.UserRole + 5
 
@@ -24,14 +29,14 @@ class ProxyModel(QSortFilterProxyModel):
     include custom logic (e.g., full-text content search).
 
     Attributes:
-        _column_filters: Map of column to compiled QRegExp.
+        _column_filters: Map of column to compiled QRegularExpression.
         _row_predicate: Optional predicate receiving the source row index that
             can veto or accept a row after column filtering.
         _numeric_sort_extractors: Map of column to extractor function for
             numeric-aware sorting.
     """
 
-    _column_filters: Dict[int, QRegExp]
+    _column_filters: Dict[int, QRegularExpression]
     _row_predicate: Optional[
         Callable[[int, QModelIndex, Qt.CaseSensitivity], bool]
     ]
@@ -64,9 +69,12 @@ class ProxyModel(QSortFilterProxyModel):
         k_v = list(self._column_filters.items())
         self._column_filters.clear()
         for k, v in k_v:
-            self._column_filters[k] = QRegExp(
-                v.pattern(), cs, v.patternSyntax()
-            )
+            opts = v.patternOptions()
+            if cs == Qt.CaseSensitivity.CaseInsensitive:
+                opts |= QRegularExpression.PatternOption.CaseInsensitiveOption
+            else:
+                opts &= ~QRegularExpression.PatternOption.CaseInsensitiveOption
+            self._column_filters[k] = QRegularExpression(v.pattern(), opts)
         super().setFilterCaseSensitivity(cs)
 
     def set_column_filter(self, column: int, text: str) -> None:
@@ -79,11 +87,10 @@ class ProxyModel(QSortFilterProxyModel):
         sensitivity = self.filterCaseSensitivity()
 
         if text:
-            rx = QRegExp(
-                text,
-                sensitivity,
-                QRegExp.PatternSyntax.RegExp,
-            )
+            opts = QRegularExpression.PatternOption.NoPatternOption
+            if sensitivity == Qt.CaseSensitivity.CaseInsensitive:
+                opts = QRegularExpression.PatternOption.CaseInsensitiveOption
+            rx = QRegularExpression(text, opts)
             self._column_filters[column] = rx
         else:
             self._column_filters.pop(column, None)
@@ -157,7 +164,7 @@ class ProxyModel(QSortFilterProxyModel):
 
             val = model.data(idx, Qt.ItemDataRole.DisplayRole)
             text = "" if val is None else str(val)
-            if not rx.indexIn(text) >= 0:
+            if not rx.match(text).hasMatch():
                 return False
 
         # Optional full-row predicate (e.g., full-text search)

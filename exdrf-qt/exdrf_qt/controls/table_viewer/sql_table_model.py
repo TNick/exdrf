@@ -8,7 +8,7 @@ import logging
 from datetime import date, datetime
 from typing import TYPE_CHECKING, Any, List, Optional, Tuple
 
-from PyQt5.QtCore import QAbstractTableModel, QModelIndex, Qt
+from PySide6.QtCore import QAbstractTableModel, QModelIndex, Qt
 from sqlalchemy import MetaData, Table, select, update
 
 if TYPE_CHECKING:

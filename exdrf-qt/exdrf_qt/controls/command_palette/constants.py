@@ -1,6 +1,6 @@
 from enum import IntEnum
 
-from PyQt5.QtCore import Qt
+from PySide6.QtCore import Qt
 
 # Maximum width for completer popup in pixels.
 MAX_POPUP_WIDTH = 500

@@ -15,8 +15,8 @@ from typing import (
 
 from exdrf.constants import RecIdType
 from exdrf.var_bag import VarBag
-from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtWidgets import (
+from PySide6.QtCore import Signal
+from PySide6.QtWidgets import (
     QDialogButtonBox,
     QMessageBox,
     QPushButton,
@@ -73,11 +73,11 @@ class ExdrfEditorBase(QWidget, QtUseContext):
     _is_editing: bool = False
     constraints: "Constraints"
 
-    dirtyChanged = pyqtSignal(bool)
-    editingChanged = pyqtSignal(bool)
-    editorCleared = pyqtSignal()
-    controlChanged = pyqtSignal()
-    enteredErrorState = pyqtSignal(str)
+    dirtyChanged = Signal(bool)
+    editingChanged = Signal(bool)
+    editorCleared = Signal()
+    controlChanged = Signal()
+    enteredErrorState = Signal(str)
 
     def __init__(
         self,
@@ -394,8 +394,8 @@ class ExdrfEditor(ExdrfEditorBase, Generic[DBM]):
     btn_box: Optional[QDialogButtonBox] = None
     parent_form: Optional["ExdrfEditor"] = None
 
-    recordSaved = pyqtSignal(object)
-    recordChanged = pyqtSignal(object)
+    recordSaved = Signal(object)
+    recordChanged = Signal(object)
 
     def __init__(
         self,

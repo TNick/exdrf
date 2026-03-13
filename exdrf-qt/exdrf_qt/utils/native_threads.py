@@ -6,7 +6,7 @@ import logging
 import threading
 from typing import Any, Callable, Optional
 
-from PyQt5.QtCore import QObject, pyqtSignal
+from PySide6.QtCore import QObject, Signal
 
 logger = logging.getLogger(__name__)
 _thread_state = threading.local()
@@ -28,8 +28,8 @@ class _CurrentThreadProxy:
 class PythonThread(QObject):
     """QObject-compatible worker thread implemented with threading.Thread."""
 
-    started = pyqtSignal()
-    finished = pyqtSignal()
+    started = Signal()
+    finished = Signal()
 
     _thread: Optional[threading.Thread]
     _interrupt_event: threading.Event

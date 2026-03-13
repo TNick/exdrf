@@ -11,16 +11,15 @@ from typing import (
     cast,
 )
 
-from PyQt5.QtCore import (
+from PySide6.QtCore import (
     QModelIndex,
     QPoint,
     Qt,
-    pyqtSignal,
+    Signal,
 )
-from PyQt5.QtGui import QMouseEvent, QResizeEvent
-from PyQt5.QtWidgets import (
+from PySide6.QtGui import QAction, QMouseEvent, QResizeEvent
+from PySide6.QtWidgets import (
     QAbstractItemView,
-    QAction,
     QHBoxLayout,
     QLineEdit,
     QWidget,
@@ -56,7 +55,7 @@ class ClickableLineEdit(QLineEdit):
     We subclass it so that we can show the popup when the user clicks on it.
     """
 
-    clicked = pyqtSignal()
+    clicked = Signal()
 
     def mousePressEvent(self, event: QMouseEvent) -> None:  # type: ignore
         """Handle mouse press events and emit clicked signal."""
@@ -89,7 +88,7 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
         _skip_commit: Whether the edit should be skipped.
     """
 
-    editingFinished = pyqtSignal()
+    editingFinished = Signal()
 
     popup: "PopupWidget[DBM]"
     line_edit: "ClickableLineEdit"

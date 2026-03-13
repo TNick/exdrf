@@ -29,14 +29,21 @@ class KeyPart2Field(QtIntegerField["CompositeKeyModel"]):
         default=("Second part of the composite primary key (integer).")
     )
     category: str = field(default="keys")
-    primary: bool = field(default=True)
     nullable: bool = field(default=False)
+    primary: bool = field(default=True)
     preferred_width: int = field(default=100)
-    enum_values: List[Tuple] = field(factory=lambda: [])
+    enum_values: List[Tuple[int, str]] = field(factory=lambda: [])
 
     # exdrf-keep-start other_attributes ---------------------------------------
 
     # exdrf-keep-end other_attributes -----------------------------------------
+
+    # Comparator/merge hooks: override cmp_extract_value, cmp_normalize_value,
+    # cmp_available_methods, cmp_create_manual_editor, cmp_apply_resolved_value
+    # as needed (defaults from QtField).
+    # exdrf-keep-start cmp_methods -------------------------------------------
+
+    # exdrf-keep-end cmp_methods ----------------------------------------------
 
     # exdrf-keep-start extra_field_content ------------------------------------
 

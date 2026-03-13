@@ -9,9 +9,11 @@ from exdrf_qt.models.requests import RecordRequest
 
 @pytest.fixture
 def model():
+    mock_db_model = MagicMock()
+    mock_db_model.__name__ = "TestModel"
     return QtModel(
         ctx=MagicMock(spec=QtContext),
-        db_model=MagicMock(),  # type: ignore
+        db_model=mock_db_model,  # type: ignore
         selection=MagicMock(),  # type: ignore
         fields=[],
         prevent_total_count=True,

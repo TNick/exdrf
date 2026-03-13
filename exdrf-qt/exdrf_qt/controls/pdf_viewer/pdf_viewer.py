@@ -29,7 +29,12 @@ if __name__ == "__main__":
     import os
     import sys
 
-    from PyQt5.QtWidgets import QApplication, QFileDialog, QMessageBox, QWidget
+    from PySide6.QtWidgets import (
+        QApplication,
+        QFileDialog,
+        QMessageBox,
+        QWidget,
+    )
 
     from exdrf_qt.context import LocalSettings, QtContext
 
@@ -65,7 +70,7 @@ if __name__ == "__main__":
         # Load the chosen file and enter the Qt event loop.
         viewer.set_pdf(file_path)
         viewer.show()
-        sys.exit(app.exec_())
+        sys.exit(app.exec())
     except Exception as e:
         QMessageBox.critical(viewer, "Error", str(e))
         sys.exit(1)

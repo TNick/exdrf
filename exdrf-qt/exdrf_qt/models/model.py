@@ -32,7 +32,7 @@ from exdrf.filter import (
     validate_filter,
 )
 from exdrf_al.utils import DelChoice
-from PyQt5.QtCore import QAbstractItemModel, QModelIndex, Qt, QTimer, pyqtSignal
+from PySide6.QtCore import QAbstractItemModel, QModelIndex, Qt, QTimer, Signal
 from sqlalchemy import (
     any_,
     bindparam,
@@ -56,7 +56,7 @@ from exdrf_qt.models.selector import Selector
 from exdrf_qt.worker import Work
 
 if TYPE_CHECKING:
-    from PyQt5.QtCore import QObject  # noqa: F401
+    from PySide6.QtCore import QObject  # noqa: F401
     from sqlalchemy import Select  # noqa: F401
     from sqlalchemy.orm import Session  # noqa: F401
 
@@ -245,13 +245,13 @@ class QtModel(
     _no_dia_map: Dict[str, str]
     allow_top_cache_edit: bool
 
-    totalCountChanged = pyqtSignal(int)
-    checkedChanged = pyqtSignal()
-    loadedCountChanged = pyqtSignal(int)
-    requestIssued = pyqtSignal(int, int, int, int)
-    requestCompleted = pyqtSignal(int, int, int, int)
-    requestError = pyqtSignal(int, int, int, int, str)
-    recordSaved = pyqtSignal(object, object)
+    totalCountChanged = Signal(int)
+    checkedChanged = Signal()
+    loadedCountChanged = Signal(int)
+    requestIssued = Signal(int, int, int, int)
+    requestCompleted = Signal(int, int, int, int)
+    requestError = Signal(int, int, int, int, str)
+    recordSaved = Signal(object, object)
 
     def __init__(
         self,
@@ -989,9 +989,9 @@ class QtModel(
     def _is_deleted(self) -> bool:
         """Return True if the Qt object was deleted."""
         try:
-            from PyQt5 import sip
+            from shiboken6 import Shiboken
 
-            return sip.isdeleted(self)
+            return not Shiboken.isValid(self)
         except Exception:
             return False
 
@@ -1251,6 +1251,7 @@ class QtModel(
             db_model=self.db_model,
             selection=self.base_selection,
             prevent_total_count=True,
+            wait_before_request=self._wait_before_request,
         )
         # Set filters and sort - this will trigger reset_model() if filters
         # change
@@ -1614,11 +1615,19 @@ class QtModel(
         column = index.column()
         record = self.data_record(row)
 
-        if not self._is_index_editable(record, row, column):
-            return False
+        # Are we editing the check state? CheckStateRole uses column 0
+        # (checkbox) and does not require the column to be editable.
+        if role == Qt.ItemDataRole.CheckStateRole:
+            if record is None or not record.loaded or record.error:
+                return False
+            if column >= len(self.column_fields):
+                return False
+            # Fall through to CheckStateRole handling below.
+        else:
+            if not self._is_index_editable(record, row, column):
+                return False
 
-        # _is_index_editable should have already checked that the record is
-        # not None, loaded, and not in error state.
+        # _is_index_editable (or CheckStateRole path) has validated record.
         assert record is not None, "Record is None"
         assert record.loaded, "Record is not loaded"
         assert not record.error, "Record is in error state"

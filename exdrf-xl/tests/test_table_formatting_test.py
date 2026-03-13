@@ -79,7 +79,8 @@ class TestXlTableFormatting:
         ws = wb.active
 
         # The implementation ignores the session object for this test table.
-        table.write_to_sheet(ws, session=None)  # type: ignore[arg-type]
+        col_widths = {col.xl_name: col.col_width for col in table.columns}
+        table.write_to_sheet(ws, session=None, col_widths=col_widths)  # type: ignore[arg-type]
 
         # Column access via `table[...]` should work for both index and name.
         assert table[0].xl_name == "A"

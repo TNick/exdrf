@@ -1,8 +1,8 @@
 from typing import TYPE_CHECKING, cast
 
-from PyQt5.QtCore import QMarginsF
-from PyQt5.QtGui import QPageLayout, QPageSize
-from PyQt5.QtWidgets import (
+from PySide6.QtCore import QMarginsF
+from PySide6.QtGui import QPageLayout, QPageSize
+from PySide6.QtWidgets import (
     QComboBox,
     QDoubleSpinBox,
     QFileDialog,

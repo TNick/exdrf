@@ -31,11 +31,18 @@ class NameField(QtStringField["Parent"]):
     preferred_width: int = field(default=100)
     min_length: int = field(default=1)
     max_length: int = field(default=100)
-    enum_values: List[Tuple] = field(factory=lambda: [])
+    enum_values: List[Tuple[str, str]] = field(factory=lambda: [])
 
     # exdrf-keep-start other_attributes ---------------------------------------
 
     # exdrf-keep-end other_attributes -----------------------------------------
+
+    # Comparator/merge hooks: override cmp_extract_value, cmp_normalize_value,
+    # cmp_available_methods, cmp_create_manual_editor, cmp_apply_resolved_value
+    # as needed (defaults from QtField).
+    # exdrf-keep-start cmp_methods -------------------------------------------
+
+    # exdrf-keep-end cmp_methods ----------------------------------------------
 
     # exdrf-keep-start extra_field_content ------------------------------------
 

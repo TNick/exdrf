@@ -1,7 +1,7 @@
 import json
 from typing import Any, Tuple
 
-from PyQt5 import QtWidgets
+from PySide6 import QtWidgets
 
 from exdrf_qt.controls.json_editor.editor import JsonEditor
 

@@ -1,7 +1,5 @@
 from typing import TYPE_CHECKING
 
-from PyQt5 import QtCore, QtWidgets
-
 if TYPE_CHECKING:
     from exdrf_qt.field_ed.api import DrfIntEditor, DrfTextEditor
 
@@ -16,10 +14,8 @@ class Ui_QtChildEditor:
         c_id: C id.
         c_parent: C parent.
         formLayout: The layout for the widget.
-        formLayout1: The layout for the widget.
         main_tab: Main tab.
         tab_general: Tab general.
-        tab_keys: Tab keys.
         verticalLayout: The layout for the widget.
 
     """
@@ -27,97 +23,110 @@ class Ui_QtChildEditor:
     c_data: "DrfTextEditor"
     c_id: "DrfIntEditor"
     c_parent: "QtParentSiSe"
-    formLayout: "QtWidgets.QFormLayout"
-    formLayout1: "QtWidgets.QFormLayout"
-    lbl_data: "QtWidgets.QLabel"
-    lbl_id: "QtWidgets.QLabel"
-    lbl_parent: "QtWidgets.QLabel"
-    main_tab: "QtWidgets.QTabWidget"
-    tab_general: "QtWidgets.QWidget"
-    tab_keys: "QtWidgets.QWidget"
-    verticalLayout: "QtWidgets.QVBoxLayout"
+    formLayout: "QFormLayout"
+    lbl_data: "QLabel"
+    lbl_id: "QLabel"
+    lbl_parent: "QLabel"
+    main_tab: "QTabWidget"
+    tab_general: "QWidget"
+    verticalLayout: "QVBoxLayout"
 
     def setup_ui(self, QtChildEditor):
         from exdrf_qt.field_ed.api import DrfIntEditor, DrfTextEditor
 
         from exdrf_dev.qt_gen.db.parents.api import QtParentSiSe
 
-        QtChildEditor.setObjectName("QtChildEditor")
+        if not QtChildEditor.objectName():
+            QtChildEditor.setObjectName("QtChildEditor")
         QtChildEditor.resize(480, 640)
-        self.verticalLayout = QtWidgets.QVBoxLayout(QtChildEditor)
+        self.verticalLayout = QVBoxLayout(QtChildEditor)
         self.verticalLayout.setObjectName("verticalLayout")
-        self.main_tab = QtWidgets.QTabWidget(QtChildEditor)
+        self.main_tab = QTabWidget(QtChildEditor)
         self.main_tab.setObjectName("main_tab")
-        self.tab_general = QtWidgets.QWidget()
+        self.tab_general = QWidget()
         self.tab_general.setObjectName("tab_general")
-        self.formLayout = QtWidgets.QFormLayout(self.tab_general)
+        self.formLayout = QFormLayout(self.tab_general)
         self.formLayout.setObjectName("formLayout")
-        self.lbl_data = QtWidgets.QLabel(self.tab_general)
+        self.lbl_data = QLabel(self.tab_general)
         self.lbl_data.setObjectName("lbl_data")
+
         self.formLayout.setWidget(
-            0, QtWidgets.QFormLayout.LabelRole, self.lbl_data
+            0, QFormLayout.ItemRole.LabelRole, self.lbl_data
         )
+
         self.c_data = DrfTextEditor(parent=self.tab_general, ctx=self.ctx)
+        self.c_data.setObjectName("c_data")
         self.c_data.setProperty("name", "data")
         self.c_data.setProperty("clearable", True)
-        self.c_data.setObjectName("c_data")
+
         self.formLayout.setWidget(
-            0, QtWidgets.QFormLayout.FieldRole, self.c_data
+            0, QFormLayout.ItemRole.FieldRole, self.c_data
         )
-        self.lbl_parent = QtWidgets.QLabel(self.tab_general)
+
+        self.lbl_parent = QLabel(self.tab_general)
         self.lbl_parent.setObjectName("lbl_parent")
+
         self.formLayout.setWidget(
-            1, QtWidgets.QFormLayout.LabelRole, self.lbl_parent
+            1, QFormLayout.ItemRole.LabelRole, self.lbl_parent
         )
+
         self.c_parent = QtParentSiSe(parent=self.tab_general, ctx=self.ctx)
+        self.c_parent.setObjectName("c_parent")
         self.c_parent.setProperty("name", "parent")
         self.c_parent.setProperty("clearable", True)
-        self.c_parent.setObjectName("c_parent")
+
         self.formLayout.setWidget(
-            1, QtWidgets.QFormLayout.FieldRole, self.c_parent
+            1, QFormLayout.ItemRole.FieldRole, self.c_parent
         )
-        self.main_tab.addTab(self.tab_general, "")
-        self.tab_keys = QtWidgets.QWidget()
-        self.tab_keys.setObjectName("tab_keys")
-        self.formLayout1 = QtWidgets.QFormLayout(self.tab_keys)
-        self.formLayout1.setObjectName("formLayout1")
-        self.lbl_id = QtWidgets.QLabel(self.tab_keys)
+
+        self.lbl_id = QLabel(self.tab_general)
         self.lbl_id.setObjectName("lbl_id")
-        self.formLayout1.setWidget(
-            0, QtWidgets.QFormLayout.LabelRole, self.lbl_id
+
+        self.formLayout.setWidget(
+            2, QFormLayout.ItemRole.LabelRole, self.lbl_id
         )
-        self.c_id = DrfIntEditor(parent=self.tab_keys, ctx=self.ctx)
-        self.c_id.setProperty("name", "id")
+
+        self.c_id = DrfIntEditor(parent=self.tab_general, ctx=self.ctx)
         self.c_id.setObjectName("c_id")
-        self.formLayout1.setWidget(
-            0, QtWidgets.QFormLayout.FieldRole, self.c_id
-        )
-        self.main_tab.addTab(self.tab_keys, "")
+        self.c_id.setProperty("name", "id")
+
+        self.formLayout.setWidget(2, QFormLayout.ItemRole.FieldRole, self.c_id)
+
+        self.main_tab.addTab(self.tab_general, "")
+
         self.verticalLayout.addWidget(self.main_tab)
+
         self.lbl_data.setBuddy(self.c_data)
         self.lbl_parent.setBuddy(self.c_parent)
         self.lbl_id.setBuddy(self.c_id)
 
         self.retranslate_ui(QtChildEditor)
+
         self.main_tab.setCurrentIndex(0)
-        QtCore.QMetaObject.connectSlotsByName(QtChildEditor)
+
+        QMetaObject.connectSlotsByName(QtChildEditor)
+
+    # setupUi
 
     def retranslate_ui(self, QtChildEditor):
-        _translate = QtCore.QCoreApplication.translate
         QtChildEditor.setWindowTitle(
-            _translate("QtChildEditor", "Child Editor")
+            QCoreApplication.translate("QtChildEditor", "Child Editor", None)
         )
-        self.lbl_data.setText(_translate("QtChildEditor", "Data "))
-        self.lbl_parent.setText(_translate("QtChildEditor", "Parent "))
+        self.lbl_data.setText(
+            QCoreApplication.translate("QtChildEditor", "Data ", None)
+        )
+        self.lbl_parent.setText(
+            QCoreApplication.translate("QtChildEditor", "Parent ", None)
+        )
+        self.lbl_id.setText(
+            QCoreApplication.translate("QtChildEditor", "Id ", None)
+        )
         self.main_tab.setTabText(
             self.main_tab.indexOf(self.tab_general),
-            _translate("QtChildEditor", "General"),
+            QCoreApplication.translate("QtChildEditor", "General", None),
         )
-        self.lbl_id.setText(_translate("QtChildEditor", "Id "))
-        self.main_tab.setTabText(
-            self.main_tab.indexOf(self.tab_keys),
-            _translate("QtChildEditor", "Keys"),
-        )
+
+    # retranslate_ui
 
     def enum_controls(self):
         """Enumerate the controls in the form."""
@@ -127,5 +136,4 @@ class Ui_QtChildEditor:
             self.c_parent,
             self.main_tab,
             self.tab_general,
-            self.tab_keys,
         ]

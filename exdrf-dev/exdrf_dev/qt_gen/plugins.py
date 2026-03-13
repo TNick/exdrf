@@ -4,6 +4,7 @@
 import logging
 from typing import TYPE_CHECKING, Optional
 
+from exdrf.filter import SearchType
 from exdrf_qt.plugins import hook_spec
 
 # exdrf-keep-start other_imports ----------------------------------------------
@@ -13,6 +14,7 @@ from exdrf_qt.plugins import hook_spec
 if TYPE_CHECKING:
     from exdrf.filter import FilterType  # noqa: F401
 
+    from exdrf_dev.qt_gen.db.children.api import QtChildCmp  # noqa: F401
     from exdrf_dev.qt_gen.db.children.api import QtChildEditor  # noqa: F401
     from exdrf_dev.qt_gen.db.children.api import QtChildFuMo  # noqa: F401
     from exdrf_dev.qt_gen.db.children.api import QtChildList  # noqa: F401
@@ -21,6 +23,7 @@ if TYPE_CHECKING:
     from exdrf_dev.qt_gen.db.children.api import QtChildSiSe  # noqa: F401
     from exdrf_dev.qt_gen.db.children.api import QtChildTv  # noqa: F401
     from exdrf_dev.qt_gen.db.composite_key_models.api import (  # noqa: F401
+        QtCompositeKeyModelCmp,
         QtCompositeKeyModelEditor,
         QtCompositeKeyModelFuMo,
         QtCompositeKeyModelList,
@@ -30,6 +33,7 @@ if TYPE_CHECKING:
         QtCompositeKeyModelTv,
     )
     from exdrf_dev.qt_gen.db.parent_tag_associations.api import (  # noqa: F401
+        QtParentTagAssociationCmp,
         QtParentTagAssociationEditor,
         QtParentTagAssociationFuMo,
         QtParentTagAssociationList,
@@ -38,6 +42,7 @@ if TYPE_CHECKING:
         QtParentTagAssociationSiSe,
         QtParentTagAssociationTv,
     )
+    from exdrf_dev.qt_gen.db.parents.api import QtParentCmp  # noqa: F401
     from exdrf_dev.qt_gen.db.parents.api import QtParentEditor  # noqa: F401
     from exdrf_dev.qt_gen.db.parents.api import QtParentFuMo  # noqa: F401
     from exdrf_dev.qt_gen.db.parents.api import QtParentList  # noqa: F401
@@ -45,6 +50,7 @@ if TYPE_CHECKING:
     from exdrf_dev.qt_gen.db.parents.api import QtParentNaMo  # noqa: F401
     from exdrf_dev.qt_gen.db.parents.api import QtParentSiSe  # noqa: F401
     from exdrf_dev.qt_gen.db.parents.api import QtParentTv  # noqa: F401
+    from exdrf_dev.qt_gen.db.profiles.api import QtProfileCmp  # noqa: F401
     from exdrf_dev.qt_gen.db.profiles.api import QtProfileEditor  # noqa: F401
     from exdrf_dev.qt_gen.db.profiles.api import QtProfileFuMo  # noqa: F401
     from exdrf_dev.qt_gen.db.profiles.api import QtProfileList  # noqa: F401
@@ -53,6 +59,7 @@ if TYPE_CHECKING:
     from exdrf_dev.qt_gen.db.profiles.api import QtProfileSiSe  # noqa: F401
     from exdrf_dev.qt_gen.db.profiles.api import QtProfileTv  # noqa: F401
     from exdrf_dev.qt_gen.db.related_items.api import (  # noqa: F401
+        QtRelatedItemCmp,
         QtRelatedItemEditor,
         QtRelatedItemFuMo,
         QtRelatedItemList,
@@ -61,6 +68,7 @@ if TYPE_CHECKING:
         QtRelatedItemSiSe,
         QtRelatedItemTv,
     )
+    from exdrf_dev.qt_gen.db.tags.api import QtTagCmp  # noqa: F401
     from exdrf_dev.qt_gen.db.tags.api import QtTagEditor  # noqa: F401
     from exdrf_dev.qt_gen.db.tags.api import QtTagFuMo  # noqa: F401
     from exdrf_dev.qt_gen.db.tags.api import QtTagList  # noqa: F401
@@ -88,7 +96,7 @@ class ChildHooks:
         self,
         model: "QtChildFuMo",
         text: str,
-        exact: Optional[bool],
+        search_type: Optional[SearchType],
         limit: Optional[str],
         filters: "FilterType",
     ) -> None:
@@ -125,6 +133,11 @@ class ChildHooks:
         """Called when a template-based viewer is created."""
         raise NotImplementedError
 
+    @hook_spec
+    def child_cmp_created(self, widget: "QtChildCmp") -> None:
+        """Called when a compare/merge widget is created."""
+        raise NotImplementedError
+
 
 class CompositeKeyModelHooks:
     """Hooks related to the CompositeKeyModel resource."""
@@ -141,7 +154,7 @@ class CompositeKeyModelHooks:
         self,
         model: "QtCompositeKeyModelFuMo",
         text: str,
-        exact: Optional[bool],
+        search_type: Optional[SearchType],
         limit: Optional[str],
         filters: "FilterType",
     ) -> None:
@@ -190,6 +203,13 @@ class CompositeKeyModelHooks:
         """Called when a template-based viewer is created."""
         raise NotImplementedError
 
+    @hook_spec
+    def composite_key_model_cmp_created(
+        self, widget: "QtCompositeKeyModelCmp"
+    ) -> None:
+        """Called when a compare/merge widget is created."""
+        raise NotImplementedError
+
 
 class ParentHooks:
     """Hooks related to the Parent resource."""
@@ -204,7 +224,7 @@ class ParentHooks:
         self,
         model: "QtParentFuMo",
         text: str,
-        exact: Optional[bool],
+        search_type: Optional[SearchType],
         limit: Optional[str],
         filters: "FilterType",
     ) -> None:
@@ -241,6 +261,11 @@ class ParentHooks:
         """Called when a template-based viewer is created."""
         raise NotImplementedError
 
+    @hook_spec
+    def parent_cmp_created(self, widget: "QtParentCmp") -> None:
+        """Called when a compare/merge widget is created."""
+        raise NotImplementedError
+
 
 class ParentTagAssociationHooks:
     """Hooks related to the ParentTagAssociation resource."""
@@ -257,7 +282,7 @@ class ParentTagAssociationHooks:
         self,
         model: "QtParentTagAssociationFuMo",
         text: str,
-        exact: Optional[bool],
+        search_type: Optional[SearchType],
         limit: Optional[str],
         filters: "FilterType",
     ) -> None:
@@ -306,6 +331,13 @@ class ParentTagAssociationHooks:
         """Called when a template-based viewer is created."""
         raise NotImplementedError
 
+    @hook_spec
+    def parent_tag_association_cmp_created(
+        self, widget: "QtParentTagAssociationCmp"
+    ) -> None:
+        """Called when a compare/merge widget is created."""
+        raise NotImplementedError
+
 
 class ProfileHooks:
     """Hooks related to the Profile resource."""
@@ -320,7 +352,7 @@ class ProfileHooks:
         self,
         model: "QtProfileFuMo",
         text: str,
-        exact: Optional[bool],
+        search_type: Optional[SearchType],
         limit: Optional[str],
         filters: "FilterType",
     ) -> None:
@@ -357,6 +389,11 @@ class ProfileHooks:
         """Called when a template-based viewer is created."""
         raise NotImplementedError
 
+    @hook_spec
+    def profile_cmp_created(self, widget: "QtProfileCmp") -> None:
+        """Called when a compare/merge widget is created."""
+        raise NotImplementedError
+
 
 class RelatedItemHooks:
     """Hooks related to the RelatedItem resource."""
@@ -371,7 +408,7 @@ class RelatedItemHooks:
         self,
         model: "QtRelatedItemFuMo",
         text: str,
-        exact: Optional[bool],
+        search_type: Optional[SearchType],
         limit: Optional[str],
         filters: "FilterType",
     ) -> None:
@@ -410,6 +447,11 @@ class RelatedItemHooks:
         """Called when a template-based viewer is created."""
         raise NotImplementedError
 
+    @hook_spec
+    def related_item_cmp_created(self, widget: "QtRelatedItemCmp") -> None:
+        """Called when a compare/merge widget is created."""
+        raise NotImplementedError
+
 
 class TagHooks:
     """Hooks related to the Tag resource."""
@@ -424,7 +466,7 @@ class TagHooks:
         self,
         model: "QtTagFuMo",
         text: str,
-        exact: Optional[bool],
+        search_type: Optional[SearchType],
         limit: Optional[str],
         filters: "FilterType",
     ) -> None:
@@ -459,6 +501,11 @@ class TagHooks:
     @hook_spec
     def tag_tv_created(self, widget: "QtTagTv") -> None:
         """Called when a template-based viewer is created."""
+        raise NotImplementedError
+
+    @hook_spec
+    def tag_cmp_created(self, widget: "QtTagCmp") -> None:
+        """Called when a compare/merge widget is created."""
         raise NotImplementedError
 
 

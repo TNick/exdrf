@@ -2,8 +2,8 @@ import logging
 from typing import TYPE_CHECKING, Optional, Union
 
 from exdrf.filter import SearchType
-from PyQt5.QtCore import QObject
-from PyQt5.QtWidgets import QAction, QActionGroup
+from PySide6.QtCore import QObject
+from PySide6.QtGui import QAction, QActionGroup
 
 if TYPE_CHECKING:
     from exdrf_util.typedefs import HasTranslate

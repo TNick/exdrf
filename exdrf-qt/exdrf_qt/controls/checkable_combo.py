@@ -1,9 +1,9 @@
 import logging
 from typing import TYPE_CHECKING, Any, List, Optional, cast
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QStandardItem, QStandardItemModel
-from PyQt5.QtWidgets import (
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QStandardItem, QStandardItemModel
+from PySide6.QtWidgets import (
     QComboBox,
     QWidget,
 )

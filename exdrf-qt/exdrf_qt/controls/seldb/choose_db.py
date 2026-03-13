@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from PyQt5.QtWidgets import QComboBox
+from PySide6.QtWidgets import QComboBox
 
 from exdrf_qt.context_use import QtUseContext
 from exdrf_qt.controls.seldb.db_config_delegate import DbConfigDelegate

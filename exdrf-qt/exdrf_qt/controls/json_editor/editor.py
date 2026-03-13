@@ -2,7 +2,7 @@ import json
 from typing import cast
 
 import yaml
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from exdrf_qt.controls.json_editor.tree import JsonTreeView
 

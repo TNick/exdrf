@@ -39,6 +39,9 @@ class QtRelatedItemTv(RecordTemplViewer):
 
     def __init__(self, ctx: "QtContext", **kwargs):
         from exdrf_dev.db.api import RelatedItem as DbRelatedItem
+        from exdrf_dev.qt_gen.db.related_items.widgets.related_item_editor import (
+            QtRelatedItemEditor,
+        )
 
         super().__init__(
             db_model=kwargs.pop(
@@ -69,6 +72,10 @@ class QtRelatedItemTv(RecordTemplViewer):
                 ),
             ),
             ctx=ctx,
+            editor_ctor=ctx.get_ovr(
+                "exdrf_dev.qt_gen.db.related_items.tv.editor_class",
+                QtRelatedItemEditor,
+            ),
             **kwargs,
         )
         if not self.windowTitle():
@@ -103,7 +110,7 @@ class QtRelatedItemTv(RecordTemplViewer):
                 label = self.t(
                     "related_item.tv.title-found",
                     "Related item: view {name}",
-                    name=related_item_label(result),
+                    name=related_item_label(result, self.ctx),
                 )
             except Exception as e:
                 logger.error("Error getting label: %s", e, exc_info=True)
@@ -116,18 +123,14 @@ class QtRelatedItemTv(RecordTemplViewer):
         self.model.var_bag.add_fields(
             [
                 (
-                    RefManyToOneField(
-                        name="comp_key_owner",
-                        title="Comp Key Owner",
-                    ),
-                    record.comp_key_owner,
-                ),
-                (
                     StrField(
                         name="comp_key_part1",
-                        title="Comp Key Part1",
-                        description=(
-                            "Foreign key part 1 referencing CompositeKeyModel."
+                        title=self.t(
+                            "related_item.tv.comp_key_part1.t", "Comp Key Part1"
+                        ),
+                        description=self.t(
+                            "related_item.tv.comp_key_part1.d",
+                            "Foreign key part 1 referencing CompositeKeyModel.",
                         ),
                     ),
                     record.comp_key_part1,
@@ -135,9 +138,12 @@ class QtRelatedItemTv(RecordTemplViewer):
                 (
                     IntField(
                         name="comp_key_part2",
-                        title="Comp Key Part2",
-                        description=(
-                            "Foreign key part 2 referencing CompositeKeyModel."
+                        title=self.t(
+                            "related_item.tv.comp_key_part2.t", "Comp Key Part2"
+                        ),
+                        description=self.t(
+                            "related_item.tv.comp_key_part2.d",
+                            "Foreign key part 2 referencing CompositeKeyModel.",
                         ),
                     ),
                     record.comp_key_part2,
@@ -145,26 +151,44 @@ class QtRelatedItemTv(RecordTemplViewer):
                 (
                     StrField(
                         name="item_data",
-                        title="Item Data",
-                        description=("Data specific to the related item."),
+                        title=self.t(
+                            "related_item.tv.item_data.t", "Item Data"
+                        ),
+                        description=self.t(
+                            "related_item.tv.item_data.d",
+                            "Data specific to the related item.",
+                        ),
                     ),
                     record.item_data,
                 ),
                 (
                     IntField(
                         name="some_int",
-                        title="Some Int",
-                        description=(
-                            "An integer value associated with the related item."
+                        title=self.t("related_item.tv.some_int.t", "Some Int"),
+                        description=self.t(
+                            "related_item.tv.some_int.d",
+                            "An integer value associated with the related item.",
                         ),
                     ),
                     record.some_int,
                 ),
                 (
+                    RefManyToOneField(
+                        name="comp_key_owner",
+                        title=self.t(
+                            "related_item.tv.comp_key_owner.t", "Comp Key Owner"
+                        ),
+                    ),
+                    record.comp_key_owner,
+                ),
+                (
                     IntField(
                         name="id",
-                        title="Id",
-                        description=("Primary key for the related item."),
+                        title=self.t("related_item.tv.id.t", "Id"),
+                        description=self.t(
+                            "related_item.tv.id.d",
+                            "Primary key for the related item.",
+                        ),
                     ),
                     record.id,
                 ),

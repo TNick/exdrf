@@ -1,7 +1,5 @@
 from typing import TYPE_CHECKING
 
-from PyQt5 import QtCore, QtWidgets
-
 if TYPE_CHECKING:
     from exdrf_qt.controls.templ_viewer.code_text_edit import CodeTextEdit
     from exdrf_qt.controls.templ_viewer.view_widget import WebView
@@ -30,93 +28,121 @@ class Ui_TemplViewer:
     """
 
     c_editor: "CodeTextEdit"
-    c_sel_templ: "QtWidgets.QToolButton"
-    c_splitter: "QtWidgets.QSplitter"
-    c_stacked: "QtWidgets.QStackedWidget"
-    c_templ: "QtWidgets.QLineEdit"
-    c_var_label: "QtWidgets.QLabel"
-    c_vars: "QtWidgets.QTreeView"
+    c_sel_templ: "QToolButton"
+    c_splitter: "QSplitter"
+    c_stacked: "QStackedWidget"
+    c_templ: "QLineEdit"
+    c_var_label: "QLabel"
+    c_vars: "QTreeView"
     c_viewer: "WebView"
-    lay_main: "QtWidgets.QVBoxLayout"
-    lay_page_editor: "QtWidgets.QVBoxLayout"
-    lay_page_viewer: "QtWidgets.QVBoxLayout"
-    lay_side_panel: "QtWidgets.QVBoxLayout"
-    lay_template_source: "QtWidgets.QHBoxLayout"
-    layoutWidget: "QtWidgets.QWidget"
-    page_editor: "QtWidgets.QWidget"
-    page_viewer: "QtWidgets.QWidget"
+    lay_main: "QVBoxLayout"
+    lay_page_editor: "QVBoxLayout"
+    lay_page_viewer: "QVBoxLayout"
+    lay_side_panel: "QVBoxLayout"
+    lay_template_source: "QHBoxLayout"
+    layoutWidget: "QWidget"
+    page_editor: "QWidget"
+    page_viewer: "QWidget"
 
     def setup_ui(self, TemplViewer):
         from exdrf_qt.controls.templ_viewer.code_text_edit import CodeTextEdit
         from exdrf_qt.controls.templ_viewer.view_widget import WebView
 
-        TemplViewer.setObjectName("TemplViewer")
+        if not TemplViewer.objectName():
+            TemplViewer.setObjectName("TemplViewer")
         TemplViewer.resize(640, 480)
-        self.lay_main = QtWidgets.QVBoxLayout(TemplViewer)
+        self.lay_main = QVBoxLayout(TemplViewer)
         self.lay_main.setObjectName("lay_main")
-        self.c_splitter = QtWidgets.QSplitter(TemplViewer)
-        self.c_splitter.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.c_splitter.setLineWidth(0)
-        self.c_splitter.setOrientation(QtCore.Qt.Horizontal)
+        self.c_splitter = QSplitter(TemplViewer)
         self.c_splitter.setObjectName("c_splitter")
-        self.c_stacked = QtWidgets.QStackedWidget(self.c_splitter)
-        self.c_stacked.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.c_stacked.setFrameShadow(QtWidgets.QFrame.Plain)
-        self.c_stacked.setLineWidth(0)
+        self.c_splitter.setFrameShape(QFrame.NoFrame)
+        self.c_splitter.setLineWidth(0)
+        self.c_splitter.setOrientation(Qt.Horizontal)
+        self.c_stacked = QStackedWidget(self.c_splitter)
         self.c_stacked.setObjectName("c_stacked")
-        self.page_viewer = QtWidgets.QWidget()
+        self.c_stacked.setFrameShape(QFrame.NoFrame)
+        self.c_stacked.setFrameShadow(QFrame.Plain)
+        self.c_stacked.setLineWidth(0)
+        self.page_viewer = QWidget()
         self.page_viewer.setObjectName("page_viewer")
-        self.lay_page_viewer = QtWidgets.QVBoxLayout(self.page_viewer)
-        self.lay_page_viewer.setContentsMargins(0, 0, 0, 0)
+        self.lay_page_viewer = QVBoxLayout(self.page_viewer)
         self.lay_page_viewer.setSpacing(0)
         self.lay_page_viewer.setObjectName("lay_page_viewer")
+        self.lay_page_viewer.setContentsMargins(0, 0, 0, 0)
         self.c_viewer = WebView(parent=self.page_viewer, ctx=self.ctx)
         self.c_viewer.setObjectName("c_viewer")
+
         self.lay_page_viewer.addWidget(self.c_viewer)
+
         self.c_stacked.addWidget(self.page_viewer)
-        self.page_editor = QtWidgets.QWidget()
+        self.page_editor = QWidget()
         self.page_editor.setObjectName("page_editor")
-        self.lay_page_editor = QtWidgets.QVBoxLayout(self.page_editor)
-        self.lay_page_editor.setContentsMargins(0, 0, 0, 0)
+        self.lay_page_editor = QVBoxLayout(self.page_editor)
         self.lay_page_editor.setSpacing(0)
         self.lay_page_editor.setObjectName("lay_page_editor")
+        self.lay_page_editor.setContentsMargins(0, 0, 0, 0)
         self.c_editor = CodeTextEdit(parent=self.page_editor, ctx=self.ctx)
         self.c_editor.setObjectName("c_editor")
+
         self.lay_page_editor.addWidget(self.c_editor)
+
         self.c_stacked.addWidget(self.page_editor)
-        self.layoutWidget = QtWidgets.QWidget(self.c_splitter)
+        self.c_splitter.addWidget(self.c_stacked)
+        self.layoutWidget = QWidget(self.c_splitter)
         self.layoutWidget.setObjectName("layoutWidget")
-        self.lay_side_panel = QtWidgets.QVBoxLayout(self.layoutWidget)
-        self.lay_side_panel.setContentsMargins(0, 0, 0, 0)
+        self.lay_side_panel = QVBoxLayout(self.layoutWidget)
         self.lay_side_panel.setObjectName("lay_side_panel")
-        self.c_vars = QtWidgets.QTreeView(self.layoutWidget)
+        self.lay_side_panel.setContentsMargins(0, 0, 0, 0)
+        self.c_vars = QTreeView(self.layoutWidget)
         self.c_vars.setObjectName("c_vars")
+
         self.lay_side_panel.addWidget(self.c_vars)
-        self.lay_template_source = QtWidgets.QHBoxLayout()
+
+        self.lay_template_source = QHBoxLayout()
         self.lay_template_source.setObjectName("lay_template_source")
-        self.c_var_label = QtWidgets.QLabel(self.layoutWidget)
+        self.c_var_label = QLabel(self.layoutWidget)
         self.c_var_label.setObjectName("c_var_label")
+
         self.lay_template_source.addWidget(self.c_var_label)
-        self.c_templ = QtWidgets.QLineEdit(self.layoutWidget)
+
+        self.c_templ = QLineEdit(self.layoutWidget)
         self.c_templ.setObjectName("c_templ")
+
         self.lay_template_source.addWidget(self.c_templ)
-        self.c_sel_templ = QtWidgets.QToolButton(self.layoutWidget)
+
+        self.c_sel_templ = QToolButton(self.layoutWidget)
         self.c_sel_templ.setObjectName("c_sel_templ")
+
         self.lay_template_source.addWidget(self.c_sel_templ)
+
         self.lay_side_panel.addLayout(self.lay_template_source)
+
+        self.c_splitter.addWidget(self.layoutWidget)
+
         self.lay_main.addWidget(self.c_splitter)
 
         self.retranslate_ui(TemplViewer)
+
         self.c_stacked.setCurrentIndex(1)
-        QtCore.QMetaObject.connectSlotsByName(TemplViewer)
+
+        QMetaObject.connectSlotsByName(TemplViewer)
+
+    # setupUi
 
     def retranslate_ui(self, TemplViewer):
-        _translate = QtCore.QCoreApplication.translate
         TemplViewer.setWindowTitle(
-            _translate("TemplViewer", "Template with data")
+            QCoreApplication.translate(
+                "TemplViewer", "Template with data", None
+            )
         )
-        self.c_var_label.setText(_translate("TemplViewer", "Template"))
-        self.c_sel_templ.setText(_translate("TemplViewer", "..."))
+        self.c_var_label.setText(
+            QCoreApplication.translate("TemplViewer", "Template", None)
+        )
+        self.c_sel_templ.setText(
+            QCoreApplication.translate("TemplViewer", "...", None)
+        )
+
+    # retranslate_ui
 
     def enum_controls(self):
         """Enumerate the controls in the form."""

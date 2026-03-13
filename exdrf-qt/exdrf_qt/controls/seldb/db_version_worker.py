@@ -1,7 +1,7 @@
 import logging
 from typing import List
 
-from PyQt5.QtCore import pyqtSignal
+from PySide6.QtCore import Signal
 
 from exdrf_qt.controls.seldb.manage_model import DatabaseConfig, DbVersionInfo
 from exdrf_qt.utils.native_threads import PythonThread
@@ -20,7 +20,7 @@ class DbVersionCheckerWorker(PythonThread):
             configuration. Parameters: config_id, version_info dict.
     """
 
-    version_checked = pyqtSignal(str, dict)  # config_id, version_info
+    version_checked = Signal(str, dict)  # config_id, version_info
 
     def __init__(
         self,

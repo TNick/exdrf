@@ -2,13 +2,17 @@
 # Source: exdrf_gen_al2qt.creator -> c/m/field.py.j2
 # Don't change it manually.
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, List, Optional, Type
 
 from attrs import define, field
 from exdrf.constants import RecIdType
 from exdrf_qt.models.fi_op import filter_op_registry
 from exdrf_qt.models.fields import QtRefManyToManyField
-from sqlalchemy.orm import aliased
+
+from exdrf_dev.qt_gen.db.tags.widgets.tag_selector import (
+    QtTagMuSe,
+    QtTagSiSe,
+)
 
 # exdrf-keep-start other_imports ----------------------------------------------
 
@@ -17,6 +21,7 @@ from sqlalchemy.orm import aliased
 if TYPE_CHECKING:
     from exdrf.filter import FieldFilter
     from exdrf.resource import ExResource  # noqa: F401
+    from exdrf_qt.field_ed.api import DrfSelMultiEditor, DrfSelOneEditor
     from exdrf_qt.models.selector import Selector
 
     from exdrf_dev.db.api import Parent  # noqa: F401
@@ -35,6 +40,8 @@ class TagsField(QtRefManyToManyField["Parent"]):
     title: str = field(default="Tags")
     category: str = field(default="general")
     preferred_width: int = field(default=100)
+    provides: List[str] = field(factory=lambda: [])
+    depends_on: List[str] = field(factory=lambda: [])
     show_n_labels: int = field(default=4)
 
     # exdrf-keep-start other_attributes ---------------------------------------
@@ -42,6 +49,14 @@ class TagsField(QtRefManyToManyField["Parent"]):
     # exdrf-keep-end other_attributes -----------------------------------------
 
     ref: "ExResource" = field(default=None, repr=False)
+    selector_one_class: Optional[Type["DrfSelOneEditor"]] = field(
+        default=QtTagSiSe,
+        repr=False,
+    )
+    selector_multi_class: Optional[Type["DrfSelMultiEditor"]] = field(
+        default=QtTagMuSe,
+        repr=False,
+    )
 
     def part_id(self, record: "Tag") -> RecIdType:
         """Compute the ID for one of the components of the field."""
@@ -49,33 +64,31 @@ class TagsField(QtRefManyToManyField["Parent"]):
 
     def part_label(self, record: "Tag") -> str:
         """Compute the label for one of the components of the field."""
-        return str("ID:") + str(record.id) + str(" Name:") + str(record.name)
+        from .db.tag import tag_label
 
-    def apply_filter(self, item: "FieldFilter", selector: "Selector") -> Any:
+        return tag_label(record, self.ctx)
+
+    def apply_filter(
+        self,
+        item: "FieldFilter",
+        selector: "Selector",
+        no_dia: Optional[str] = None,
+    ) -> Any:
         from exdrf_dev.db.api import Tag as DbTag
 
         predicate = filter_op_registry[item.op].predicate
         related_entity = getattr(self.resource.db_model, self.name)
-        # M2M(Tag, ParentTagAssociation)
         subq = related_entity.any(
             predicate(DbTag.name, item.vl),
         )
         return subq
 
-        with_alias = aliased(DbTag)
-        predicate = filter_op_registry[item.op].predicate
-        selector.joins.append(
-            (
-                with_alias,
-                getattr(self.resource.db_model, self.name),
-                {"isouter": True},
-            )
-        )
+    # Comparator/merge hooks: override cmp_extract_value, cmp_normalize_value,
+    # cmp_available_methods, cmp_create_manual_editor, cmp_apply_resolved_value
+    # as needed (defaults from QtField).
+    # exdrf-keep-start cmp_methods -------------------------------------------
 
-        return predicate(
-            with_alias.name,
-            item.vl,
-        )
+    # exdrf-keep-end cmp_methods ----------------------------------------------
 
     # exdrf-keep-start extra_field_content ------------------------------------
 

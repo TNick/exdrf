@@ -2,6 +2,8 @@
 # Source: exdrf_gen_al2qt.creator -> c/m/m_ocm.py.j2
 # Don't change it manually.
 
+import logging
+from functools import lru_cache
 from typing import TYPE_CHECKING, Union
 
 from exdrf_qt.plugins import exdrf_qt_pm
@@ -27,15 +29,35 @@ if TYPE_CHECKING:
 # exdrf-keep-end other_globals ------------------------------------------------
 
 
-def default_tag_ocm_selection():
+@lru_cache(maxsize=1)
+def _default_tag_ocm_selection_base():
     from exdrf_dev.db.api import Tag as DbTag
 
-    return select(DbTag).options(
-        load_only(
-            DbTag.id,
-            DbTag.name,
+    try:
+        return select(DbTag).options(
+            load_only(
+                DbTag.id,
+                DbTag.name,
+            )
         )
-    )
+    except Exception:
+        logging.getLogger(__name__).error(
+            "Error creating default selection for tag",
+            exc_info=True,
+        )
+        return select(DbTag)
+
+
+def default_tag_ocm_selection(db_model: object):
+    from exdrf_dev.db.api import Tag as DbTag
+
+    # If an override changes the ORM model class, the statically generated
+    # eager-loading options will not match. Fall back to a plain select on the
+    # overridden model to keep the query valid on all dialects.
+    if db_model is not DbTag:
+        return select(db_model)
+
+    return _default_tag_ocm_selection_base()
 
 
 class QtTagNaMo(QtTagFuMo):
@@ -52,13 +74,13 @@ class QtTagNaMo(QtTagFuMo):
     def __init__(
         self, selection: Union["Select", None] = None, fields=None, **kwargs
     ):
-        pass
+        from exdrf_dev.db.api import Tag as DbTag
 
         super().__init__(
             selection=(
                 selection
                 if selection is not None
-                else default_tag_ocm_selection()
+                else default_tag_ocm_selection(kwargs.get("db_model", DbTag))
             ),
             fields=(
                 fields
@@ -73,6 +95,7 @@ class QtTagNaMo(QtTagFuMo):
             **kwargs,
         )
         self.column_fields = ["label"]
+        self.remove_from_ssf("label")
 
         # Inform plugins that the model has been created.
         safe_hook_call(exdrf_qt_pm.hook.tag_namo_created, model=self)

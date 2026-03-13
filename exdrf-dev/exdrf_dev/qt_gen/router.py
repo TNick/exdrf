@@ -174,7 +174,7 @@ class ExdrfRouter(BaseRouter):
             QtChildTv,
         )
 
-        router.open_viewer(
+        return router.open_viewer(
             router.ctx.get_ovr(
                 "exdrf_dev.qt_gen.db.children.qt.viewer", QtChildTv
             ),
@@ -185,7 +185,7 @@ class ExdrfRouter(BaseRouter):
     def list_child(router: "ExdrfRouter"):
         from exdrf_dev.qt_gen.db.children.api import QtChildList
 
-        router.open_list(
+        return router.open_list(
             router.ctx.get_ovr(
                 "exdrf_dev.qt_gen.db.children.qt.list", QtChildList
             )
@@ -197,7 +197,7 @@ class ExdrfRouter(BaseRouter):
             QtChildEditor,
         )
 
-        router.open_editor(
+        return router.open_editor(
             router.ctx.get_ovr(
                 "exdrf_dev.qt_gen.db.children.qt.editor", QtChildEditor
             ),
@@ -210,7 +210,7 @@ class ExdrfRouter(BaseRouter):
             QtChildEditor,
         )
 
-        router.open_editor(
+        return router.open_editor(
             router.ctx.get_ovr(
                 "exdrf_dev.qt_gen.db.children.qt.editor", QtChildEditor
             ),
@@ -220,7 +220,7 @@ class ExdrfRouter(BaseRouter):
     def delete_child(router: "ExdrfRouter", id: int):
         from exdrf_dev.db.api import Child
 
-        router.delete_record(
+        return router.delete_record(
             Child,
             id=(id,),
             selectors=(Child.id,),  # type: ignore
@@ -235,7 +235,7 @@ class ExdrfRouter(BaseRouter):
             QtCompositeKeyModelTv,
         )
 
-        router.open_viewer(
+        return router.open_viewer(
             router.ctx.get_ovr(
                 "exdrf_dev.qt_gen.db.composite_key_models.qt.viewer",
                 QtCompositeKeyModelTv,
@@ -249,7 +249,7 @@ class ExdrfRouter(BaseRouter):
             QtCompositeKeyModelList,
         )
 
-        router.open_list(
+        return router.open_list(
             router.ctx.get_ovr(
                 "exdrf_dev.qt_gen.db.composite_key_models.qt.list",
                 QtCompositeKeyModelList,
@@ -264,7 +264,7 @@ class ExdrfRouter(BaseRouter):
             QtCompositeKeyModelEditor,
         )
 
-        router.open_editor(
+        return router.open_editor(
             router.ctx.get_ovr(
                 "exdrf_dev.qt_gen.db.composite_key_models.qt.editor",
                 QtCompositeKeyModelEditor,
@@ -278,7 +278,7 @@ class ExdrfRouter(BaseRouter):
             QtCompositeKeyModelEditor,
         )
 
-        router.open_editor(
+        return router.open_editor(
             router.ctx.get_ovr(
                 "exdrf_dev.qt_gen.db.composite_key_models.qt.editor",
                 QtCompositeKeyModelEditor,
@@ -291,7 +291,7 @@ class ExdrfRouter(BaseRouter):
     ):
         from exdrf_dev.db.api import CompositeKeyModel
 
-        router.delete_record(
+        return router.delete_record(
             CompositeKeyModel,
             id=(
                 key_part1,
@@ -310,7 +310,7 @@ class ExdrfRouter(BaseRouter):
             QtParentTv,
         )
 
-        router.open_viewer(
+        return router.open_viewer(
             router.ctx.get_ovr(
                 "exdrf_dev.qt_gen.db.parents.qt.viewer", QtParentTv
             ),
@@ -321,7 +321,7 @@ class ExdrfRouter(BaseRouter):
     def list_parent(router: "ExdrfRouter"):
         from exdrf_dev.qt_gen.db.parents.api import QtParentList
 
-        router.open_list(
+        return router.open_list(
             router.ctx.get_ovr(
                 "exdrf_dev.qt_gen.db.parents.qt.list", QtParentList
             )
@@ -333,7 +333,7 @@ class ExdrfRouter(BaseRouter):
             QtParentEditor,
         )
 
-        router.open_editor(
+        return router.open_editor(
             router.ctx.get_ovr(
                 "exdrf_dev.qt_gen.db.parents.qt.editor", QtParentEditor
             ),
@@ -346,7 +346,7 @@ class ExdrfRouter(BaseRouter):
             QtParentEditor,
         )
 
-        router.open_editor(
+        return router.open_editor(
             router.ctx.get_ovr(
                 "exdrf_dev.qt_gen.db.parents.qt.editor", QtParentEditor
             ),
@@ -356,7 +356,7 @@ class ExdrfRouter(BaseRouter):
     def delete_parent(router: "ExdrfRouter", id: int):
         from exdrf_dev.db.api import Parent
 
-        router.delete_record(
+        return router.delete_record(
             Parent,
             id=(id,),
             selectors=(Parent.id,),  # type: ignore
@@ -371,7 +371,7 @@ class ExdrfRouter(BaseRouter):
             QtParentTagAssociationTv,
         )
 
-        router.open_viewer(
+        return router.open_viewer(
             router.ctx.get_ovr(
                 "exdrf_dev.qt_gen.db.parent_tag_associations.qt.viewer",
                 QtParentTagAssociationTv,
@@ -385,7 +385,7 @@ class ExdrfRouter(BaseRouter):
             QtParentTagAssociationList,
         )
 
-        router.open_list(
+        return router.open_list(
             router.ctx.get_ovr(
                 "exdrf_dev.qt_gen.db.parent_tag_associations.qt.list",
                 QtParentTagAssociationList,
@@ -400,7 +400,7 @@ class ExdrfRouter(BaseRouter):
             QtParentTagAssociationEditor,
         )
 
-        router.open_editor(
+        return router.open_editor(
             router.ctx.get_ovr(
                 "exdrf_dev.qt_gen.db.parent_tag_associations.qt.editor",
                 QtParentTagAssociationEditor,
@@ -414,7 +414,7 @@ class ExdrfRouter(BaseRouter):
             QtParentTagAssociationEditor,
         )
 
-        router.open_editor(
+        return router.open_editor(
             router.ctx.get_ovr(
                 "exdrf_dev.qt_gen.db.parent_tag_associations.qt.editor",
                 QtParentTagAssociationEditor,
@@ -427,7 +427,7 @@ class ExdrfRouter(BaseRouter):
     ):
         from exdrf_dev.db.api import ParentTagAssociation
 
-        router.delete_record(
+        return router.delete_record(
             ParentTagAssociation,
             id=(
                 parent_id,
@@ -446,7 +446,7 @@ class ExdrfRouter(BaseRouter):
             QtProfileTv,
         )
 
-        router.open_viewer(
+        return router.open_viewer(
             router.ctx.get_ovr(
                 "exdrf_dev.qt_gen.db.profiles.qt.viewer", QtProfileTv
             ),
@@ -457,7 +457,7 @@ class ExdrfRouter(BaseRouter):
     def list_profile(router: "ExdrfRouter"):
         from exdrf_dev.qt_gen.db.profiles.api import QtProfileList
 
-        router.open_list(
+        return router.open_list(
             router.ctx.get_ovr(
                 "exdrf_dev.qt_gen.db.profiles.qt.list", QtProfileList
             )
@@ -469,7 +469,7 @@ class ExdrfRouter(BaseRouter):
             QtProfileEditor,
         )
 
-        router.open_editor(
+        return router.open_editor(
             router.ctx.get_ovr(
                 "exdrf_dev.qt_gen.db.profiles.qt.editor", QtProfileEditor
             ),
@@ -482,7 +482,7 @@ class ExdrfRouter(BaseRouter):
             QtProfileEditor,
         )
 
-        router.open_editor(
+        return router.open_editor(
             router.ctx.get_ovr(
                 "exdrf_dev.qt_gen.db.profiles.qt.editor", QtProfileEditor
             ),
@@ -492,7 +492,7 @@ class ExdrfRouter(BaseRouter):
     def delete_profile(router: "ExdrfRouter", id: int):
         from exdrf_dev.db.api import Profile
 
-        router.delete_record(
+        return router.delete_record(
             Profile,
             id=(id,),
             selectors=(Profile.id,),  # type: ignore
@@ -505,7 +505,7 @@ class ExdrfRouter(BaseRouter):
             QtRelatedItemTv,
         )
 
-        router.open_viewer(
+        return router.open_viewer(
             router.ctx.get_ovr(
                 "exdrf_dev.qt_gen.db.related_items.qt.viewer", QtRelatedItemTv
             ),
@@ -516,7 +516,7 @@ class ExdrfRouter(BaseRouter):
     def list_related_item(router: "ExdrfRouter"):
         from exdrf_dev.qt_gen.db.related_items.api import QtRelatedItemList
 
-        router.open_list(
+        return router.open_list(
             router.ctx.get_ovr(
                 "exdrf_dev.qt_gen.db.related_items.qt.list", QtRelatedItemList
             )
@@ -528,7 +528,7 @@ class ExdrfRouter(BaseRouter):
             QtRelatedItemEditor,
         )
 
-        router.open_editor(
+        return router.open_editor(
             router.ctx.get_ovr(
                 "exdrf_dev.qt_gen.db.related_items.qt.editor",
                 QtRelatedItemEditor,
@@ -542,7 +542,7 @@ class ExdrfRouter(BaseRouter):
             QtRelatedItemEditor,
         )
 
-        router.open_editor(
+        return router.open_editor(
             router.ctx.get_ovr(
                 "exdrf_dev.qt_gen.db.related_items.qt.editor",
                 QtRelatedItemEditor,
@@ -553,7 +553,7 @@ class ExdrfRouter(BaseRouter):
     def delete_related_item(router: "ExdrfRouter", id: int):
         from exdrf_dev.db.api import RelatedItem
 
-        router.delete_record(
+        return router.delete_record(
             RelatedItem,
             id=(id,),
             selectors=(RelatedItem.id,),  # type: ignore
@@ -566,7 +566,7 @@ class ExdrfRouter(BaseRouter):
             QtTagTv,
         )
 
-        router.open_viewer(
+        return router.open_viewer(
             router.ctx.get_ovr("exdrf_dev.qt_gen.db.tags.qt.viewer", QtTagTv),
             id=(id),
         )
@@ -575,7 +575,7 @@ class ExdrfRouter(BaseRouter):
     def list_tag(router: "ExdrfRouter"):
         from exdrf_dev.qt_gen.db.tags.api import QtTagList
 
-        router.open_list(
+        return router.open_list(
             router.ctx.get_ovr("exdrf_dev.qt_gen.db.tags.qt.list", QtTagList)
         )
 
@@ -585,7 +585,7 @@ class ExdrfRouter(BaseRouter):
             QtTagEditor,
         )
 
-        router.open_editor(
+        return router.open_editor(
             router.ctx.get_ovr(
                 "exdrf_dev.qt_gen.db.tags.qt.editor", QtTagEditor
             ),
@@ -598,7 +598,7 @@ class ExdrfRouter(BaseRouter):
             QtTagEditor,
         )
 
-        router.open_editor(
+        return router.open_editor(
             router.ctx.get_ovr(
                 "exdrf_dev.qt_gen.db.tags.qt.editor", QtTagEditor
             ),
@@ -608,7 +608,7 @@ class ExdrfRouter(BaseRouter):
     def delete_tag(router: "ExdrfRouter", id: int):
         from exdrf_dev.db.api import Tag
 
-        router.delete_record(
+        return router.delete_record(
             Tag,
             id=(id,),
             selectors=(Tag.id,),  # type: ignore

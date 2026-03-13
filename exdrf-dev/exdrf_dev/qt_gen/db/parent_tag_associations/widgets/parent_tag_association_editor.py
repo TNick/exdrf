@@ -86,7 +86,7 @@ class QtParentTagAssociationEditor(
         )
 
     def populate(self, record: Union["ParentTagAssociation", None]):
-        self._populate(record, [])
+        self._populate(record, ignore=[])
 
     def get_id_of_record(self, record: "ParentTagAssociation") -> RecIdType:
         return cast(

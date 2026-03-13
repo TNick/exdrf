@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, List
 from pluggy import HookimplMarker, HookspecMarker, PluginManager
 
 if TYPE_CHECKING:
-    from PyQt5.QtWidgets import QMenu, QTableView, QWidget
+    from PySide6.QtWidgets import QMenu, QTableView, QWidget
 
     from exdrf_qt.context import QtContext
     from exdrf_qt.controls.table_viewer.viewer_plugin import ViewerPlugin

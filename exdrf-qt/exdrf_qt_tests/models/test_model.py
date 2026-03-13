@@ -4,7 +4,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 from exdrf.filter import FieldFilter
-from PyQt5.QtCore import QModelIndex, Qt
+from PySide6.QtCore import QModelIndex, Qt
 
 from exdrf_qt.models.model import QtModel, compare_filters
 
@@ -85,10 +85,11 @@ class TestQtModelRowCount(unittest.TestCase):
     def setUp(self) -> None:
         """Set up test fixtures."""
         self.mock_ctx = MagicMock()
-        self.mock_db_model = MagicMock()
+        self.mock_db_model = MagicMock(__name__="TestModel")
         self.model = QtModel(
             ctx=self.mock_ctx,
             db_model=self.mock_db_model,
+            selection=MagicMock(),
             prevent_total_count=True,
         )
         self.model._total_count = 10
@@ -113,15 +114,16 @@ class TestQtModelColumnCount(unittest.TestCase):
     def setUp(self) -> None:
         """Set up test fixtures."""
         self.mock_ctx = MagicMock()
-        self.mock_db_model = MagicMock()
+        self.mock_db_model = MagicMock(__name__="TestModel")
         self.mock_field1 = MagicMock()
         self.mock_field2 = MagicMock()
         self.model = QtModel(
             ctx=self.mock_ctx,
             db_model=self.mock_db_model,
+            selection=MagicMock(),
             prevent_total_count=True,
         )
-        self.model.column_fields = [self.mock_field1, self.mock_field2]
+        self.model._c_fields = [self.mock_field1, self.mock_field2]
 
     def test_column_count(self) -> None:
         """Test columnCount returns number of column fields."""
@@ -136,10 +138,11 @@ class TestQtModelHasChildren(unittest.TestCase):
     def setUp(self) -> None:
         """Set up test fixtures."""
         self.mock_ctx = MagicMock()
-        self.mock_db_model = MagicMock()
+        self.mock_db_model = MagicMock(__name__="TestModel")
         self.model = QtModel(
             ctx=self.mock_ctx,
             db_model=self.mock_db_model,
+            selection=MagicMock(),
             prevent_total_count=True,
         )
 
@@ -162,10 +165,11 @@ class TestQtModelParent(unittest.TestCase):
     def setUp(self) -> None:
         """Set up test fixtures."""
         self.mock_ctx = MagicMock()
-        self.mock_db_model = MagicMock()
+        self.mock_db_model = MagicMock(__name__="TestModel")
         self.model = QtModel(
             ctx=self.mock_ctx,
             db_model=self.mock_db_model,
+            selection=MagicMock(),
             prevent_total_count=True,
         )
 
@@ -182,13 +186,15 @@ class TestQtModelIndex(unittest.TestCase):
     def setUp(self) -> None:
         """Set up test fixtures."""
         self.mock_ctx = MagicMock()
-        self.mock_db_model = MagicMock()
+        self.mock_db_model = MagicMock(__name__="TestModel")
         self.model = QtModel(
             ctx=self.mock_ctx,
             db_model=self.mock_db_model,
+            selection=MagicMock(),
             prevent_total_count=True,
         )
         self.model._total_count = 10
+        self.model._c_fields = [MagicMock()]
 
     def test_index_valid(self) -> None:
         """Test index with valid parameters."""
@@ -217,11 +223,11 @@ class TestQtModelName(unittest.TestCase):
     def setUp(self) -> None:
         """Set up test fixtures."""
         self.mock_ctx = MagicMock()
-        self.mock_db_model = MagicMock()
-        self.mock_db_model.__name__ = "TestModel"
+        self.mock_db_model = MagicMock(__name__="TestModel")
         self.model = QtModel(
             ctx=self.mock_ctx,
             db_model=self.mock_db_model,
+            selection=MagicMock(),
             prevent_total_count=True,
         )
 
@@ -236,10 +242,11 @@ class TestQtModelFlags(unittest.TestCase):
     def setUp(self) -> None:
         """Set up test fixtures."""
         self.mock_ctx = MagicMock()
-        self.mock_db_model = MagicMock()
+        self.mock_db_model = MagicMock(__name__="TestModel")
         self.model = QtModel(
             ctx=self.mock_ctx,
             db_model=self.mock_db_model,
+            selection=MagicMock(),
             prevent_total_count=True,
         )
 
@@ -275,10 +282,11 @@ class TestQtModelIsFullyLoaded(unittest.TestCase):
     def setUp(self) -> None:
         """Set up test fixtures."""
         self.mock_ctx = MagicMock()
-        self.mock_db_model = MagicMock()
+        self.mock_db_model = MagicMock(__name__="TestModel")
         self.model = QtModel(
             ctx=self.mock_ctx,
             db_model=self.mock_db_model,
+            selection=MagicMock(),
             prevent_total_count=True,
         )
 
@@ -301,10 +309,11 @@ class TestQtModelCheckedIds(unittest.TestCase):
     def setUp(self) -> None:
         """Set up test fixtures."""
         self.mock_ctx = MagicMock()
-        self.mock_db_model = MagicMock()
+        self.mock_db_model = MagicMock(__name__="TestModel")
         self.model = QtModel(
             ctx=self.mock_ctx,
             db_model=self.mock_db_model,
+            selection=MagicMock(),
             prevent_total_count=True,
         )
 
@@ -331,10 +340,11 @@ class TestQtModelDataRecord(unittest.TestCase):
     def setUp(self) -> None:
         """Set up test fixtures."""
         self.mock_ctx = MagicMock()
-        self.mock_db_model = MagicMock()
+        self.mock_db_model = MagicMock(__name__="TestModel")
         self.model = QtModel(
             ctx=self.mock_ctx,
             db_model=self.mock_db_model,
+            selection=MagicMock(),
             prevent_total_count=True,
         )
         self.mock_record1 = MagicMock()
@@ -371,10 +381,11 @@ class TestQtModelCloneMe(unittest.TestCase):
     def setUp(self) -> None:
         """Set up test fixtures."""
         self.mock_ctx = MagicMock()
-        self.mock_db_model = MagicMock()
+        self.mock_db_model = MagicMock(__name__="TestModel")
         self.model = QtModel(
             ctx=self.mock_ctx,
             db_model=self.mock_db_model,
+            selection=MagicMock(),
             prevent_total_count=True,
         )
         self.model._filters = [{"fld": "name", "op": "==", "vl": "test"}]
@@ -392,7 +403,7 @@ class TestQtModelCloneMe(unittest.TestCase):
         self.assertEqual(clone.base_selection, self.model.base_selection)
         self.assertEqual(clone._filters, self.model._filters)
         self.assertEqual(clone.sort_by, self.model.sort_by)
-        self.assertEqual(clone.top_cache, self.model.top_cache)
+        self.assertEqual(clone.top_cache, [])  # clone starts with empty cache
 
 
 class TestQtModelCheckedRows(unittest.TestCase):
@@ -401,10 +412,11 @@ class TestQtModelCheckedRows(unittest.TestCase):
     def setUp(self) -> None:
         """Set up test fixtures."""
         self.mock_ctx = MagicMock()
-        self.mock_db_model = MagicMock()
+        self.mock_db_model = MagicMock(__name__="TestModel")
         self.model = QtModel(
             ctx=self.mock_ctx,
             db_model=self.mock_db_model,
+            selection=MagicMock(),
             prevent_total_count=True,
         )
         self.model.top_cache = [MagicMock()]
@@ -427,12 +439,14 @@ class TestQtModelSetPrioritizedIds(unittest.TestCase):
     def setUp(self) -> None:
         """Set up test fixtures."""
         self.mock_ctx = MagicMock()
-        self.mock_db_model = MagicMock()
+        self.mock_db_model = MagicMock(__name__="TestModel")
         self.model = QtModel(
             ctx=self.mock_ctx,
             db_model=self.mock_db_model,
+            selection=MagicMock(),
             prevent_total_count=True,
         )
+        self.model._total_count = 10
 
     @patch("exdrf_qt.models.model.QtModel.reset_model")
     def test_set_prioritized_ids_changes_value(

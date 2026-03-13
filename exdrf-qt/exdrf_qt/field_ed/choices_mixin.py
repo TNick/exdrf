@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING, List, Optional, Tuple, cast
 
-from PyQt5.QtCore import Qt, pyqtProperty  # type: ignore
-from PyQt5.QtWidgets import QCompleter
+from PySide6.QtCore import Property, Qt
+from PySide6.QtWidgets import QCompleter
 
 if TYPE_CHECKING:
     from exdrf_qt.field_ed.base_line import LineBase
@@ -36,7 +36,7 @@ class EditorWithChoices:
         else:
             self.set_choices(value)
 
-    choices = pyqtProperty(str, fget=getChoices, fset=setChoices)
+    choices = Property(str, fget=getChoices, fset=setChoices)
 
     def set_choices(self, choices: List[Tuple[str, str]]):
         """Set the available choices."""

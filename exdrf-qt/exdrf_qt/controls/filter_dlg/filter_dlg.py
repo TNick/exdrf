@@ -2,8 +2,8 @@ from typing import TYPE_CHECKING, Generic, Union
 
 from exdrf.filter import FilterType
 from exdrf.filter_dsl import FieldValidator
-from PyQt5.QtGui import QTextCursor
-from PyQt5.QtWidgets import QDialog, QDialogButtonBox
+from PySide6.QtGui import QTextCursor
+from PySide6.QtWidgets import QDialog, QDialogButtonBox
 
 from exdrf_qt.context_use import QtUseContext
 from exdrf_qt.controls.filter_dlg.filter_dlg_ui import Ui_FilterDlg

@@ -29,11 +29,10 @@ from exdrf.var_bag import VarBag
 from exdrf_al.tools import count_relationship
 from exdrf_gen.jinja_support import jinja_env, recreate_global_env
 from jinja2 import Environment, Template
-from PyQt5.QtCore import QPoint, Qt, QTimer, QUrl, pyqtSignal
-from PyQt5.QtGui import QDesktopServices
-from PyQt5.QtWebEngineWidgets import QWebEnginePage
-from PyQt5.QtWidgets import (
-    QAction,
+from PySide6.QtCore import QPoint, Qt, QTimer, QUrl, Signal
+from PySide6.QtGui import QAction, QDesktopServices
+from PySide6.QtWebEngineCore import QWebEnginePage
+from PySide6.QtWidgets import (
     QApplication,
     QDialog,
     QFileDialog,
@@ -133,8 +132,8 @@ class TemplateRenderWorker(PythonThread):
     ctx: Optional["QtContext"]
     data: Dict[str, Any]
 
-    rendered = pyqtSignal(int, str)
-    error = pyqtSignal(int, Exception, str)
+    rendered = Signal(int, str)
+    error = Signal(int, Exception, str)
 
     def __init__(
         self,
@@ -690,7 +689,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
             ctx=self.ctx,
             invalid_names=set(self.model.var_bag.var_names),
         )
-        if dialog.exec_() == QDialog.Accepted:
+        if dialog.exec() == QDialog.Accepted:
             fld, value = dialog.get_field()
             if fld:
                 self.model.add_field(fld, value)
@@ -947,7 +946,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
         menu.addSeparator()
         menu.addAction(self.ac_toggle_vars)
 
-        menu.exec_(self.c_vars.mapToGlobal(pos))
+        menu.exec(self.c_vars.mapToGlobal(pos))
 
     def add_other_view_actions(self, menu: QMenu):
         """Add the other actions to the context menu."""
@@ -1017,7 +1016,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
                 ac_inspect,
             )
 
-            result_ac = menu.exec_(self.c_viewer.mapToGlobal(pos))
+            result_ac = menu.exec(self.c_viewer.mapToGlobal(pos))
             if result_ac == ac_inspect:
                 # Show devtools view when inspect is triggered
                 self.c_viewer.show_devtools()
@@ -1038,7 +1037,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
         menu.addAction(self.ac_save_as_templ)
         menu.addAction(self.ac_auto_save_templ)
 
-        menu.exec_(self.c_editor.mapToGlobal(pos))
+        menu.exec(self.c_editor.mapToGlobal(pos))
 
     @top_level_handler
     def on_browse_templ_file(self):
@@ -1780,7 +1779,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
         dialog = SavePdfDialog(self.ctx, self)
         dialog.setFileMode(QFileDialog.AnyFile)
         dialog.setViewMode(QFileDialog.Detail)
-        if dialog.exec_() == QFileDialog.Accepted:
+        if dialog.exec() == QFileDialog.Accepted:
             file_name = dialog.selectedFiles()[0]
             if file_name:
                 # Ensure the file name ends with .pdf.

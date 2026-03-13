@@ -10,11 +10,17 @@
 
 from exdrf_dev.qt_gen.db.profiles.models.profile_ful import QtProfileFuMo
 from exdrf_dev.qt_gen.db.profiles.models.profile_ocm import QtProfileNaMo
+from exdrf_dev.qt_gen.db.profiles.widgets.profile_cmp import (
+    QtProfileCmp,
+)
 from exdrf_dev.qt_gen.db.profiles.widgets.profile_editor import (
     QtProfileEditor,
 )
 from exdrf_dev.qt_gen.db.profiles.widgets.profile_list import (
     QtProfileList,
+)
+from exdrf_dev.qt_gen.db.profiles.widgets.profile_rel import (
+    QtProfileRel,
 )
 from exdrf_dev.qt_gen.db.profiles.widgets.profile_selector import (
     QtProfileMuSe,

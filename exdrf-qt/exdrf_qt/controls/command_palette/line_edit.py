@@ -3,10 +3,9 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, List, cast
 
-from PyQt5.QtCore import QAbstractProxyModel, QModelIndex, QPoint, Qt, QTimer
-from PyQt5.QtWidgets import (
-    QAction,
-    QActionGroup,
+from PySide6.QtCore import QAbstractProxyModel, QModelIndex, QPoint, Qt, QTimer
+from PySide6.QtGui import QAction, QActionGroup
+from PySide6.QtWidgets import (
     QCompleter,
     QHBoxLayout,
     QLabel,
@@ -369,7 +368,7 @@ class CommandPalette(QLineEdit, QtUseContext):
         menu_pos = QPoint(
             line_edit_right.x() - menu_size.width(), line_edit_right.y()
         )
-        self.m_settings.exec_(menu_pos)
+        self.m_settings.exec(menu_pos)
 
     def hide_completer(self) -> None:
         popup = self.engine.popup()

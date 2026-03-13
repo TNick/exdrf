@@ -34,11 +34,18 @@ class SomeIntField(QtIntegerField["RelatedItem"]):
     max: int = field(default=1000)
     unit: str = field(default="units")
     unit_symbol: str = field(default="u")
-    enum_values: List[Tuple] = field(factory=lambda: [])
+    enum_values: List[Tuple[int, str]] = field(factory=lambda: [])
 
     # exdrf-keep-start other_attributes ---------------------------------------
 
     # exdrf-keep-end other_attributes -----------------------------------------
+
+    # Comparator/merge hooks: override cmp_extract_value, cmp_normalize_value,
+    # cmp_available_methods, cmp_create_manual_editor, cmp_apply_resolved_value
+    # as needed (defaults from QtField).
+    # exdrf-keep-start cmp_methods -------------------------------------------
+
+    # exdrf-keep-end cmp_methods ----------------------------------------------
 
     # exdrf-keep-start extra_field_content ------------------------------------
 

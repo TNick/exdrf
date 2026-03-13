@@ -3,8 +3,8 @@ from __future__ import annotations
 import logging
 from typing import Any, Optional
 
-from PyQt5.QtCore import QAbstractItemModel, QModelIndex, Qt
-from PyQt5.QtGui import QBrush, QColor
+from PySide6.QtCore import QAbstractItemModel, QModelIndex, Qt
+from PySide6.QtGui import QBrush, QColor
 
 from exdrf_qt.comparator.logic.manager import ComparatorManager
 from exdrf_qt.comparator.logic.merge import (
@@ -21,22 +21,31 @@ from exdrf_qt.comparator.logic.nodes import (
 
 logger = logging.getLogger(__name__)
 
+
+def _qt_int(val: Any, default: int) -> int:
+    """Convert Qt enum or int to int (Qt6 uses enums, Qt5 used ints)."""
+    if isinstance(val, int):
+        return val
+    return getattr(val, "value", default)
+
+
 # Constants to avoid enum attribute typing issues in some stub versions.
-DISPLAY_ROLE = int(getattr(Qt, "DisplayRole", 0))
-EDIT_ROLE = int(getattr(Qt, "EditRole", 2))
-BACKGROUND_ROLE = int(getattr(Qt, "BackgroundRole", 8))
-HORIZONTAL = int(getattr(Qt, "Horizontal", 1))
-NO_ITEM_FLAGS = int(getattr(Qt, "NoItemFlags", 0))
-ITEM_IS_ENABLED = int(getattr(Qt, "ItemIsEnabled", 1))
-ITEM_IS_SELECTABLE = int(getattr(Qt, "ItemIsSelectable", 1 << 1))
-ITEM_IS_EDITABLE = int(getattr(Qt, "ItemIsEditable", 1 << 2))
-HTML_ROLE = int(getattr(Qt, "UserRole", 0)) + 1
+DISPLAY_ROLE = _qt_int(getattr(Qt, "DisplayRole", 0), 0)
+EDIT_ROLE = _qt_int(getattr(Qt, "EditRole", 2), 2)
+BACKGROUND_ROLE = _qt_int(getattr(Qt, "BackgroundRole", 8), 8)
+HORIZONTAL = _qt_int(getattr(Qt, "Horizontal", 1), 1)
+NO_ITEM_FLAGS = _qt_int(getattr(Qt, "NoItemFlags", 0), 0)
+ITEM_IS_ENABLED = _qt_int(getattr(Qt, "ItemIsEnabled", 1), 1)
+ITEM_IS_SELECTABLE = _qt_int(getattr(Qt, "ItemIsSelectable", 1 << 1), 1 << 1)
+ITEM_IS_EDITABLE = _qt_int(getattr(Qt, "ItemIsEditable", 1 << 2), 1 << 2)
+USER_ROLE_INT = _qt_int(getattr(Qt, "UserRole", 0), 0)
+HTML_ROLE = USER_ROLE_INT + 1
 # Merge column roles (for delegate and display).
-MERGE_METHOD_ROLE = int(getattr(Qt, "UserRole", 0)) + 2
-MERGE_RESULT_ROLE = int(getattr(Qt, "UserRole", 0)) + 3
-MERGE_OPTIONS_ROLE = int(getattr(Qt, "UserRole", 0)) + 4
-MERGE_STATE_ROLE = int(getattr(Qt, "UserRole", 0)) + 5
-MERGE_CONTEXT_ROLE = int(getattr(Qt, "UserRole", 0)) + 6
+MERGE_METHOD_ROLE = USER_ROLE_INT + 2
+MERGE_RESULT_ROLE = USER_ROLE_INT + 3
+MERGE_OPTIONS_ROLE = USER_ROLE_INT + 4
+MERGE_STATE_ROLE = USER_ROLE_INT + 5
+MERGE_CONTEXT_ROLE = USER_ROLE_INT + 6
 
 
 class ComparatorTreeModel(QAbstractItemModel):

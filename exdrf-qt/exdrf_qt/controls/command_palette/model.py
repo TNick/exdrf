@@ -1,7 +1,7 @@
 import logging
 from typing import TYPE_CHECKING, Any, List, Optional, cast
 
-from PyQt5.QtCore import QAbstractListModel, QModelIndex, Qt, QVariant
+from PySide6.QtCore import QAbstractListModel, QModelIndex, Qt, QVariant
 
 from exdrf_qt.context_use import QtUseContext
 from exdrf_qt.controls.command_palette.constants import (
@@ -13,8 +13,8 @@ from exdrf_qt.controls.command_palette.constants import (
 )
 
 if TYPE_CHECKING:
-    from PyQt5.QtCore import QObject  # noqa: F401
-    from PyQt5.QtGui import QIcon  # noqa: F401
+    from PySide6.QtCore import QObject  # noqa: F401
+    from PySide6.QtGui import QIcon  # noqa: F401
 
     from exdrf_qt.context import QtContext  # noqa: F401
     from exdrf_qt.menus import ActionDef  # noqa: F401

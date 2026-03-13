@@ -7,7 +7,7 @@ from exdrf_qt.controls.table_viewer.column_filter_proxy import ColumnFilterProxy
 from exdrf_qt.controls.table_viewer.sql_table_model import SqlTableModel
 
 if TYPE_CHECKING:
-    from PyQt5.QtWidgets import QTableView
+    from PySide6.QtWidgets import QTableView
     from sqlalchemy.engine import Engine
 
     from exdrf_qt.controls.table_viewer.table_viewer import TableViewer

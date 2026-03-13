@@ -1,4 +1,4 @@
-"""Reload modules widget for PyQt5.
+"""Reload modules widget for PySide6.
 
 This module provides a `ReloadModulesWidget` that lists currently loaded
 Python modules (from `sys.modules`). Each list item shows:
@@ -22,10 +22,9 @@ import sys
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, List, Optional
 
-from PyQt5.QtCore import QPoint, QSize, Qt
-from PyQt5.QtGui import QFont
-from PyQt5.QtWidgets import (
-    QAction,
+from PySide6.QtCore import QPoint, QSize, Qt
+from PySide6.QtGui import QAction, QFont
+from PySide6.QtWidgets import (
     QCheckBox,
     QHBoxLayout,
     QLabel,
@@ -417,14 +416,15 @@ class ReloadModulesWidget(QWidget):
 
         ac = self.filter_menu.addAction(
             self.ctx.t(
-                "utils.reload_modules.filter.hide_pyqt5", "Hide PyQt5 modules"
+                "utils.reload_modules.filter.hide_pyside6",
+                "Hide PySide6 modules",
             )
         )
         assert ac is not None
         ac.setCheckable(True)
         ac.setChecked(True)
         ac.toggled.connect(self._apply_filter)
-        self._filter_hide_pyqt5: QAction = ac
+        self._filter_hide_pyside6: QAction = ac
 
         ac = self.filter_menu.addAction(
             self.ctx.t(
@@ -688,7 +688,7 @@ class ReloadModulesWidget(QWidget):
                     widget.checkbox.setChecked(not widget.checkbox.isChecked())
 
         ac_invert.triggered.connect(do_invert)
-        menu.exec_(self.list_widget.mapToGlobal(pos))
+        menu.exec(self.list_widget.mapToGlobal(pos))
 
     # Filtering ------------------------------------------------------------
     def _apply_filter(self) -> None:
@@ -706,7 +706,7 @@ class ReloadModulesWidget(QWidget):
 
         # Hide groups
         hide_system = self._filter_hide_system.isChecked()
-        hide_pyqt5 = self._filter_hide_pyqt5.isChecked()
+        hide_pyside6 = self._filter_hide_pyside6.isChecked()
         hide_qt_bindings = self._filter_hide_qt_bindings.isChecked()
         hide_builtins = self._filter_hide_builtins.isChecked()
         hide_third_party = self._filter_hide_third_party.isChecked()
@@ -765,8 +765,8 @@ class ReloadModulesWidget(QWidget):
                 item.setHidden(True)
                 continue
 
-            if hide_pyqt5 and (
-                name_str.startswith("PyQt5") or ("PyQt5" in file_str)
+            if hide_pyside6 and (
+                name_str.startswith("PySide6") or ("PySide6" in file_str)
             ):
                 item.setHidden(True)
                 continue

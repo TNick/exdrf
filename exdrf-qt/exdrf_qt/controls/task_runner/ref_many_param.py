@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING, Optional, cast
 
-from PyQt5.QtWidgets import QWidget
+from PySide6.QtWidgets import QWidget
 
 from exdrf_qt.controls.task_runner.param_widget import (
     HasParamRunner,
