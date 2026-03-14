@@ -32,7 +32,12 @@ from jinja2 import Environment, Template
 from PyQt6.QtCore import QPoint, Qt, QTimer, QUrl
 from PyQt6.QtCore import pyqtSignal as Signal
 from PyQt6.QtGui import QAction, QDesktopServices
-from PyQt6.QtWebEngineCore import QWebEnginePage
+
+try:
+    from qgis.PyQt.QtWebEngineCore import QWebEnginePage  # type: ignore
+except ImportError:
+    from PyQt6.QtWebEngineCore import QWebEnginePage
+
 from PyQt6.QtWidgets import (
     QApplication,
     QDialog,

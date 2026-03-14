@@ -426,8 +426,8 @@ class TableViewer(QWidget, QtUseContext):
         """
         if ctx.editing:
             ctx.view.setEditTriggers(
-                QAbstractItemView.DoubleClicked
-                | QAbstractItemView.EditKeyPressed
+                QAbstractItemView.EditTrigger.DoubleClicked
+                | QAbstractItemView.EditTrigger.EditKeyPressed
             )
             try:
                 icon = self.get_icon("edit_button")

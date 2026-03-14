@@ -243,7 +243,9 @@ class DrfRelated(QWidget, Generic[DBM], DrfFieldEd):
 
         # Add a spacer item to push the buttons from the top.
         self.lay_btns.addSpacerItem(
-            QSpacerItem(0, 0, QSizePolicy.Minimum, QSizePolicy.Expanding)
+            QSpacerItem(
+                0, 0, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding
+            )
         )
         self.btn_add = QPushButton(self.t("cmn.add-left", "Add 🡆"), parent=self)
         self.btn_add.setEnabled(False)
@@ -259,7 +261,9 @@ class DrfRelated(QWidget, Generic[DBM], DrfFieldEd):
 
         # Add a spacer item to push the buttons from the bottom.
         self.lay_btns.addSpacerItem(
-            QSpacerItem(0, 0, QSizePolicy.Minimum, QSizePolicy.Expanding)
+            QSpacerItem(
+                0, 0, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding
+            )
         )
 
         # Add the layout to the main layout.

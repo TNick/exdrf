@@ -72,7 +72,7 @@ class ListEditWidget(QWidget, QtUseContext):
         self.value_type = value_type
         layout = QVBoxLayout(self)
         self.list_widget = QListWidget()
-        self.list_widget.setDragDropMode(QListWidget.InternalMove)
+        self.list_widget.setDragDropMode(QListWidget.DragDropMode.InternalMove)
         layout.addWidget(self.list_widget)
         self.list_widget.itemDoubleClicked.connect(self.on_item_double_clicked)
 
@@ -259,7 +259,8 @@ class NewVariableDialog(QDialog, QtUseContext):
 
         # Buttons
         self.button_box = QDialogButtonBox(
-            QDialogButtonBox.Ok | QDialogButtonBox.Cancel
+            QDialogButtonBox.StandardButton.Ok
+            | QDialogButtonBox.StandardButton.Cancel
         )
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
@@ -280,7 +281,7 @@ class NewVariableDialog(QDialog, QtUseContext):
 
     def on_name_changed(self):
         """Handle name changes."""
-        ok_button = self.button_box.button(QDialogButtonBox.Ok)
+        ok_button = self.button_box.button(QDialogButtonBox.StandardButton.Ok)
         assert ok_button is not None
         valid = self.validate_name(self.name_edit.text())
         if valid:

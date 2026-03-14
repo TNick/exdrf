@@ -15,7 +15,7 @@ from PyQt6.QtCore import (
     QSize,
     Qt,
     QUrl,
-    Signal,
+    pyqtSignal as Signal,
 )
 from PyQt6.QtGui import (
     QBrush,
@@ -208,7 +208,9 @@ class PdfImageViewer(QWidget, QtUseContext):
                 total=0,
             )
         )
-        self.lbl_page.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        self.lbl_page.setSizePolicy(
+            QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed
+        )
 
         self.btn_next = QToolButton()
         self.btn_next.setText(self.t("pdf.next", "Next"))
@@ -335,8 +337,8 @@ class PdfImageViewer(QWidget, QtUseContext):
             A horizontal line frame widget for visual separation.
         """
         w = QFrame()
-        w.setFrameShape(QFrame.HLine)
-        w.setFrameShadow(QFrame.Sunken)
+        w.setFrameShape(QFrame.Shape.HLine)
+        w.setFrameShadow(QFrame.Shadow.Sunken)
         return w
 
     def _configure_button_size(self, btn: QToolButton):
@@ -347,8 +349,7 @@ class PdfImageViewer(QWidget, QtUseContext):
         """
         btn.setMinimumSize(48, 48)
         btn.setIconSize(QSize(32, 32))
-        # ToolButtonTextUnderIcon = 4
-        btn.setToolButtonStyle(4)  # type: ignore
+        btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
 
     def _toggle_pan_mode(self, enabled: bool):
         """Toggle pan mode for the graphics view.

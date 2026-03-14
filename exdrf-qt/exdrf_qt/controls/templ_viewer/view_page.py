@@ -14,14 +14,25 @@ from importlib import resources
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
 from PyQt6.QtCore import QBuffer, QByteArray, QIODevice, QTimer, QUrl
-from PyQt6.QtWebEngineCore import (
-    QWebEnginePage,
-    QWebEngineProfile,
-    QWebEngineUrlRequestJob,
-    QWebEngineUrlScheme,
-    QWebEngineUrlSchemeHandler,
-)
-from PyQt6.QtWebEngineWidgets import QWebEngineView
+
+try:
+    from qgis.PyQt.QtWebEngineCore import (  # type: ignore
+        QWebEnginePage,
+        QWebEngineProfile,
+        QWebEngineUrlRequestJob,
+        QWebEngineUrlScheme,
+        QWebEngineUrlSchemeHandler,
+    )
+    from qgis.PyQt.QtWebEngineWidgets import QWebEngineView  # type: ignore
+except ImportError:
+    from PyQt6.QtWebEngineCore import (  # type: ignore
+        QWebEnginePage,
+        QWebEngineProfile,
+        QWebEngineUrlRequestJob,
+        QWebEngineUrlScheme,
+        QWebEngineUrlSchemeHandler,
+    )
+    from PyQt6.QtWebEngineWidgets import QWebEngineView
 
 from exdrf_qt.context_use import QtUseContext
 
@@ -32,7 +43,8 @@ logger = logging.getLogger(__name__)
 VERBOSE = 1
 scheme = QWebEngineUrlScheme(b"exdrf")
 scheme.setFlags(
-    QWebEngineUrlScheme.LocalScheme | QWebEngineUrlScheme.LocalAccessAllowed
+    QWebEngineUrlScheme.Flag.LocalScheme
+    | QWebEngineUrlScheme.Flag.LocalAccessAllowed
 )
 QWebEngineUrlScheme.registerScheme(scheme)
 InfoMsgLevel = QWebEnginePage.JavaScriptConsoleMessageLevel.InfoMessageLevel

@@ -14,7 +14,11 @@ from docx.shared import Inches, Pt, RGBColor
 from minify_html import minify
 from PyQt6.QtCore import QBuffer, QByteArray, QIODevice, QUrl
 from PyQt6.QtGui import QDesktopServices, QImage
-from PyQt6.QtWebEngineWidgets import QWebEngineView
+
+try:
+    from qgis.PyQt.QtWebEngineWidgets import QWebEngineView  # type: ignore
+except ImportError:
+    from PyQt6.QtWebEngineWidgets import QWebEngineView
 
 from exdrf_qt.controls.templ_viewer.html_to_docx.screen_grabber import (
     FullPageGrabber,

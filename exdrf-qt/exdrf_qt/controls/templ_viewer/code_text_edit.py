@@ -35,6 +35,14 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 VERBOSE = 1
 
+# FullWidthSelection: full-width line highlight for QTextEdit.ExtraSelection.
+# PyQt6 exposes it as QTextFormat.Property.FullWidthSelection (value 0x6000).
+_FULL_WIDTH_SELECTION = getattr(
+    getattr(QTextFormat, "Property", None) or QTextFormat,
+    "FullWidthSelection",
+    0x6000,
+)
+
 
 class LineNumberArea(QWidget):
     """Widget drawn to the left of the editor showing line numbers.
@@ -361,7 +369,9 @@ class CodeTextEdit(QPlainTextEdit, QtUseContext):
             selection = QTextEdit.ExtraSelection()
             line_color = QColor("yellow").lighter(160)
             selection.format.setBackground(line_color)
-            selection.format.setProperty(QTextFormat.FullWidthSelection, True)
+            selection.format.setProperty(
+                QTextFormat.Property.FullWidthSelection, True
+            )
             selection.cursor = self.textCursor()
             selection.cursor.clearSelection()
             extra_selections.append(selection)

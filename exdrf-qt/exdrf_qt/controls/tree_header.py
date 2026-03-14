@@ -481,9 +481,9 @@ class ListDbHeader(QHeaderView, QtUseContext, Generic[DBM]):
             and self.sortIndicatorSection() == logicalIndex
         ):
             opt.sortIndicator = (
-                QStyleOptionHeader.SortDown
+                QStyleOptionHeader.SortIndicator.SortDown
                 if self.sortIndicatorOrder() == Qt.SortOrder.DescendingOrder
-                else QStyleOptionHeader.SortUp
+                else QStyleOptionHeader.SortIndicator.SortUp
             )
         else:
             opt.sortIndicator = QStyleOptionHeader.SortIndicator.None_

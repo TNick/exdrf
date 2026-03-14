@@ -76,7 +76,9 @@ class RotationEditorDialog(QDialog):
 
         # Standard OK/Cancel button box controls dialog acceptance.
         buttons = QDialogButtonBox(
-            QDialogButtonBox.Ok | QDialogButtonBox.Cancel, parent=self
+            QDialogButtonBox.StandardButton.Ok
+            | QDialogButtonBox.StandardButton.Cancel,
+            parent=self,
         )
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)

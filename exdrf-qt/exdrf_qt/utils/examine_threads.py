@@ -1197,7 +1197,7 @@ class ExamineThreadsWidget(QWidget, QtUseContext):
                     self._workers_view.selectionModel()
                 )
                 flags = cast(
-                    QItemSelectionModel.SelectionFlags,
+                    QItemSelectionModel.SelectionFlag,
                     QItemSelectionModel.SelectionFlag.ClearAndSelect
                     | QItemSelectionModel.SelectionFlag.Rows,
                 )

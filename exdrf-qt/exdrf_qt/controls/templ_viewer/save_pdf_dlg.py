@@ -175,7 +175,9 @@ class SavePdfDialog(QFileDialog, QtUseContext):
         layout.addWidget(self.bottom_margin)
 
         # Add a spacer to push the layout widget to the right
-        spacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        spacer = QSpacerItem(
+            20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding
+        )
         layout.addItem(spacer)
 
         # Add the layout widget to the dialog

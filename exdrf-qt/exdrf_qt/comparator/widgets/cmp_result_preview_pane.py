@@ -14,9 +14,12 @@ from PyQt6.QtWidgets import (
 )
 
 try:
-    from PyQt6.QtWebEngineWidgets import QWebEngineView
+    from qgis.PyQt.QtWebEngineWidgets import QWebEngineView  # type: ignore
 except ImportError:
-    QWebEngineView = None  # type: ignore[misc, assignment]
+    try:
+        from PyQt6.QtWebEngineWidgets import QWebEngineView
+    except ImportError:
+        QWebEngineView = None  # type: ignore[misc, assignment]
 
 
 class CmpResultPreviewPane(QWidget):

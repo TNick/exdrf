@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from exdrf_qt.context import QtContext
 
 
-class DrfBoolEditor(QCheckBox, DrfFieldEd):
+class DrfBoolEditor(DrfFieldEd, QCheckBox):
     """Editor for boolean values.
 
     The control is a checkbox that can be checked, unchecked, or in a

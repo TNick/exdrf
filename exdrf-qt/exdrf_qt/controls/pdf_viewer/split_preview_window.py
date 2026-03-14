@@ -103,7 +103,9 @@ class SplitPreviewWindow(QWidget):
             )
             label.setMinimumHeight(120)
             label.setSizePolicy(
-                QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+                QSizePolicy(
+                    QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+                )
             )
             self._pages_layout.addWidget(label)
             self._page_labels[page] = label
@@ -169,7 +171,10 @@ class SplitPreviewWindow(QWidget):
         label.setPixmap(display_pix)
         label.setMinimumSize(display_pix.size())
         label.setSizePolicy(
-            QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+            QSizePolicy(
+                QSizePolicy.Policy.Expanding,
+                QSizePolicy.Policy.Fixed,
+            )
         )
         return True
 

@@ -4,8 +4,12 @@ from typing import Any, Dict, List, Optional
 
 from PyQt6.QtCore import QRect, QSize, QTimer, QUrl
 from PyQt6.QtGui import QPixmap
-from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWidgets import QApplication
+
+try:
+    from qgis.PyQt.QtWebEngineWidgets import QWebEngineView  # type: ignore
+except ImportError:
+    from PyQt6.QtWebEngineWidgets import QWebEngineView
 
 logger = logging.getLogger(__name__)
 

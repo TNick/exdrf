@@ -47,9 +47,11 @@ class ImageGraphicsView(QGraphicsView):
         # Configure anchor points and default drag behavior so zooming feels
         # natural around the mouse cursor.
         self.setRenderHints(self.renderHints())
-        self.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
-        self.setResizeAnchor(QGraphicsView.AnchorUnderMouse)
-        self.setDragMode(QGraphicsView.NoDrag)
+        self.setTransformationAnchor(
+            QGraphicsView.ViewportAnchor.AnchorUnderMouse
+        )
+        self.setResizeAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
+        self.setDragMode(QGraphicsView.DragMode.NoDrag)
 
         # Track mouse interaction state for panning gestures.
         self._middle_panning = False
@@ -68,7 +70,9 @@ class ImageGraphicsView(QGraphicsView):
         self._selection_active = False
 
         # Smooth scrolling and anti-aliasing feel better with these flags.
-        self.setViewportUpdateMode(QGraphicsView.SmartViewportUpdate)
+        self.setViewportUpdateMode(
+            QGraphicsView.ViewportUpdateMode.SmartViewportUpdate
+        )
 
         # Distinctive checkerboard background for the view
         self.setBackgroundBrush(QBrush(self._make_checkerboard_pixmap()))
@@ -188,7 +192,7 @@ class ImageGraphicsView(QGraphicsView):
             self._selection_origin = event.pos()
             if self._selection_band is None:
                 self._selection_band = QRubberBand(
-                    QRubberBand.Rectangle, self.viewport()
+                    QRubberBand.Shape.Rectangle, self.viewport()
                 )
             rect = QRect(self._selection_origin, QSize())
             self._selection_band.setGeometry(rect)

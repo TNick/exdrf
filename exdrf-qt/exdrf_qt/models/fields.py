@@ -903,7 +903,9 @@ class _PlainTextDialog(QDialog):
         self._editor = QPlainTextEdit(self)
         self._editor.setPlainText(text)
         self._buttons = QDialogButtonBox(
-            QDialogButtonBox.Ok | QDialogButtonBox.Cancel, self
+            QDialogButtonBox.StandardButton.Ok
+            | QDialogButtonBox.StandardButton.Cancel,
+            self,
         )
         self._buttons.accepted.connect(self.accept)
         self._buttons.rejected.connect(self.reject)

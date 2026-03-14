@@ -81,7 +81,10 @@ def main():
     import signal
     import sys
 
-    import PyQt6.QtWebEngineWidgets  # noqa: F401
+    try:
+        import qgis.PyQt.QtWebEngineWidgets  # noqa: F401
+    except ImportError:
+        import PyQt6.QtWebEngineWidgets  # noqa: F401
 
     from exdrf_dev.db.models import Base  # noqa: F401, F403
     from exdrf_dev.qt_gen.plugins import register_all_hooks

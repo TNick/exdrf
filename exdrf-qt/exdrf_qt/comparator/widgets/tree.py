@@ -454,17 +454,19 @@ if __name__ == "__main__":
     # This must be done before QApplication is instantiated
     # Import QtWebEngineWidgets to initialize the plugin
     try:
-        import PyQt6.QtWebEngineWidgets  # noqa: F401
+        import qgis.PyQt.QtWebEngineWidgets  # noqa: F401  # type: ignore
     except ImportError:
-        # If import fails, try setting the attribute instead
         try:
-            from PyQt6.QtCore import QCoreApplication, Qt
+            import PyQt6.QtWebEngineWidgets  # noqa: F401
+        except ImportError:
+            # If import fails, try setting the attribute instead
+            try:
+                from PyQt6.QtCore import QCoreApplication, Qt
 
-            QCoreApplication.setAttribute(  # type: ignore
+                QCoreApplication.setAttribute  # type: ignore
                 Qt.AA_ShareOpenGLContexts, True  # type: ignore
-            )
-        except Exception:
-            pass
+            except Exception:
+                pass
 
     app = QApplication(sys.argv)
 

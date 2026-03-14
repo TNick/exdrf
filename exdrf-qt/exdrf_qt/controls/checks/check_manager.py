@@ -299,7 +299,9 @@ class CheckManager(
 
         # Configure the results type filter button (menu shown on click).
         self.c_type_filter.setIcon(self.get_icon("filter"))
-        self.c_type_filter.setPopupMode(QToolButton.InstantPopup)
+        self.c_type_filter.setPopupMode(
+            QToolButton.ToolButtonPopupMode.InstantPopup
+        )
         self._results_type_menu = QMenu(self)
         self._results_type_menu.aboutToShow.connect(
             self._rebuild_results_type_menu

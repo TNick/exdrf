@@ -135,7 +135,9 @@ class DbViewer(QWidget, QtUseContext):
             self.t("db_viewer.connection", "Connection:"), self
         )
         self._chooser = ChooseDb(ctx=ctx, parent=self)
-        self._chooser.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self._chooser.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+        )
         self._chooser.populate_db_connections()
         effective_initial_id = initial_cfg_id
         if effective_initial_id is None and getattr(ctx, "c_string", None):

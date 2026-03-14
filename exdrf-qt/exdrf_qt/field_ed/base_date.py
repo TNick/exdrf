@@ -33,7 +33,9 @@ class CalendarPopup(QDialog):
 
         # Add a button box with OK and Cancel buttons.
         self.bbox = QDialogButtonBox(
-            QDialogButtonBox.Ok | QDialogButtonBox.Cancel, self
+            QDialogButtonBox.StandardButton.Ok
+            | QDialogButtonBox.StandardButton.Cancel,
+            self,
         )
         self.bbox.accepted.connect(self.accept)
         self.bbox.rejected.connect(self.reject)

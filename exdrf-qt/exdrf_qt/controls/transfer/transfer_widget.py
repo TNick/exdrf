@@ -199,7 +199,7 @@ class TransferWidget(QWidget, QtUseContext):
         ly.setSpacing(4)
 
         db = ChooseDb(ctx=self.ctx, parent=w)
-        db.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        db.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         ly.addWidget(db)
 
         model = TablesModel(ctx=self.ctx, side="src" if is_src else "dst")

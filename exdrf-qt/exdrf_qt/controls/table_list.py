@@ -389,7 +389,8 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
         self.setRootIsDecorated(False)
         self.setSortingEnabled(True)
         self.setEditTriggers(
-            QAbstractItemView.DoubleClicked | QAbstractItemView.EditKeyPressed
+            QAbstractItemView.EditTrigger.DoubleClicked
+            | QAbstractItemView.EditTrigger.EditKeyPressed
         )
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.customContextMenuRequested.connect(
@@ -398,7 +399,7 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
         self.setAcceptDrops(True)
         self.setDropIndicatorShown(True)
         self.setDragEnabled(True)
-        self.setDragDropMode(QAbstractItemView.InternalMove)
+        self.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
         self.setDragDropOverwriteMode(False)
         self.setUniformRowHeights(True)
 

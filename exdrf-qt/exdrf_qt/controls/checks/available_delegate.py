@@ -46,8 +46,8 @@ class AvailableChecksDelegate(QStyledItemDelegate):
         text = opt.text
         opt.text = ""
         opt.icon = QIcon()
-        opt.features &= ~QStyleOptionViewItem.HasDecoration
-        opt.features &= ~QStyleOptionViewItem.HasDisplay
+        opt.features &= ~QStyleOptionViewItem.ViewItemFeature.HasDecoration
+        opt.features &= ~QStyleOptionViewItem.ViewItemFeature.HasDisplay
         style = opt.widget.style() if opt.widget is not None else None
         if style is None:
             return super().paint(painter, option, index)

@@ -36,7 +36,8 @@ class DropdownList(QFrame, QtUseContext):
         self.ctx = ctx
 
         # Set up the frame
-        self.setFrameStyle(QFrame.StyledPanel | QFrame.Raised)
+        self.setFrameShape(QFrame.Shape.StyledPanel)
+        self.setFrameShadow(QFrame.Shadow.Raised)
         self.setWindowFlags(
             cast(
                 Qt.WindowType,

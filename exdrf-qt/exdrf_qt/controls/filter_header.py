@@ -238,14 +238,15 @@ class FilterHeader(QHeaderView, QtUseContext):
         opt.textAlignment = (
             Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter
         )
+        # PyQt6: SortIndicator enum (None_=0, SortUp=1, SortDown=2)
         if (
             self.isSortIndicatorShown()
             and self.sortIndicatorSection() == logicalIndex
         ):
             opt.sortIndicator = (
-                QStyleOptionHeader.SortDown
+                QStyleOptionHeader.SortIndicator.SortDown
                 if self.sortIndicatorOrder() == Qt.SortOrder.DescendingOrder
-                else QStyleOptionHeader.SortUp
+                else QStyleOptionHeader.SortIndicator.SortUp
             )
         else:
             opt.sortIndicator = QStyleOptionHeader.SortIndicator.None_

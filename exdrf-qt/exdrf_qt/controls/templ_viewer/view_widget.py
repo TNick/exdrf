@@ -9,8 +9,12 @@ web view.
 import logging
 from typing import TYPE_CHECKING, Any
 
-from PyQt6.QtCore import QEvent, QObject, Qt, Signal
-from PyQt6.QtWebEngineWidgets import QWebEngineView
+from PyQt6.QtCore import QEvent, QObject, Qt, pyqtSignal as Signal
+
+try:
+    from qgis.PyQt.QtWebEngineWidgets import QWebEngineView  # type: ignore
+except ImportError:
+    from PyQt6.QtWebEngineWidgets import QWebEngineView
 
 from exdrf_qt.context_use import QtUseContext
 

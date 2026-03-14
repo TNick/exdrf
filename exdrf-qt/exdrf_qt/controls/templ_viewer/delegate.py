@@ -78,7 +78,9 @@ class _ListEditDialog(QDialog):
         self._btn_add = QToolButton(self)
         self._btn_rem = QToolButton(self)
         self._buttons = QDialogButtonBox(
-            QDialogButtonBox.Ok | QDialogButtonBox.Cancel, parent=self
+            QDialogButtonBox.StandardButton.Ok
+            | QDialogButtonBox.StandardButton.Cancel,
+            parent=self,
         )
         self._btn_add.setText("+")
         self._btn_rem.setText("-")
@@ -216,7 +218,7 @@ class _ListEditDialog(QDialog):
 
     def _update_ok_enabled(self) -> None:
         """Enable OK only when _all_items_valid is true."""
-        btn = self._buttons.button(QDialogButtonBox.Ok)
+        btn = self._buttons.button(QDialogButtonBox.StandardButton.Ok)
         if btn is not None:
             btn.setEnabled(self._all_items_valid())
 
