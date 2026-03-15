@@ -57,6 +57,15 @@ class FullPageGrabber:
         """
         self.errors = []
         self.auto_close = auto_close
+        # Register custom scheme before creating a WebEngine view
+        try:
+            from exdrf_qt.controls.templ_viewer.view_page import (
+                ensure_exdrf_scheme,
+            )
+
+            ensure_exdrf_scheme()
+        except Exception:
+            logger.error("Failed to ensure exdrf scheme", exc_info=True)
         self.view = QWebEngineView()
         self.url = url
         self.html = html

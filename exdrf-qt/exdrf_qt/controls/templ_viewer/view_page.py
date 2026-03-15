@@ -41,12 +41,33 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 VERBOSE = 1
-scheme = QWebEngineUrlScheme(b"exdrf")
-scheme.setFlags(
-    QWebEngineUrlScheme.Flag.LocalScheme
-    | QWebEngineUrlScheme.Flag.LocalAccessAllowed
-)
-QWebEngineUrlScheme.registerScheme(scheme)
+
+# Ensure the custom exdrf:// scheme is registered exactly once and as early
+# as possible (must be before any QWebEngineProfile is created).
+_SCHEME_REGISTERED = False
+
+
+def ensure_exdrf_scheme() -> None:
+    global _SCHEME_REGISTERED
+    if _SCHEME_REGISTERED:
+        return
+    try:
+        scheme = QWebEngineUrlScheme(b"exdrf")
+        scheme.setFlags(
+            QWebEngineUrlScheme.Flag.LocalScheme
+            | QWebEngineUrlScheme.Flag.LocalAccessAllowed
+        )
+        QWebEngineUrlScheme.registerScheme(scheme)
+        _SCHEME_REGISTERED = True
+        logger.log(VERBOSE, "Registered exdrf:// scheme")
+    except Exception:
+        # Log but continue; downstream code may still function for non-exdrf
+        # URLs
+        logger.warning(
+            "Failed to register exdrf:// scheme early", exc_info=True
+        )
+
+
 InfoMsgLevel = QWebEnginePage.JavaScriptConsoleMessageLevel.InfoMessageLevel
 WarnMsgLevel = QWebEnginePage.JavaScriptConsoleMessageLevel.WarningMessageLevel
 ErrorMsgLevel = QWebEnginePage.JavaScriptConsoleMessageLevel.ErrorMessageLevel
@@ -75,7 +96,7 @@ def read_local_assets(path: str) -> bytes:
     raise FileNotFoundError(f"File `{path}` not found in assets directory")
 
 
-class ExDrfHandler(QWebEngineUrlSchemeHandler, QtUseContext):
+class ExDrfHandler(QWebEngineUrlSchemeHandler, QtUseContext):  # type: ignore
     """Custom URL scheme handler for exdrf:// requests.
 
     Serves assets (CSS/JS from the package), attachments by path, and
@@ -147,7 +168,8 @@ class ExDrfHandler(QWebEngineUrlSchemeHandler, QtUseContext):
         return data, mime
 
     def get_attachment(self, path: str) -> Tuple[bytes, bytes]:
-        """Return attachment bytes and MIME for a file path (PDF or placeholder).
+        """Return attachment bytes and MIME for a file path (PDF or
+        placeholder).
 
         Args:
             path: Absolute or relative path to the attachment file.
@@ -286,7 +308,7 @@ class ExDrfHandler(QWebEngineUrlSchemeHandler, QtUseContext):
         logger.debug("replied with %d bytes", len(data))
 
 
-class WebEnginePage(QWebEnginePage, QtUseContext):
+class WebEnginePage(QWebEnginePage, QtUseContext):  # type: ignore
     """Custom WebEngine page with exdrf:// handler and navigation control.
 
     Installs ExDrfHandler on the default profile for exdrf:// assets,
@@ -312,6 +334,8 @@ class WebEnginePage(QWebEnginePage, QtUseContext):
             *args: Passed to QWebEnginePage (e.g. profile, parent).
             **kwargs: Passed to QWebEnginePage.
         """
+        # Register scheme before any WebEngine objects/profiles are created.
+        ensure_exdrf_scheme()
         super().__init__(*args, **kwargs)
         self.ctx = ctx
         self.handler = None  # type: ignore
@@ -326,6 +350,8 @@ class WebEnginePage(QWebEnginePage, QtUseContext):
         Args:
             profile: The WebEngine profile to install the handler on.
         """
+        # Defensive: ensure it's registered prior to installing handler
+        ensure_exdrf_scheme()
         self.handler = ExDrfHandler(self.ctx, profile)
         profile.installUrlSchemeHandler(b"exdrf", self.handler)
 

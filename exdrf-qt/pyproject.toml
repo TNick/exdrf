@@ -29,6 +29,7 @@ dependencies = [
   "SQLAlchemy>=2.0.38",
   "sqlparse>=0.5.3",
   "unidecode",
+  "Pygments>=2.16.0",
 ]
 
 [project.optional-dependencies]

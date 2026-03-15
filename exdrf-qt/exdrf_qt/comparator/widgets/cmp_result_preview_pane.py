@@ -4,6 +4,7 @@ Used as the result tab in merge mode. Refreshes when refresh() is called
 or when the tab is shown (if connected).
 """
 
+import logging
 import html
 from typing import Any, Callable, Dict, Optional
 
@@ -20,6 +21,9 @@ except ImportError:
         from PyQt6.QtWebEngineWidgets import QWebEngineView
     except ImportError:
         QWebEngineView = None  # type: ignore[misc, assignment]
+
+
+logger = logging.getLogger(__name__)
 
 
 class CmpResultPreviewPane(QWidget):
@@ -57,6 +61,15 @@ class CmpResultPreviewPane(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         if QWebEngineView is not None:
+            # Register custom scheme before first WebEngine view is created
+            try:
+                from exdrf_qt.controls.templ_viewer.view_page import (
+                    ensure_exdrf_scheme,
+                )
+
+                ensure_exdrf_scheme()
+            except Exception:
+                logger.error("Failed to ensure exdrf scheme", exc_info=True)
             self._view = QWebEngineView(self)
             layout.addWidget(self._view)
         else:
