@@ -19,7 +19,7 @@ PYTHON_FILES := $(wildcard *.py)
 # The target runs autoflake on all the python files in the repository.
 # It removes all unused imports.
 aflake: $(PYTHON_FILES)
-	autoflake \
+	python -m autoflake \
 		--in-place \
 		--remove-all-unused-imports \
 		--recursive \

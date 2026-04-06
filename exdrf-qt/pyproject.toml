@@ -15,6 +15,7 @@ name = "exdrf-qt"
 readme = "README.md"
 requires-python = ">=3.12.10"
 dependencies = [
+  "exdrf",
   "PyQt5>=5.15.11",
   "python-dateutil>=2.9.0",
   "humanize>=4.12.3",

@@ -16,6 +16,12 @@ from typing import (
 from attrs import define, field
 
 from exdrf.filter import FieldFilter, FilterType
+from exdrf.filter_op_catalog import (
+    ALL_CANONICAL_FILTER_OPS,
+    canonical_filter_ops_for_type,
+    filter_op_allowed_for_type,
+    normalize_filter_op,
+)
 
 try:
     from exdrf_qt.context_use import QtUseContext
@@ -432,23 +438,56 @@ class FieldValidator(QtUseContext, Generic[DBM]):
         field: ParsedFieldFilter,
         token: Optional[Token] = None,
     ):
-        """Validate a field.
+        """Validate field name and operator against model metadata.
 
         Args:
-            field: The field to validate.
-            token: The token.
+            parser: Parser providing source text for error messages.
+            field: Parsed field filter (includes operator tokens).
+            token: Optional field-name token; defaults to ``field.tk_fld``.
         """
+        fld_tok = token or field.tk_fld
         for fld in self.qt_model.filter_fields:
             if fld.name == field.fld:
+                canon = normalize_filter_op(field.op)
+                if canon is None:
+                    tk_op = field.tk_op
+                    raise FltSyntaxError(
+                        msg="Unknown filter operation: %s" % (field.op,),
+                        code=FltErrCode.UNKNOWN_OPERATION,
+                        text=parser.src_text,
+                        lineno=tk_op.line,
+                        column=tk_op.column,
+                        offset=tk_op.start_index,
+                        end_offset=tk_op.index,
+                        value=field.op,
+                        expected=", ".join(sorted(ALL_CANONICAL_FILTER_OPS)),
+                    )
+                if not filter_op_allowed_for_type(fld.type_name, field.op):
+                    tk_op = field.tk_op
+                    allowed = canonical_filter_ops_for_type(fld.type_name)
+                    raise FltSyntaxError(
+                        msg=(
+                            "Operation %r is not allowed for field type %r"
+                            % (field.op, fld.type_name)
+                        ),
+                        code=FltErrCode.UNKNOWN_OPERATION,
+                        text=parser.src_text,
+                        lineno=tk_op.line,
+                        column=tk_op.column,
+                        offset=tk_op.start_index,
+                        end_offset=tk_op.index,
+                        value=field.op,
+                        expected=", ".join(sorted(allowed)),
+                    )
                 return
         raise FltSyntaxError(
             msg=f"Unknown field: {field.fld}",
             code=FltErrCode.UNKNOWN_FIELD,
             text=parser.src_text,
-            lineno=token.line if token else 0,
-            column=token.column if token else 0,
-            offset=token.index if token else 0,
-            end_offset=(token.index + len(field.fld)) if token else 0,
+            lineno=fld_tok.line,
+            column=fld_tok.column,
+            offset=fld_tok.start_index,
+            end_offset=fld_tok.index,
             value=field.fld,
             expected=", ".join([f.name for f in self.qt_model.filter_fields]),
         )
@@ -750,7 +789,7 @@ class DSLParserWithValidation(DSLParser):
             tk_op=op_tok,
             tk_val=val_tok,
         )
-        self.validator.validate(self, ff, fld_tok)
+        self.validator.validate(self, ff)
         return ff
 
 

@@ -1,14 +1,28 @@
-from typing import TYPE_CHECKING, Any, ForwardRef, List, Optional
+import re
+from datetime import date, datetime
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    ForwardRef,
+    List,
+    Optional,
+    get_args,
+    get_origin,
+)
 
 from annotated_types import Ge, Gt, Le, Lt, MaxLen, MinLen
 from attrs import define
 from exdrf.api import (
     BoolField,
+    DateField,
+    DateTimeField,
     EnumField,
     FloatField,
     FloatListField,
     IntField,
     IntListField,
+    RefOneToManyField,
+    RefOneToOneField,
     StrField,
     StrListField,
 )
@@ -20,6 +34,134 @@ if TYPE_CHECKING:
     from exdrf.field import ExField
     from exdrf.resource import ExResource
     from pydantic.fields import FieldInfo as PdFieldInfo  # noqa: F401
+
+
+def _optional_inner_type(annotation: Any) -> Any | None:
+    """Return ``T`` when ``annotation`` is ``Optional[T]`` or ``T | None``.
+
+    Args:
+        annotation: A typing annotation (e.g. from ``FieldInfo.annotation``).
+
+    Returns:
+        The non-``None`` member for a plain optional union; ``None`` if the
+        annotation is not exactly one non-``None`` type plus ``None``.
+    """
+
+    origin = get_origin(annotation)
+    args = get_args(annotation)
+    if origin is None or not args:
+        return None
+    if type(None) not in args:
+        return None
+    non_none = [a for a in args if a is not type(None)]
+    if len(non_none) != 1:
+        return None
+    return non_none[0]
+
+
+def _exmodel_by_name() -> dict[str, type]:
+    """Map ``ExModel`` subclass simple names to their class objects.
+
+    Returns:
+        A dictionary keyed by :attr:`type.__name__` for every registered
+        :class:`exdrf_pd.base.ExModel` subclass.
+    """
+
+    from exdrf_pd.base import ExModel
+
+    return {cls.__name__: cls for cls in ExModel.get_subclasses()}
+
+
+def _is_exmodel_type(tp: Any) -> bool:
+    """Return whether ``tp`` is a concrete :class:`exdrf_pd.base.ExModel` type.
+
+    Args:
+        tp: Candidate type object.
+
+    Returns:
+        ``True`` when ``tp`` is a class derived from :class:`exdrf_pd.base.ExModel`.
+    """
+
+    from exdrf_pd.base import ExModel
+
+    try:
+        return isinstance(tp, type) and issubclass(tp, ExModel)
+    except TypeError:
+        return False
+
+
+def _paged_list_item_type(annotation: Any) -> Any | None:
+    """Return the item type for a concrete ``PagedList[T]`` annotation.
+
+    Args:
+        annotation: A specialized :class:`exdrf_pd.paged.PagedList` model class.
+
+    Returns:
+        ``T`` when ``annotation`` is ``PagedList[T]``; ``None`` otherwise.
+    """
+
+    meta = getattr(annotation, "__pydantic_generic_metadata__", None)
+    if not isinstance(meta, dict):
+        return None
+    from exdrf_pd.paged import PagedList
+
+    if meta.get("origin") is not PagedList:
+        return None
+    args = meta.get("args") or ()
+    if len(args) != 1:
+        return None
+    return args[0]
+
+
+def _parse_forward_ref_arg(
+    expr: str,
+    models_by_name: dict[str, type],
+) -> Any | None:
+    """Turn a :class:`typing.ForwardRef` argument string into a live annotation.
+
+    Args:
+        expr: The forward reference's ``__forward_arg__`` text.
+        models_by_name: Map of :class:`exdrf_pd.base.ExModel` names to classes.
+
+    Returns:
+        A concrete annotation suitable for :func:`field_from_pydantic`, or
+        ``None`` when the expression is not supported.
+    """
+
+    from exdrf_pd.paged import PagedList
+
+    expr = expr.strip()
+    if expr.endswith(" | None"):
+        inner_expr = expr[: -len(" | None")].strip()
+        inner = _parse_forward_ref_arg(inner_expr, models_by_name)
+        if inner is None:
+            return None
+        return inner | type(None)
+
+    m = re.fullmatch(r"PagedList\[(\w+)\]", expr)
+    if m:
+        inner_cls = models_by_name.get(m.group(1))
+        if inner_cls is None:
+            return None
+        return PagedList[inner_cls]
+
+    return models_by_name.get(expr)
+
+
+def _resolve_forward_ref_annotation(annotation: ForwardRef) -> Any | None:
+    """Resolve a :class:`typing.ForwardRef` using registered ``ExModel`` names.
+
+    Args:
+        annotation: Pydantic field annotation that is still a forward ref.
+
+    Returns:
+        Evaluated annotation, or ``None`` if it cannot be resolved here.
+    """
+
+    raw = getattr(annotation, "__forward_arg__", None)
+    if raw is None:
+        return None
+    return _parse_forward_ref_arg(str(raw), _exmodel_by_name())
 
 
 def field_from_pydantic(
@@ -72,11 +214,42 @@ def field_from_pydantic(
         else:
             raise ValueError(f"Unknown metadata type: {md}")
 
+    inner_opt = _optional_inner_type(annotation)
+    if inner_opt is not None:
+        return field_from_pydantic(
+            resource,
+            field_name,
+            src_field,
+            annotation=inner_opt,
+            nullable=True,
+            **kwargs,
+        )
+
+    paged_item = _paged_list_item_type(annotation)
+    if paged_item is not None and _is_exmodel_type(paged_item):
+        ds = resource.dataset
+        result = RefOneToManyField(
+            ref=ds[paged_item.__name__],
+            expect_lots=True,
+            **extra,
+        )
+        resource.add_field(result)
+        return result
+
+    if _is_exmodel_type(annotation):
+        ds = resource.dataset
+        result = RefOneToOneField(
+            ref=ds[annotation.__name__],
+            **extra,
+        )
+        resource.add_field(result)
+        return result
+
     if annotation == bool:
         result = BoolField(
             **extra,
         )
-    if annotation == str:
+    elif annotation == str:
         result = StrField(
             **extra,
         )
@@ -86,6 +259,18 @@ def field_from_pydantic(
         )
     elif annotation == float:
         result = FloatField(
+            **extra,
+        )
+    elif annotation is datetime:
+        result = DateTimeField(
+            **extra,
+        )
+    elif annotation is date:
+        result = DateField(
+            **extra,
+        )
+    elif annotation is Any:
+        result = StrField(
             **extra,
         )
     elif str(annotation).startswith("typing.Literal["):
@@ -135,25 +320,17 @@ def field_from_pydantic(
             #     **extra,
             # )
     elif isinstance(annotation, ForwardRef):
-        # referenced = annotation
-        # if isinstance(referenced, ForwardRef):
-        #     other = referenced.__forward_arg__
-        # else:
-        #     other = referenced.__class__.__name__
-        # TODO: replace with the new 4-class implementation
-        raise NotImplementedError
-        # result = RefManyField(
-        #     ref=ds[other],
-        #     **extra,
-        # )
-    elif str(annotation).startswith("typing.Optional["):
-        return field_from_pydantic(
-            resource,
-            field_name,
-            src_field,
-            annotation=annotation.__args__[0],  # type: ignore
-            **extra,
-            nullable=True,
+        resolved = _resolve_forward_ref_annotation(annotation)
+        if resolved is not None:
+            return field_from_pydantic(
+                resource,
+                field_name,
+                src_field,
+                annotation=resolved,
+                **kwargs,
+            )
+        raise NotImplementedError(
+            "Unsupported forward reference: %r" % (annotation.__forward_arg__,)
         )
     elif str(annotation).startswith("<class 'exdrf_models."):
         c_path = str(annotation)[8:-2]

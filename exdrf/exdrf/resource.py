@@ -199,6 +199,39 @@ class ExResource:
         """
         return doc_lines(self.description)
 
+    def resource_properties(self, explicit: bool = False) -> Dict[str, Any]:
+        """Build a JSON-friendly metadata dict for this resource.
+
+        Mirrors :meth:`exdrf.field.ExField.field_properties` for use in
+        emitters (e.g. Pydantic ``json_schema_extra``).
+
+        Args:
+            explicit: If True, include all keys, including empty strings and
+                empty collections where applicable.
+
+        Returns:
+            Serializable resource-level properties.
+        """
+        if explicit:
+            return {
+                "name": self.name,
+                "categories": list(self.categories),
+                "description": self.description,
+                "text_name": self.text_name,
+                "provides": list(self.provides),
+                "depends_on": [list(pair) for pair in self.depends_on],
+            }
+        result: Dict[str, Any] = {"name": self.name}
+        if self.categories:
+            result["categories"] = list(self.categories)
+        if self.description:
+            result["description"] = self.description
+        if self.provides:
+            result["provides"] = list(self.provides)
+        if self.depends_on:
+            result["depends_on"] = [list(pair) for pair in self.depends_on]
+        return result
+
     def add_field(self, fld: "ExField") -> None:
         """Add a field to the resource.
 

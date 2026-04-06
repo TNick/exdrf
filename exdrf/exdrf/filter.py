@@ -75,6 +75,12 @@ from typing import (
 from attrs import define, field
 from unidecode import unidecode
 
+from exdrf.filter_op_catalog import (
+    FILTER_OP_EQ,
+    FILTER_OP_ILIKE,
+    FILTER_OP_REGEX,
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -432,13 +438,13 @@ class SearchType(StrEnum):
         """
         value = self.prepare_input(value)
         if self == SearchType.EXACT:
-            return {"fld": field, "op": "eq", "vl": value}
+            return {"fld": field, "op": FILTER_OP_EQ, "vl": value}
         elif self == SearchType.SIMPLE:
-            return {"fld": field, "op": "ilike", "vl": value}
+            return {"fld": field, "op": FILTER_OP_ILIKE, "vl": value}
         elif self == SearchType.EXTENDED:
-            return {"fld": field, "op": "ilike", "vl": value}
+            return {"fld": field, "op": FILTER_OP_ILIKE, "vl": value}
         elif self == SearchType.PATTERN:
-            return {"fld": field, "op": "regex", "vl": value}
+            return {"fld": field, "op": FILTER_OP_REGEX, "vl": value}
         else:
             raise ValueError(f"Invalid search type: {self}")
 

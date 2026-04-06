@@ -1,20 +1,32 @@
 """Tests for filter operators in exdrf_qt.models.fi_op."""
 
 import unittest
+from functools import partial
 from unittest.mock import MagicMock, patch
 
 from sqlalchemy import Integer, String
 from sqlalchemy.sql.elements import ColumnClause
-from sqlalchemy.sql.operators import eq, gt, in_op, lt, ne, regexp_match_op
+from sqlalchemy.sql.operators import (
+    eq,
+    ge,
+    gt,
+    in_op,
+    le,
+    lt,
+    ne,
+    regexp_match_op,
+)
 
 from exdrf_qt.models.fi_op import (
     EqFiOp,
     FiOp,
     FiOpRegistry,
     GreaterFiOp,
+    GreaterOrEqFiOp,
     ILikeFiOp,
     InFiOp,
     IsNoneFiOp,
+    LessOrEqFiOp,
     NotEqFiOp,
     RegexFiOp,
     SmallerFiOp,
@@ -74,7 +86,7 @@ class TestILikeFiOp(unittest.TestCase):
         mock_value = "test%"
         mock_result = MagicMock()
 
-        with patch("exdrf_qt.models.fi_op.ilike_op") as mock_ilike:
+        with patch("exdrf.sa_filter_op.ilike_op") as mock_ilike:
             mock_ilike.return_value = mock_result
             result = ILikeFiOp._predicate(mock_column, mock_value)
 
@@ -91,8 +103,8 @@ class TestILikeFiOp(unittest.TestCase):
         mock_result = MagicMock()
 
         with (
-            patch("exdrf_qt.models.fi_op.al_cast") as mock_cast,
-            patch("exdrf_qt.models.fi_op.ilike_op") as mock_ilike,
+            patch("exdrf.sa_filter_op.al_cast") as mock_cast,
+            patch("exdrf.sa_filter_op.ilike_op") as mock_ilike,
         ):
             mock_cast.return_value = mock_cast_column
             mock_ilike.return_value = mock_result
@@ -108,7 +120,7 @@ class TestILikeFiOp(unittest.TestCase):
         del mock_column.type
         mock_value = "test%"
 
-        with patch("exdrf_qt.models.fi_op.logger") as mock_logger:
+        with patch("exdrf.sa_filter_op.logger") as mock_logger:
             result = ILikeFiOp._predicate(mock_column, mock_value)
 
             self.assertFalse(result)
@@ -124,7 +136,9 @@ class TestRegexFiOp(unittest.TestCase):
     def test_predicate_attribute(self) -> None:
         """Test that RegexFiOp has correct predicate attribute."""
         op = RegexFiOp()
-        self.assertEqual(op.predicate, regexp_match_op)
+        self.assertIsInstance(op.predicate, partial)
+        self.assertIs(op.predicate.func, regexp_match_op)
+        self.assertEqual(op.predicate.keywords, {"flags": "im"})
 
 
 class TestIsNoneFunction(unittest.TestCase):
@@ -175,6 +189,30 @@ class TestSmallerFiOp(unittest.TestCase):
         self.assertEqual(op.predicate, lt)
 
 
+class TestGreaterOrEqFiOp(unittest.TestCase):
+    def test_uniq_attribute(self) -> None:
+        """Test that GreaterOrEqFiOp has correct uniq attribute."""
+        op = GreaterOrEqFiOp()
+        self.assertEqual(op.uniq, "ge")
+
+    def test_predicate_attribute(self) -> None:
+        """Test that GreaterOrEqFiOp uses SQLAlchemy ``ge``."""
+        op = GreaterOrEqFiOp()
+        self.assertEqual(op.predicate, ge)
+
+
+class TestLessOrEqFiOp(unittest.TestCase):
+    def test_uniq_attribute(self) -> None:
+        """Test that LessOrEqFiOp has correct uniq attribute."""
+        op = LessOrEqFiOp()
+        self.assertEqual(op.uniq, "le")
+
+    def test_predicate_attribute(self) -> None:
+        """Test that LessOrEqFiOp uses SQLAlchemy ``le``."""
+        op = LessOrEqFiOp()
+        self.assertEqual(op.predicate, le)
+
+
 class TestInFiOp(unittest.TestCase):
     def test_uniq_attribute(self) -> None:
         """Test that InFiOp has correct uniq attribute."""
@@ -199,6 +237,8 @@ class TestFiOpRegistry(unittest.TestCase):
         self.assertIsInstance(registry._registry["none"], IsNoneFiOp)
         self.assertIsInstance(registry._registry["gt"], GreaterFiOp)
         self.assertIsInstance(registry._registry["lt"], SmallerFiOp)
+        self.assertIsInstance(registry._registry["ge"], GreaterOrEqFiOp)
+        self.assertIsInstance(registry._registry["le"], LessOrEqFiOp)
         self.assertIsInstance(registry._registry["in"], InFiOp)
 
     def test_registry_symbolic_aliases(self) -> None:
@@ -209,7 +249,12 @@ class TestFiOpRegistry(unittest.TestCase):
         self.assertEqual(registry._registry["~="], registry._registry["ilike"])
         self.assertEqual(registry._registry[">"], registry._registry["gt"])
         self.assertEqual(registry._registry["<"], registry._registry["lt"])
+        self.assertEqual(registry._registry[">="], registry._registry["ge"])
+        self.assertEqual(registry._registry["<="], registry._registry["le"])
         self.assertEqual(registry._registry["!="], registry._registry["not_eq"])
+        self.assertEqual(registry._registry["ne"], registry._registry["not_eq"])
+        self.assertEqual(registry._registry["gte"], registry._registry["ge"])
+        self.assertEqual(registry._registry["lte"], registry._registry["le"])
 
     def test_getitem_with_valid_key(self) -> None:
         """Test __getitem__ with a valid operator key."""
@@ -276,6 +321,8 @@ class TestFilterOpRegistry(unittest.TestCase):
         self.assertIn("none", filter_op_registry._registry)
         self.assertIn("gt", filter_op_registry._registry)
         self.assertIn("lt", filter_op_registry._registry)
+        self.assertIn("ge", filter_op_registry._registry)
+        self.assertIn("le", filter_op_registry._registry)
         self.assertIn("in", filter_op_registry._registry)
 
     def test_global_registry_has_aliases(self) -> None:
@@ -284,7 +331,10 @@ class TestFilterOpRegistry(unittest.TestCase):
         self.assertIn("~=", filter_op_registry._registry)
         self.assertIn(">", filter_op_registry._registry)
         self.assertIn("<", filter_op_registry._registry)
+        self.assertIn(">=", filter_op_registry._registry)
+        self.assertIn("<=", filter_op_registry._registry)
         self.assertIn("!=", filter_op_registry._registry)
+        self.assertIn("ne", filter_op_registry._registry)
 
     def test_global_registry_access(self) -> None:
         """Test accessing operators through global registry."""

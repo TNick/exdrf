@@ -45,7 +45,7 @@ def upgrade_db(conn: DbConn, schema: str, target: str, m_dir: str):
     """
     engine = conn.connect()
     assert engine is not None
-    DbVer(engine=engine, migrations=m_dir).upgrade(
+    DbVer(engine=engine, migrations=m_dir, schema=schema).upgrade(
         target=target,
     )
 

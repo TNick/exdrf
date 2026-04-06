@@ -3,7 +3,8 @@ from typing import TYPE_CHECKING, Any, Optional
 
 from exdrf.validator import ValidationResult
 from PyQt5.QtCore import pyqtProperty, pyqtSignal  # type: ignore
-from PyQt5.QtWidgets import QWidget
+from PyQt5.QtWidgets import QWidget  # type: ignore
+from sqlalchemy.ext.hybrid import hybrid_property
 
 from exdrf_qt.context_use import QtUseContext
 
@@ -16,6 +17,30 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 VERBOSE = 1
+
+
+def _read_only_hybrid_property_on_record(record: Any, name: str) -> bool:
+    """Return True if ``name`` is a SQLAlchemy hybrid property without a setter.
+
+    Instance attribute assignment uses the same MRO resolution as ``setattr``
+    for a descriptor defined on the class.
+
+    Args:
+        record: Object that would receive the assignment.
+        name: Attribute name being set.
+
+    Returns:
+        True if the attribute is a :class:`~sqlalchemy.ext.hybrid.hybrid_property`
+        with no ``fset``; False otherwise.
+    """
+    for cls in type(record).__mro__:
+        if name not in cls.__dict__:
+            continue
+        desc = cls.__dict__[name]
+        if isinstance(desc, hybrid_property):
+            return desc.fset is None
+        return False
+    return False
 
 
 class DrfFieldEd(QtUseContext):
@@ -115,6 +140,9 @@ class DrfFieldEd(QtUseContext):
     def save_value_to(self, record: Any):
         """Save the field value into the target record.
 
+        If assignment fails because the attribute is a read-only SQLAlchemy
+        hybrid property (no instance setter), that failure is ignored.
+
         Attributes:
             record: The item to save the field value to.
         """
@@ -129,14 +157,21 @@ class DrfFieldEd(QtUseContext):
         )
         try:
             setattr(record, self._name, self.field_value)
-        except Exception as e:
+        except Exception:
+            if _read_only_hybrid_property_on_record(record, self._name):
+                logger.log(
+                    VERBOSE,
+                    "Ignoring save error for read-only hybrid property %s",
+                    self._name,
+                )
+                return
             logger.error(
                 "Error saving field value %s to record: %s",
                 self.field_value,
                 self._name,
                 exc_info=True,
             )
-            raise e
+            raise
 
     def load_value_from(self, record: Any):
         """Load the field value from the database record.

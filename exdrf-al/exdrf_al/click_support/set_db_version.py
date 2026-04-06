@@ -34,7 +34,7 @@ def set_db_version(target: str, conn: DbConn, schema: str, m_dir: str):
     """
     engine = conn.connect()
     assert engine is not None
-    DbVer(engine=engine, migrations=m_dir).set_version(
+    DbVer(engine=engine, migrations=m_dir, schema=schema).set_version(
         version=target,
     )
 
