@@ -12,6 +12,23 @@ from typing import (
 
 from annotated_types import Ge, Gt, Le, Lt, MaxLen, MinLen
 from attrs import define
+
+try:
+    from pydantic.functional_validators import (
+        AfterValidator,
+        BeforeValidator,
+        PlainValidator,
+        WrapValidator,
+    )
+
+    _PYDANTIC_METADATA_SKIP_TYPES: tuple[type[Any], ...] = (
+        BeforeValidator,
+        AfterValidator,
+        PlainValidator,
+        WrapValidator,
+    )
+except ImportError:  # pragma: no cover - older pydantic
+    _PYDANTIC_METADATA_SKIP_TYPES = ()
 from exdrf.api import (
     BoolField,
     DateField,
@@ -211,6 +228,11 @@ def field_from_pydantic(
             extra["max"] = md.lt
         elif isinstance(md, Le):
             extra["max"] = md.le
+        elif _PYDANTIC_METADATA_SKIP_TYPES and isinstance(
+            md,
+            _PYDANTIC_METADATA_SKIP_TYPES,
+        ):
+            continue
         else:
             raise ValueError(f"Unknown metadata type: {md}")
 
