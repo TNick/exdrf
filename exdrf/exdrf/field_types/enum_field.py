@@ -1,6 +1,7 @@
 from typing import Any, List, Tuple
 
 from attrs import define, field
+from pydantic import Field
 
 from exdrf.constants import FIELD_TYPE_ENUM
 from exdrf.field import ExField, FieldInfo
@@ -34,7 +35,7 @@ class EnumInfo(FieldInfo):
     """Parser for information about an enum field.
 
     Attributes:
-        values: The list of possible values for the field.
+        enum_values: The list of possible values for the field.
     """
 
-    enum_values: List[str] = field(factory=list)
+    enum_values: List[str] = Field(default_factory=list)

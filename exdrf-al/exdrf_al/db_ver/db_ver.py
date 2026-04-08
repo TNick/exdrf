@@ -75,7 +75,7 @@ class DbVer:
 
         # Set the main options.
         alembic_cfg.set_main_option("script_location", self.script_dir)
-        alembic_cfg.set_main_option("version_path_separator", "os")
+        alembic_cfg.set_main_option("path_separator", "os")
         alembic_cfg.set_main_option("version_locations", self.migrations)
         for key, value in self.main_options:
             alembic_cfg.set_main_option(key, value)
