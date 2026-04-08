@@ -50,6 +50,7 @@ class TestSelectorApplyFieldFilter(unittest.TestCase):
         self.assertEqual(kwargs["item"].op, "==")
         self.assertEqual(kwargs["item"].vl, 1)
         self.assertEqual(kwargs["selector"], self.selector)
+        self.assertIsNone(kwargs.get("no_dia"))
         self.assertEqual(result, mock_filter_result)
 
     def test_apply_field_filter_with_field_filter_instance(self) -> None:
@@ -61,7 +62,9 @@ class TestSelectorApplyFieldFilter(unittest.TestCase):
         result = self.selector.apply_field_filter(field_filter_instance)
 
         self.mock_qt_field_name.apply_filter.assert_called_once_with(
-            item=field_filter_instance, selector=self.selector
+            item=field_filter_instance,
+            selector=self.selector,
+            no_dia=None,
         )
         self.assertEqual(result, mock_filter_result)
 
@@ -115,7 +118,7 @@ class TestSelectorApplySubsetAndRun(unittest.TestCase):
         self.name_filter_like = MockColumnElement(name="name_filter_like")
         self.other_filter_gt = MockColumnElement(name="other_filter_gt")
 
-        def mock_apply_filter_side_effect(item, selector):
+        def mock_apply_filter_side_effect(item, selector, no_dia=None):
             if item.fld == "id" and item.vl == 1:
                 return self.id_filter_1_eq
             if item.fld == "id" and item.vl == 2:
@@ -156,7 +159,9 @@ class TestSelectorApplySubsetAndRun(unittest.TestCase):
         ]
         self.selector.run(filters)
         self.mock_id_field.apply_filter.assert_called_with(
-            item=FieldFilter(fld="id", op="==", vl=1), selector=self.selector
+            item=FieldFilter(fld="id", op="==", vl=1),
+            selector=self.selector,
+            no_dia=None,
         )
         self.mock_base_select.where.assert_called_once_with(self.id_filter_1_eq)
 
@@ -166,7 +171,7 @@ class TestSelectorApplySubsetAndRun(unittest.TestCase):
         filters: FilterType = [ff]
         self.selector.run(filters)
         self.mock_name_field.apply_filter.assert_called_with(
-            item=ff, selector=self.selector
+            item=ff, selector=self.selector, no_dia=None
         )
         self.mock_base_select.where.assert_called_once_with(
             self.name_filter_like
@@ -185,11 +190,14 @@ class TestSelectorApplySubsetAndRun(unittest.TestCase):
         self.selector.run(filters)
 
         self.mock_id_field.apply_filter.assert_any_call(
-            item=FieldFilter(fld="id", op="==", vl=1), selector=self.selector
+            item=FieldFilter(fld="id", op="==", vl=1),
+            selector=self.selector,
+            no_dia=None,
         )
         self.mock_name_field.apply_filter.assert_any_call(
             item=FieldFilter(fld="name", op="like", vl="alpha"),
             selector=self.selector,
+            no_dia=None,
         )
         # where should be called with the results of apply_filter
         self.mock_base_select.where.assert_called_once_with(
@@ -213,11 +221,14 @@ class TestSelectorApplySubsetAndRun(unittest.TestCase):
 
         # apply_subset for the inner list
         self.mock_id_field.apply_filter.assert_any_call(
-            item=FieldFilter(fld="id", op="==", vl=1), selector=self.selector
+            item=FieldFilter(fld="id", op="==", vl=1),
+            selector=self.selector,
+            no_dia=None,
         )
         self.mock_name_field.apply_filter.assert_any_call(
             item=FieldFilter(fld="name", op="like", vl="beta"),
             selector=self.selector,
+            no_dia=None,
         )
 
         # Based on mocked apply_filter
@@ -240,10 +251,14 @@ class TestSelectorApplySubsetAndRun(unittest.TestCase):
         self.selector.run(filters)
 
         self.mock_id_field.apply_filter.assert_any_call(
-            item=FieldFilter(fld="id", op="==", vl=2), selector=self.selector
+            item=FieldFilter(fld="id", op="==", vl=2),
+            selector=self.selector,
+            no_dia=None,
         )
         self.mock_other_field.apply_filter.assert_any_call(
-            item=FieldFilter(fld="other", op=">", vl=10), selector=self.selector
+            item=FieldFilter(fld="other", op=">", vl=10),
+            selector=self.selector,
+            no_dia=None,
         )
 
         mock_or_.assert_called_once_with(
@@ -264,7 +279,9 @@ class TestSelectorApplySubsetAndRun(unittest.TestCase):
         self.selector.run(filters)
 
         self.mock_id_field.apply_filter.assert_called_with(
-            item=FieldFilter(fld="id", op="==", vl=1), selector=self.selector
+            item=FieldFilter(fld="id", op="==", vl=1),
+            selector=self.selector,
+            no_dia=None,
         )
         mock_not_.assert_called_once_with(self.id_filter_1_eq)
         self.mock_base_select.where.assert_called_once_with(
@@ -312,10 +329,14 @@ class TestSelectorApplySubsetAndRun(unittest.TestCase):
 
         # Check apply_filter calls for id fields
         self.mock_id_field.apply_filter.assert_any_call(
-            item=FieldFilter(fld="id", op="==", vl=1), selector=self.selector
+            item=FieldFilter(fld="id", op="==", vl=1),
+            selector=self.selector,
+            no_dia=None,
         )
         self.mock_id_field.apply_filter.assert_any_call(
-            item=FieldFilter(fld="id", op="==", vl=2), selector=self.selector
+            item=FieldFilter(fld="id", op="==", vl=2),
+            selector=self.selector,
+            no_dia=None,
         )
 
         # Check OR calls

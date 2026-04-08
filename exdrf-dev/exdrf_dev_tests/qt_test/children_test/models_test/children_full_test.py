@@ -10,8 +10,8 @@ from exdrf_dev.db.models import Base, Child, Parent
 from exdrf_dev.qt_gen.db.children.models.child_ful import QtChildFuMo
 
 
-class TestQtContext(QtContext):
-    """A test-specific QtContext that executes queries synchronously."""
+class SyncQtContext(QtContext):
+    """QtContext for tests: runs ``push_work`` on the current thread immediately."""
 
     def __init__(self, c_string: str, engine, s_stack):
         super().__init__(c_string=c_string)
@@ -21,22 +21,46 @@ class TestQtContext(QtContext):
 
     def push_work(
         self,
-        statement,
-        callback,
+        statement_or_work,
+        callback=None,
         req_id=None,
+        use_unique: bool = False,
     ) -> Work:
-        """Execute the query synchronously and call the callback immediately."""
+        """Execute the query synchronously and call the callback immediately.
+
+        Args:
+            statement_or_work: A :class:`~exdrf_qt.worker.Work` instance (for
+                example :class:`~exdrf_qt.models.model.ModelWork`) as produced
+                by ``QtModel``, or a SQLAlchemy select when using the legacy
+                ``(statement, callback)`` call shape.
+            callback: Callback invoked with the work after execution; required
+                when ``statement_or_work`` is a select statement.
+            req_id: Optional request id when building work from a statement.
+            use_unique: Whether to pass ``use_unique`` into a built-in
+                :class:`~exdrf_qt.worker.Work` (legacy path only).
+        """
+        if isinstance(statement_or_work, Work):
+            work = statement_or_work
+            with self.session() as session:
+                work.perform(session)
+            work.callback(work)
+            return work
+
+        if callback is None:
+            raise TypeError(
+                "callback is required when push_work receives a statement"
+            )
+
         work = Work(
-            statement=statement,
+            statement=statement_or_work,
             callback=callback,
-            req_id=req_id,
+            req_id=req_id if req_id is not None else 0,
+            use_unique=use_unique,
         )
 
-        # Execute the query synchronously
         with self.session() as session:
-            work.result = list(session.scalars(statement))
+            work.perform(session)
 
-        # Call the callback immediately
         callback(work)
         return work
 
@@ -54,7 +78,7 @@ def memory_db():
 def qt_context(memory_db):
     """Create a QtContext with the memory database."""
     engine, session = memory_db
-    return TestQtContext(
+    return SyncQtContext(
         c_string="sqlite:///:memory:",
         engine=engine,
         s_stack=[session],

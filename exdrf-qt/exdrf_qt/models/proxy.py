@@ -194,7 +194,9 @@ class ProxyModel(QSortFilterProxyModel):
         col = left.column()
         model = self.sourceModel()
         if model is None:
-            return super().lessThan(left, right)
+            if isinstance(left, QModelIndex) and isinstance(right, QModelIndex):
+                return super().lessThan(left, right)
+            return False
 
         lv = model.data(left, SORT_ROLE)
         if lv is None:

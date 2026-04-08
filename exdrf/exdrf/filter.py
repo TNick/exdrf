@@ -59,6 +59,7 @@ This is how the filter is imagined to show in JSON format:
 """
 
 import logging
+import re
 from enum import StrEnum
 from typing import (
     Any,
@@ -418,12 +419,14 @@ class SearchType(StrEnum):
             The prepared input.
         """
         if self == SearchType.EXTENDED:
-            if "%" not in value:
-                if "*" not in value:
-                    value = f"%{value}%"
-            else:
-                value = value.replace("*", "%")
+            # Wrap only when the user supplied no wildcard (% or *). Spaces are
+            # converted afterward, so they do not count as wildcards here.
+            if "%" not in value and "*" not in value:
+                value = f"%{value}%"
+            value = value.replace("*", "%")
             value = value.replace(" ", "%")
+            # Adjacent * and space both become %; merge runs for one LIKE token.
+            value = re.sub(r"%+", "%", value)
         return value
 
     def create_filter(self, field: str, value: str) -> "FieldFilterDict":

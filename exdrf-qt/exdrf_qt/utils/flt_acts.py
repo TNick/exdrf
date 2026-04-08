@@ -32,14 +32,16 @@ def create_simple_filtering_actions(
     for i, (enabled, field) in enumerate(qt_model.simple_search_field_states):
         action = QAction(
             ctx.t(
-                f"db.{qt_model.name}.{field.name}",
+                f"db.{qt_model.exdrf_model_name()}.{field.name}",
                 " ".join(field.name.split("_")).capitalize(),
             ).capitalize(),
             parent=parent,
         )
         action.setCheckable(True)
         action.setChecked(enabled)
-        action.setObjectName(f"{NAME_PREFIX}-{qt_model.name}-{field.name}")
+        action.setObjectName(
+            f"{NAME_PREFIX}-{qt_model.exdrf_model_name()}-{field.name}"
+        )
         action.setData(i)
         actions.append(action)
     return actions

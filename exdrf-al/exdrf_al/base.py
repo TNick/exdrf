@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Generator, Type
+from typing import TYPE_CHECKING, Any, Generator, Type
 
 from sqlalchemy.ext.hybrid import HybridExtensionType
 from sqlalchemy.inspection import inspect as sa_inspect
@@ -8,9 +8,16 @@ if TYPE_CHECKING:
     from exdrf_al.visitor import DbVisitor
 
 
-class Base(DeclarativeBase):
+class _RegistryVisitorMixin:
+    """SQLAlchemy registry helpers shared by application and isolated bases.
+
+    Attributes:
+        None
+    """
+
     @classmethod
-    def all_models(cls) -> Generator[Type["Base"], None, None]:
+    def all_models(cls) -> Generator[Type[Any], None, None]:
+        """Yield each ORM class registered on this declarative base."""
         for mapper in cls.registry.mappers:
             yield mapper.class_
 
@@ -19,6 +26,7 @@ class Base(DeclarativeBase):
         cls,
         visitor: "DbVisitor",
     ) -> None:
+        """Walk all mapped models and forward them to ``visitor``."""
         for model in cls.all_models():
 
             # Compute the categories (list of modules) of the model.
@@ -56,3 +64,29 @@ class Base(DeclarativeBase):
             # Then visit all relationships of the model.
             for rel in model.__mapper__.relationships:
                 visitor.visit_relation(model, rel)  # type: ignore
+
+
+class Base(_RegistryVisitorMixin, DeclarativeBase):
+    """Application-wide declarative base for Ex-DRF SQLAlchemy models.
+
+    Attributes:
+        None
+    """
+
+
+def isolated_declarative_base() -> type[DeclarativeBase]:
+    """Return a new declarative base with its own metadata/registry.
+
+    Used by tests that define temporary models and must not see classes
+    registered on the process-wide :class:`Base` (for example models from
+    optional dev packages imported earlier in the suite).
+
+    Returns:
+        A fresh declarative base class with :meth:`all_models` and
+        :meth:`visit` identical to :class:`Base`.
+    """
+
+    class _IsolatedBase(_RegistryVisitorMixin, DeclarativeBase):
+        pass
+
+    return _IsolatedBase

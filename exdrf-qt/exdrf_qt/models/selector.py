@@ -251,6 +251,8 @@ class Selector(Generic[DBM]):
                 processed_item = self._single_def(definition_item)
                 if processed_item is not None:
                     components.append(processed_item)
+            except (ValueError, TypeError):
+                raise
             except Exception as e:
                 logger.error(
                     "Error applying filter subset %s: %s",
@@ -295,7 +297,7 @@ class Selector(Generic[DBM]):
                     logger.log(
                         VERBOSE,
                         "M: %s DelChoice.ALL, so no del filter applied",
-                        self.qt_model.name,
+                        self.qt_model.exdrf_model_name(),
                     )
                 else:
                     assert False, f"Invalid DelChoice {del_choice}"
@@ -303,7 +305,7 @@ class Selector(Generic[DBM]):
                 logger.log(
                     VERBOSE,
                     "No soft delete field found for model %s",
-                    self.qt_model.name,
+                    self.qt_model.exdrf_model_name(),
                 )
 
         components = self.apply_subset(

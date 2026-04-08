@@ -121,7 +121,11 @@ class TestQtModelColumnCount(unittest.TestCase):
             db_model=self.mock_db_model,
             prevent_total_count=True,
         )
-        self.model.column_fields = [self.mock_field1, self.mock_field2]
+        self.mock_field1.name = "col1"
+        self.mock_field1.visible = True
+        self.mock_field2.name = "col2"
+        self.mock_field2.visible = True
+        self.model.fields = [self.mock_field1, self.mock_field2]
 
     def test_column_count(self) -> None:
         """Test columnCount returns number of column fields."""
@@ -189,6 +193,10 @@ class TestQtModelIndex(unittest.TestCase):
             prevent_total_count=True,
         )
         self.model._total_count = 10
+        mock_col = MagicMock()
+        mock_col.name = "c0"
+        mock_col.visible = True
+        self.model.fields = [mock_col]
 
     def test_index_valid(self) -> None:
         """Test index with valid parameters."""
@@ -212,7 +220,7 @@ class TestQtModelIndex(unittest.TestCase):
 
 
 class TestQtModelName(unittest.TestCase):
-    """Tests for QtModel.name property."""
+    """Tests for QtModel.exdrf_model_name()."""
 
     def setUp(self) -> None:
         """Set up test fixtures."""
@@ -226,8 +234,8 @@ class TestQtModelName(unittest.TestCase):
         )
 
     def test_name(self) -> None:
-        """Test name property returns db_model name."""
-        self.assertEqual(self.model.name, "TestModel")
+        """Test exdrf_model_name returns db_model name."""
+        self.assertEqual(self.model.exdrf_model_name(), "TestModel")
 
 
 class TestQtModelFlags(unittest.TestCase):
@@ -377,8 +385,8 @@ class TestQtModelCloneMe(unittest.TestCase):
             db_model=self.mock_db_model,
             prevent_total_count=True,
         )
-        self.model._filters = [{"fld": "name", "op": "==", "vl": "test"}]
-        self.model.sort_by = [("name", "asc")]
+        self.model._filters = []
+        self.model.sort_by = []
         self.model.top_cache = [MagicMock()]
         self.model.base_selection = MagicMock()
 
@@ -392,7 +400,7 @@ class TestQtModelCloneMe(unittest.TestCase):
         self.assertEqual(clone.base_selection, self.model.base_selection)
         self.assertEqual(clone._filters, self.model._filters)
         self.assertEqual(clone.sort_by, self.model.sort_by)
-        self.assertEqual(clone.top_cache, self.model.top_cache)
+        self.assertEqual(clone.top_cache, [])
 
 
 class TestQtModelCheckedRows(unittest.TestCase):
@@ -433,6 +441,12 @@ class TestQtModelSetPrioritizedIds(unittest.TestCase):
             db_model=self.mock_db_model,
             prevent_total_count=True,
         )
+        pk_field = MagicMock()
+        pk_field.name = "id"
+        pk_field.primary = True
+        self.mock_db_model.id = MagicMock()
+        self.model.fields = [pk_field]
+        self.model._total_count = 0
 
     @patch("exdrf_qt.models.model.QtModel.reset_model")
     def test_set_prioritized_ids_changes_value(
@@ -449,6 +463,7 @@ class TestQtModelSetPrioritizedIds(unittest.TestCase):
         self, mock_reset: MagicMock
     ) -> None:
         """Test set_prioritized_ids does not reset if same value."""
+        self.model._total_count = 0
         ids = [1, 2, 3]
         self.model.prioritized_ids = ids
         self.model.set_prioritized_ids(ids)

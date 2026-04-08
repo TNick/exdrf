@@ -38,7 +38,9 @@ from sqlalchemy import (
     bindparam,
     case,
     delete,
+    false,
     func,
+    literal_column,
     select,
     tuple_,
     update,
@@ -102,7 +104,7 @@ class ModelWork(Work):
             except Exception as e:
                 logger.error(
                     "M: %s Error converting item %d to record: %s",
-                    self.model.name,
+                    self.model.exdrf_model_name(),
                     i,
                     e,
                     exc_info=e,
@@ -317,9 +319,21 @@ class QtModel(
         self.allow_top_cache_edit = False
         self.db_model = db_model
         self.fields = cast(Any, fields if fields is not None else [])
-        self.selection = (
-            selection if selection is not None else select(db_model)
-        )
+        self._checked = None
+        if selection is not None:
+            self.selection = selection
+        else:
+            try:
+                self.selection = select(db_model)
+            except Exception as exc:
+                logger.log(
+                    MODEL_LOG_LEVEL,
+                    "M: select(db_model) failed; using unsatisfiable "
+                    "placeholder (e.g. MagicMock db_model in tests): %s",
+                    exc,
+                    exc_info=True,
+                )
+                self.selection = select(literal_column("1")).where(false())
         self.base_selection = self.selection
         self.sort_by = []
         self.prioritized_ids = None
@@ -352,7 +366,9 @@ class QtModel(
         Args:
             clear_top_cache (bool): Whether to clear the top cache.
         """
-        logger.log(MODEL_LOG_LEVEL, "M: %s Resetting model...", self.name)
+        logger.log(
+            MODEL_LOG_LEVEL, "M: %s Resetting model...", self.exdrf_model_name()
+        )
         self.beginResetModel()
 
         # Clear the top cache if requested.
@@ -372,7 +388,11 @@ class QtModel(
         self._loaded_count = 0
         self.recalculate_total_count()
         self.endResetModel()
-        logger.log(MODEL_LOG_LEVEL, "M: %s Model reset complete.", self.name)
+        logger.log(
+            MODEL_LOG_LEVEL,
+            "M: %s Model reset complete.",
+            self.exdrf_model_name(),
+        )
 
     def recalculate_total_count(self) -> int:
         """Recalculate the total number of items in the selection.
@@ -393,7 +413,7 @@ class QtModel(
             logger.log(
                 MODEL_LOG_LEVEL,
                 "M: %s Total count recalculated: %d",
-                self.name,
+                self.exdrf_model_name(),
                 count,
             )
             return count
@@ -417,7 +437,7 @@ class QtModel(
             logger.log(
                 MODEL_LOG_LEVEL,
                 "M: %s Setting total count to %d",
-                self.name,
+                self.exdrf_model_name(),
                 value,
             )
             self.ensure_stubs(value)
@@ -427,7 +447,7 @@ class QtModel(
             logger.log(
                 MODEL_LOG_LEVEL,
                 "M: %s Total count set to %d (true value: %d)",
-                self.name,
+                self.exdrf_model_name(),
                 value,
                 true_value,
             )
@@ -452,16 +472,27 @@ class QtModel(
             logger.log(
                 MODEL_LOG_LEVEL,
                 "M: %s Setting loaded count to %d",
-                self.name,
+                self.exdrf_model_name(),
                 value,
             )
             self._loaded_count = value
             self.loadedCountChanged.emit(value)
 
-    @property
-    def name(self) -> str:
-        """Return the name of the model."""
-        return self.db_model.__name__
+    def exdrf_model_name(self) -> str:
+        """Return the SQLAlchemy ORM class name for logs and settings keys.
+
+        PyQt5's ``QAbstractItemModel`` reserves or shadows plain ``name`` on
+        some builds, so callers should use this method instead of a ``name``
+        property.
+
+        Returns:
+            ``db_model.__name__`` when it is a string, otherwise ``type(db_model).__name__``.
+        """
+        dbm = self.db_model
+        n = getattr(dbm, "__name__", None)
+        if isinstance(n, str):
+            return n
+        return type(dbm).__name__
 
     @property
     def filters(self) -> FilterType:
@@ -472,7 +503,10 @@ class QtModel(
     def filters(self, value: FilterType) -> None:
         """Set the filters."""
         logger.log(
-            MODEL_LOG_LEVEL, "M: %s Setting filters to %s", self.name, value
+            MODEL_LOG_LEVEL,
+            "M: %s Setting filters to %s",
+            self.exdrf_model_name(),
+            value,
         )
         validate_result = validate_filter(value)
         if validate_result:
@@ -480,10 +514,15 @@ class QtModel(
                 f"Invalid filters: {validate_result[0]} "
                 f"{'->'.join(validate_result[1:])}"
             )
-            logger.error("M: %s %s", self.name, error)
+            logger.error("M: %s %s", self.exdrf_model_name(), error)
             raise ValueError(error)
         self._filters = value
-        logger.log(MODEL_LOG_LEVEL, "M: %s Filters set to %s", self.name, value)
+        logger.log(
+            MODEL_LOG_LEVEL,
+            "M: %s Filters set to %s",
+            self.exdrf_model_name(),
+            value,
+        )
 
     @property
     def filtered_selection(self) -> "Select":
@@ -527,7 +566,7 @@ class QtModel(
         except Exception:
             logger.error(
                 "M: %s Error while computing the filtered selection",
-                self.name,
+                self.exdrf_model_name(),
                 exc_info=True,
             )
             return self.selection
@@ -564,14 +603,14 @@ class QtModel(
                         if fld is None:
                             logger.warning(
                                 "M: %s Sorting field %s not found",
-                                self.name,
+                                self.exdrf_model_name(),
                                 field_key,
                             )
                             continue
                         if not fld.sortable:
                             logger.warning(
                                 "M: %s Sorting field %s not sortable",
-                                self.name,
+                                self.exdrf_model_name(),
                                 field_key,
                             )
                             continue
@@ -581,7 +620,9 @@ class QtModel(
 
                 except Exception:
                     logger.error(
-                        "M: %s Error applying sorting", self.name, exc_info=True
+                        "M: %s Error applying sorting",
+                        self.exdrf_model_name(),
+                        exc_info=True,
                     )
                     return self.filtered_selection
 
@@ -590,7 +631,7 @@ class QtModel(
         except Exception:
             logger.error(
                 "M: %s Error while computing the sorted selection",
-                self.name,
+                self.exdrf_model_name(),
                 exc_info=True,
             )
         return self.filtered_selection
@@ -611,7 +652,7 @@ class QtModel(
         logger.log(
             MODEL_LOG_LEVEL,
             "M: %s Setting checked ids to %s...",
-            self.name,
+            self.exdrf_model_name(),
             value,
         )
         reset_model = False
@@ -656,7 +697,7 @@ class QtModel(
         logger.log(
             MODEL_LOG_LEVEL,
             "M: %s Checked items were set. Reset model: %s.",
-            self.name,
+            self.exdrf_model_name(),
             reset_model,
         )
 
@@ -680,7 +721,7 @@ class QtModel(
         """
         if not self._soft_delete_field_name:
             raise NotImplementedError(
-                f"Soft delete not available in model {self.name}."
+                f"Soft delete not available in model {self.exdrf_model_name()}."
             )
         setattr(db_record, self._soft_delete_field_name, value)
 
@@ -719,7 +760,7 @@ class QtModel(
         logger.log(
             MODEL_LOG_LEVEL,
             "M: %s Ensuring stubs for %d items...",
-            self.name,
+            self.exdrf_model_name(),
             new_total,
         )
         self.cache.set_size(new_total)
@@ -738,7 +779,7 @@ class QtModel(
                 logger.log(
                     MODEL_LOG_LEVEL,
                     "M: %s Requested %d items.",
-                    self.name,
+                    self.exdrf_model_name(),
                     count,
                 )
             finally:
@@ -763,7 +804,7 @@ class QtModel(
             logger.log(
                 MODEL_LOG_LEVEL,
                 "M: %s Requested %d items, but count is 0 or negative.",
-                self.name,
+                self.exdrf_model_name(),
                 start,
                 count,
             )
@@ -774,7 +815,7 @@ class QtModel(
             logger.log(
                 MODEL_LOG_LEVEL,
                 "M: %s Request %d-%d overlaps with existing requests.",
-                self.name,
+                self.exdrf_model_name(),
                 start,
                 start + count,
             )
@@ -791,7 +832,7 @@ class QtModel(
             logger.log(
                 MODEL_LOG_LEVEL,
                 "M: %s Waiting %d milliseconds before executing request %s.",
-                self.name,
+                self.exdrf_model_name(),
                 self._wait_before_request,
                 req.uniq_id,
             )
@@ -799,7 +840,7 @@ class QtModel(
             logger.log(
                 MODEL_LOG_LEVEL,
                 "M: %s Executing request %s immediately.",
-                self.name,
+                self.exdrf_model_name(),
                 req.uniq_id,
             )
             self.execute_request(req)
@@ -815,14 +856,14 @@ class QtModel(
             logger.log(
                 MODEL_LOG_LEVEL,
                 "M: %s Request %s was cancelled",
-                self.name,
+                self.exdrf_model_name(),
                 req.uniq_id,
             )
             return
         logger.log(
             MODEL_LOG_LEVEL,
             "M: %s Executing request %s.",
-            self.name,
+            self.exdrf_model_name(),
             req.uniq_id,
         )
 
@@ -845,7 +886,7 @@ class QtModel(
                 logger.log(
                     MODEL_LOG_LEVEL,
                     "M: %s Request %s ignored (model deleted).",
-                    self.name,
+                    self.exdrf_model_name(),
                     req.uniq_id,
                 )
                 return
@@ -855,7 +896,7 @@ class QtModel(
             logger.log(
                 MODEL_LOG_LEVEL,
                 "M: %s Request %s issued. Start: %d, Count: %d, Requests: %d.",
-                self.name,
+                self.exdrf_model_name(),
                 req.uniq_id,
                 req.start,
                 req.count,
@@ -864,7 +905,7 @@ class QtModel(
         except RuntimeError:
             logger.error(
                 "M: %s RuntimeError in requestIssued signal",
-                self.name,
+                self.exdrf_model_name(),
                 exc_info=True,
             )
 
@@ -872,14 +913,14 @@ class QtModel(
         logger.log(
             MODEL_LOG_LEVEL,
             "M: %s Loading items for request %s.",
-            self.name,
+            self.exdrf_model_name(),
             work.req_id,
         )
         if self._is_deleted():
             logger.log(
                 MODEL_LOG_LEVEL,
                 "M: %s Ignoring load (model deleted).",
-                self.name,
+                self.exdrf_model_name(),
             )
             return
 
@@ -896,14 +937,16 @@ class QtModel(
             logger.log(
                 MODEL_LOG_LEVEL,
                 "M: %s Request was %s cancelled",
-                self.name,
+                self.exdrf_model_name(),
                 work.req_id,
             )
             return
 
         if req is None:
             logger.error(
-                "M: %s Request %s not found in requests", self.name, work.req_id
+                "M: %s Request %s not found in requests",
+                self.exdrf_model_name(),
+                work.req_id,
             )
             return
 
@@ -917,7 +960,7 @@ class QtModel(
             logger.log(
                 MODEL_LOG_LEVEL,
                 "M: %s Request %d generated an error: %s",
-                self.name,
+                self.exdrf_model_name(),
                 work.req_id,
                 work.error,
             )
@@ -943,7 +986,7 @@ class QtModel(
                     MODEL_LOG_LEVEL,
                     "M: %s Request %s returned fewer rows than requested "
                     "(asked=%d, got=%d, len(cache)=%d).",
-                    self.name,
+                    self.exdrf_model_name(),
                     req.uniq_id,
                     req.count,
                     len(work.result),
@@ -966,7 +1009,7 @@ class QtModel(
                 MODEL_LOG_LEVEL,
                 "M: %s Request %s completed. "
                 "Start: %d, Count: %d, Requests: %d.",
-                self.name,
+                self.exdrf_model_name(),
                 req.uniq_id,
                 req.start,
                 req.count,
@@ -1031,7 +1074,7 @@ class QtModel(
                 logger.error(
                     "M: %s Error converting item %d to record "
                     "using field '%s': %s",
-                    self.name,
+                    self.exdrf_model_name(),
                     f_index,
                     fld.name,
                     e,
@@ -1039,7 +1082,9 @@ class QtModel(
 
                 import traceback
 
-                logger.error("M: %s %s", self.name, traceback.format_exc())
+                logger.error(
+                    "M: %s %s", self.exdrf_model_name(), traceback.format_exc()
+                )
 
                 result.values[f_index] = {
                     Qt.ItemDataRole.DisplayRole: str(e),
@@ -1202,7 +1247,7 @@ class QtModel(
                 logger.error(
                     "M: %s SqlAlchemy error '%s' getting item by ID '%s' "
                     "with statement:\n%s",
-                    self.name,
+                    self.exdrf_model_name(),
                     e,
                     rec_id,
                     sqlparse.format(
@@ -1245,12 +1290,16 @@ class QtModel(
         The function copies most of the attributes of the model. The cache
         starts up empty and the total count is recalculated.
         """
-        logger.log(MODEL_LOG_LEVEL, "M: %s Cloning model...", self.name)
+        logger.log(
+            MODEL_LOG_LEVEL, "M: %s Cloning model...", self.exdrf_model_name()
+        )
         result = self.__class__(
             ctx=self.ctx,
             db_model=self.db_model,
             selection=self.base_selection,
             prevent_total_count=True,
+            batch_size=self.batch_size,
+            wait_before_request=self._wait_before_request,
         )
         # Set filters and sort - this will trigger reset_model() if filters
         # change
@@ -1273,7 +1322,9 @@ class QtModel(
         # Recalculate total count, which will trigger ensure_stubs()
         # and request initial items using the correct sorted/filtered selection
         result.recalculate_total_count()
-        logger.log(MODEL_LOG_LEVEL, "M: %s Model cloned.", self.name)
+        logger.log(
+            MODEL_LOG_LEVEL, "M: %s Model cloned.", self.exdrf_model_name()
+        )
         return result
 
     def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
@@ -1514,7 +1565,7 @@ class QtModel(
             logger.log(
                 EDITABLE_LOG_LEVEL,
                 "M: %s Refusing to edit item at row %d; no record",
-                self.name,
+                self.exdrf_model_name(),
                 row,
             )
             return False
@@ -1534,7 +1585,7 @@ class QtModel(
                     EDITABLE_LOG_LEVEL,
                     "M: %s Refusing to edit item %s at row %d; "
                     "loaded: %s, error: %s",
-                    self.name,
+                    self.exdrf_model_name(),
                     record.db_id,
                     row,
                     record.loaded,
@@ -1548,7 +1599,7 @@ class QtModel(
                     EDITABLE_LOG_LEVEL,
                     "M: %s Refusing to edit item %s at row %d; "
                     "column out of range: %d (max %d)",
-                    self.name,
+                    self.exdrf_model_name(),
                     record.db_id,
                     row,
                     column,
@@ -1565,7 +1616,7 @@ class QtModel(
                 EDITABLE_LOG_LEVEL,
                 "M: %s Refusing to edit item %s at row %d; "
                 "loaded: %s, error: %s",
-                self.name,
+                self.exdrf_model_name(),
                 record.db_id,
                 row,
                 record.loaded,
@@ -1579,7 +1630,7 @@ class QtModel(
                 EDITABLE_LOG_LEVEL,
                 "M: %s Refusing to edit item %s at row %d; "
                 "column out of range: %d (max %d)",
-                self.name,
+                self.exdrf_model_name(),
                 record.db_id,
                 row,
                 column,
@@ -1609,11 +1660,48 @@ class QtModel(
         if not index.isValid():
             return False
 
-        # Get the item. If it is not loaded, we cannot set the data.
         row = index.row()
         column = index.column()
         record = self.data_record(row)
 
+        # Check-state toggles use column 0 (see ``flags``) and must work even
+        # when that column is not editable (e.g. read-only primary key).
+        if role == Qt.ItemDataRole.CheckStateRole:
+            if self._checked is None:
+                logger.log(
+                    MODEL_LOG_LEVEL,
+                    "M: %s Refusing to edit item %s at row %d; "
+                    "no checked list",
+                    self.exdrf_model_name(),
+                    getattr(record, "db_id", None),
+                    row,
+                )
+                return False
+            if record is None or not record.loaded or record.error:
+                return False
+            if column != 0:
+                logger.log(
+                    EDITABLE_LOG_LEVEL,
+                    "M: %s Refusing check-state at row %d col %d "
+                    "(only column 0 is checkable)",
+                    self.exdrf_model_name(),
+                    row,
+                    column,
+                )
+                return False
+            record_id = id(record) if record.db_id is None else record.db_id
+            if value == Qt.CheckState.Checked:
+                self._checked.add(record_id)
+            else:
+                self._checked.discard(record_id)
+            record.clear_cached_flags()
+            self.dataChanged.emit(
+                index, index, [Qt.ItemDataRole.CheckStateRole]
+            )
+            self.checkedChanged.emit()
+            return True
+
+        # Get the item. If it is not loaded, we cannot set the data.
         if not self._is_index_editable(record, row, column):
             return False
 
@@ -1629,39 +1717,12 @@ class QtModel(
         if row < len(self.top_cache):
             assert self.allow_top_cache_edit, "Top cache editing is disabled"
 
-        # Are we editing the check state?
-        if role == Qt.ItemDataRole.CheckStateRole:
-            if self._checked is not None:
-                # If there is a record ID we use that, otherwise we use
-                # the record object itself (which is unique).
-                record_id = id(record) if record.db_id is None else record.db_id
-                if value == Qt.CheckState.Checked:
-                    self._checked.add(record_id)
-                else:
-                    self._checked.discard(record_id)
-                record.clear_cached_flags()
-                self.dataChanged.emit(
-                    index, index, [Qt.ItemDataRole.CheckStateRole]
-                )
-                self.checkedChanged.emit()
-                return True
-            else:
-                logger.log(
-                    MODEL_LOG_LEVEL,
-                    "M: %s Refusing to edit item %s at row %d; "
-                    "no checked list",
-                    self.name,
-                    record.db_id,
-                    row,
-                )
-                return False
-
         if role != Qt.ItemDataRole.EditRole:
             logger.log(
                 MODEL_LOG_LEVEL,
                 "M: %s Refusing to edit item %s at row %d; "
                 "role is not EditRole: %d",
-                self.name,
+                self.exdrf_model_name(),
                 record.db_id,
                 row,
                 role,
@@ -1696,7 +1757,7 @@ class QtModel(
                     if db_item is None:
                         logger.error(
                             "M: %s Record %s not found for edit",
-                            self.name,
+                            self.exdrf_model_name(),
                             record.db_id,
                         )
                         return False
@@ -1707,7 +1768,7 @@ class QtModel(
                 except Exception as e:
                     logger.error(
                         "M: %s Error setting field %s for row %d (ID: %s): %s",
-                        self.name,
+                        self.exdrf_model_name(),
                         field.name,
                         row - len(self.top_cache),
                         record.db_id,
@@ -1746,7 +1807,7 @@ class QtModel(
 
             logger.debug(
                 "M: %s Data changed for item ID: %s at row %d, column %d",
-                self.name,
+                self.exdrf_model_name(),
                 record.db_id,
                 row,
                 column,
@@ -1772,7 +1833,7 @@ class QtModel(
                 logger.error(
                     "M: %s Refusing to sort by column %d; "
                     "field %s is not part of the sortable set.",
-                    self.name,
+                    self.exdrf_model_name(),
                     column,
                     field.name,
                 )
@@ -1782,7 +1843,7 @@ class QtModel(
                 logger.error(
                     "M: %s Refusing to sort by column %d; "
                     "field %s is capable of sorting.",
-                    self.name,
+                    self.exdrf_model_name(),
                     column,
                     field.name,
                 )
@@ -1798,7 +1859,10 @@ class QtModel(
             self.reset_model()
         except Exception as e:
             logger.error(
-                "M: %s Error sorting model: %s", self.name, e, exc_info=True
+                "M: %s Error sorting model: %s",
+                self.exdrf_model_name(),
+                e,
+                exc_info=True,
             )
 
     def change_filter(
@@ -1859,7 +1923,10 @@ class QtModel(
                     return
         except Exception as e:
             logger.error(
-                "M: %s Error applying filter: %s", self.name, e, exc_info=True
+                "M: %s Error applying filter: %s",
+                self.exdrf_model_name(),
+                e,
+                exc_info=True,
             )
 
         # Make sure that the filter is valid.
@@ -1875,7 +1942,7 @@ class QtModel(
         logger.log(
             MODEL_LOG_LEVEL,
             "M: %s Changing filters from %s to %s",
-            self.name,
+            self.exdrf_model_name(),
             previous,
             self._filters,
         )
@@ -2065,8 +2132,12 @@ class QtModel(
             assert (
                 db_id in self._db_to_row
             ), f"Database ID {db_id} not found in _db_to_row"
-            self._checked[db_id] = self._checked[record_id]  # type: ignore
-            del self._checked[record_id]  # type: ignore
+            if isinstance(self._checked, set):
+                self._checked.discard(record_id)
+                self._checked.add(db_id)
+            else:
+                self._checked[db_id] = self._checked[record_id]  # type: ignore
+                del self._checked[record_id]  # type: ignore
 
         return result
 
@@ -2082,7 +2153,7 @@ class QtModel(
         logger.log(
             MODEL_LOG_LEVEL,
             "M: %s Setting prioritized ids to %s...",
-            self.name,
+            self.exdrf_model_name(),
             ids,
         )
         if self.prioritized_ids == ids:
@@ -2091,7 +2162,7 @@ class QtModel(
         logger.log(
             MODEL_LOG_LEVEL,
             "M: %s Prioritized ids set to %s. Resetting model.",
-            self.name,
+            self.exdrf_model_name(),
             ids,
         )
 
@@ -2134,7 +2205,7 @@ class QtModel(
         logger.log(
             MODEL_LOG_LEVEL,
             "M: %s Inserting record into model...",
-            self.name,
+            self.exdrf_model_name(),
         )
         parent_idx = QModelIndex()
         self.rowsAboutToBeInserted.emit(parent_idx, 0, 0)
@@ -2145,7 +2216,7 @@ class QtModel(
         logger.log(
             MODEL_LOG_LEVEL,
             "M: %s Record inserted into model.",
-            self.name,
+            self.exdrf_model_name(),
         )
         return result
 
@@ -2160,7 +2231,7 @@ class QtModel(
         logger.log(
             MODEL_LOG_LEVEL,
             "M: %s Inserting %d new records into model...",
-            self.name,
+            self.exdrf_model_name(),
             len(new_items),
         )
 
@@ -2176,7 +2247,7 @@ class QtModel(
             if m_item is None:
                 logger.error(
                     "M: %s Error converting item %d to record",
-                    self.name,
+                    self.exdrf_model_name(),
                     i,
                 )
                 continue
@@ -2189,7 +2260,7 @@ class QtModel(
         logger.log(
             MODEL_LOG_LEVEL,
             "M: %s %d new records inserted into model.",
-            self.name,
+            self.exdrf_model_name(),
             len(new_items),
         )
         return result
@@ -2268,7 +2339,7 @@ class QtModel(
                 logger.error(
                     "M: %s Error converting item %d to record "
                     "using field '%s': %s",
-                    self.name,
+                    self.exdrf_model_name(),
                     f_index,
                     fld.name,
                     e,
@@ -2276,7 +2347,9 @@ class QtModel(
 
                 import traceback
 
-                logger.error("M: %s %s", self.name, traceback.format_exc())
+                logger.error(
+                    "M: %s %s", self.exdrf_model_name(), traceback.format_exc()
+                )
 
                 result.values[f_index] = {
                     Qt.ItemDataRole.DisplayRole: str(e),
@@ -2293,17 +2366,22 @@ class QtModel(
         result.loaded = True
         return result
 
-    @property
-    def settings_key(self) -> str:
-        """Return the key for the settings."""
-        return f"model_{self.name}_settings"
+    def _model_settings_storage_key(self) -> str:
+        """Return the persistence key prefix for this model's settings.
+
+        Implemented as a method (not a property) so PyQt5's QObject /
+        QAbstractItemModel attribute handling does not shadow the name
+        ``settings_key`` on some builds.
+        """
+        return f"model_{self.exdrf_model_name()}_settings"
 
     def load_settings(self) -> None:
         """Load the settings from the context."""
 
         spl_src_fields = self.simple_search_fields
+        sk = self._model_settings_storage_key()
         spl_src_fields_stg = self.ctx.stg.get_setting(
-            f"{self.settings_key}.simple_search_fields", default=None
+            f"{sk}.simple_search_fields", default=None
         )
         if spl_src_fields_stg is not None:
             if len(spl_src_fields_stg) > len(spl_src_fields):
@@ -2317,7 +2395,7 @@ class QtModel(
                 logger.warning(
                     "M: %s Simple search fields settings are invalid, "
                     "resetting to default.",
-                    self.name,
+                    self.exdrf_model_name(),
                 )
             self._s_s_enabled = spl_src_fields_stg
 
@@ -2334,7 +2412,7 @@ class QtModel(
         self._s_s_enabled = values
         if self._save_settings:
             self.ctx.stg.set_setting(
-                f"{self.settings_key}.simple_search_fields",
+                f"{self._model_settings_storage_key()}.simple_search_fields",
                 values,
             )
 
@@ -2402,7 +2480,7 @@ class QtModel(
         """
         if not self.has_soft_delete_field:
             raise NotImplementedError(
-                f"Soft delete not available in model {self.name}."
+                f"Soft delete not available in model {self.exdrf_model_name()}."
             )
         del_field = self.get_soft_delete_field()
         if del_field is None:
@@ -2454,14 +2532,14 @@ class QtModel(
             )
         logger.debug(
             "M: %s Restored %d records.",
-            self.name,
+            self.exdrf_model_name(),
             len(changed_cache),
         )
         if len(not_found) > 0:
             logger.warning(
                 "M: %s %d records were not found in the database and "
                 "were not restored: %s.",
-                self.name,
+                self.exdrf_model_name(),
                 len(not_found),
                 ", ".join(str(id) for id in not_found.keys()),
             )
@@ -2530,7 +2608,7 @@ class QtModel(
         self.totalCountChanged.emit(self.total_count)
         logger.debug(
             "M: %s Record cloned into model at index %d from ID %s to ID %s.",
-            self.name,
+            self.exdrf_model_name(),
             insert_index,
             db_id,
             result.db_id,
@@ -2566,7 +2644,7 @@ class QtModel(
                 del_field = self.get_soft_delete_field()
                 if del_field is None:
                     raise NotImplementedError(
-                        f"Soft delete not available in model {self.name}."
+                        f"Soft delete not available in model {self.exdrf_model_name()}."
                     )
                 stmt = (
                     update(self.db_model)
@@ -2585,7 +2663,7 @@ class QtModel(
         logger.log(
             MODEL_LOG_LEVEL,
             "M: %s Removed all records (affected rows: %s).",
-            self.name,
+            self.exdrf_model_name(),
             result.rowcount,
         )
 

@@ -47,24 +47,48 @@ Available fixtures:
 
 """
 
+import os
+
 import pytest
 from exdrf.dataset import ExDataset
 from exdrf.resource import ExResource
 from sqlalchemy import Integer
-from sqlalchemy.orm import Mapped, clear_mappers, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column
 
-from exdrf_al.base import Base
+from exdrf_al.base import isolated_declarative_base
 from exdrf_al.connection import DbConn
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _exdrf_al_test_migrations_dir(tmp_path_factory):
+    """Set EXDRF_DB_MIGRATIONS_DIR so DbConn.connect() can build DbVer.
+
+    Tests use sqlite :memory: without running migrations; an empty versions
+    directory is enough for get_current_version() to report None.
+    """
+
+    versions = tmp_path_factory.mktemp("exdrf_al_migration_versions")
+    previous = os.environ.get("EXDRF_DB_MIGRATIONS_DIR")
+    os.environ["EXDRF_DB_MIGRATIONS_DIR"] = str(versions)
+    yield
+    if previous is None:
+        os.environ.pop("EXDRF_DB_MIGRATIONS_DIR", None)
+    else:
+        os.environ["EXDRF_DB_MIGRATIONS_DIR"] = previous
 
 
 @pytest.fixture
 def LocalBase():
-    """Fixture to provide a local instance of the Base class for testing. This is
-    useful for creating mock models without affecting the global registry.
+    """Provide a declarative base isolated from the process-wide registry.
+
+    Yields:
+        A fresh declarative base so tests do not see models registered on
+        ``exdrf_al.base.Base`` by other packages (for example ``exdrf_dev``).
     """
-    yield Base
-    clear_mappers()
-    Base.metadata.clear()
+    base = isolated_declarative_base()
+    yield base
+    base.registry.dispose()
+    base.metadata.clear()
 
 
 @pytest.fixture

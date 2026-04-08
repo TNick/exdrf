@@ -3,6 +3,7 @@ import os
 from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Type
 
 from sqlalchemy import Engine, MetaData
+from sqlalchemy.orm import DeclarativeBase
 
 from exdrf_al.base import Base
 
@@ -149,7 +150,7 @@ def print_db_schema_diff(
     push_info: Callable[[str], None],
     exact_match: bool = False,
     check_data_type: bool = False,
-    base: Optional[Type[Base]] = None,
+    base: Optional[Type[DeclarativeBase]] = None,
 ):
     """Prints the differences between the database schema and the code schema.
 
@@ -158,13 +159,14 @@ def print_db_schema_diff(
         push_info: The function to push information.
         exact_match: Whether to use exact match.
         check_data_type: Whether to check data type.
-        base: The base class to use that retrieves the.
+        base: Declarative base whose metadata defines the expected schema;
+            defaults to :class:`~exdrf_al.base.Base`.
     """
     if base is None:
         base = Base
     with conn.same_session():
         assert conn.engine is not None
-        compare = compare_db_schema_to_code(conn.engine, Base.metadata)
+        compare = compare_db_schema_to_code(conn.engine, base.metadata)
 
     # Top level in this dictionaries is the name of the table
     # and the content.

@@ -61,28 +61,29 @@ class FieldsList:
         self._pk_fields = []
         for f in value:
             if isinstance(f, type) or callable(f):
-                f = f(ctx=self.ctx, resource=self)  # type: ignore
+                res = getattr(self, "resource", self)
+                f = f(ctx=self.ctx, resource=res)  # type: ignore
             self._fields[f.name] = f
 
-            if f.qsearch:
+            if getattr(f, "qsearch", False):
                 self._s_s_fields.append(f)
                 self._s_s_enabled.append(
                     previous_active_state.get(f.name, True)
                 )
 
-            if f.filterable:
+            if getattr(f, "filterable", False):
                 self._f_fields.append(f)
 
-            if f.sortable:
+            if getattr(f, "sortable", False):
                 self._s_fields.append(f)
 
-            if f.visible:
+            if getattr(f, "visible", False):
                 self._c_fields.append(f)
 
-            if f.exportable:
+            if getattr(f, "exportable", False):
                 self._e_fields.append(f)
 
-            if f.primary:
+            if getattr(f, "primary", False):
                 self._pk_fields.append(f)
 
     def get_field(

@@ -38,6 +38,8 @@ class ParentField(QtRefManyToOneField["Child"]):
 
     # exdrf-keep-start other_attributes ---------------------------------------
 
+    fk_from: str = field(default="parent_id", kw_only=True)
+
     # exdrf-keep-end other_attributes -----------------------------------------
 
     ref: "ExResource" = field(default=None, repr=False)

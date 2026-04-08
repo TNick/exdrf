@@ -3,9 +3,29 @@
 import unittest
 from unittest.mock import MagicMock
 
-from PyQt5.QtCore import QModelIndex, Qt
+from PyQt5.QtCore import QAbstractTableModel, QModelIndex, QObject, Qt
 
 from exdrf_qt.models.proxy import SORT_ROLE, ProxyModel
+
+
+class _QtSourceModelStub(QAbstractTableModel):
+    """Minimal table model so ``setSourceModel`` accepts it under PyQt5."""
+
+    def __init__(self, inner: MagicMock, parent: QObject | None = None):
+        super().__init__(parent)
+        self._inner = inner
+
+    def rowCount(self, parent=QModelIndex()):
+        return 100
+
+    def columnCount(self, parent=QModelIndex()):
+        return 100
+
+    def data(self, index, role=Qt.ItemDataRole.DisplayRole):
+        return self._inner.data(index, role)
+
+    def index(self, row, column, parent=QModelIndex()):
+        return self._inner.index(row, column, parent)
 
 
 class TestProxyModelInit(unittest.TestCase):
@@ -24,7 +44,7 @@ class TestProxyModelInit(unittest.TestCase):
 
     def test_init_with_parent(self) -> None:
         """Test initialization with parent."""
-        parent = MagicMock()
+        parent = QObject()
         proxy = ProxyModel(parent)
         self.assertEqual(proxy.parent(), parent)
 
@@ -139,10 +159,11 @@ class TestProxyModelFilterAcceptsRow(unittest.TestCase):
     def setUp(self) -> None:
         """Set up test fixtures."""
         self.proxy = ProxyModel()
-        self.mock_model = MagicMock()
+        self.mock_model_inner = MagicMock()
+        self.mock_model = _QtSourceModelStub(self.mock_model_inner)
         self.mock_index = MagicMock()
         self.mock_index.isValid.return_value = True
-        self.mock_model.index.return_value = self.mock_index
+        self.mock_model_inner.index.return_value = self.mock_index
 
     def test_filter_accepts_row_no_source_model(self) -> None:
         """Test filter accepts row when no source model."""
@@ -162,7 +183,7 @@ class TestProxyModelFilterAcceptsRow(unittest.TestCase):
         self.proxy.setSourceModel(self.mock_model)
         self.proxy.set_column_filter(0, "test")
         self.mock_index.isValid.return_value = True
-        self.mock_model.data.return_value = "test value"
+        self.mock_model_inner.data.return_value = "test value"
         self.proxy._row_predicate = None
         result = self.proxy.filterAcceptsRow(0, QModelIndex())
         self.assertTrue(result)
@@ -172,7 +193,7 @@ class TestProxyModelFilterAcceptsRow(unittest.TestCase):
         self.proxy.setSourceModel(self.mock_model)
         self.proxy.set_column_filter(0, "test")
         self.mock_index.isValid.return_value = True
-        self.mock_model.data.return_value = "other value"
+        self.mock_model_inner.data.return_value = "other value"
         self.proxy._row_predicate = None
         result = self.proxy.filterAcceptsRow(0, QModelIndex())
         self.assertFalse(result)
@@ -215,7 +236,7 @@ class TestProxyModelFilterAcceptsRow(unittest.TestCase):
         self.proxy.setSourceModel(self.mock_model)
         self.proxy.set_column_filter(0, ".*")
         self.mock_index.isValid.return_value = True
-        self.mock_model.data.return_value = None
+        self.mock_model_inner.data.return_value = None
         self.proxy._row_predicate = None
         result = self.proxy.filterAcceptsRow(0, QModelIndex())
         self.assertTrue(result)
@@ -227,127 +248,110 @@ class TestProxyModelLessThan(unittest.TestCase):
     def setUp(self) -> None:
         """Set up test fixtures."""
         self.proxy = ProxyModel()
-        self.mock_model = MagicMock()
+        self.mock_model_inner = MagicMock()
+        self.mock_model = _QtSourceModelStub(self.mock_model_inner)
+        self.mock_model_inner.index.side_effect = (
+            lambda r, c, p=QModelIndex(): self.mock_model.createIndex(r, c, p)
+        )
         self.proxy.setSourceModel(self.mock_model)
+        root = QModelIndex()
+        self.left_idx = self.mock_model.index(0, 0, root)
+        self.right_idx = self.mock_model.index(1, 0, root)
 
     def test_less_than_no_source_model(self) -> None:
         """Test lessThan delegates to parent when no source model."""
         self.proxy.setSourceModel(None)
-        left = MagicMock()
-        right = MagicMock()
+        left = QModelIndex()
+        right = QModelIndex()
         result = self.proxy.lessThan(left, right)
-        # Should call parent, verify it doesn't crash
         self.assertIsInstance(result, bool)
 
     def test_less_than_uses_sort_role(self) -> None:
         """Test lessThan uses SORT_ROLE when available."""
-        left = MagicMock()
-        right = MagicMock()
-        left.column.return_value = 0
-        self.mock_model.data.side_effect = lambda idx, role: (
+        self.mock_model_inner.data.side_effect = lambda idx, role: (
             "sort_value" if role == SORT_ROLE else "display_value"
         )
-        result = self.proxy.lessThan(left, right)
+        result = self.proxy.lessThan(self.left_idx, self.right_idx)
         self.assertIsInstance(result, bool)
 
     def test_less_than_falls_back_to_display_role(self) -> None:
         """Test lessThan falls back to DisplayRole when SORT_ROLE is None."""
-        left = MagicMock()
-        right = MagicMock()
-        left.column.return_value = 0
 
         def data_side_effect(idx, role):
             if role == SORT_ROLE:
                 return None
             return "display_value"
 
-        self.mock_model.data.side_effect = data_side_effect
-        result = self.proxy.lessThan(left, right)
+        self.mock_model_inner.data.side_effect = data_side_effect
+        result = self.proxy.lessThan(self.left_idx, self.right_idx)
         self.assertIsInstance(result, bool)
 
     def test_less_than_numeric_sorting(self) -> None:
         """Test lessThan with numeric sorting enabled."""
         self.proxy.set_numeric_sort_column(0)
-        left = MagicMock()
-        right = MagicMock()
-        left.column.return_value = 0
-        self.mock_model.data.return_value = "5"
-        right_data = MagicMock()
-        right_data.column.return_value = 0
-        result = self.proxy.lessThan(left, right)
+        self.mock_model_inner.data.return_value = "5"
+        result = self.proxy.lessThan(self.left_idx, self.right_idx)
         self.assertIsInstance(result, bool)
 
     def test_less_than_numeric_sorting_parses_integers(self) -> None:
         """Test lessThan numeric sorting parses integers correctly."""
         self.proxy.set_numeric_sort_column(0)
-        left = MagicMock()
-        right = MagicMock()
-        left.column.return_value = 0
 
         def data_side_effect(idx, role):
-            if idx == left:
+            if idx == self.left_idx:
                 return "10"
-            elif idx == right:
+            if idx == self.right_idx:
                 return "2"
             return None
 
-        self.mock_model.data.side_effect = data_side_effect
-        result = self.proxy.lessThan(left, right)
+        self.mock_model_inner.data.side_effect = data_side_effect
+        result = self.proxy.lessThan(self.left_idx, self.right_idx)
         self.assertFalse(result)  # 10 is not < 2
 
     def test_less_than_numeric_sorting_non_numeric_fallback(self) -> None:
         """Test lessThan numeric sorting falls back to string compare."""
         self.proxy.set_numeric_sort_column(0)
         self.proxy.setFilterCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
-        left = MagicMock()
-        right = MagicMock()
-        left.column.return_value = 0
 
         def data_side_effect(idx, role):
-            if idx == left:
+            if idx == self.left_idx:
                 return "abc"
-            elif idx == right:
+            if idx == self.right_idx:
                 return "xyz"
             return None
 
-        self.mock_model.data.side_effect = data_side_effect
-        result = self.proxy.lessThan(left, right)
+        self.mock_model_inner.data.side_effect = data_side_effect
+        result = self.proxy.lessThan(self.left_idx, self.right_idx)
         self.assertTrue(result)  # "abc" < "xyz"
 
     def test_less_than_case_sensitive_string_comparison(self) -> None:
         """Test lessThan with case sensitive string comparison."""
         self.proxy.set_numeric_sort_column(0)
         self.proxy.setFilterCaseSensitivity(Qt.CaseSensitivity.CaseSensitive)
-        left = MagicMock()
-        right = MagicMock()
-        left.column.return_value = 0
 
         def data_side_effect(idx, role):
-            if idx == left:
+            if idx == self.left_idx:
                 return "A"
-            elif idx == right:
+            if idx == self.right_idx:
                 return "a"
             return None
 
-        self.mock_model.data.side_effect = data_side_effect
-        result = self.proxy.lessThan(left, right)
+        self.mock_model_inner.data.side_effect = data_side_effect
+        result = self.proxy.lessThan(self.left_idx, self.right_idx)
         self.assertIsInstance(result, bool)
 
     def test_less_than_case_insensitive_string_comparison(self) -> None:
         """Test lessThan with case insensitive string comparison."""
         self.proxy.set_numeric_sort_column(0)
         self.proxy.setFilterCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
-        left = MagicMock()
-        right = MagicMock()
-        left.column.return_value = 0
 
         def data_side_effect(idx, role):
-            if idx == left:
+            if idx == self.left_idx:
                 return "apple"
-            elif idx == right:
+            if idx == self.right_idx:
                 return "banana"
             return None
 
-        self.mock_model.data.side_effect = data_side_effect
-        result = self.proxy.lessThan(left, right)
+        self.mock_model_inner.data.side_effect = data_side_effect
+        result = self.proxy.lessThan(self.left_idx, self.right_idx)
         self.assertTrue(result)  # "apple" < "banana"

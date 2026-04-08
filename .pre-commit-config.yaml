@@ -8,6 +8,11 @@ repos:
         entry: python -m exdrf_util.check_verbose --fix
         language: system
         types: [python]
+    -   id: remove-empty-file-named-file
+        name: remove empty stray files named "file"
+        entry: python -m exdrf_dev.remove_empty_file_named_file
+        language: system
+        files: (^|.*/)file$
 -   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:

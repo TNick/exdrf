@@ -123,7 +123,8 @@ def test_print_db_schema_diff_identical(LocalBase2Tables):
     def push_info(msg):
         messages.append(msg)
 
-    out = print_db_schema_diff(db_conn, push_info)
+    code_base = MockModelA.__bases__[0]
+    out = print_db_schema_diff(db_conn, push_info, base=code_base)
     assert any("identical" in m for m in messages)
     assert out[IDENTICAL_COUNT] >= 1
     assert RAW_DATA in out

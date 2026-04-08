@@ -78,7 +78,7 @@ class QtRecord:
             str(
                 self.values[i].get(
                     Qt.ItemDataRole.DisplayRole,
-                    self.values.get(
+                    self.values[i].get(
                         Qt.ItemDataRole.EditRole,
                         self.model.t("cmn.null", "NULL"),
                     ),
