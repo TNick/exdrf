@@ -1,16 +1,71 @@
-# Sqlalchemy to Qt
+# exdrf-gen-al2qt
 
-This is a plugin for generating Qt code for Sqlalchemy models using the Exdrf
-library.
+**exdrf-gen-al2qt** is an **`exdrf-gen`** plugin that generates **PyQt5** UI and
+model scaffolding from an **`ExDataset`** derived from SQLAlchemy declarative
+models. **`generate_qt_from_alchemy`** walks a deep template tree (menus,
+plugins, routers, per-category and per-resource widgets, editors, lists,
+selectors, field classes, and HTML viewers).
 
-To use it, make sure that you have the exdrf_gen module in the environment,
-then use the following command to generate the code:
+Python **3.12.10+** is required.
+
+## Dependencies
+
+- **`PyQt5`** (declared in `pyproject.toml`)
+- **`exdrf-gen`**, **`exdrf-al`**, and **`click`**
+- The **`exdrf_qt`** library (generated code and **`creator`** import this
+  package for field base classes, widgets, plugins, and routing)
+
+## Command-line usage
 
 ```bash
-exdrf-gen al2qt
+exdrf-gen al2qt DATASET OUT-PATH OUT-MODULE DB-MODULE
 ```
 
-## Template Variables Reference
+Or: `python -m exdrf_gen al2qt ...` with the same arguments.
+
+- **DATASET** — `module.path:Symbol` for the SQLAlchemy declarative base
+  (**`GetDataset`** in **`exdrf_al.click_support`**).
+- **OUT-PATH** — output directory. Env: **`EXDRF_AL2QT_PATH`**.
+- **OUT-MODULE** — Python package name for generated code.
+- **DB-MODULE** — module where SQLAlchemy models are defined.
+
+Root group options: **`--debug`**, **`--version`**.
+
+## Python API
+
+```python
+from exdrf_gen.jinja_support import jinja_env
+from exdrf_gen_al2qt.creator import generate_qt_from_alchemy
+
+generate_qt_from_alchemy(
+    d_set=dataset,
+    out_path="/path/to/out",
+    out_module="my_app.qt_gen",
+    db_module="my_app.db.models",
+    env=jinja_env,
+)
+```
+
+## Templates and regeneration
+
+Jinja sources live under **`exdrf_gen_al2qt/al2qt_templates/`**. Regenerated files
+support **preserve regions** (`exdrf-keep-start` / `exdrf-keep-end`) as described
+in **`exdrf-gen`**’s **`fs_support`** documentation; see also *Preserving custom
+content* at the end of this file.
+
+## Plugin registration
+
+```toml
+[project.entry-points.'exdrf.plugins']
+exdrf_gen = 'exdrf_gen_al2qt'
+```
+
+## See also
+
+- **`exdrf-gen`** — [`README.md`](../exdrf-gen/README.md) (plugins, Jinja
+  globals, `fs_support`)
+
+## Template variables reference
 
 This section documents all the variables available to different template types
 used by `generate_qt_from_alchemy`. Templates are organized into four levels:

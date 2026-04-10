@@ -59,14 +59,14 @@ with-env:
 # This is suitable for production environments.
 init:
 	@for %%d in ($(DIRS)) do ( \
-		pushd "$(CURDIR)\%%d" && pip install -e . && popd)
+		pushd "$(CURDIR)\%%d" && python -m pip install -e . && popd)
 
 
 # Installs all the packages in the mono-repo into the current environment with
 # dev dependencies.
 init-d:
 	@for %%d in ($(DIRS)) do ( \
-		pushd "$(CURDIR)\%%d" && pip install -e .[dev] && popd)
+		pushd "$(CURDIR)\%%d" && python -m pip install -e .[dev] && popd)
 
 
 # Runs all the tests in the mono-repo.
@@ -121,7 +121,7 @@ with-env:
 # This is suitable for production environments.
 init:
 	@for dir in $(DIRS); do \
-		cd $$dir && pip install -e .; \
+		cd $$dir && python -m pip install -e .; \
 		cd - > /dev/null; \
 	done
 
@@ -130,7 +130,7 @@ init:
 # dev dependencies.
 init-d:
 	@for dir in $(DIRS); do \
-		cd $$dir && pip install -e .[dev]; \
+		cd $$dir && python -m pip install -e .[dev]; \
 		cd - > /dev/null; \
 	done
 
