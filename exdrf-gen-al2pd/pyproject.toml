@@ -10,6 +10,11 @@ classifiers = [
   "Typing :: Typed",
 ]
 dependencies = [
+  "click>=8.1.8,<8.2.0",
+  "exdrf-al",
+  "exdrf-gen",
+  "exdrf-pd",
+  "exdrf",
   "pydantic>=2.10.6",
 ]
 description = "Generate pydantic models content using DRF from sqlalchemy models."

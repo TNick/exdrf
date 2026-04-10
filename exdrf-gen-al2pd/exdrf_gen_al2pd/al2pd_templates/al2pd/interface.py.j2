@@ -1,0 +1,158 @@
+# This file was automatically generated using the exdrf-gen-al2pd package.
+# Source: {{ m_name }}
+# Don't change it manually.
+{{- "\n" -}}
+from __future__ import annotations
+
+from pydantic import ConfigDict, Field
+{%- if al2pd_need_paged_list %}
+
+from exdrf_pd.paged import PagedList, paged_list_empty_factory
+{%- endif %}
+
+from exdrf_pd.base import ExModel
+{%- if al2pd_datetime_imports %}
+
+from datetime import {{ al2pd_datetime_imports }}
+{%- endif %}
+{%- if al2pd_import_any %}
+
+from typing import Any
+{%- endif %}
+{%- if len(deps) %}
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+{%- for i in len_range(deps) %}
+{%- if al2pd_dep_import_prefixes[i] %}
+    from {{ al2pd_dep_import_prefixes[i] }}.{{ snake_pl(deps[i].name) }} import {{ deps[i].name }}
+{%- else %}
+    from .{{ snake_pl(deps[i].name) }} import {{ deps[i].name }}
+{%- endif %}
+{%- endfor %}
+{%- endif %}
+{%- for var, rhs in al2pd_exdrf_assignments %}
+
+{{ var }} = {{ rhs }}  # noqa: E501
+{%- endfor %}
+
+
+class {{ model_name }}(ExModel):
+    """
+{{ al2pd_class_doc_body }}
+    """
+{%- if al2pd_resource_exdrf_var %}
+    model_config = ConfigDict(json_schema_extra={{ al2pd_resource_exdrf_var }})
+{%- else %}
+    model_config = ConfigDict()
+{%- endif %}
+{%- for field in al2pd_simple_fields %}
+
+    {{ field.name }}: {{ field.annotation }} = Field(
+        {{ field.default_value }},
+        title="{{ escape_dq(field.title) }}",
+        description={{ field.description_literal }}{{ field.extra_field_args }}{% if field.json_schema_extra_expr %},
+        json_schema_extra={{ field.json_schema_extra_expr }}{% endif %}
+    )
+{%- endfor %}
+
+
+class {{ model_name }}Ex({{ model_name }}):
+    """
+{{ al2pd_ex_class_doc_body }}
+    """
+{%- for field in al2pd_ex_scalar_fields %}
+
+    {{ field.name }}: {{ field.annotation }} = Field(
+        {{ field.default_value }},
+        title="{{ escape_dq(field.title) }}",
+        description={{ field.description_literal }}{{ field.extra_field_args }}{% if field.json_schema_extra_expr %},
+        json_schema_extra={{ field.json_schema_extra_expr }}{% endif %}
+    )
+{%- endfor %}
+{%- for field in al2pd_ex_ref_fields %}
+    {{ field.name }}: {{ field.annotation }} = Field(
+{%- if field.is_list_relation %}
+        default_factory=paged_list_empty_factory,
+{%- else %}
+        {{ field.default_value }},
+{%- endif %}
+        title="{{ escape_dq(field.title) }}",
+        description={{ field.description_literal }}{% if field.json_schema_extra_expr %},
+        json_schema_extra={{ field.json_schema_extra_expr }}{% endif %}
+    )
+{%- endfor %}
+{%- if len(deps) %}
+
+
+def _install_{{ al2pd_model_snake }}_ex_forward_refs() -> None:
+    """Import relation targets and finish building ``{{ model_name }}Ex``."""
+
+{% for i in len_range(deps) %}
+{% if al2pd_dep_import_prefixes[i] %}
+    from {{ al2pd_dep_import_prefixes[i] }}.{{ snake_pl(deps[i].name) }} import {{ deps[i].name }}
+{% else %}
+    from .{{ snake_pl(deps[i].name) }} import {{ deps[i].name }}
+{% endif %}
+{% endfor %}
+
+    {{ model_name }}Ex.model_rebuild(
+        _types_namespace={
+{%- for i in len_range(deps) %}
+            "{{ deps[i].name }}": {{ deps[i].name }},
+{%- endfor %}
+        },
+    )
+
+
+_install_{{ al2pd_model_snake }}_ex_forward_refs()
+{%- endif %}
+
+
+class {{ model_name }}Create(ExModel):
+    """
+{{ al2pd_create_class_doc_body }}
+    """
+{%- for field in al2pd_create_scalar_fields %}
+
+    {{ field.name }}: {{ field.annotation }} = Field(
+        {{ field.default_value }},
+        title="{{ escape_dq(field.title) }}",
+        description={{ field.description_literal }}{{ field.extra_field_args }}{% if field.json_schema_extra_expr %},
+        json_schema_extra={{ field.json_schema_extra_expr }}{% endif %}
+    )
+{%- endfor %}
+{%- for field in al2pd_payload_list_fields %}
+    {{ field.name }}: {{ field.annotation }} = Field(
+        default_factory=list,
+        title="{{ escape_dq(field.title) }}",
+        description={{ field.description_literal }}{% if field.json_schema_extra_expr %},
+        json_schema_extra={{ field.json_schema_extra_expr }}{% endif %}
+    )
+{%- endfor %}
+{%- if al2pd_generate_edit %}
+
+
+class {{ model_name }}Edit(ExModel):
+    """
+{{ al2pd_edit_class_doc_body }}
+    """
+{%- for field in al2pd_edit_scalar_fields %}
+
+    {{ field.name }}: {{ field.annotation }} = Field(
+        {{ field.default_value }},
+        title="{{ escape_dq(field.title) }}",
+        description={{ field.description_literal }}{{ field.extra_field_args }}{% if field.json_schema_extra_expr %},
+        json_schema_extra={{ field.json_schema_extra_expr }}{% endif %}
+    )
+{%- endfor %}
+{%- for field in al2pd_payload_list_fields %}
+    {{ field.name }}: {{ field.annotation }} = Field(
+        default_factory=list,
+        title="{{ escape_dq(field.title) }}",
+        description={{ field.description_literal }}{% if field.json_schema_extra_expr %},
+        json_schema_extra={{ field.json_schema_extra_expr }}{% endif %}
+    )
+{%- endfor %}
+{%- endif %}

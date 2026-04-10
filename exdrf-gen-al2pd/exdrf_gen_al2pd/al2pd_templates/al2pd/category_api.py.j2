@@ -1,0 +1,26 @@
+# Aggregate imports for this category package (al2pd).
+# Source: {{ m_name }}
+{{- "\n" -}}
+from __future__ import annotations
+
+{% for item in al2pd_category_api_entries -%}
+from .{{ item.module_local }} import (
+    {{ item.model_name }},
+    {{ item.model_name }}Ex,
+    {{ item.model_name }}Create,
+{%- if item.generate_edit %}
+    {{ item.model_name }}Edit,
+{%- endif %}
+)
+
+{% endfor -%}
+__all__ = [
+{%- for item in al2pd_category_api_entries %}
+    "{{ item.model_name }}",
+    "{{ item.model_name }}Ex",
+    "{{ item.model_name }}Create",
+{%- if item.generate_edit %}
+    "{{ item.model_name }}Edit",
+{%- endif %}
+{%- endfor %}
+]
