@@ -3,6 +3,10 @@
 # List and relation list handlers use ``exdrf_al.al2r_read``.
 from __future__ import annotations
 
+{%- macro orm_ref(name) -%}
+{%- if name in al2r_orm_collisions -%}{{ name }}Orm{%- else -%}{{ name }}{%- endif -%}
+{%- endmacro %}
+
 {%- if categories %}
 
 from . import {{ al2r_category_router_name }}  # noqa: F401
@@ -38,9 +42,17 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from {{ db_module }} import (
+{%- if orm_class_name in al2r_orm_collisions %}
+    {{ orm_class_name }} as {{ orm_class_name }}Orm,
+{%- else %}
     {{ orm_class_name }},
+{%- endif %}
 {%- for cls in al2r_extra_orm_imports %}
+{%- if cls in al2r_orm_collisions %}
+    {{ cls }} as {{ cls }}Orm,
+{%- else %}
     {{ cls }},
+{%- endif %}
 {%- endfor %}
 )
 from {{ schema_module }} import (
@@ -142,7 +154,7 @@ _REL_LIST_SPEC_{{ rel.attr }} = RelationListSpec(
         "{{ a }}",
 {%- endfor %}
     ),
-    related_model={{ rel.related_name }},
+    related_model={{ orm_ref(rel.related_name) }},
     related_schema={{ rel.related_name }},
     related_pk_col="{{ rel.related_pk_col }}",
 {%- if rel.sync.kind == "o2m_fk" %}
@@ -210,7 +222,7 @@ def list_{{ model.snake_case_name }}(
 ) -> PagedList[{{ model.name }}Ex]:
     return list_root_ex_page(
         db,
-        {{ orm_class_name }},
+        {{ orm_ref(orm_class_name) }},
         {{ model.name }}Ex,
         pk_names=(
 {%- for n in pk_names %}
@@ -241,7 +253,7 @@ def _sync_{{ model.snake_case_name }}_relation_lists(
 {%- if spec.kind in ("m2m", "o2m_bridge", "o2m_child_rows") %}
     sync_m2m_list_replace(
         db,
-        {{ spec.assoc_class }},
+        {{ orm_ref(spec.assoc_class) }},
         (
 {%- for c in spec.parent_fk_cols %}
             "{{ c }}",
@@ -259,7 +271,7 @@ def _sync_{{ model.snake_case_name }}_relation_lists(
 {%- else %}
     sync_o2m_fk_list_replace(
         db,
-        {{ spec.child_class }},
+        {{ orm_ref(spec.child_class) }},
         "{{ spec.child_fk_col }}",
         "{{ spec.child_pk_col }}",
         parent_row,
@@ -308,14 +320,14 @@ def create_{{ model.snake_case_name }}(
 
 {%- if al2pd_create_scalar_fields %}
     row = apply_payload_attrs(
-        {{ orm_class_name }},
+        {{ orm_ref(orm_class_name) }},
         payload,
 {%- for field in al2pd_create_scalar_fields %}
         "{{ field.name }}",
 {%- endfor %}
     )
 {%- else %}
-    row = {{ orm_class_name }}()
+    row = {{ orm_ref(orm_class_name) }}()
 {%- endif %}
 {%- if al2r_relation_sync_specs and al2r_all_list_relations_supported %}
 
@@ -355,7 +367,7 @@ def get_{{ model.snake_case_name }}(
 ) -> {{ model.name }}Ex:
     row = get_one_or_404(
         db,
-        {{ orm_class_name }},
+        {{ orm_ref(orm_class_name) }},
 {%- for n in pk_names %}
         ("{{ n }}", {{ n }}),
 {%- endfor %}
@@ -400,7 +412,7 @@ def list_{{ model.snake_case_name }}_{{ rel.attr }}(
 {%- if rel.sync %}
     parent_row = get_one_or_404(
         db,
-        {{ orm_class_name }},
+        {{ orm_ref(orm_class_name) }},
 {%- for n in pk_names %}
         ("{{ n }}", {{ n }}),
 {%- endfor %}
@@ -457,7 +469,7 @@ def patch_{{ model.snake_case_name }}(
 
     row = get_one_or_404(
         db,
-        {{ orm_class_name }},
+        {{ orm_ref(orm_class_name) }},
 {%- for n in pk_names %}
         ("{{ n }}", {{ n }}),
 {%- endfor %}

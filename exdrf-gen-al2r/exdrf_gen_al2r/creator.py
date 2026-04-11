@@ -18,6 +18,7 @@ from jinja2 import Environment
 from exdrf_gen_al2r.list_query_specs import build_al2r_list_relation_query_specs
 from exdrf_gen_al2r.list_route_specs import build_al2r_list_relation_route_specs
 from exdrf_gen_al2r.relation_specs import (
+    al2r_orm_schema_name_collisions,
     build_al2r_relation_sync_specs,
     extra_orm_classes_for_relations,
 )
@@ -241,6 +242,14 @@ class Al2rRouterResFile(Base):
             list_rel_types = sorted(
                 {s["related_name"] for s in list_rel_specs},
             )
+            gen_edit = resource_generates_edit_payload(res)
+            orm_collisions = al2r_orm_schema_name_collisions(
+                orm_name,
+                extra_orms,
+                res.name,
+                list_rel_types,
+                gen_edit,
+            )
             args = {
                 **base,
                 **rargs,
@@ -251,7 +260,8 @@ class Al2rRouterResFile(Base):
                 "pk_names": pk_names,
                 "path_pk_segment": path_pk_segment(pk_names),
                 "schema_module": schema_module_dotted(schemas_root, res),
-                "generate_edit": resource_generates_edit_payload(res),
+                "generate_edit": gen_edit,
+                "al2r_orm_collisions": orm_collisions,
                 "m_name": source_module,
                 "al2r_category_router_name": cr_name,
                 "al2r_unidecode_pairs": uni_pairs,

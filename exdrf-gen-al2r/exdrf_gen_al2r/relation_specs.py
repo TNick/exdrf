@@ -361,3 +361,57 @@ def extra_orm_classes_for_relations(
             seen.add(cls)
             out.append(cls)
     return sorted(out)
+
+
+def _al2r_schema_import_symbol_names(
+    resource_name: str,
+    list_rel_types: List[str],
+    generate_edit: bool,
+) -> frozenset[str]:
+    """Return names imported from the Pydantic schema module for a resource."""
+
+    names = {f"{resource_name}Create", f"{resource_name}Ex", *list_rel_types}
+    if generate_edit:
+        names.add(f"{resource_name}Edit")
+    return frozenset(names)
+
+
+def _al2r_orm_db_import_names(
+    orm_class_name: str,
+    extra_orms: List[str],
+) -> frozenset[str]:
+    """Return ORM class names imported from ``db_module``."""
+
+    return frozenset({orm_class_name, *extra_orms})
+
+
+def al2r_orm_schema_name_collisions(
+    orm_class_name: str,
+    extra_orms: List[str],
+    resource_name: str,
+    list_rel_types: List[str],
+    generate_edit: bool,
+) -> frozenset[str]:
+    """Names that would be imported twice from ORM and schema (Flake8 F811).
+
+    Such symbols are emitted as ``NameOrm`` on the ORM import side.
+
+    Args:
+        orm_class_name: Primary mapped class name for the resource.
+        extra_orms: Additional ORM classes from relation sync specs.
+        resource_name: ``ExResource.name`` (Pydantic ``*Create`` / ``*Ex`` stem).
+        list_rel_types: Related read-model names from list-relation routes.
+        generate_edit: Whether ``*Edit`` is imported from the schema module.
+
+    Returns:
+        Intersection of ORM import names and schema import names.
+    """
+
+    return _al2r_orm_db_import_names(
+        orm_class_name,
+        extra_orms,
+    ) & _al2r_schema_import_symbol_names(
+        resource_name,
+        list_rel_types,
+        generate_edit,
+    )
