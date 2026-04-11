@@ -128,6 +128,12 @@ def test_generate_writes_router_with_schemas(tmp_path: Path) -> None:
     assert "return persist_row_as_ex(db, row, WidgetEx, add=True)" in body
     assert "return persist_row_as_ex(db, row, WidgetEx)" in body
     assert "get_one_or_404" in body
+    get_start = body.index("def get_widget")
+    patch_start = body.index("def patch_widget")
+    get_block = body[get_start:patch_start]
+    assert "get_one_or_404" in get_block
+    assert "return persist_row_as_ex(db, row, WidgetEx)" in get_block
+    assert "NotImplementedError" not in get_block
     assert "row = apply_payload_attrs(" in body
     assert "apply_payload_attrs" in body
     assert "from .al2r_route_utils import" in body
@@ -221,12 +227,26 @@ def test_generate_omits_patch_for_composite_pk_link(tmp_path: Path) -> None:
     assert (tmp_path / "al2r_route_utils.py").is_file()
     assert "persist_row_as_ex" in body
     assert "return persist_row_as_ex(db, row, LinkRowEx, add=True)" in body
+    assert "from .al2r_route_utils import get_one_or_404" in body
     assert "response_model=list[LinkRowEx]" in body
     assert body.count("response_model=LinkRowEx") == 2
     assert "@router.patch" not in body
     assert "LinkRowEdit" not in body
     assert "{left_id}/{right_id}" in body
     assert "payload = body.model_dump(exclude_unset=True)" in body
+    assert '("left_id", left_id),' in body
+    assert '("right_id", right_id),' in body
+    link_get_start = body.index("def get_link_row")
+    rest_after_get = body[link_get_start + 1 :]
+    next_def = rest_after_get.find("\ndef ")
+    get_link_block = (
+        body[link_get_start:]
+        if next_def == -1
+        else body[link_get_start : link_get_start + 1 + next_def]
+    )
+    assert "get_one_or_404" in get_link_block
+    assert "return persist_row_as_ex(db, row, LinkRowEx)" in get_link_block
+    assert "NotImplementedError" not in get_link_block
 
 
 def test_generate_writes_category_subdir_and_init(tmp_path: Path) -> None:
