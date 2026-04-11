@@ -19,6 +19,8 @@ dependencies = [
   "sqlparse>=0.5.3",
   "alembic>=1.16.1",
   "unidecode",
+  "exdrf",
+  "exdrf-pd",
 ]
 
 [project.optional-dependencies]

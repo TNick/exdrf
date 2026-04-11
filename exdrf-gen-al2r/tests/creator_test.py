@@ -116,8 +116,20 @@ def test_generate_writes_router_with_schemas(tmp_path: Path) -> None:
     assert "from test_app.schemas.widgets import" in body
     assert "WidgetEx" in body
     assert "WidgetCreate" in body
-    assert "list[WidgetEx]" in body
-    assert "response_model=list[WidgetEx]" in body
+    assert "PagedList[WidgetEx]" in body
+    assert "response_model=PagedList[WidgetEx]" in body
+    assert "inner_list_page_size" in body
+    assert "inner_filters" in body
+    assert "inner_sort" in body
+    assert "FilterItem" in body
+    assert "SortItem" in body
+    assert "exdrf_pd.paged" in body
+    assert "return list_root_ex_page(" in body
+    assert "def list_widget" in body
+    assert "filter_op_registry" in body
+    utils_body = (tmp_path / "al2r_route_utils.py").read_text(encoding="utf-8")
+    assert "def parse_filter_items_json" in utils_body
+    assert "filter_op_registry" in utils_body
     assert body.count("response_model=WidgetEx") == 3
     assert "-> WidgetEx:" in body
     assert "@router.patch" in body
@@ -132,7 +144,8 @@ def test_generate_writes_router_with_schemas(tmp_path: Path) -> None:
     patch_start = body.index("def patch_widget")
     get_block = body[get_start:patch_start]
     assert "get_one_or_404" in get_block
-    assert "return persist_row_as_ex(db, row, WidgetEx)" in get_block
+    assert "WidgetEx.model_validate" in get_block
+    assert "inner_list_page_size" in get_block
     assert "NotImplementedError" not in get_block
     assert "row = apply_payload_attrs(" in body
     assert "apply_payload_attrs" in body
@@ -228,7 +241,7 @@ def test_generate_omits_patch_for_composite_pk_link(tmp_path: Path) -> None:
     assert "persist_row_as_ex" in body
     assert "return persist_row_as_ex(db, row, LinkRowEx, add=True)" in body
     assert "from .al2r_route_utils import get_one_or_404" in body
-    assert "response_model=list[LinkRowEx]" in body
+    assert "response_model=PagedList[LinkRowEx]" in body
     assert body.count("response_model=LinkRowEx") == 2
     assert "@router.patch" not in body
     assert "LinkRowEdit" not in body
@@ -245,7 +258,7 @@ def test_generate_omits_patch_for_composite_pk_link(tmp_path: Path) -> None:
         else body[link_get_start : link_get_start + 1 + next_def]
     )
     assert "get_one_or_404" in get_link_block
-    assert "return persist_row_as_ex(db, row, LinkRowEx)" in get_link_block
+    assert "LinkRowEx.model_validate" in get_link_block
     assert "NotImplementedError" not in get_link_block
 
 

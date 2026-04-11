@@ -15,6 +15,8 @@ from exdrf_gen_al2pd.pydantic_emit import (
 )
 from jinja2 import Environment
 
+from exdrf_gen_al2r.list_query_specs import build_al2r_list_relation_query_specs
+from exdrf_gen_al2r.list_route_specs import build_al2r_list_relation_route_specs
 from exdrf_gen_al2r.relation_specs import (
     build_al2r_relation_sync_specs,
     extra_orm_classes_for_relations,
@@ -230,6 +232,15 @@ class Al2rRouterResFile(Base):
             create_specs = pd_kw.get("al2pd_create_scalar_fields") or ()
             rel_specs, rel_all_ok = build_al2r_relation_sync_specs(res)
             extra_orms = extra_orm_classes_for_relations(orm_name, rel_specs)
+            list_rel_specs = build_al2r_list_relation_route_specs(pd_kw)
+            list_rel_query_specs = build_al2r_list_relation_query_specs(
+                res,
+                list_rel_specs,
+                rel_specs,
+            )
+            list_rel_types = sorted(
+                {s["related_name"] for s in list_rel_specs},
+            )
             args = {
                 **base,
                 **rargs,
@@ -251,6 +262,9 @@ class Al2rRouterResFile(Base):
                 "al2r_relation_sync_specs": rel_specs,
                 "al2r_all_list_relations_supported": rel_all_ok,
                 "al2r_extra_orm_imports": extra_orms,
+                "al2r_list_relation_routes": list_rel_specs,
+                "al2r_list_relation_query_specs": list_rel_query_specs,
+                "al2r_list_relation_related_types": list_rel_types,
             }
             dest = os.path.join(out_path, *cats_t)
             self.create_file(

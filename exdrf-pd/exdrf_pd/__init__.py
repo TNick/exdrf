@@ -6,11 +6,13 @@ from exdrf_pd.schema_extra import (
     EXDRF_JSON_SCHEMA_EXTRA_KEY,
     wrap_exdrf_props,
 )
+from exdrf_pd.sort_item import SortItem
 
 __all__ = [
     "EXDRF_JSON_SCHEMA_EXTRA_KEY",
     "ExModel",
     "PagedList",
+    "SortItem",
     "paged_list_empty_factory",
     "wrap_exdrf_props",
 ]

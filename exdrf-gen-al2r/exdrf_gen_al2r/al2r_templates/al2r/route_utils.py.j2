@@ -4,11 +4,28 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from exdrf_al.persist import RowNotFound, fetch_one_strict
+from exdrf_pd.filter_item import FilterItem
+from exdrf_pd.sort_item import SortItem
 from fastapi import HTTPException, status
+from pydantic import TypeAdapter, ValidationError
 from sqlalchemy.orm import Session
+
+logger = logging.getLogger(__name__)
+
+# ``FilterItem.op`` values accepted here match ``exdrf.sa_filter_op.FiOpRegistry``
+# (same registry ``exdrf_qt`` models use via :class:`exdrf.filter.FieldFilter`).
+_FILTER_ITEMS_ADAPTER: TypeAdapter[list[FilterItem]] = TypeAdapter(list[FilterItem])
+_SORT_ITEMS_ADAPTER: TypeAdapter[list[SortItem]] = TypeAdapter(list[SortItem])
+_INNER_FILTERS_ADAPTER: TypeAdapter[dict[str, list[FilterItem]]] = TypeAdapter(
+    dict[str, list[FilterItem]]
+)
+_INNER_SORT_ADAPTER: TypeAdapter[dict[str, list[SortItem]]] = TypeAdapter(
+    dict[str, list[SortItem]]
+)
 
 
 def get_one_or_404(
@@ -25,3 +42,142 @@ def get_one_or_404(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Not found",
         ) from None
+
+
+def _422_json_problem(exc: BaseException, *, label: str) -> HTTPException:
+    """Build a 422 response for invalid JSON or Pydantic validation.
+
+    Args:
+        exc: The validation or parse error.
+        label: Query parameter name for the error payload.
+
+    Returns:
+        An :class:`fastapi.HTTPException` with status 422.
+    """
+
+    if isinstance(exc, ValidationError):
+        return HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"msg": "%s validation failed" % (label,), "errors": exc.errors()},
+        )
+    return HTTPException(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        detail={"msg": "%s must be valid JSON" % (label,)},
+    )
+
+
+def parse_filter_items_json(raw: str | None) -> list[FilterItem]:
+    """Parse a ``filters`` query string into ``FilterItem`` rows (AND semantics).
+
+    Each ``op`` must be a key registered on ``exdrf.sa_filter_op.filter_op_registry``
+    (for example ``eq``, ``==``, ``ilike``, ``~=``, ``in``, ``gt``, ``>``, …),
+    matching ``exdrf_qt.models.selector.Selector.apply_field_filter`` /
+    ``exdrf.filter.FieldFilter`` usage in Qt list models.
+
+    Args:
+        raw: JSON array text, or ``None`` / blank for no filters.
+
+    Returns:
+        Parsed filters; empty when ``raw`` is missing or whitespace-only.
+
+    Raises:
+        HTTPException: If ``raw`` is non-blank but not valid JSON or items.
+    """
+
+    if raw is None or raw.strip() == "":
+        return []
+    try:
+        return _FILTER_ITEMS_ADAPTER.validate_json(raw)
+    except (ValidationError, ValueError, TypeError) as exc:
+        logger.log(
+            1,
+            "parse_filter_items_json failed for %r: %s",
+            raw,
+            exc,
+            exc_info=True,
+        )
+        raise _422_json_problem(exc, label="filters") from exc
+
+
+def parse_sort_items_json(raw: str | None) -> list[SortItem]:
+    """Parse a ``sort`` query string into ``SortItem`` rows.
+
+    Args:
+        raw: JSON array text, or ``None`` / blank for caller-defined default sort.
+
+    Returns:
+        Parsed sort keys; empty when ``raw`` is missing or whitespace-only.
+
+    Raises:
+        HTTPException: If ``raw`` is non-blank but not valid JSON or items.
+    """
+
+    if raw is None or raw.strip() == "":
+        return []
+    try:
+        return _SORT_ITEMS_ADAPTER.validate_json(raw)
+    except (ValidationError, ValueError, TypeError) as exc:
+        logger.log(
+            1,
+            "parse_sort_items_json failed for %r: %s",
+            raw,
+            exc,
+            exc_info=True,
+        )
+        raise _422_json_problem(exc, label="sort") from exc
+
+
+def parse_inner_filters_json(raw: str | None) -> dict[str, list[FilterItem]]:
+    """Parse ``inner_filters`` JSON object mapping relation attr to filter lists.
+
+    Args:
+        raw: JSON object text, or ``None`` / blank for no per-relation overrides.
+
+    Returns:
+        Mapping of relation field name to ``FilterItem`` list; may be empty.
+
+    Raises:
+        HTTPException: If ``raw`` is non-blank but not valid JSON or shape.
+    """
+
+    if raw is None or raw.strip() == "":
+        return {}
+    try:
+        return _INNER_FILTERS_ADAPTER.validate_json(raw)
+    except (ValidationError, ValueError, TypeError) as exc:
+        logger.log(
+            1,
+            "parse_inner_filters_json failed for %r: %s",
+            raw,
+            exc,
+            exc_info=True,
+        )
+        raise _422_json_problem(exc, label="inner_filters") from exc
+
+
+def parse_inner_sort_json(raw: str | None) -> dict[str, list[SortItem]]:
+    """Parse ``inner_sort`` JSON object mapping relation attr to sort lists.
+
+    Args:
+        raw: JSON object text, or ``None`` / blank for no per-relation overrides.
+
+    Returns:
+        Mapping of relation field name to ``SortItem`` list; may be empty.
+
+    Raises:
+        HTTPException: If ``raw`` is non-blank but not valid JSON or shape.
+    """
+
+    if raw is None or raw.strip() == "":
+        return {}
+    try:
+        return _INNER_SORT_ADAPTER.validate_json(raw)
+    except (ValidationError, ValueError, TypeError) as exc:
+        logger.log(
+            1,
+            "parse_inner_sort_json failed for %r: %s",
+            raw,
+            exc,
+            exc_info=True,
+        )
+        raise _422_json_problem(exc, label="inner_sort") from exc

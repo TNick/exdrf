@@ -223,6 +223,7 @@ def build_al2r_relation_sync_specs(
             specs.append(
                 {
                     "kind": "m2m",
+                    "ex_field_name": rf.name,
                     "payload_name": payload_name,
                     "assoc_class": assoc_name,
                     "parent_fk_cols": tuple(pcols),
@@ -286,6 +287,7 @@ def build_al2r_relation_sync_specs(
                 specs.append(
                     {
                         "kind": "o2m_bridge",
+                        "ex_field_name": rf.name,
                         "payload_name": payload_name,
                         "assoc_class": assoc_name,
                         "parent_fk_cols": tuple(pcols),
@@ -314,6 +316,7 @@ def build_al2r_relation_sync_specs(
                 specs.append(
                     {
                         "kind": "o2m_fk",
+                        "ex_field_name": rf.name,
                         "payload_name": payload_name,
                         "child_class": cname,
                         "child_fk_col": fk,
@@ -325,6 +328,7 @@ def build_al2r_relation_sync_specs(
                 specs.append(
                     {
                         "kind": "o2m_child_rows",
+                        "ex_field_name": rf.name,
                         "payload_name": payload_name,
                         "assoc_class": cname,
                         "parent_fk_cols": (fk,),
