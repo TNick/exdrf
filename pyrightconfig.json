@@ -7,8 +7,12 @@
       "exdrf-dev",
       "exdrf-gen",
       "exdrf-pd",
+      "exdrf-ts",
       "exdrf-qt",
       "exdrf-gen-al2qt",
+      "exdrf-gen-al2pd",
+      "exdrf-gen-pd2dare",
+      "exdrf-gen-al2r",
       "exdrf-util"
     ],
   
@@ -28,8 +32,12 @@
           "./exdrf-dev",
           "./exdrf-gen",
           "./exdrf-pd",
+          "./exdrf-ts",
           "./exdrf-qt",
           "./exdrf-gen-al2qt",
+          "./exdrf-gen-al2pd",
+          "./exdrf-gen-pd2dare",
+          "./exdrf-gen-al2r",
           "./exdrf-util"    
         ]
       }

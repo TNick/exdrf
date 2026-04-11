@@ -1,6 +1,6 @@
 [project]
 authors = [
-    { name = "Nicu Tofan", email = "nicu.tofan@gmail.com" },
+  {name = "Nicu Tofan", email = "nicu.tofan@gmail.com"},
 ]
 classifiers = [
   "Operating System :: OS Independent",
@@ -9,17 +9,17 @@ classifiers = [
   "License :: Other/Proprietary License",
   "Typing :: Typed",
 ]
-description = "Use SQLAlchemy with Ex-DRF."
+dependencies = [
+  "click>=8.1.8,<8.2.0",
+  "exdrf-gen",
+  "exdrf-pd",
+  "exdrf-ts",
+]
+description = "Generate DARE TypeScript resources from Pydantic Ex models."
 dynamic = ["version"]
-name = "exdrf-al"
+name = "exdrf-gen-pd2dare"
 readme = "README.md"
 requires-python = ">=3.12.10"
-dependencies = [
-  "SQLAlchemy>=2.0.38",
-  "sqlparse>=0.5.3",
-  "alembic>=1.16.1",
-  "unidecode",
-]
 
 [project.optional-dependencies]
 dev = [
@@ -51,7 +51,7 @@ exclude = ["venv*", "playground*"]
 
 [tool.setuptools_scm]
 fallback_version = "0.0.1-dev"
-version_file = "exdrf_al/__version__.py"
+version_file = "exdrf_gen_pd2dare/__version__.py"
 
 [tool.isort]
 profile = "black"
@@ -63,3 +63,6 @@ target-version = ['py312', 'py313']
 [tool.flake8]
 docstring-convention = "google"
 max-line-length = 80
+
+[project.entry-points.'exdrf.plugins']
+exdrf_gen = 'exdrf_gen_pd2dare'

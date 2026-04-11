@@ -10,8 +10,7 @@ from . import router
 from .{{ row.rel_import }} import {{ row.router_symbol }}
 {% endfor %}
 {% for model in al2r_root_uncategorized_models %}
-from .{{ model.snake_case_name }}_routes import \
-    router as {{ model.snake_case_name }}_router
+from .{{ model.snake_case_name }}_routes import router as {{ model.snake_case_name }}_router
 {% endfor %}
 
 {% for row in al2r_root_category_imports %}

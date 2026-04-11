@@ -1,0 +1,36 @@
+// This file was automatically generated using the exdrf-gen-pd2dare package.
+// Source: {{ m_name }}
+// Don't change it manually.
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import type { Dataset } from '@vebgen/dare';{{ '\n'}}
+{%- for model in models -%}
+import { get{{ model.name }}Res } from './{{ model.categories[0] }}';
+{% endfor -%}{{- '\n' -}}
+
+/**
+ * Create a dataset with all the resources.
+ */
+export const makeDataset: () => Dataset<string, string, string> = () => {
+    const result = {
+        id: 'api',
+        resources: {
+            {%- for model in models %}
+            {{ model.name.replace('Ex', '') }}: get{{ model.name }}Res(),
+            {%- endfor -%}{{ '\n        '}}},
+    } as unknown as Dataset<string, string, string>;
+
+    const context = {
+        name2res: (name: keyof typeof result.resources) => result.resources[name],
+    }
+
+    for (const key in result.resources) {
+        const fields = result.resources[key].fields;
+        for (const fKey in fields) {
+            const field = fields[fKey];
+            if (Object.prototype.hasOwnProperty.call(field, 'resolve')) {
+                (fields[fKey] as any).resolve(context);
+            }
+        }
+    }
+    return result;
+};{{- '\n' -}}

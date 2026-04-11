@@ -5,15 +5,14 @@ from __future__ import annotations
 import json
 import re
 
-import exdrf_gen_al2pd  # noqa: F401 — register templates on shared Jinja env
-
-from exdrf.label_dsl import parse_expr
-from exdrf.resource import ExResource
 from exdrf.field_types.date_time import DateTimeField
 from exdrf.field_types.int_field import IntField
 from exdrf.field_types.str_field import StrField
-
+from exdrf.label_dsl import parse_expr
+from exdrf.resource import ExResource
 from exdrf_gen.jinja_support import jinja_env
+
+import exdrf_gen_al2pd  # noqa: F401 — register templates on shared Jinja env
 from exdrf_gen_al2pd.pydantic_emit import (
     _field_exdrf_properties,
     _folded_json_string_literal,

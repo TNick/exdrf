@@ -5,15 +5,16 @@ from __future__ import annotations
 from pathlib import Path
 from types import SimpleNamespace
 
-from jinja2 import Environment, FileSystemLoader
-
+from exdrf.field_types.int_field import IntField
+from exdrf.field_types.str_field import StrField
 from exdrf.label_dsl import parse_expr
 from exdrf.resource import ExResource
-from exdrf.field_types.int_field import IntField
+from jinja2 import Environment, FileSystemLoader
 
 from exdrf_gen_al2r.creator import (
     category_router_export_name,
     generate_fastapi_routes_from_alchemy,
+    parse_get_db_import,
     path_pk_segment,
     primary_key_names_for_routes,
     schema_module_dotted,
@@ -61,6 +62,15 @@ def test_schema_module_dotted() -> None:
     assert schema_module_dotted("app.schemas", r) == "app.schemas.x.y.widgets"
 
 
+def test_parse_get_db_import_splits_module_and_symbol() -> None:
+    """``dotted.module:callable`` maps to a two-part import."""
+
+    assert parse_get_db_import("resi_fapi.deps.al2r_db:get_db") == (
+        "resi_fapi.deps.al2r_db",
+        "get_db",
+    )
+
+
 def test_category_router_export_name_joins_path() -> None:
     """Aggregate router identifier uses underscore-joined category segments."""
 
@@ -74,7 +84,15 @@ def test_generate_writes_router_with_schemas(tmp_path: Path) -> None:
     class _Orm:
         __tablename__ = "widgets"
 
-    res = ExResource(name="Widget", src=_Orm)
+    res = ExResource(
+        name="Widget",
+        src=_Orm,
+        fields=[
+            IntField(name="id", primary=True, nullable=False),
+            StrField(name="title", nullable=False),
+        ],
+        label_ast=parse_expr("title"),
+    )
     d_set = _minimal_dataset([res])
 
     tmpl_root = (
@@ -99,9 +117,21 @@ def test_generate_writes_router_with_schemas(tmp_path: Path) -> None:
     assert "WidgetEx" in body
     assert "WidgetCreate" in body
     assert "list[WidgetEx]" in body
+    assert "response_model=list[WidgetEx]" in body
+    assert body.count("response_model=WidgetEx") == 3
     assert "-> WidgetEx:" in body
     assert "@router.patch" in body
     assert "WidgetEdit" in body
+    assert "payload = body.model_dump(exclude_unset=True)" in body
+    assert "status.HTTP_201_CREATED" in body
+    assert "    persist_row_as_ex," in body
+    assert "return persist_row_as_ex(db, row, WidgetEx, add=True)" in body
+    assert "return persist_row_as_ex(db, row, WidgetEx)" in body
+    assert "get_one_or_404" in body
+    assert "row = apply_payload_attrs(" in body
+    assert "apply_payload_attrs" in body
+    assert "from .al2r_route_utils import" in body
+    assert (tmp_path / "al2r_route_utils.py").is_file()
 
     init_py = tmp_path / "__init__.py"
     assert init_py.is_file()
@@ -114,8 +144,45 @@ def test_generate_writes_router_with_schemas(tmp_path: Path) -> None:
     assert "router = APIRouter" not in root_api_body
     init_body = init_py.read_text(encoding="utf-8")
     assert "router = APIRouter" in init_body
-    assert "all_routers = [router]" in init_body
-    assert "from . import api as _al2r_api_mount" in init_body
+    assert 'tags=["generated"]' in init_body
+
+
+def test_generate_get_db_import_line(tmp_path: Path) -> None:
+    """Passing ``get_db_import`` emits ``from … import … as get_db``."""
+
+    class _Orm:
+        __tablename__ = "widgets"
+
+    res = ExResource(
+        name="Widget",
+        src=_Orm,
+        fields=[
+            IntField(name="id", primary=True, nullable=False),
+            StrField(name="title", nullable=False),
+        ],
+        label_ast=parse_expr("title"),
+    )
+    d_set = _minimal_dataset([res])
+
+    tmpl_root = (
+        Path(__file__).resolve().parents[1]
+        / "exdrf_gen_al2r"
+        / "al2r_templates"
+    )
+    env = Environment(loader=FileSystemLoader(str(tmpl_root)))
+
+    generate_fastapi_routes_from_alchemy(
+        d_set=d_set,
+        out_path=str(tmp_path),
+        db_module="test_app.models",
+        schemas_root="test_app.schemas",
+        env=env,
+        get_db_import="email.mime.text:MIMEText",
+    )
+
+    body = (tmp_path / "widget_routes.py").read_text(encoding="utf-8")
+    assert "from email.mime.text import MIMEText as get_db" in body
+    assert "def get_db()" not in body
 
 
 def test_generate_omits_patch_for_composite_pk_link(tmp_path: Path) -> None:
@@ -151,9 +218,15 @@ def test_generate_omits_patch_for_composite_pk_link(tmp_path: Path) -> None:
     )
 
     body = (tmp_path / "link_row_routes.py").read_text(encoding="utf-8")
+    assert (tmp_path / "al2r_route_utils.py").is_file()
+    assert "persist_row_as_ex" in body
+    assert "return persist_row_as_ex(db, row, LinkRowEx, add=True)" in body
+    assert "response_model=list[LinkRowEx]" in body
+    assert body.count("response_model=LinkRowEx") == 2
     assert "@router.patch" not in body
     assert "LinkRowEdit" not in body
     assert "{left_id}/{right_id}" in body
+    assert "payload = body.model_dump(exclude_unset=True)" in body
 
 
 def test_generate_writes_category_subdir_and_init(tmp_path: Path) -> None:
@@ -197,8 +270,7 @@ def test_generate_writes_category_subdir_and_init(tmp_path: Path) -> None:
 
     root_init = (tmp_path / "__init__.py").read_text(encoding="utf-8")
     assert "router = APIRouter" in root_init
-    assert "all_routers = [router]" in root_init
-    assert "from . import api as _al2r_api_mount" in root_init
+    assert 'tags=["generated"]' in root_init
 
     root_api = (tmp_path / "api.py").read_text(encoding="utf-8")
     assert "from . import router" in root_api
@@ -210,5 +282,6 @@ def test_generate_writes_category_subdir_and_init(tmp_path: Path) -> None:
     assert 'prefix="/l18"' in cat_init_body
 
     body = routes.read_text(encoding="utf-8")
+    assert "from ..al2r_route_utils import" in body
     assert "from . import l18_router" in body
     assert "from test_app.schemas.l18.widgets import" in body

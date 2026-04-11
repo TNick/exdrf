@@ -8,10 +8,17 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Dict, List, Tuple, cast
 
 from attrs import define, field
+from exdrf_gen.fs_support import Base, File, TopDir, resource_to_args
+from exdrf_gen_al2pd.pydantic_emit import (
+    build_al2pd_template_kwargs,
+    resource_generates_edit_payload,
+)
 from jinja2 import Environment
 
-from exdrf_gen.fs_support import Base, File, TopDir, resource_to_args
-from exdrf_gen_al2pd.pydantic_emit import resource_generates_edit_payload
+from exdrf_gen_al2r.relation_specs import (
+    build_al2r_relation_sync_specs,
+    extra_orm_classes_for_relations,
+)
 
 if TYPE_CHECKING:
     from exdrf.resource import ExResource
@@ -122,6 +129,60 @@ def _category_tags_repr(categories: Tuple[str, ...]) -> str:
     return repr(list(categories))
 
 
+def parse_get_db_import(spec: str) -> Tuple[str, str]:
+    """Split ``module.path:callable`` for generated ``from … import … as get_db``.
+
+    Args:
+        spec: Import location in ``dotted.module:symbol`` form (one ``:``).
+
+    Returns:
+        Tuple of ``(dotted_module, symbol)``.
+
+    Raises:
+        ValueError: If ``spec`` is empty, has no ``:``, or parts are empty.
+    """
+
+    raw = (spec or "").strip()
+    if not raw:
+        raise ValueError("get_db import spec must be non-empty.")
+    if ":" not in raw:
+        raise ValueError(
+            "get_db import must look like 'pkg.mod:dependency_fn' "
+            "(got %r)." % (spec,),
+        )
+    mod, _, symbol = raw.rpartition(":")
+    mod = mod.strip()
+    symbol = symbol.strip()
+    if not mod or not symbol:
+        raise ValueError(
+            "get_db import must look like 'pkg.mod:dependency_fn' "
+            "(got %r)." % (spec,),
+        )
+    return mod, symbol
+
+
+def _unidecode_companion_pairs(resource: Any) -> List[Dict[str, str]]:
+    """Build ``(source, ua_target)`` pairs for NO_DIACRITICS companion columns.
+
+    Args:
+        resource: ``ExResource`` whose string fields may set ``no_dia_field``.
+
+    Returns:
+        Dicts with keys ``source`` and ``target`` (ORM attribute names).
+    """
+
+    pairs: List[Dict[str, str]] = []
+    for fld in getattr(resource, "fields", ()) or ():
+        target = getattr(fld, "no_dia_field", None)
+        if target is None:
+            continue
+        tgt_name = getattr(target, "name", "") or ""
+        if not tgt_name:
+            continue
+        pairs.append({"source": fld.name, "target": tgt_name})
+    return pairs
+
+
 def _restrict_loader_to_al2r_templates(env: Environment) -> None:
     """Limit Jinja search paths to this package's templates."""
 
@@ -164,9 +225,15 @@ class Al2rRouterResFile(Base):
             pk_names = primary_key_names_for_routes(res)
             cats_t = tuple(res.categories or ())
             cr_name = category_router_export_name(cats_t) if cats_t else ""
+            pd_kw = build_al2pd_template_kwargs(res)
+            uni_pairs = _unidecode_companion_pairs(res)
+            create_specs = pd_kw.get("al2pd_create_scalar_fields") or ()
+            rel_specs, rel_all_ok = build_al2r_relation_sync_specs(res)
+            extra_orms = extra_orm_classes_for_relations(orm_name, rel_specs)
             args = {
                 **base,
                 **rargs,
+                **pd_kw,
                 "model": res,
                 "db_module": db_module,
                 "orm_class_name": orm_name,
@@ -176,6 +243,14 @@ class Al2rRouterResFile(Base):
                 "generate_edit": resource_generates_edit_payload(res),
                 "m_name": source_module,
                 "al2r_category_router_name": cr_name,
+                "al2r_unidecode_pairs": uni_pairs,
+                "al2r_needs_unidecode": bool(uni_pairs),
+                "al2r_create_has_deleted": any(
+                    getattr(s, "name", None) == "deleted" for s in create_specs
+                ),
+                "al2r_relation_sync_specs": rel_specs,
+                "al2r_all_list_relations_supported": rel_all_ok,
+                "al2r_extra_orm_imports": extra_orms,
             }
             dest = os.path.join(out_path, *cats_t)
             self.create_file(
@@ -284,6 +359,8 @@ def generate_fastapi_routes_from_alchemy(
     db_module: str,
     schemas_root: str,
     env: Environment,
+    *,
+    get_db_import: str | None = None,
 ) -> None:
     """Write route stubs via :class:`~exdrf_gen.fs_support.TopDir`.
 
@@ -306,9 +383,20 @@ def generate_fastapi_routes_from_alchemy(
         db_module: Dotted import path for SQLAlchemy declarative models.
         schemas_root: Dotted package root where ``al2pd`` wrote schema modules.
         env: Shared Jinja environment (``context.obj[\"jinja_env\"]``).
+        get_db_import: Optional ``dotted.module:attr`` for the FastAPI DB
+            dependency; emitted as ``from … import attr as get_db``. When
+            omitted, generated modules define a stub ``get_db`` that raises
+            ``NotImplementedError``.
     """
 
     _restrict_loader_to_al2r_templates(env)
+
+    al2r_get_db_module: str | None = None
+    al2r_get_db_attr: str | None = None
+    if get_db_import:
+        al2r_get_db_module, al2r_get_db_attr = parse_get_db_import(
+            get_db_import
+        )
 
     # Drop root-level ``*_routes.py`` from an older flat layout so categorized
     # resources do not leave duplicate modules next to the new per-category tree.
@@ -339,6 +427,7 @@ def generate_fastapi_routes_from_alchemy(
 
     generator = TopDir(
         comp=[
+            File("al2r_route_utils.py", "al2r/route_utils.py.j2"),
             Al2rCategoryInitFile(template="al2r/category_init.py.j2"),
             Al2rRouterResFile(template="al2r/resource_router.py.j2"),
             Al2rCategoryApiFile(template="al2r/category_api.py.j2"),
@@ -357,4 +446,6 @@ def generate_fastapi_routes_from_alchemy(
         schemas_root=schemas_root,
         al2r_root_category_imports=root_category_imports,
         al2r_root_uncategorized_models=uncategorized,
+        al2r_get_db_module=al2r_get_db_module,
+        al2r_get_db_attr=al2r_get_db_attr,
     )

@@ -1,0 +1,12 @@
+// This file was automatically generated using the exdrf-gen-pd2dare package.
+// Source: {{ m_name }}
+// Don't change it manually.
+{{- "\n" -}}
+{%- for line in model_list -%}
+{%- if line[0].endswith('Ex') -%}
+export { get{{ line[0] }}Res } from './{{ line[1] }}';
+{% endif %}
+{%- endfor -%}
+{%- if level == 0 -%}
+export { makeDataset } from './dataset';
+{% endif %}

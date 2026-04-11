@@ -12,7 +12,6 @@ from exdrf_gen.plugin_support import install_plugin
 
 from exdrf_gen_al2r.creator import generate_fastapi_routes_from_alchemy
 
-
 install_plugin(
     template_paths=[
         os.path.join(os.path.dirname(__file__), "al2r_templates"),
@@ -45,6 +44,18 @@ install_plugin(
     envvar="EXDRF_AL2R_SCHEMAS",
     required=False,
 )
+@click.option(
+    "--get-db",
+    "get_db_import",
+    metavar="MODULE:CALLABLE",
+    envvar="EXDRF_AL2R_GET_DB",
+    default=None,
+    help=(
+        "FastAPI DB dependency as dotted.module:callable "
+        "(emitted as ``from … import callable as get_db``). "
+        "Example: ``resi_fapi.deps.al2r_db:get_db``."
+    ),
+)
 @click.pass_context
 def al2r(
     context: Context,
@@ -52,6 +63,7 @@ def al2r(
     out_path: str,
     db_module: str,
     schemas_root: str,
+    get_db_import: str | None,
 ) -> None:
     """Generate FastAPI APIRouter modules from SQLAlchemy models.
 
@@ -61,6 +73,8 @@ def al2r(
         DB-MODULE: Import path where ORM classes are imported from
             (passed through to generated ``from ... import Model`` lines).
         SCHEMAS-PKG: Dotted import root for ``al2pd`` output (must match layout).
+        get_db_import: Optional ``--get-db`` / ``EXDRF_AL2R_GET_DB`` for the
+            session dependency (``module.path:fn``).
     """
 
     if not out_path:
@@ -78,4 +92,5 @@ def al2r(
         db_module=db_module,
         schemas_root=schemas_root,
         env=context.obj["jinja_env"],
+        get_db_import=get_db_import,
     )

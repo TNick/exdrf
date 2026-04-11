@@ -33,7 +33,6 @@ from exdrf_gen_al2pd.field_partition import (
     partition_fields,
 )
 
-
 # Module tuning: audit columns, flake8 width, and description-line budgets for
 # emitted ``Field(...)`` and class docstrings.
 

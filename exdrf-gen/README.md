@@ -15,9 +15,13 @@ The PyPI distribution name is **`exdrf-gen`**; the import package is
 - **`exdrf`** describes datasets, resources, and fields.
 - **`exdrf-gen`** renders those descriptions (and arbitrary template context)
   through Jinja2, and can emit nested directories/files in one pass.
-- Sibling packages such as **`exdrf-gen-al2pd`**, **`exdrf-gen-al2qt`**, etc.
-  register as `exdrf.plugins` entry points named `exdrf_gen` and build on this
-  layer for specific targets (e.g. pandas, Qt).
+- Sibling packages such as **`exdrf-gen-al2pd`** (command **`al2pd`**: Pydantic
+  `Xxx` / `XxxEx` / `XxxCreate` / `XxxEdit` from SQLAlchemy), **`exdrf-gen-al2qt`**,
+  **`exdrf-gen-al2r`** (command **`al2r`**: FastAPI route stubs; **`SCHEMAS-PKG`**
+  must match **`al2pd`** output), **`exdrf-gen-pd2dare`** (command **`pd2dare`**:
+  DARE TypeScript from Pydantic `Ex` models), etc. register as `exdrf.plugins`
+  entry points named `exdrf_gen`
+  and build on this layer for specific targets (e.g. pandas, Qt, web UI).
 
 ## Installation
 
@@ -51,8 +55,10 @@ Equivalent when the package is on **`PYTHONPATH`**:
 python -m exdrf_gen --help
 ```
 
-Subcommands (e.g. **`al2at`**, **`al2qt`**) come from plugins; install the
-matching **`exdrf-gen-*`** distribution to enable them.
+Subcommands (e.g. **`al2at`**, **`al2qt`**, **`al2r`**, **`pd2dare`**) come from plugins; install the
+matching **`exdrf-gen-*`** distribution to enable them. Application repos may
+also ship a plugin (e.g. **`resi_gen`** registers **`db2m`**, **`resi-al2at`**,
+**`resi-al2qt`**) via the same **`exdrf.plugins`** / **`exdrf_gen`** entry point.
 
 ## Package layout (`exdrf_gen`)
 
@@ -117,6 +123,12 @@ Minimal **Click** application (driven by **`exdrf_gen.__main__.main`** and the
 
 Downstream packages typically add subcommands to this group or reuse
 `create_context_obj`.
+
+### `template_emit`
+
+Helpers to write **UTF-8** text files from Jinja templates for **`ExResource`**
+and **`ExDataset`** category trees (used by **`exdrf-gen-pd2dare`** and
+delegated to from **`resi_drf`** resource/dataset helpers).
 
 ### `plugin_support`
 

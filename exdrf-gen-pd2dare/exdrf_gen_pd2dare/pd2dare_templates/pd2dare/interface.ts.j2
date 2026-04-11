@@ -1,0 +1,61 @@
+// This file was automatically generated using the exdrf-gen-pd2dare package.
+// Source: {{ m_name }}
+// Don't change it manually.
+import { Resource, {{ ", ".join(f_classes) }} } from '@vebgen/dare';
+
+/**
+ * Computes the runtime representation of the {{ model_name }} resource.
+ *
+{% for line in doc_lines %} * {{ line }}
+{% endfor %} */
+export function get{{ model_name }}Res(): Resource {
+    return {
+        id: '{{ model_name }}',
+        fields: {
+        {%- for field in fields %}
+            /**
+             * {{ f_title(field) }}.
+             *
+            {% for line in field.doc_lines %} * {{ line }}
+            {% endfor %} */
+            {%- if field.type_name == 'blob' %}
+            {{ field.name }}: new BlobField('{{ field.name }}'),
+            {%- elif field.type_name == 'bool' %}
+            {{ field.name }}: new BooleanField('{{ field.name }}', {{ 'true' if field.nullable else 'false' }}),
+            {%- elif field.type_name == 'dt' %}
+            {{ field.name }}: new DateTimeField('{{ field.name }}', {{ 'true' if field.nullable else 'false' }}, {{ 'new Date()' if field.min else 'undefined' }}, {{ 'new Date()' if field.max else 'undefined' }}),
+            {%- elif field.type_name == 'date' %}
+            {{ field.name }}: new DateField('{{ field.name }}', {{ 'true' if field.nullable else 'false' }}, {{ 'new Date()' if field.min else 'undefined' }}, {{ 'new Date()' if field.max else 'undefined' }}),
+            {%- elif field.type_name == 'duration' %}
+            {{ field.name }}: new DurationField('{{ field.name }}', {{ 'true' if field.nullable else 'false' }}), {{ field.min if field.min is not none else 'undefined' }}, {{ field.max if field.max is not none else 'undefined' }}),
+            {%- elif field.type_name == 'enum' %}
+            {{ field.name }}: new EnumField('{{ field.name }}', {{ 'true' if field.nullable else 'false' }}, {{ "Set(" + ", ".join(field.values) + ")" if field.values else 'undefined' }},),
+            {%- elif field.type_name == 'float' %}
+            {{ field.name }}: new FloatField('{{ field.name }}', {{ 'true' if field.nullable else 'false' }}, {{ field.min if field.min is not none else 'undefined' }}, {{ field.max if field.max is not none else 'undefined' }}),
+            {%- elif field.type_name == 'integer' %}
+            {{ field.name }}: new IntegerField('{{ field.name }}', {{ 'true' if field.nullable else 'false' }}, {{ field.min if field.min is not none else 'undefined' }}, {{ field.max if field.max is not none else 'undefined' }}),
+            {%- elif field.type_name == 'string' %}
+            {{ field.name }}: new StringField('{{ field.name }}', {{ 'true' if field.nullable else 'false' }}, {{ 'true' if field.multiline else 'false' }}, {{ field.max_length if field.max_length is not none else 'undefined' }}, {{ field.min_length if field.min_length is not none else 'undefined' }}),
+            {%- elif field.type_name == 'float-list' %}
+            {{ field.name }}: new FloatListField('{{ field.name }}', {{ 'true' if field.nullable else 'false' }}, {{ field.min if field.min is not none else 'undefined' }}, {{ field.max if field.max is not none else 'undefined' }}),
+            {%- elif field.type_name == 'int-list' %}
+            {{ field.name }}: new IntListField('{{ field.name }}', {{ 'true' if field.nullable else 'false' }}, {{ field.min if field.min is not none else 'undefined' }}, {{ field.max if field.max is not none else 'undefined' }}),
+            {%- elif field.type_name == 'string-list' %}
+            {{ field.name }}: new StringListField('{{ field.name }}', {{ 'true' if field.nullable else 'false' }}, {{ 'true' if field.multiline else 'false' }}, {{ field.max_length if field.max_length is not none else 'undefined' }}, {{ field.min_length if field.min_length is not none else 'undefined' }}),
+            {%- elif field.type_name == 'formatted' %}
+            {{ field.name }}: new FormattedField('{{ field.name }}', {{ 'true' if field.nullable else 'false' }}, '{{ field.format }}'),
+            {%- elif field.type_name == 'one-to-many' %}
+            {{ field.name }}: new RefOneToManyField('{{ field.name }}', {{ 'true' if field.nullable else 'false' }}, '{{ field.ref.name }}', '{{ field.label_field.name if field.label_field is defined and field.label_field else "name" }}'),
+            {%- elif field.type_name == 'one-to-one' %}
+            {{ field.name }}: new RefOneToOneField('{{ field.name }}', {{ 'true' if field.nullable else 'false' }}, '{{ field.ref.name }}', '{{ field.label_field.name if field.label_field is defined and field.label_field else "name" }}'),
+            {%- elif field.type_name == 'many-to-many' %}
+            {{ field.name }}: new RefManyToManyField('{{ field.name }}', {{ 'true' if field.nullable else 'false' }}, '{{ field.ref.name }}', '{{ field.label_field.name if field.label_field is defined and field.label_field else "name" }}'),
+            {%- elif field.type_name == 'many-to-one' %}
+            {{ field.name }}: new RefManyToOneField('{{ field.name }}', {{ 'true' if field.nullable else 'false' }}, '{{ field.ref.name }}', '{{ field.label_field.name if field.label_field is defined and field.label_field else "name" }}'),
+            {%- else %}
+                Unknown field type: {{ field.type_name }}
+            {% endif %}
+        {% endfor -%}
+        }
+    };
+};{{ "\n" }}

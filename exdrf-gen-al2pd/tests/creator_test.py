@@ -5,14 +5,13 @@ from __future__ import annotations
 from pathlib import Path
 from types import SimpleNamespace
 
-import exdrf_gen_al2pd  # noqa: F401
-from exdrf_gen.jinja_support import jinja_env
-
-from exdrf.label_dsl import parse_expr
-from exdrf.resource import ExResource
 from exdrf.field_types.int_field import IntField
 from exdrf.field_types.str_field import StrField
+from exdrf.label_dsl import parse_expr
+from exdrf.resource import ExResource
+from exdrf_gen.jinja_support import jinja_env
 
+import exdrf_gen_al2pd  # noqa: F401
 from exdrf_gen_al2pd.creator import generate_pydantic_from_alchemy
 
 

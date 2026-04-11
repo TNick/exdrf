@@ -7,9 +7,8 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Dict, List, Tuple, cast
 
 from attrs import define, field
-from jinja2 import Environment
-
 from exdrf_gen.fs_support import Base, File, TopDir, resource_to_args
+from jinja2 import Environment
 
 from exdrf_gen_al2pd.pydantic_emit import build_al2pd_template_kwargs
 

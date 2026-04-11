@@ -1,6 +1,6 @@
 [project]
 authors = [
-    { name = "Nicu Tofan", email = "nicu.tofan@gmail.com" },
+  { name = "Nicu Tofan", email = "nicu.tofan@gmail.com" },
 ]
 classifiers = [
   "Operating System :: OS Independent",
@@ -9,17 +9,15 @@ classifiers = [
   "License :: Other/Proprietary License",
   "Typing :: Typed",
 ]
-description = "Use SQLAlchemy with Ex-DRF."
+dependencies = [
+  "exdrf",
+  "exdrf-pd",
+]
+description = "Map exdrf field and Python types to TypeScript for codegen."
 dynamic = ["version"]
-name = "exdrf-al"
+name = "exdrf-ts"
 readme = "README.md"
 requires-python = ">=3.12.10"
-dependencies = [
-  "SQLAlchemy>=2.0.38",
-  "sqlparse>=0.5.3",
-  "alembic>=1.16.1",
-  "unidecode",
-]
 
 [project.optional-dependencies]
 dev = [
@@ -36,7 +34,6 @@ dev = [
   "pytest",
   "twine",
   "wheel",
-  "click>=8.1.8,<8.2.0",
 ]
 
 [build-system]
@@ -51,7 +48,7 @@ exclude = ["venv*", "playground*"]
 
 [tool.setuptools_scm]
 fallback_version = "0.0.1-dev"
-version_file = "exdrf_al/__version__.py"
+version_file = "exdrf_ts/__version__.py"
 
 [tool.isort]
 profile = "black"
