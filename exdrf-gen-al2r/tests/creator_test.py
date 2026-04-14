@@ -12,6 +12,7 @@ from exdrf.resource import ExResource
 from jinja2 import Environment, FileSystemLoader
 
 from exdrf_gen_al2r.creator import (
+    build_al2r_list_relation_import_groups,
     category_router_export_name,
     generate_fastapi_routes_from_alchemy,
     parse_get_db_import,
@@ -60,6 +61,24 @@ def test_schema_module_dotted() -> None:
 
     r = ExResource(name="Widget", categories=["x", "y"])
     assert schema_module_dotted("app.schemas", r) == "app.schemas.x.y.widgets"
+
+
+def test_build_al2r_list_relation_import_groups_empty_without_refs() -> None:
+    """Resources with no list relations yield no extra schema import groups."""
+
+    class _Orm:
+        __tablename__ = "widgets"
+
+    res = ExResource(
+        name="Widget",
+        src=_Orm,
+        fields=[
+            IntField(name="id", primary=True, nullable=False),
+            StrField(name="title", nullable=False),
+        ],
+        label_ast=parse_expr("title"),
+    )
+    assert build_al2r_list_relation_import_groups("app.schemas", res) == []
 
 
 def test_parse_get_db_import_splits_module_and_symbol() -> None:

@@ -28,6 +28,29 @@ _INNER_SORT_ADAPTER: TypeAdapter[dict[str, list[SortItem]]] = TypeAdapter(
 )
 
 
+_FILTERS_JSON_DESC = (
+    "JSON array of FilterItem objects "
+    "(exdrf_pd.filter_item.FilterItem: fld, op, vl). Each op must be a key on "
+    "exdrf.sa_filter_op.filter_op_registry — same as exdrf_qt list models: "
+    "eq, ==, not_eq, !=, ne, ilike, ~=, regex, none, gt, >, lt, <, ge, >=, "
+    "gte, le, <=, lte, in. Omit or empty for no filters; AND semantics only "
+    "(no nested AND/OR/NOT lists like Selector.apply_subset)."
+)
+_SORT_JSON_DESC = (
+    "JSON array of SortItem objects (attr + order asc|desc); "
+    "see exdrf_pd.sort_item.SortItem; omit for default sort (e.g. PK asc)."
+)
+_INNER_FILTERS_JSON_DESC = (
+    "JSON object mapping each list-relation attribute name to a JSON array "
+    "of FilterItem for that inner list (base Related rows only, not Ex). "
+    "Each FilterItem.op uses the same exdrf.sa_filter_op.filter_op_registry "
+    "keys as the top-level filters query parameter."
+)
+_INNER_SORT_JSON_DESC = (
+    "JSON object mapping each list-relation attribute name to a JSON array "
+    "of SortItem for that inner list."
+)
+
 def get_one_or_404(
     db: Session,
     model: type[Any],

@@ -8,9 +8,11 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Dict, List, Tuple, cast
 
 from attrs import define, field
+from exdrf.field_types.ref_base import RefBaseField
 from exdrf_gen.fs_support import Base, File, TopDir, resource_to_args
 from exdrf_gen_al2pd.pydantic_emit import (
     build_al2pd_template_kwargs,
+    partition_fields,
     resource_generates_edit_payload,
 )
 from jinja2 import Environment
@@ -95,6 +97,43 @@ def schema_module_dotted(schemas_root: str, resource: Any) -> str:
         resource.snake_case_name_plural,
     ]
     return ".".join(p for p in parts if p)
+
+
+def build_al2r_list_relation_import_groups(
+    schemas_root: str,
+    resource: Any,
+) -> List[Dict[str, Any]]:
+    """Group list-relation inner Pydantic types by their defining schema modules.
+
+    ``*Create`` / ``*Ex`` / ``*Edit`` for the emitted resource are imported from
+    :func:`schema_module_dotted` for ``resource``. Inner list item types
+    (``PagedList[Other]``) live in *other* generated modules (for example
+    ``BinaryFile`` under ``...files.binary_files``), so they must not be pulled
+    from the host resource's primary schema module.
+
+    Args:
+        schemas_root: Generated Pydantic root (e.g. ``resi_models.generated``).
+        resource: ``ExResource`` for the router being emitted.
+
+    Returns:
+        Sorted list of ``{"module": dotted, "names": [str, ...]}`` for extra
+        ``from … import …`` blocks after the primary schema import.
+    """
+
+    _, _, ref_f = partition_fields(resource)
+    by_module: Dict[str, set[str]] = {}
+    for fld in ref_f:
+        rf = cast(RefBaseField, fld)
+        if not rf.is_list or rf.ref is None:
+            continue
+        rel_res = rf.ref
+        mod = schema_module_dotted(schemas_root, rel_res)
+        by_module.setdefault(mod, set()).add(rel_res.name)
+    return [
+        {"module": mod, "names": sorted(names)}
+        for mod, names in sorted(by_module.items())
+        if names
+    ]
 
 
 def category_router_export_name(categories: Tuple[str, ...]) -> str:
@@ -275,6 +314,9 @@ class Al2rRouterResFile(Base):
                 "al2r_list_relation_routes": list_rel_specs,
                 "al2r_list_relation_query_specs": list_rel_query_specs,
                 "al2r_list_relation_related_types": list_rel_types,
+                "al2r_list_relation_import_groups": (
+                    build_al2r_list_relation_import_groups(schemas_root, res)
+                ),
             }
             dest = os.path.join(out_path, *cats_t)
             self.create_file(

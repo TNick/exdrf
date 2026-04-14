@@ -3,14 +3,15 @@
 # List and relation list handlers use ``exdrf_al.al2r_read``.
 from __future__ import annotations
 
+{#-
+  Returns the ORM class name for a given model name.
+  - If the input name is in al2r_orm_collisions, appends 'Orm' to avoid
+    name collisions.
+  - Otherwise, returns the name as-is.
+-#}
 {%- macro orm_ref(name) -%}
 {%- if name in al2r_orm_collisions -%}{{ name }}Orm{%- else -%}{{ name }}{%- endif -%}
 {%- endmacro %}
-
-{%- if categories %}
-
-from . import {{ al2r_category_router_name }}  # noqa: F401
-{%- endif %}
 
 from typing import Annotated
 
@@ -35,9 +36,7 @@ from exdrf_al.al2r_read import (
     list_relation_subresource_page,
     list_root_ex_page,
 )
-from exdrf_pd.filter_item import FilterItem  # noqa: F401
 from exdrf_pd.paged import PagedList
-from exdrf_pd.sort_item import SortItem  # noqa: F401
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
@@ -60,10 +59,15 @@ from {{ schema_module }} import (
     {{ model.name }}Ex
 {%- if generate_edit %},
     {{ model.name }}Edit{% endif %}
-{%- for rn in al2r_list_relation_related_types %},
-    {{ rn }}
+)
+{%- for grp in al2r_list_relation_import_groups %}
+
+from {{ grp.module }} import (
+{%- for n in grp.names %}
+    {{ n }},
 {%- endfor %}
 )
+{%- endfor %}
 {%- if al2r_get_db_module %}
 
 {%- if al2r_get_db_attr == "get_db" %}
@@ -75,25 +79,17 @@ from {{ al2r_get_db_module }} import {{ al2r_get_db_attr }} as get_db
 {%- endif %}
 {%- endif %}
 
-{%- if categories %}
-
-from ..al2r_route_utils import (
+from {% if categories %}.{% endif %}.al2r_route_utils import (
     get_one_or_404,
     parse_filter_items_json,
     parse_inner_filters_json,
     parse_inner_sort_json,
     parse_sort_items_json,
+    _FILTERS_JSON_DESC,
+    _SORT_JSON_DESC,
+    _INNER_FILTERS_JSON_DESC,
+    _INNER_SORT_JSON_DESC,
 )
-{%- else %}
-
-from .al2r_route_utils import (
-    get_one_or_404,
-    parse_filter_items_json,
-    parse_inner_filters_json,
-    parse_inner_sort_json,
-    parse_sort_items_json,
-)
-{%- endif %}
 {%- if al2pd_payload_list_fields and not al2r_all_list_relations_supported %}
 
 
@@ -104,7 +100,11 @@ _REL_LIST_PAYLOAD_KEYS = (
 )
 {%- endif %}
 
-
+{#-
+  If there are fields that may contain unicode characters, for quick search
+  we include in the database schema a derived field that contains the exact
+  same value but without the unicode characters.
+-#}
 {%- if al2r_needs_unidecode %}
 
 _UA_COMPANION_FIELD_PAIRS = (
@@ -114,40 +114,22 @@ _UA_COMPANION_FIELD_PAIRS = (
 )
 {%- endif %}
 
-
+# Groups all the routes related to {{ model.snake_case_name_plural }}.
 router = APIRouter(
     prefix="/{{ model.snake_case_name_plural }}",
     tags=["{{ model.snake_case_name_plural }}"],
 )
 
 
-_FILTERS_JSON_DESC = (
-    "JSON array of FilterItem objects "
-    "(exdrf_pd.filter_item.FilterItem: fld, op, vl). Each op must be a key on "
-    "exdrf.sa_filter_op.filter_op_registry — same as exdrf_qt list models: "
-    "eq, ==, not_eq, !=, ne, ilike, ~=, regex, none, gt, >, lt, <, ge, >=, "
-    "gte, le, <=, lte, in. Omit or empty for no filters; AND semantics only "
-    "(no nested AND/OR/NOT lists like Selector.apply_subset)."
-)
-_SORT_JSON_DESC = (
-    "JSON array of SortItem objects (attr + order asc|desc); "
-    "see exdrf_pd.sort_item.SortItem; omit for default sort (e.g. PK asc)."
-)
-_INNER_FILTERS_JSON_DESC = (
-    "JSON object mapping each list-relation attribute name to a JSON array "
-    "of FilterItem for that inner list (base Related rows only, not Ex). "
-    "Each FilterItem.op uses the same exdrf.sa_filter_op.filter_op_registry "
-    "keys as the top-level filters query parameter."
-)
-_INNER_SORT_JSON_DESC = (
-    "JSON object mapping each list-relation attribute name to a JSON array "
-    "of SortItem for that inner list."
-)
-
+# region Relation list specifications --------------------------------------
+{#-
+  We go through each item in the result that will consist of a list made out
+  of primary keys, and for each item we define a relation list specification.
+-#}
 {%- for rel in al2r_list_relation_query_specs %}
 {%- if rel.sync %}
 
-_REL_LIST_SPEC_{{ rel.attr }} = RelationListSpec(
+_REL_LIST_SPEC_{{ rel.attr | upper }} = RelationListSpec(
     kind="{{ rel.sync.kind }}",
     parent_pk_attrs=(
 {%- for a in rel.sync.parent_pk_attrs %}
@@ -174,10 +156,13 @@ _REL_LIST_SPEC_{{ rel.attr }} = RelationListSpec(
 {%- endif %}
 {%- endfor %}
 
+# endregion Relation list specifications -----------------------------------
+
 {%- set _inner_rel_n = al2r_list_relation_query_specs | selectattr("sync") | list | length %}
 {%- if _inner_rel_n == 0 %}
 
-_INNER_REL_SPECS: tuple[tuple[str, RelationListSpec], ...] = ()
+# Combine all the relation list specifications into a tuple.
+_INNER_REL_SPECS: tuple[tuple[str, RelationListSpec], ...] = tuple()
 {%- else %}
 
 _INNER_REL_SPECS: tuple[tuple[str, RelationListSpec], ...] = (
@@ -185,7 +170,7 @@ _INNER_REL_SPECS: tuple[tuple[str, RelationListSpec], ...] = (
 {%- if rel.sync %}
     (
         "{{ rel.attr }}",
-        _REL_LIST_SPEC_{{ rel.attr }},
+        _REL_LIST_SPEC_{{ rel.attr | upper }},
     ),
 {%- endif %}
 {%- endfor %}
@@ -197,6 +182,7 @@ _INNER_REL_SPECS: tuple[tuple[str, RelationListSpec], ...] = (
     "/",
     summary="List {{ model.text_name }} rows (paged)",
     response_model=PagedList[{{ model.name }}Ex],
+    description="List {{ model.text_name }} rows (paged).",
 )
 def list_{{ model.snake_case_name }}(
     db: Annotated[Session, Depends(get_db)],
@@ -205,21 +191,36 @@ def list_{{ model.snake_case_name }}(
     inner_list_page_size: Annotated[int, Query(ge=0, le=500)] = 20,
     filters: Annotated[
         str | None,
-        Query(default=None, description=_FILTERS_JSON_DESC),
+        Query(description=_FILTERS_JSON_DESC),
     ] = None,
     sort: Annotated[
         str | None,
-        Query(default=None, description=_SORT_JSON_DESC),
+        Query(description=_SORT_JSON_DESC),
     ] = None,
     inner_filters: Annotated[
         str | None,
-        Query(default=None, description=_INNER_FILTERS_JSON_DESC),
+        Query(description=_INNER_FILTERS_JSON_DESC),
     ] = None,
     inner_sort: Annotated[
         str | None,
-        Query(default=None, description=_INNER_SORT_JSON_DESC),
+        Query(description=_INNER_SORT_JSON_DESC),
     ] = None,
 ) -> PagedList[{{ model.name }}Ex]:
+    """List {{ model.text_name }} rows (paged).
+    
+    Args:
+        db: The database session.
+        offset: The offset of the page.
+        page_size: The size of the page.
+        inner_list_page_size: The size of the inner list page.
+        filters: The filters to apply to the query.
+        sort: The sort to apply to the query.
+        inner_filters: The filters to apply to the inner list query.
+        inner_sort: The sort to apply to the inner list query.
+
+    Returns:
+        A paged list of {{ model.text_name }} rows.
+    """
     return list_root_ex_page(
         db,
         {{ orm_ref(orm_class_name) }},
@@ -241,6 +242,7 @@ def list_{{ model.snake_case_name }}(
 
 {%- if al2r_relation_sync_specs and al2r_all_list_relations_supported %}
 
+# region Relation list routes -------------------------------------------
 
 def _sync_{{ model.snake_case_name }}_relation_lists(
     db: Session,
@@ -285,8 +287,9 @@ def _sync_{{ model.snake_case_name }}_relation_lists(
 {%- endif %}
 {%- endfor %}
 
-
+# endregion Relation list routes -----------------------------------------
 {%- endif %}
+
 
 
 @router.post(
@@ -294,6 +297,7 @@ def _sync_{{ model.snake_case_name }}_relation_lists(
     summary="Create {{ model.text_name }}",
     status_code=status.HTTP_201_CREATED,
     response_model={{ model.name }}Ex,
+    description="Create {{ model.text_name }}.",
 )
 def create_{{ model.snake_case_name }}(
     body: {{ model.name }}Create,
@@ -349,6 +353,7 @@ def create_{{ model.snake_case_name }}(
     "/{{ path_pk_segment }}",
     summary="Get one {{ model.text_name }}",
     response_model={{ model.name }}Ex,
+    description="Get one {{ model.text_name }}.",
 )
 def get_{{ model.snake_case_name }}(
 {%- for n in pk_names %}
@@ -358,11 +363,11 @@ def get_{{ model.snake_case_name }}(
     inner_list_page_size: Annotated[int, Query(ge=0, le=500)] = 20,
     inner_filters: Annotated[
         str | None,
-        Query(default=None, description=_INNER_FILTERS_JSON_DESC),
+        Query(description=_INNER_FILTERS_JSON_DESC),
     ] = None,
     inner_sort: Annotated[
         str | None,
-        Query(default=None, description=_INNER_SORT_JSON_DESC),
+        Query(description=_INNER_SORT_JSON_DESC),
     ] = None,
 ) -> {{ model.name }}Ex:
     row = get_one_or_404(
@@ -402,11 +407,11 @@ def list_{{ model.snake_case_name }}_{{ rel.attr }}(
     page_size: Annotated[int, Query(ge=1, le=500)] = 50,
     filters: Annotated[
         str | None,
-        Query(default=None, description=_FILTERS_JSON_DESC),
+        Query(description=_FILTERS_JSON_DESC),
     ] = None,
     sort: Annotated[
         str | None,
-        Query(default=None, description=_SORT_JSON_DESC),
+        Query(description=_SORT_JSON_DESC),
     ] = None,
 ) -> PagedList[{{ rel.related_name }}]:
 {%- if rel.sync %}
@@ -420,7 +425,7 @@ def list_{{ model.snake_case_name }}_{{ rel.attr }}(
     return list_relation_subresource_page(
         db,
         parent_row=parent_row,
-        spec=_REL_LIST_SPEC_{{ rel.attr }},
+        spec=_REL_LIST_SPEC_{{ rel.attr | upper }},
         filters=parse_filter_items_json(filters),
         sort=parse_sort_items_json(sort),
         offset=offset,
