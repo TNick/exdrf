@@ -1,0 +1,61 @@
+// This file was automatically generated using exdrf-gen-openapi2rtk.
+// Source: {{ m_name }}
+// Don't change it manually.
+import { refreshHttpAccessTokenSingleFlight } from '@fr-one/shared-comms';
+import { getRtkAccessToken } from '@fr-one/shared-sec';
+import { getDefaultPublicEnv } from '@fr-one/core-config';
+import type {
+  BaseQueryFn,
+  FetchArgs,
+  FetchBaseQueryError,
+} from '@reduxjs/toolkit/query';
+import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+
+const rawBaseQuery = fetchBaseQuery({
+  baseUrl: getDefaultPublicEnv().apiBaseUrl,
+  credentials: 'include',
+  prepareHeaders: (headers) => {
+    const token = getRtkAccessToken();
+    if (token) {
+      headers.set('Authorization', `Bearer ${token}`);
+    }
+    return headers;
+  },
+});
+
+/**
+ * Retries once after a cookie-backed refresh when RTK sees HTTP 401.
+ */
+const baseQueryWithReauth: BaseQueryFn<
+  string | FetchArgs,
+  unknown,
+  FetchBaseQueryError
+> = async (args, api, extraOptions) => {
+  const result = await rawBaseQuery(args, api, extraOptions);
+  if (
+    result.error &&
+    typeof result.error === 'object' &&
+    'status' in result.error &&
+    result.error.status === 401
+  ) {
+    const newTok = await refreshHttpAccessTokenSingleFlight();
+    if (newTok) {
+      return rawBaseQuery(args, api, extraOptions);
+    }
+  }
+  return result;
+};
+
+/**
+ * Shared RTK Query API instance used by generated route clients.
+ *
+ * It points to the runtime API base URL and keeps endpoint registration open
+ * for route-category files generated under `generated/routes`.
+ */
+export const apiBase = createApi({
+  reducerPath: 'generatedApi',
+  refetchOnFocus: true,
+  refetchOnReconnect: true,
+  baseQuery: baseQueryWithReauth,
+  endpoints: () => ({}),
+});

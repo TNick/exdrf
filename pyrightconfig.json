@@ -13,6 +13,8 @@
       "exdrf-gen-al2pd",
       "exdrf-gen-pd2dare",
       "exdrf-gen-al2r",
+      "exdrf-gen-al2rcv",
+      "exdrf-rcv",
       "exdrf-util"
     ],
   
@@ -38,6 +40,8 @@
           "./exdrf-gen-al2pd",
           "./exdrf-gen-pd2dare",
           "./exdrf-gen-al2r",
+          "./exdrf-gen-al2rcv",
+          "./exdrf-rcv",
           "./exdrf-util"    
         ]
       }

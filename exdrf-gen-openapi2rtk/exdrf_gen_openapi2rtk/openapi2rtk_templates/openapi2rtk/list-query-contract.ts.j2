@@ -1,0 +1,37 @@
+// This file was automatically generated using exdrf-gen-openapi2rtk.
+// Source: {{ m_name }}
+// Don't change it manually.
+//
+// Wire shapes mirror ``resi_fapi.list_support.contracts`` (``ListPagingParams``,
+// ``ListSortSpec``, ``ListQueryRequest``). Use the generic ``TFilter`` parameter
+// with ``*FilterModel`` types from ``./filters`` for resource-specific filter
+// trees.
+
+/**
+ * Paging slice for structured list queries (matches ``ListPagingParams``).
+ */
+export type ListPagingParams = {
+  offset: number;
+  limit: number;
+};
+
+/**
+ * One server-side sort column (matches ``ListSortSpec``).
+ */
+export type ListSortSpec = {
+  field: string;
+  direction: 'asc' | 'desc';
+};
+
+/**
+ * Structured list POST body (matches ``ListQueryRequest``).
+ *
+ * @typeParam TFilter - Per-route filter wire; default ``unknown`` when unset.
+ */
+export type ListQueryRequest<TFilter = unknown> = {
+  paging: ListPagingParams;
+  sort_by: ListSortSpec[];
+  filters: TFilter[];
+  search_text: string | null | undefined;
+  prioritized_ids: unknown[];
+};

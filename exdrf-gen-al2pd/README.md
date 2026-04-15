@@ -4,7 +4,7 @@
 `ExModel` classes from SQLAlchemy-backed **`ExDataset`** metadata (same field
 partitioning idea as bk-one **`db2m`**).
 
-Python **3.12.10+** is required.
+Python **3.12.2+** is required.
 
 ## Generated models per resource
 

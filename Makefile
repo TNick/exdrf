@@ -13,7 +13,9 @@ DIRS = exdrf \
     exdrf-xl \
     exdrf-gen-al2xl \
     exdrf-gen-pd2dare \
-    exdrf-gen-al2r
+    exdrf-gen-al2r \
+    exdrf-rcv \
+    exdrf-gen-al2rcv
 
 # These are all python files in all the repository (including venv ones).
 PYTHON_FILES := $(wildcard *.py)

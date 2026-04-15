@@ -1,0 +1,112 @@
+// This file was automatically generated using exdrf-gen-openapi2rtk.
+// Source: {{ m_name }}
+// Don't change it manually.
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { BaseQueryApi } from '@reduxjs/toolkit/query';
+import { apiBase } from '../base-api';
+import {
+    providesNestedList,
+    cacheByIdArgProperty,
+    invalidateByIdArgPropertyAndList,
+} from '../cacheUtils';
+{%- if uses_list_query_contract %}
+import type { ListQueryRequest } from '../list-query-contract';
+{%- endif %}
+{%- for res_name in used_res_names %}
+import { {{ res_name }} } from '{{ types_import }}';
+{%- endfor %}
+
+{%- if has_local_state(routes) -%}
+{% set name_seen = {} %}
+
+export interface LocalState {
+    runtime: {
+        {%- for i in range(r_count) -%}
+        {%- for field in routes[i].body_m.fields -%}
+        {%- if field.name in in_state and field.name not in name_seen -%}
+        {%- set _ = name_seen.update({field.name: true}) %}
+        {{ field.name }}: {{ get_local_state(field) }};
+        {% endif -%}
+        {%- endfor -%}
+        {%- endfor %}
+    }
+}
+{% endif %}
+
+apiBase.enhanceEndpoints({
+    addTagTypes: ['{{ category.capitalize() }}']
+});
+
+
+export const {{ c_camel }}Api = apiBase.injectEndpoints({
+    endpoints: (build) => ({
+        {%- for i in range(r_count) %}
+
+            /**
+            {% for line in routes[i].doc_lines %} * {{ line }}
+            {% endfor %} */
+            {{ r_camel[i] }}: build.{{ kind_str[i] }}<{{ get_response_type(routes[i]) }}, {{
+                get_arg_type(routes[i])
+            }}>({
+                queryFn: async (
+                    args,
+                    api: BaseQueryApi,
+                    extraOptions: any,  // eslint-disable-line
+                    usingBase
+                ) => {
+                    return usingBase({
+                        url: `{{ get_route(routes[i]) }}`,
+                        method: '{{ routes[i].method.name }}',
+                        {%- if routes[i].body_m %}
+                        body: {
+                        {%- for arg_name in get_body_arg_names(routes[i]) %}
+                            {{ arg_name }}: {{ get_arg(arg_name) }},
+                        {%- endfor %}
+                        },
+                        {%- elif routes[i].body_args %}
+                        body: {
+                        {%- for arg_name in get_body_arg_names(routes[i]) %}
+                            {{ arg_name }}: {{ get_arg(arg_name) }},
+                        {%- endfor %}
+                        },
+                        {%- endif %}
+                    });
+                },
+                {% if r_camel[i].startswith('create') -%}
+                invalidatesTags: [
+                    { type: '{{ category.capitalize() }}', id: 'LIST' },
+                    { type: '{{ category.capitalize() }}', id: 'Q-LIST' }
+                ] as any,
+                {%- elif r_camel[i].startswith('remove') -%}
+                invalidatesTags: [
+                    { type: '{{ category.capitalize() }}', id: 'LIST' },
+                    { type: '{{ category.capitalize() }}', id: 'Q-LIST' }
+                ] as any,
+                {%- elif r_camel[i].startswith('listQuick') -%}
+                providesTags: [{ type: '{{ category.capitalize() }}', id: 'Q-LIST' }] as any,
+                {%- elif routes[i].name.startswith('query_') -%}
+                providesTags: providesNestedList('{{ category.capitalize() }}') as any,
+                {%- elif r_camel[i].startswith('list') -%}
+                providesTags: providesNestedList('{{ category.capitalize() }}') as any,
+                {%- elif r_camel[i].startswith('read') -%}
+                providesTags: cacheByIdArgProperty('{{ category.capitalize() }}') as any,
+                {%- elif r_camel[i].startswith('get') -%}
+                providesTags: cacheByIdArgProperty('{{ category.capitalize() }}') as any,
+                {%- elif r_camel[i].startswith('update') -%}
+                invalidatesTags: invalidateByIdArgPropertyAndList('{{ category.capitalize() }}') as any,
+                {%- endif %}
+            }),
+        {%- endfor %}
+    }),
+    overrideExisting: false,
+});{{'\n'}}
+
+
+export const {
+    {%- for i in range(r_count) %}
+    use{{ r_pascal[i] }}{{ kind_str[i] | capitalize }},
+    {%- if kind_str[i]  == 'query' %}
+    useLazy{{ r_pascal[i] }}{{ kind_str[i] | capitalize }},
+    {%- endif -%}
+    {%- endfor %}
+} = {{ c_camel }}Api;

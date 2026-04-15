@@ -1,0 +1,17 @@
+// This file was automatically generated using exdrf-gen-openapi2rtk.
+// Source: {{ m_name }}
+// Don't change it manually.
+{{- "\n" -}}
+{%- for i in range(c_count) %}
+{%- set routes = categories[c_keys[i]] -%}
+export {
+    {{ c_camel[i] }}Api,
+    {%- for j in range(len(routes)) -%}
+    {%- set route = routes[j] %}
+    use{{ route.name_pascal }}{{ "Mutation" if route.is_mutation else "Query" }},
+    {%- if not route.is_mutation %}
+    useLazy{{ route.name_pascal }}{{ "Query" }},
+    {%- endif -%}
+    {%- endfor %}
+} from './{{ c_snake[i] }}';{{'\n'}}
+{%- endfor %}{{'\n'}}

@@ -13,7 +13,7 @@ description = "Input from excel files and output to excel files."
 dynamic = ["version"]
 name = "exdrf_xl"
 readme = "README.md"
-requires-python = ">=3.12.10"
+requires-python = ">=3.12.2"
 dependencies = [
   "openpyxl>=3.1.5",
 ]

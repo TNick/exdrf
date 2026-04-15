@@ -6,7 +6,7 @@ models. **`generate_qt_from_alchemy`** walks a deep template tree (menus,
 plugins, routers, per-category and per-resource widgets, editors, lists,
 selectors, field classes, and HTML viewers).
 
-Python **3.12.10+** is required.
+Python **3.12.2+** is required.
 
 ## Dependencies
 

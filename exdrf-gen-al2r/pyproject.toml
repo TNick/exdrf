@@ -19,7 +19,7 @@ description = "Generate FastAPI route modules from SQLAlchemy-backed ExDataset m
 dynamic = ["version"]
 name = "exdrf-gen-al2r"
 readme = "README.md"
-requires-python = ">=3.12.10"
+requires-python = ">=3.12.2"
 
 [project.optional-dependencies]
 dev = [

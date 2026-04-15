@@ -8,17 +8,20 @@ domain, optional **composite file-tree builders** that iterate over an
 packages can extend templates and Jinja globals.
 
 The PyPI distribution name is **`exdrf-gen`**; the import package is
-**`exdrf_gen`**. Python **3.12.10+** is required.
+**`exdrf_gen`**. Python **3.12.2+** is required.
 
 ## Role in the exdrf stack
 
 - **`exdrf`** describes datasets, resources, and fields.
+- **`exdrf-rcv`** — shared Python runtime for remote-controlled-view backends
+  (types/helpers used with **`exdrf-gen-al2rcv`** output).
 - **`exdrf-gen`** renders those descriptions (and arbitrary template context)
   through Jinja2, and can emit nested directories/files in one pass.
 - Sibling packages such as **`exdrf-gen-al2pd`** (command **`al2pd`**: Pydantic
   `Xxx` / `XxxEx` / `XxxCreate` / `XxxEdit` from SQLAlchemy), **`exdrf-gen-al2qt`**,
   **`exdrf-gen-al2r`** (command **`al2r`**: FastAPI route stubs; **`SCHEMAS-PKG`**
-  must match **`al2pd`** output), **`exdrf-gen-pd2dare`** (command **`pd2dare`**:
+  must match **`al2pd`** output), **`exdrf-gen-al2rcv`** (command **`al2rcv`**:
+  remote-controlled-view path scaffolds), **`exdrf-gen-pd2dare`** (command **`pd2dare`**:
   DARE TypeScript from Pydantic `Ex` models), etc. register as `exdrf.plugins`
   entry points named `exdrf_gen`
   and build on this layer for specific targets (e.g. pandas, Qt, web UI).
@@ -55,7 +58,7 @@ Equivalent when the package is on **`PYTHONPATH`**:
 python -m exdrf_gen --help
 ```
 
-Subcommands (e.g. **`al2at`**, **`al2qt`**, **`al2r`**, **`pd2dare`**) come from plugins; install the
+Subcommands (e.g. **`al2at`**, **`al2qt`**, **`al2r`**, **`al2rcv`**, **`pd2dare`**) come from plugins; install the
 matching **`exdrf-gen-*`** distribution to enable them. Application repos may
 also ship a plugin (e.g. **`resi_gen`** registers **`db2m`**, **`resi-al2at`**,
 **`resi-al2qt`**) via the same **`exdrf.plugins`** / **`exdrf_gen`** entry point.
@@ -187,8 +190,10 @@ in the `exdrf` repo:
 - **`exdrf-gen-al2at`** (`exdrf_gen_al2at`) — attrs model output.
 - **`exdrf-gen-al2pd`** (`exdrf_gen_al2pd`) — Pydantic-oriented output.
 - **`exdrf-gen-al2qt`** (`exdrf_gen_al2qt`) — Qt-related output.
+- **`exdrf-gen-al2rcv`** (`exdrf_gen_al2rcv`) — remote-controlled-view scaffolds.
+- **`exdrf-rcv`** (`exdrf_rcv`) — RCV runtime library (consumed by generated code).
 
-Each one does three things: register an **entry point** so `load_plugins()` can
+Each generator package does three things: register an **entry point** so `load_plugins()` can
 import it, extend the **shared Jinja environment** on import, and attach
 **Click subcommands** to the shared **`cli`** group.
 

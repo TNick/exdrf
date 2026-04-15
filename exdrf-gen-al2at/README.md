@@ -5,7 +5,7 @@ Python modules** from an **`ExDataset`** built from your SQLAlchemy declarative
 models. Output is driven by Jinja2 templates under `al2at_templates/` and the
 composite tree in `exdrf_gen.fs_support` (`TopDir`, `CategDir`, `ResFile`, …).
 
-Python **3.12.10+** is required.
+Python **3.12.2+** is required.
 
 ## What it generates
 

@@ -182,7 +182,7 @@ def test_generate_writes_router_with_schemas(tmp_path: Path) -> None:
     assert "router = APIRouter" not in root_api_body
     init_body = init_py.read_text(encoding="utf-8")
     assert "router = APIRouter" in init_body
-    assert 'tags=["generated"]' in init_body
+    assert 'tags=["generated"]' not in init_body
 
 
 def test_generate_get_db_import_line(tmp_path: Path) -> None:
@@ -322,7 +322,7 @@ def test_generate_writes_category_subdir_and_init(tmp_path: Path) -> None:
 
     root_init = (tmp_path / "__init__.py").read_text(encoding="utf-8")
     assert "router = APIRouter" in root_init
-    assert 'tags=["generated"]' in root_init
+    assert 'tags=["generated"]' not in root_init
 
     root_api = (tmp_path / "api.py").read_text(encoding="utf-8")
     assert "from . import router" in root_api
@@ -332,6 +332,7 @@ def test_generate_writes_category_subdir_and_init(tmp_path: Path) -> None:
     cat_init_body = cat_init.read_text(encoding="utf-8")
     assert "l18_router = APIRouter" in cat_init_body
     assert 'prefix="/l18"' in cat_init_body
+    assert "tags=" not in cat_init_body
 
     body = routes.read_text(encoding="utf-8")
     assert "from ..al2r_route_utils import" in body

@@ -1,0 +1,58 @@
+// This file was automatically generated using exdrf-gen-openapi2rtk.
+// Source: {{ m_name }}
+// Don't change it manually.
+
+type CacheTag = {
+  type: string;
+  id: string | number;
+};
+
+type MaybeListResult = {
+  items?: Array<{ id: string | number }>;
+};
+
+/**
+ * Cache tagging helper for list endpoints that return `{ items: [{ id }] }`.
+ */
+export function providesNestedList(type: string) {
+  return (result?: MaybeListResult): CacheTag[] => {
+    if (!result?.items) {
+      return [{ type, id: 'LIST' }];
+    }
+    return [
+      { type, id: 'LIST' },
+      ...result.items.map((item) => ({ type, id: item.id })),
+    ];
+  };
+}
+
+/**
+ * Cache tagging helper for routes that receive a primary key in args.
+ */
+export function cacheByIdArgProperty(type: string) {
+  return (
+    _result: unknown,
+    _error: unknown,
+    arg: { id?: string | number; item_id?: string | number },
+  ): CacheTag[] => {
+    const pk = arg.id ?? arg.item_id ?? 'LIST';
+    return [{ type, id: pk }];
+  };
+}
+
+/**
+ * Cache invalidation helper for routes that update one item and its list.
+ */
+export function invalidateByIdArgPropertyAndList(type: string) {
+  return (
+    _result: unknown,
+    _error: unknown,
+    arg: { id?: string | number; item_id?: string | number },
+  ): CacheTag[] => {
+    const pk = arg.id ?? arg.item_id ?? 'LIST';
+    return [
+      { type, id: pk },
+      { type, id: 'LIST' },
+    ];
+  };
+}

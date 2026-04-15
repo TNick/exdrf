@@ -16,7 +16,7 @@ description = "Generate attrs models content using DRF from sqlalchemy models."
 dynamic = ["version"]
 name = "exdrf-gen-al2xl"
 readme = "README.md"
-requires-python = ">=3.12.10"
+requires-python = ">=3.12.2"
 
 [project.optional-dependencies]
 dev = [

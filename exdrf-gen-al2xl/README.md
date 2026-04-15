@@ -10,7 +10,7 @@ Despite the name similarity to **attrs**, this package is **not** the same as
 **exdrf-gen-al2at**: it focuses on **spreadsheet** tooling (`type_to_xl`,
 `read_only_columns`, custom **`sorted_fields`**), not generic attrs models.
 
-Python **3.12.10+** is required.
+Python **3.12.2+** is required.
 
 ## What it generates
 

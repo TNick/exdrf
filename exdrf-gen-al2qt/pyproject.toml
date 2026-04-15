@@ -16,7 +16,7 @@ description = "Generate Qt-related classes content using DRF from sqlalchemy mod
 dynamic = ["version"]
 name = "exdrf-gen-al2qt"
 readme = "README.md"
-requires-python = ">=3.12.10"
+requires-python = ">=3.12.2"
 
 [project.optional-dependencies]
 dev = [

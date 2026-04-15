@@ -382,13 +382,20 @@ class CategDir(Dir):
 
 
 @define
-class TopDir(Dir):
+class TopDir(Base):
     """Creates the top directory.
 
-    All of its children will receive dataset-specific data.
+    Unlike :class:`Dir`, this type does not create a named subdirectory; it
+    passes ``out_path`` straight to each child. Children receive
+    dataset-derived kwargs (``resources``, ``categ_map``, etc.).
+
+    Attributes:
+        comp: Child generators (files or nested dirs) run in order.
+        extra: Context merged into kwargs for every child ``generate`` call.
     """
 
-    name: str = field(init=False, default="")
+    comp: CompList = field(factory=list)
+    extra: Dict[str, Any] = field(factory=dict)
 
     def generate(self, out_path: str, **kwargs) -> None:
         """Generates the directory structure and files.

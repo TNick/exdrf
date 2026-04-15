@@ -4,7 +4,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     ForwardRef,
-    List,
     Optional,
     get_args,
     get_origin,
@@ -301,46 +300,35 @@ def field_from_pydantic(
             enum_values=[(a, a.title()) for a in values],
             **extra,
         )
-    elif isinstance(annotation, (list, List)) or str(annotation).startswith(
-        "typing.List["
-    ):
-        # if field_name == "filter":
-        #     result = FilterField(
-        #         **extra,
-        #     )
-        # elif field_name == "sort":
-        #     result = SortField(
-        #         **extra,
-        #     )
-        # else:
+    elif get_origin(annotation) is list:
+        # Homogeneous ``list[T]`` / ``List[T]`` (Pydantic v2 uses ``list[int]``).
         result = None
-        referenced = annotation.__args__[0]  # type: ignore
-        if isinstance(referenced, ForwardRef):
-            pass
-            # other = referenced.__forward_arg__
-        elif referenced is str:
-            result = StrListField(
-                **extra,
-            )
-        elif referenced is int:
-            result = IntListField(
-                **extra,
-            )
-        elif referenced is float:
-            result = FloatListField(
-                **extra,
-            )
-        # else:
-        # s_cls = str(referenced)
-        # other = referenced.__class__.__name__
+        args = get_args(annotation)
+        if len(args) == 1:
+            referenced = args[0]
+            if isinstance(referenced, ForwardRef):
+                pass
+            elif referenced is str:
+                result = StrListField(
+                    **extra,
+                )
+            elif referenced is int:
+                result = IntListField(
+                    **extra,
+                )
+            elif referenced is float:
+                result = FloatListField(
+                    **extra,
+                )
 
         if result is None:
-            # TODO: replace with the new 4-class implementation
-            raise NotImplementedError
-            # result = RefOneField(
-            #     ref=ds[other],  # type: ignore
-            #     **extra,
-            # )
+            # Composite lists (for example ``list[dict[str, Any]]`` relation key
+            # payloads): use a string scalar exdrf field for metadata, but keep
+            # the original pydantic ``FieldInfo`` as ``src`` so ``m2ts`` can read
+            # ``field.src.annotation`` when emitting TypeScript.
+            result = StrField(
+                **extra,
+            )
     elif isinstance(annotation, ForwardRef):
         resolved = _resolve_forward_ref_annotation(annotation)
         if resolved is not None:

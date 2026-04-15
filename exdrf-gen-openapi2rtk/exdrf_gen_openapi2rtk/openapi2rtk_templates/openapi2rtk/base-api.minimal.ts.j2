@@ -1,0 +1,40 @@
+// This file was automatically generated using exdrf-gen-openapi2rtk.
+// Source: {{ m_name }}
+// Don't change it manually.
+//
+// Minimal RTK base for hosts that wire auth/baseUrl outside this package.
+import type {
+  BaseQueryFn,
+  FetchArgs,
+  FetchBaseQueryError,
+} from '@reduxjs/toolkit/query';
+import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+
+declare const __OPENAPI2RTK_API_BASE_URL__: string | undefined;
+
+const baseUrl =
+  (typeof __OPENAPI2RTK_API_BASE_URL__ === 'string' &&
+    __OPENAPI2RTK_API_BASE_URL__) ||
+  '';
+
+const rawBaseQuery = fetchBaseQuery({
+  baseUrl,
+  credentials: 'include',
+});
+
+const baseQuery: BaseQueryFn<
+  string | FetchArgs,
+  unknown,
+  FetchBaseQueryError
+> = async (args, api, extraOptions) => rawBaseQuery(args, api, extraOptions);
+
+/**
+ * Shared RTK Query API instance used by generated route clients.
+ */
+export const apiBase = createApi({
+  reducerPath: 'generatedApi',
+  refetchOnFocus: true,
+  refetchOnReconnect: true,
+  baseQuery,
+  endpoints: () => ({}),
+});

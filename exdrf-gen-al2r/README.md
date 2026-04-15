@@ -6,7 +6,7 @@ read handlers are typed with **`XxxEx`**; create uses **`XxxCreate`**. Patch
 is emitted only when **`exdrf-gen-al2pd`** would emit **`XxxEdit`** (composite
 PK–only link tables skip PATCH).
 
-Python **3.12.10+** is required.
+Python **3.12.2+** is required.
 
 ## Command-line usage
 

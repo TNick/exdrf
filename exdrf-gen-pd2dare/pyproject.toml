@@ -19,7 +19,7 @@ description = "Generate DARE TypeScript resources from Pydantic Ex models."
 dynamic = ["version"]
 name = "exdrf-gen-pd2dare"
 readme = "README.md"
-requires-python = ">=3.12.10"
+requires-python = ">=3.12.2"
 
 [project.optional-dependencies]
 dev = [

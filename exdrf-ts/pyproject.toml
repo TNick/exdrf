@@ -17,7 +17,7 @@ description = "Map exdrf field and Python types to TypeScript for codegen."
 dynamic = ["version"]
 name = "exdrf-ts"
 readme = "README.md"
-requires-python = ">=3.12.10"
+requires-python = ">=3.12.2"
 
 [project.optional-dependencies]
 dev = [

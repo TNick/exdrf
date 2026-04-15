@@ -165,12 +165,6 @@ def category_path_prefix(categories: Tuple[str, ...]) -> str:
     return "/" + "/".join(categories)
 
 
-def _category_tags_repr(categories: Tuple[str, ...]) -> str:
-    """Return a Python list literal string for FastAPI ``tags=``."""
-
-    return repr(list(categories))
-
-
 def parse_get_db_import(spec: str) -> Tuple[str, str]:
     """Split ``module.path:callable`` for generated ``from … import … as get_db``.
 
@@ -365,7 +359,6 @@ class Al2rCategoryInitFile(Base):
                 **base,
                 al2r_category_router_name=category_router_export_name(raw_cats),
                 al2r_category_path_prefix=category_path_prefix(raw_cats),
-                al2r_category_tags_repr=_category_tags_repr(raw_cats),
             )
 
 
