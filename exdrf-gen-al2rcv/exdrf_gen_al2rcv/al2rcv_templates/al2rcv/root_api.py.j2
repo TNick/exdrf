@@ -33,10 +33,10 @@ RCV_IMPORT_ROOT = {{ al2rcv_import_root | tojson }}
 )
 def get_rcv_plan(
     db: Annotated[Session, Depends(get_db)],
-    category: Annotated[str, Query()] = "",
     resource: Annotated[str, Query()],
-    record_id: Annotated[int | None, Query()] = None,
     view_type: Annotated[str, Query()],
+    category: Annotated[str, Query()] = "",
+    record_id: Annotated[int | None, Query()] = None,
 ) -> RcvPlan:
     """Resolve the static ``get_def`` for ``category`` / ``resource``."""
 

@@ -445,13 +445,121 @@ def _norm_for_repr(value: Any) -> Any:
     return value
 
 
+# ``flake8`` ``E501`` in consuming repos is often 180; keep emitted lines
+# comfortably below that even with nested indentation.
+_RCV_LITERAL_MAX_LINE: Final[int] = 100
+
+
+def _emit_str_py_literal(s: str, hang_spaces: int) -> str:
+    """Emit a Python string literal, splitting with implicit concat if needed.
+
+    Args:
+        s: The string value to serialize.
+        hang_spaces: Column (spaces) where the literal starts on its first line.
+
+    Returns:
+        Source text (no leading indent) for the string expression.
+    """
+
+    full = repr(s)
+    if hang_spaces + len(full) <= _RCV_LITERAL_MAX_LINE:
+        return full
+
+    # Greedy pack Unicode codepoints so each ``repr`` segment fits continuation
+    # lines under ``_RCV_LITERAL_MAX_LINE``.
+    cont_spaces = hang_spaces + 4
+    budget = max(16, _RCV_LITERAL_MAX_LINE - cont_spaces - 1)
+    chunks: list[str] = []
+    cur = ""
+    for ch in s:
+        nxt = cur + ch
+        if len(repr(nxt)) > budget and cur:
+            chunks.append(repr(cur))
+            cur = ch
+        else:
+            cur = nxt
+    if cur:
+        chunks.append(repr(cur))
+    if len(chunks) == 1:
+        return chunks[0]
+    pad = "\n" + (" " * cont_spaces)
+    inner = pad.join(chunks)
+    return (
+        "(\n" + (" " * cont_spaces) + inner + "\n" + (" " * hang_spaces) + ")"
+    )
+
+
+def _emit_py_literal(value: Any, indent: int) -> str:
+    """Render ``value`` as a formatted Python literal (multi-line when needed).
+
+    Args:
+        value: Normalized field dict structure (dict, list, tuple, scalars).
+        indent: Leading spaces for this value's *opening* delimiter line.
+
+    Returns:
+        Complete literal source including ``indent`` on every emitted line.
+    """
+
+    sp = " " * indent
+
+    if value is None or isinstance(value, (bool, int, float)):
+        return sp + repr(value)
+
+    if isinstance(value, str):
+        return sp + _emit_str_py_literal(value, len(sp))
+
+    if isinstance(value, tuple):
+        if not value:
+            return sp + "()"
+        inner = ", ".join(_emit_py_literal(item, 0).lstrip() for item in value)
+        return sp + "(" + inner + ")"
+
+    if isinstance(value, list):
+        if not value:
+            return sp + "[]"
+        lines: list[str] = [sp + "["]
+        child = indent + 4
+        for item in value:
+            lines.append(_emit_py_literal(item, child) + ",")
+        lines.append(sp + "]")
+        return "\n".join(lines)
+
+    if isinstance(value, dict):
+        if not value:
+            return sp + "{}"
+        lines: list[str] = [sp + "{"]
+        child = indent + 4
+        csp = " " * child
+        for k, v in value.items():
+            kt = repr(k) + ": "
+            hang = len(csp + kt)
+            if isinstance(v, str):
+                body = _emit_str_py_literal(v, hang)
+                lines.append(csp + kt + body + ",")
+            else:
+                sub = _emit_py_literal(v, child)
+                sub_lines = sub.split("\n")
+                head = sub_lines[0]
+                merged = csp + kt + head[len(csp) :]
+                if len(sub_lines) == 1:
+                    lines.append(merged + ",")
+                else:
+                    lines.append(merged)
+                    lines.extend(sub_lines[1:-1])
+                    lines.append(sub_lines[-1] + ",")
+        lines.append(sp + "}")
+        return "\n".join(lines)
+
+    raise TypeError("unsupported literal type: %s" % type(value).__name__)
+
+
 def rcv_field_dicts_py_literal(rows: list[dict[str, Any]]) -> str:
     """Render ``rows`` as a Python literal expression for Jinja substitution.
 
     The template embeds the result as ``return <this>`` inside ``get_def``.
-    Values are normalized via :func:`_norm_for_repr` then passed to ``repr``,
-    which yields valid Python for dicts, lists, tuples, strings, numbers, and
-    booleans suitable for static analysis and runtime ``eval``-free import.
+    Values are normalized via :func:`_norm_for_repr`, then formatted with
+    :func:`_emit_py_literal` so long strings split across lines (avoids
+    ``flake8`` ``E501`` in generated route modules).
 
     Args:
         rows: Field dicts; may contain ``date`` / ``datetime`` / ``time``
@@ -462,7 +570,8 @@ def rcv_field_dicts_py_literal(rows: list[dict[str, Any]]) -> str:
         ``[`` for a list literal.
     """
 
-    return repr(_norm_for_repr(rows))
+    normalized = _norm_for_repr(rows)
+    return _emit_py_literal(normalized, indent=0)
 
 
 def default_rcv_render_type() -> str:
