@@ -9,6 +9,7 @@ def test_exdrf_rcv_importable() -> None:
     for name in (
         "RcvPlan",
         "RcvField",
+        "RcvResourceDataAccess",
         "RcvPlanCache",
         "RcvPlanCacheKey",
         "clear_rcv_plan_overrides",

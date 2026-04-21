@@ -148,6 +148,15 @@ def _single_child_pk_name(child: Any) -> str | None:
     return None
 
 
+def _related_orm_class_name(related: Any) -> str:
+    """Return the SQLAlchemy mapped class name for a related ``ExResource``."""
+
+    src = getattr(related, "src", None)
+    if src is None:
+        return ""
+    return getattr(src, "__name__", "") or ""
+
+
 def build_al2r_relation_sync_specs(
     model: Any,
 ) -> Tuple[List[Dict[str, Any]], bool]:
@@ -230,6 +239,7 @@ def build_al2r_relation_sync_specs(
                     "related_fk_col": related_fk,
                     "parent_pk_attrs": parent_pk,
                     "related_pk_simple": related_simple,
+                    "related_orm_class": _related_orm_class_name(related),
                 },
             )
             continue
@@ -294,6 +304,7 @@ def build_al2r_relation_sync_specs(
                         "related_fk_col": related_fk,
                         "parent_pk_attrs": parent_pk,
                         "related_pk_simple": related_simple,
+                        "related_orm_class": _related_orm_class_name(related),
                     },
                 )
                 continue
@@ -360,6 +371,10 @@ def extra_orm_classes_for_relations(
         if cls and cls not in seen:
             seen.add(cls)
             out.append(cls)
+        rel_cls = sp.get("related_orm_class") or ""
+        if rel_cls and rel_cls not in seen:
+            seen.add(rel_cls)
+            out.append(rel_cls)
     return sorted(out)
 
 

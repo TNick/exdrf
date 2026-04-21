@@ -14,6 +14,7 @@ from exdrf_gen_al2rcv.rcv_field_emit import (
     build_rcv_field_dicts_for_resource,
     default_rcv_render_type,
     rcv_field_dicts_py_literal,
+    rcv_resource_data_access_py_literal,
 )
 
 if TYPE_CHECKING:
@@ -115,6 +116,9 @@ class Al2rcvResourcePathFile(Base):
                 "model": res,
                 "rcv_field_dicts_repr": rcv_field_dicts_py_literal(rcv_rows),
                 "rcv_render_type_repr": repr(default_rcv_render_type()),
+                "rcv_resource_data_access_repr": rcv_resource_data_access_py_literal(
+                    res,
+                ),
                 "al2rcv_category_dot_path": (
                     ".".join(cats_t) if cats_t else ""
                 ),

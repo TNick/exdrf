@@ -8,6 +8,7 @@ from typing import Any, List
 RCV_RENDER_TYPE: str = {{ rcv_render_type_repr }}
 RCV_CATEGORY: str = {{ al2rcv_category_dot_path | tojson }}
 RCV_RESOURCE: str = {{ res_snake | tojson }}
+RCV_RESOURCE_DATA_ACCESS: dict[str, Any] = {{ rcv_resource_data_access_repr }}
 
 
 def get_def() -> List[dict[str, Any]]:

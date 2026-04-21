@@ -5,7 +5,7 @@ package as RCV behavior grows. The front-end RCV project is documented under
 ``fr-one`` ``libs/rcv``.
 """
 
-from exdrf_rcv.models import RcvField, RcvPlan
+from exdrf_rcv.models import RcvField, RcvPlan, RcvResourceDataAccess
 from exdrf_rcv.plan_resolve import (
     RcvPlanCache,
     RcvPlanCacheKey,
@@ -19,6 +19,7 @@ from exdrf_rcv.plan_resolve import (
 __all__ = [
     "RcvPlan",
     "RcvField",
+    "RcvResourceDataAccess",
     "RcvPlanCache",
     "RcvPlanCacheKey",
     "clear_rcv_plan_overrides",

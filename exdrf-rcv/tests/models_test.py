@@ -25,7 +25,7 @@ from exdrf.constants import (
     FIELD_TYPE_TIME,
 )
 
-from exdrf_rcv.models import RcvPlan
+from exdrf_rcv.models import RcvPlan, RcvResourceDataAccess
 
 
 class TestRCVPlanAcceptsAllFieldKinds:
@@ -106,8 +106,17 @@ class TestRCVPlanAcceptsAllFieldKinds:
             view_type="v",
             render_type="default",
             fields=fields,
+            resource_data_access=RcvResourceDataAccess(
+                url_pattern="/classic/c/r/",
+                requires_org_id=True,
+                requires_town_id=False,
+            ),
         )
         dumped = plan.model_dump(mode="json")
         again = RcvPlan.model_validate(dumped)
         kinds = {f.kind for f in again.fields}
         assert kinds == {f["kind"] for f in fields}
+        assert again.resource_data_access is not None
+        assert again.resource_data_access.url_pattern == "/classic/c/r/"
+        assert again.resource_data_access.requires_org_id is True
+        assert again.resource_data_access.requires_town_id is False

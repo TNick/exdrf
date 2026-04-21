@@ -57,3 +57,41 @@ def test_build_al2r_list_relation_query_specs_joins_sync() -> None:
     assert merged[0]["attr"] == "widgets"
     assert merged[0]["sync"]["kind"] == "o2m_fk"
     assert merged[0]["related_pk_col"] == "id"
+    assert merged[0].get("related_pk_order") is None
+
+
+def test_build_al2r_list_relation_query_specs_composite_related_pk() -> None:
+    """Composite related PK yields ``related_pk_order`` for stable ordering."""
+
+    list_specs = [{"attr": "edges", "related_name": "Edge"}]
+    rel_specs = [
+        {
+            "ex_field_name": "edges",
+            "kind": "o2m_child_rows",
+            "assoc_class": "EdgeRow",
+            "parent_fk_cols": ("from_id",),
+            "related_fk_col": "",
+            "parent_pk_attrs": ("id",),
+            "related_pk_simple": True,
+        }
+    ]
+    resource = SimpleNamespace(
+        fields=(
+            SimpleNamespace(
+                name="edges",
+                is_list=True,
+                ref=SimpleNamespace(
+                    primary_fields=lambda: ("kind", "left_id", "right_id"),
+                ),
+            ),
+        )
+    )
+    merged = build_al2r_list_relation_query_specs(
+        resource, list_specs, rel_specs
+    )
+    assert merged[0]["related_pk_col"] == "kind"
+    assert merged[0]["related_pk_order"] == (
+        "kind",
+        "left_id",
+        "right_id",
+    )

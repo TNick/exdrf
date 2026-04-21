@@ -139,6 +139,13 @@ _REL_LIST_SPEC_{{ rel.attr | upper }} = RelationListSpec(
     related_model={{ orm_ref(rel.related_name) }},
     related_schema={{ rel.related_name }},
     related_pk_col="{{ rel.related_pk_col }}",
+{%- if rel.related_pk_order %}
+    related_pk_order=(
+{%- for p in rel.related_pk_order %}
+        "{{ p }}",
+{%- endfor %}
+    ),
+{%- endif %}
 {%- if rel.sync.kind == "o2m_fk" %}
     child_fk_col="{{ rel.sync.child_fk_col }}",
 {%- elif rel.sync.kind in ("m2m", "o2m_bridge") %}

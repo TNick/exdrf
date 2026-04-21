@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from exdrf_rcv.models import RcvPlan
+from exdrf_rcv.models import RcvPlan, RcvResourceDataAccess
 
 __all__ = [
     "RcvPlan",
+    "RcvResourceDataAccess",
 ]

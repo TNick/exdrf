@@ -375,6 +375,32 @@ RcvField = Annotated[
 ]
 
 
+class RcvResourceDataAccess(BaseModel):
+    """Where and how to load row payloads for this plan over HTTP.
+
+    Used for list data, edit/view refresh, and similar flows. The client should
+    prepend its API base (including ``root_path``) to ``url_pattern`` when
+    building the final request URL.
+
+    Attributes:
+        url_pattern: Path under the API root, typically an exdrf-gen-al2r list
+            GET path such as ``/classic/{category}/{resource_plural}/``. May later include
+            placeholders (for example ``{record_id}``) documented alongside
+            those features.
+        requires_org_id: When true, the client must include an ``org_id`` query
+            parameter (or the convention documented for this deployment) when
+            calling ``url_pattern``.
+        requires_town_id: When true, the client must include a ``town_id`` query
+            parameter when calling ``url_pattern``.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    url_pattern: str
+    requires_org_id: bool = False
+    requires_town_id: bool = False
+
+
 class RcvPlan(BaseModel):
     """A plan for rendering a resource, record and view type.
 
@@ -387,9 +413,14 @@ class RcvPlan(BaseModel):
             same as the value passed by the front-end.
         view_type: The type of view that is requested. In most cases this
             will be the same as the value passed by the front-end.
-        render_type: The type of renderer to use. This is a hint to the
-            front-end to choose the appropriate renderer.
+        render_type: The type of renderer to use. When a generated module omits
+            ``RCV_RENDER_TYPE`` or sets it to the placeholder ``"default"``,
+            :func:`exdrf_rcv.plan_resolve.resolve_rcv_plan` sets this to the
+            same value as ``view_type``.
         fields: The fields to render.
+        resource_data_access: Optional hint for loading tabular row data or
+            refreshing a record from HTTP; omitted when the generated module
+            does not define ``RCV_RESOURCE_DATA_ACCESS``.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -400,3 +431,4 @@ class RcvPlan(BaseModel):
     view_type: str | None = None
     render_type: str
     fields: list[RcvField]
+    resource_data_access: RcvResourceDataAccess | None = None

@@ -23,3 +23,19 @@ def test_extra_orm_classes_empty_when_only_main() -> None:
     """No secondary ORM names yields an empty list."""
 
     assert extra_orm_classes_for_relations("Main", []) == []
+
+
+def test_extra_orm_classes_include_m2m_related_table() -> None:
+    """M2M / bridge specs carry ``related_orm_class`` for the far-side ORM."""
+
+    specs = [
+        {
+            "kind": "m2m",
+            "assoc_class": "Junction",
+            "related_orm_class": "BinaryFile",
+        },
+    ]
+    assert extra_orm_classes_for_relations("Parcel", specs) == [
+        "BinaryFile",
+        "Junction",
+    ]

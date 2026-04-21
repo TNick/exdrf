@@ -12,9 +12,32 @@ from typing import Any, Callable, Final
 
 from pydantic import TypeAdapter
 
-from exdrf_rcv.models import RcvField, RcvPlan
+from exdrf_rcv.models import RcvField, RcvPlan, RcvResourceDataAccess
 
 _rcv_field_adapter: Final = TypeAdapter(RcvField)
+
+
+def _resource_data_access_from_module(mod: Any) -> RcvResourceDataAccess | None:
+    """Parse optional ``RCV_RESOURCE_DATA_ACCESS`` from a generated paths module.
+
+    Args:
+        mod: Imported ``*_rcv_paths`` module object.
+
+    Returns:
+        Validated access descriptor, or ``None`` when the constant is absent
+        or not a mapping.
+    """
+
+    raw = getattr(mod, "RCV_RESOURCE_DATA_ACCESS", None)
+    if raw is None:
+        return None
+    if not isinstance(raw, dict):
+        raise TypeError(
+            "RCV_RESOURCE_DATA_ACCESS must be a dict (got %s)."
+            % (type(raw).__name__,),
+        )
+    return RcvResourceDataAccess.model_validate(raw)
+
 
 _SEGMENT_RE: Final[re.Pattern[str]] = re.compile(r"^[a-z][a-z0-9_]*$")
 
@@ -235,10 +258,17 @@ def resolve_rcv_plan(
             )
         fields.append(_rcv_field_adapter.validate_python(row))
 
-    # Read optional module-level render hint, falling back to a generic default.
+    # Read optional module-level render hint; otherwise mirror ``view_type``.
+    # Generated stubs often set ``RCV_RENDER_TYPE = "default"``; treat that like
+    # "unset" so list/new/detail map to distinct render hints.
     render_type = getattr(mod, "RCV_RENDER_TYPE", None)
     if not isinstance(render_type, str) or not render_type.strip():
-        render_type = "default"
+        render_type = vt
+    elif render_type.strip().lower() == "default":
+        render_type = vt
+
+    # Optional HTTP row-access metadata from the generated module.
+    resource_data_access = _resource_data_access_from_module(mod)
 
     # Assemble the base plan from request metadata and parsed fields.
     plan = RcvPlan(
@@ -248,6 +278,7 @@ def resolve_rcv_plan(
         view_type=vt,
         render_type=render_type,
         fields=fields,
+        resource_data_access=resource_data_access,
     )
 
     # Apply any registered override callables in registration order.

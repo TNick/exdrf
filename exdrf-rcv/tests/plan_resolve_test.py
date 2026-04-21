@@ -33,6 +33,11 @@ def tmp_rcv_pkg(tmp_path: Path) -> Path:
         textwrap.dedent(
             """
             RCV_RENDER_TYPE = "table"
+            RCV_RESOURCE_DATA_ACCESS = {
+                "url_pattern": "/classic/cat/res-items/",
+                "requires_org_id": True,
+                "requires_town_id": False,
+            }
 
             def get_def():
                 return [
@@ -72,6 +77,12 @@ class TestResolveRcvPlan:
         assert plan.render_type == "table"
         assert plan.record_id == 7
         assert plan.fields[0].name == "n"
+        assert plan.resource_data_access is not None
+        assert (
+            plan.resource_data_access.url_pattern == "/classic/cat/res-items/"
+        )
+        assert plan.resource_data_access.requires_org_id is True
+        assert plan.resource_data_access.requires_town_id is False
         again = resolve_rcv_plan(
             import_root="dyn_rcv_pkg",
             category="cat",
@@ -81,6 +92,43 @@ class TestResolveRcvPlan:
             cache=cache,
         )
         assert again.record_id == 99
+        assert again.resource_data_access is not None
+        assert (
+            again.resource_data_access.url_pattern == "/classic/cat/res-items/"
+        )
+
+    def test_resource_data_access_bad_type(self, tmp_path: Path) -> None:
+        """``RCV_RESOURCE_DATA_ACCESS`` must be a ``dict``."""
+
+        root = tmp_path / "bad_access_pkg"
+        root.mkdir()
+        (root / "__init__.py").write_text("", encoding="utf-8")
+        (root / "bad_rcv_paths.py").write_text(
+            textwrap.dedent(
+                """
+                RCV_RESOURCE_DATA_ACCESS = "not-a-dict"
+
+                def get_def():
+                    return [
+                        {"name": "x", "kind": "integer", "required": False, "data": {}},
+                    ]
+                """
+            ).strip(),
+            encoding="utf-8",
+        )
+        sys.path.insert(0, str(tmp_path))
+        try:
+            with pytest.raises(TypeError):
+                resolve_rcv_plan(
+                    import_root="bad_access_pkg",
+                    category="",
+                    resource="bad",
+                    record_id=None,
+                    view_type="list",
+                    cache=RcvPlanCache(),
+                )
+        finally:
+            sys.path.remove(str(tmp_path))
 
     def test_uncategorized_module(self, tmp_path: Path) -> None:
         """Empty ``category`` maps to ``import_root.{resource}_rcv_paths``."""
@@ -91,8 +139,6 @@ class TestResolveRcvPlan:
         (root / "solo_rcv_paths.py").write_text(
             textwrap.dedent(
                 """
-                RCV_RENDER_TYPE = "default"
-
                 def get_def():
                     return [
                         {
@@ -117,6 +163,8 @@ class TestResolveRcvPlan:
                 cache=RcvPlanCache(),
             )
             assert plan.fields[0].kind == "integer"
+            assert plan.render_type == plan.view_type == "list"
+            assert plan.resource_data_access is None
         finally:
             sys.path.remove(str(tmp_path))
 

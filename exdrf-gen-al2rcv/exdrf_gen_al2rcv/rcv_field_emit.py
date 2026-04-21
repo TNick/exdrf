@@ -588,6 +588,54 @@ def default_rcv_render_type() -> str:
     return "default"
 
 
+def build_rcv_resource_data_access_dict(
+    resource: "ExResource",
+) -> dict[str, Any]:
+    """Build the dict assigned to ``RCV_RESOURCE_DATA_ACCESS`` in generated modules.
+
+    The ``url_pattern`` targets the exdrf-gen-al2r list GET path under the API
+    root (``resi_fapi`` mounts those routers at ``/classic/...``, same shape as
+    RTK ``libs/core/api/src/generated/routes``): category segments joined with
+    ``/``, then the plural resource segment with underscores as hyphens.
+
+    Args:
+        resource: Dataset resource whose categories and fields drive the path
+            and ``requires_*`` heuristics.
+
+    Returns:
+        Mapping validated server-side as :class:`exdrf_rcv.models.RcvResourceDataAccess`.
+    """
+
+    cats = tuple(resource.categories or ())
+    seg = resource.snake_case_name_plural.replace("_", "-")
+    if cats:
+        cat_path = "/".join(cats)
+        url_pattern = "/classic/%s/%s/" % (cat_path, seg)
+    else:
+        url_pattern = "/classic/%s/" % (seg,)
+    requires_org_id = any(f.name == "org_id" for f in resource.fields)
+    requires_town_id = any(f.name == "town_id" for f in resource.fields)
+    return {
+        "url_pattern": url_pattern,
+        "requires_org_id": requires_org_id,
+        "requires_town_id": requires_town_id,
+    }
+
+
+def rcv_resource_data_access_py_literal(resource: "ExResource") -> str:
+    """Render ``RCV_RESOURCE_DATA_ACCESS`` as a Python literal for Jinja.
+
+    Args:
+        resource: Resource used to build the access dict.
+
+    Returns:
+        Source fragment assigned to ``RCV_RESOURCE_DATA_ACCESS`` in templates.
+    """
+
+    normalized = _norm_for_repr(build_rcv_resource_data_access_dict(resource))
+    return _emit_py_literal(normalized, indent=0)
+
+
 def validate_rcv_field_dicts(rows: list[dict[str, Any]]) -> None:
     """Validate each wire dict using the same ``RcvField`` adapter as
     production code.

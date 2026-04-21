@@ -71,6 +71,8 @@ def test_generate_writes_per_resource_and_category_api(
     wtxt = wpath.read_text(encoding="utf-8")
     assert "def get_def" in wtxt
     assert "RCV_RENDER_TYPE" in wtxt
+    assert "RCV_RESOURCE_DATA_ACCESS" in wtxt
+    assert "/classic/issues/l18/widgets/" in wtxt
     assert (cat / "__init__.py").is_file()
     assert (cat / "api.py").is_file()
     api_text = (cat / "api.py").read_text(encoding="utf-8")

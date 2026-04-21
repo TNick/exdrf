@@ -21,8 +21,10 @@ def build_al2r_list_relation_query_specs(
 
     Returns:
         One dict per list route with original keys plus ``sync`` (the matching
-        relation spec dict or ``None``) and ``related_pk_col`` (ORM PK column
-        name on the related resource, default ``id``).
+        relation spec dict or ``None``), ``related_pk_col`` (single ORM PK
+        column for ``m2m`` joins; default ``id``), and optional
+        ``related_pk_order`` (all PK columns for ``ORDER BY`` when the related
+        resource has a composite primary key).
     """
 
     by_ex: Dict[str, Dict[str, Any]] = {
@@ -41,12 +43,21 @@ def build_al2r_list_relation_query_specs(
         sync = by_ex.get(attr)
         rf = ref_by_name.get(attr)
         rel_pk = "id"
+        rel_pk_order: Tuple[str, ...] | None = None
         if rf is not None:
             ref = getattr(rf, "ref", None)
             if ref is not None:
-                pnames: Tuple[str, ...] = tuple(ref.primary_fields())
+                pnames = tuple(ref.primary_fields())
                 if len(pnames) == 1:
                     rel_pk = pnames[0]
-        row = {**lr, "sync": sync, "related_pk_col": rel_pk}
+                elif len(pnames) > 1:
+                    rel_pk = pnames[0]
+                    rel_pk_order = pnames
+        row = {
+            **lr,
+            "sync": sync,
+            "related_pk_col": rel_pk,
+            "related_pk_order": rel_pk_order,
+        }
         out.append(row)
     return out
