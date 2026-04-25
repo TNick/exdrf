@@ -24,16 +24,23 @@ class RefBaseField(ExField):
         depends_on: indicates the concepts that this field depends on. This is
             usually set at the resource level but can be overridden at the field
             level.
+        use_rel: When True on a non-bridge OneToMany relationship (from
+            SQLAlchemy ``relationship`` ``info``), Qt editor generation uses a
+            dedicated DrfRelated tab instead of an inline multi-select. Ignored
+            for other relation kinds.
     """
 
     ref: "ExResource" = field(default=None, repr=False)
     expect_lots: bool = field(default=False)
     provides: List[str] = field(factory=list)
     depends_on: List[str] = field(factory=list)
+    use_rel: bool = field(default=False)
 
     def field_properties(self, explicit: bool = False) -> dict[str, Any]:
         result = super().field_properties(explicit)
         result["ref"] = self.ref.name
+        if self.use_rel or explicit:
+            result["use_rel"] = self.use_rel
         return result
 
 

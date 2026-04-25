@@ -71,3 +71,29 @@ class Example(Base):
         }
     )
 ```
+
+### Relationships
+
+`relationship(..., info={...})` is validated with `exdrf.field_types.ref_base.RelExtraInfo`,
+which extends `exdrf.field.FieldInfo`. Keys such as `direction` and `doc` are
+required or conventional; optional keys from `FieldInfo` apply as well.
+
+When `use_rel` is true on a **non-bridge** `OneToMany` relationship, Qt code
+generation (`exdrf-gen-al2qt`) emits a dedicated editor tab with a
+`DrfRelated`-style transfer list (`Qt{Parent}Rel{Ref}`) instead of an inline
+`Qt{Ref}MuSe` control on category tabs.
+
+Example:
+
+```python
+items: Mapped[Set["Item"]] = relationship(
+    "Item",
+    back_populates="owner",
+    collection_class=set,
+    info={
+        "doc": "Owned items",
+        "direction": "OneToMany",
+        "use_rel": True,
+    },
+)
+```

@@ -82,11 +82,15 @@ def d_base_ui_class(field: "ExField", is_many: bool = False) -> str:
             r_name = f_o2m.resource.pascal_case_name
             ref_name = f_o2m.bridge.pascal_case_name  # type: ignore
             return f"Qt{r_name}Rel{ref_name}"  # type: ignore
-        else:
-            f_many = cast("RefManyToManyField", field)
-            r_name = f_many.resource.pascal_case_name
-            ref_name = f_many.ref.pascal_case_name  # type: ignore
+        if field.type_name == "one-to-many":
+            f_o2m = cast("RefOneToManyField", field)
+            r_name = f_o2m.resource.pascal_case_name
+            ref_name = f_o2m.ref.pascal_case_name  # type: ignore
             return f"Qt{r_name}Rel{ref_name}"  # type: ignore
+        f_many = cast("RefManyToManyField", field)
+        r_name = f_many.resource.pascal_case_name
+        ref_name = f_many.ref.pascal_case_name  # type: ignore
+        return f"Qt{r_name}Rel{ref_name}"  # type: ignore
 
     if field.type_name == "blob":
         return "DrfBlobEditor"

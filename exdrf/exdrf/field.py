@@ -500,6 +500,8 @@ class FieldInfo(BaseModel):
         exportable: Whether the field is user exportable.
         qsearch: Whether the field is part of the quick search set.
         resizable: Whether the user can resize the column in the list view.
+        use_rel: When True it is a hint for the ui to use a transfer list
+            instead of a simple select list.
     """
 
     title: Optional[str] = None
@@ -517,6 +519,7 @@ class FieldInfo(BaseModel):
     qsearch: Optional[bool] = None
     resizable: Optional[bool] = None
     derived: Optional[Tuple[str, str]] = None
+    use_rel: Optional[bool] = None
 
     @staticmethod
     def validate_enum_with_type(v, value_type: type) -> List[Tuple[Any, str]]:

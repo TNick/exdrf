@@ -691,6 +691,7 @@ class ExResource:
         exclude_one_to_many: Optional[bool] = False,
         exclude_one_to_one: Optional[bool] = False,
         exclude_bridge: Optional[bool] = False,
+        exclude_one_to_many_use_rel: Optional[bool] = False,
     ) -> Dict[str, List["ExField"]]:
         """Get a dictionary that maps categories to fields.
 
@@ -702,6 +703,8 @@ class ExResource:
             exclude_names: The names of the fields to exclude.
             exclude_derived: If True, derived fields will not be included.
             exclude_ref_fields: If True, reference fields will not be included.
+            exclude_one_to_many_use_rel: If True, omit non-bridge OneToMany
+                fields that have ``use_rel`` set (handled on editor rel tabs).
         """
         categories: Dict[str, List["ExField"]] = {}
 
@@ -730,6 +733,13 @@ class ExResource:
                 and bool(getattr(f, "bridge"))
             ):
                 return False
+            if exclude_one_to_many_use_rel:
+                if (
+                    f.is_one_to_many_type
+                    and getattr(f, "use_rel", False)
+                    and not (hasattr(f, "bridge") and bool(f.bridge))
+                ):
+                    return False
             return True
 
         included_fields = [f for f in self.sorted_fields if is_included(f)]
@@ -781,6 +791,7 @@ class ExResource:
         exclude_one_to_many: Optional[bool] = False,
         exclude_one_to_one: Optional[bool] = False,
         exclude_bridge: Optional[bool] = False,
+        exclude_one_to_many_use_rel: Optional[bool] = False,
     ) -> OrderedDict[str, List["ExField"]]:
         """Get a dictionary that maps categories to fields.
 
@@ -792,6 +803,7 @@ class ExResource:
             exclude_names: The names of the fields to exclude.
             exclude_derived: If True, derived fields will not be included.
             exclude_ref_fields: If True, reference fields will not be included.
+            exclude_one_to_many_use_rel: Passed to ``fields_by_category``.
         """
         categories = self.fields_by_category(
             exclude_names=exclude_names,
@@ -804,6 +816,7 @@ class ExResource:
             exclude_one_to_many=exclude_one_to_many,
             exclude_one_to_one=exclude_one_to_one,
             exclude_bridge=exclude_bridge,
+            exclude_one_to_many_use_rel=exclude_one_to_many_use_rel,
         )
         result = OrDict()
         for k in sorted(categories.keys(), key=self.category_sort_key):
