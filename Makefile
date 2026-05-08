@@ -146,10 +146,15 @@ test:
 # Checks the code style in all the packages in the mono-repo.
 lint:
 	@for dir in $(DIRS); do \
+		echo "Running lint in $$dir"; \
 		( cd "$(CURDIR)/$$dir" && \
 		  python -m isort --check . && \
-		  python -m black --check --quiet . && \
-		  python -m pflake8 . ) || exit $$?; \
+		  python -m black --check . && \
+		  python -m pflake8 . ) || { \
+			exit_code=$$?; \
+			echo "Lint failed in $$dir (exit $$exit_code)"; \
+			exit $$exit_code; \
+		  }; \
 	done
 
 
