@@ -308,6 +308,8 @@ class Check(Generic[T]):
     Attributes:
         check_id: A unique identifier for the check.
         description: A description of the check.
+        detailed_description: A longer, beginner-friendly description of the
+            check, suitable for tooltips or help text.
         category: The category of the check.
         tags: The tags of the check.
         is_global: Whether the check is global. A global check is one that
@@ -325,6 +327,7 @@ class Check(Generic[T]):
     check_id: str
     title: str = field(default="", repr=False)
     description: str = field(default="", repr=False)
+    detailed_description: str = field(default="", repr=False)
     category: str = field(default="", repr=False)
     tags: List[str] = field(factory=list, repr=False)
     is_global: bool = field(default=False, repr=False)

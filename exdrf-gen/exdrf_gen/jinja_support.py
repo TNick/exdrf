@@ -20,6 +20,12 @@ from jinja2 import (
 logger = logging.getLogger(__name__)
 
 
+def _is_jinja_defined(value: Any) -> bool:
+    """True if ``value`` is not missing for formatting (not None / Jinja Undefined)."""
+
+    return value is not None and not isinstance(value, Undefined)
+
+
 class Loader(BaseLoader):
     """Jinja loader that loads templates from a set of paths."""
 
@@ -343,16 +349,16 @@ def create_jinja_env(auto_reload=False):
 
     # Number utilities.
     jinja_env.globals["int"] = lambda x: (
-        int(x) if (x is not None and x is not Undefined) else None
+        int(x) if (_is_jinja_defined(x)) else None
     )
     jinja_env.globals["format_int"] = lambda x: (
-        f"{x:,.0f}" if (x is not None and x is not Undefined) else "-"
+        f"{x:,.0f}" if (_is_jinja_defined(x)) else "-"
     )
     jinja_env.globals["float"] = lambda x: (
-        float(x) if (x is not None and x is not Undefined) else None
+        float(x) if (_is_jinja_defined(x)) else None
     )
     jinja_env.globals["format_float"] = lambda x, y: (
-        f"{x:.{y}f}" if (x is not None and x is not Undefined) else "-"
+        f"{x:.{y}f}" if (_is_jinja_defined(x)) else "-"
     )
 
     # Date utilities.
@@ -386,20 +392,16 @@ def create_jinja_env(auto_reload=False):
 
     # Jinja filters.
     jinja_env.filters["format_int"] = lambda x: (
-        f"{x:,.0f}" if (x is not None and x is not Undefined) else "-"
+        f"{x:,.0f}" if (_is_jinja_defined(x)) else "-"
     )
     jinja_env.filters["format_float"] = lambda x, y: (
-        f"{x:.{y}f}" if (x is not None and x is not Undefined) else "-"
+        f"{x:.{y}f}" if (_is_jinja_defined(x)) else "-"
     )
     jinja_env.filters["format_date"] = lambda x: (
-        x.strftime("%d-%m-%Y")
-        if (x is not None and x is not Undefined)
-        else "-"
+        x.strftime("%d-%m-%Y") if (_is_jinja_defined(x)) else "-"
     )
     jinja_env.filters["format_datetime"] = lambda x: (
-        x.strftime("%d-%m-%Y %H:%M:%S")
-        if (x is not None and x is not Undefined)
-        else "-"
+        x.strftime("%d-%m-%Y %H:%M:%S") if (_is_jinja_defined(x)) else "-"
     )
     jinja_env.filters["proper"] = lambda x: " ".join(
         word.capitalize() for word in str(x).split()
