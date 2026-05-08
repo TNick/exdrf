@@ -88,7 +88,7 @@ lint:
 	@for %%d in ($(DIRS)) do ( \
 		pushd "$(CURDIR)\%%d" && \
 		python -m isort --check . && \
-		python -m black --check --quiet . && \
+		python -m black --check --quiet --extend-exclude "__version__\.py" . && \
 		python -m pflake8 . && \
 		popd)
 
@@ -98,7 +98,7 @@ delint: ui aflake
 	@for %%d in ($(DIRS)) do ( \
 		pushd "$(CURDIR)\%%d" && \
 		python -m isort . && \
-		python -m black . && \
+		python -m black --extend-exclude "__version__\.py" . && \
 		popd)
 
 # Collects all the .ui files.
@@ -149,7 +149,7 @@ lint:
 		echo "Running lint in $$dir"; \
 		( cd "$(CURDIR)/$$dir" && \
 		  python -m isort --check . && \
-		  python -m black --check . && \
+		  python -m black --check --extend-exclude "__version__\.py" . && \
 		  python -m pflake8 . ) || { \
 			exit_code=$$?; \
 			echo "Lint failed in $$dir (exit $$exit_code)"; \
@@ -163,7 +163,7 @@ delint: ui aflake
 	@for dir in $(DIRS); do \
 		( cd "$(CURDIR)/$$dir" && \
 		  python -m isort . && \
-		  python -m black --quiet . ) || exit $$?; \
+		  python -m black --quiet --extend-exclude "__version__\.py" . ) || exit $$?; \
 	done
 
 
