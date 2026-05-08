@@ -1,0 +1,31 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  lint-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install packages (editable, dev)
+        run: make init-d
+
+      - name: Lint
+        run: make lint
+
+      - name: Test
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: make test

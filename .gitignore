@@ -11,6 +11,7 @@ __pycache__/
 build/
 develop-eggs/
 dist/
+release_dist/
 downloads/
 eggs/
 .eggs/
@@ -134,3 +135,4 @@ __version__.py
 
 # Your local stuff:
 playground/
+!playground/publish.md

@@ -6,6 +6,7 @@ DIRS = exdrf \
     exdrf-qt \
     exdrf-dev \
     exdrf-gen \
+    exdrf-gen-openapi2rtk \
     exdrf-gen-al2qt \
     exdrf-gen-al2pd \
     exdrf-gen-al2at \
@@ -193,3 +194,33 @@ ui:
 # Set the PYQTDESIGNERPATH environment variable to a path inside this directory
 design:
 	python -m exdrf_dev.cli run env:DESIGNER
+
+
+# Build sdists and wheels for every package (requires dev extras, e.g. ``make init-d``).
+build-packages:
+	python "$(CURDIR)/scripts/build_packages.py"
+
+
+# Merge per-package ``dist/`` into ``release_dist/`` for a single Twine upload.
+collect-dist:
+	python "$(CURDIR)/scripts/collect_dist.py"
+
+
+# Upload merged artifacts to TestPyPI (run ``build-packages`` and ``collect-dist`` first).
+publish-test: build-packages collect-dist
+	python "$(CURDIR)/scripts/publish_packages.py" --artifacts-dir "$(CURDIR)/release_dist" --repository testpypi --non-interactive
+
+
+# Upload merged artifacts to PyPI (run ``build-packages`` and ``collect-dist`` first).
+publish: build-packages collect-dist
+	python "$(CURDIR)/scripts/publish_packages.py" --artifacts-dir "$(CURDIR)/release_dist" --repository pypi --non-interactive
+
+
+# Build, upload to TestPyPI, and verify installs in a clean venv (release rehearsal).
+fake-publish:
+	python "$(CURDIR)/scripts/fake_publish.py"
+
+
+# Commit VERSION bump, create annotated ``v*`` tag, and push (set ``EXDRF_RELEASE_ARGS``, e.g. ``--bump patch``).
+release:
+	python "$(CURDIR)/scripts/release.py" $(EXDRF_RELEASE_ARGS)
