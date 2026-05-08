@@ -19,33 +19,56 @@ class DirResult:
     exit_code: int
 
 
-def _py_path_with_root(root: Path) -> str:
-    """Prepend root to PYTHONPATH in an OS-correct way."""
-    root_str = str(root)
+def _pythonpath_for_mono_repo(root: Path, all_dirs: Sequence[str]) -> str:
+    """Build PYTHONPATH so every top-level package dir is importable.
+
+    Each monorepo member lives under ``root/<dirname>`` (e.g. ``exdrf-al``).
+    Putting only ``root`` on PYTHONPATH does not expose ``exdrf_al``; listing
+    every package directory matches editable installs and keeps pytest runs
+    consistent on Linux and Windows.
+
+    Args:
+        root: Repository root (parent of ``exdrf``, ``exdrf-al``, …).
+        all_dirs: Directory names in install order (same as ``Makefile`` ``DIRS``).
+
+    Returns:
+        ``PYTHONPATH`` string for subprocess environments.
+    """
+
+    entries: list[str] = []
+    for name in all_dirs:
+        pkg_dir = (root / name).resolve()
+        if pkg_dir.is_dir() and (pkg_dir / "pyproject.toml").is_file():
+            entries.append(str(pkg_dir))
+    if not entries:
+        entries.append(str(root.resolve()))
+    joined = os.pathsep.join(entries)
     existing = os.environ.get("PYTHONPATH", "")
     if not existing:
-        return root_str
-    return root_str + os.pathsep + existing
+        return joined
+    return joined + os.pathsep + existing
 
 
 def run_pytest_in_dir(
     *,
     root: Path,
     directory: Path,
+    all_dirs: Sequence[str],
     pytest_args: Sequence[str],
 ) -> DirResult:
     """Run pytest within one directory.
 
     Args:
-        root: Workspace root for PYTHONPATH.
+        root: Workspace root used to build PYTHONPATH.
         directory: Directory to run pytest in.
+        all_dirs: All package directory names under ``root`` (for PYTHONPATH).
         pytest_args: Extra args passed to pytest.
 
     Returns:
         DirResult for the directory.
     """
     env = dict(os.environ)
-    env["PYTHONPATH"] = _py_path_with_root(root)
+    env["PYTHONPATH"] = _pythonpath_for_mono_repo(root, all_dirs)
 
     cmd = [sys.executable, "-m", "pytest", *pytest_args]
     proc = subprocess.run(
@@ -78,6 +101,7 @@ def run_pytest_in_dirs(
             result = run_pytest_in_dir(
                 root=root,
                 directory=d_path,
+                all_dirs=list(dirs),
                 pytest_args=pytest_args,
             )
         except FileNotFoundError:

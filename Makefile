@@ -18,6 +18,11 @@ DIRS = exdrf \
     exdrf-rcv \
     exdrf-gen-al2rcv
 
+# One ``pip install`` with every ``-e`` path so pip resolves sibling ``exdrf-*``
+# deps from the workspace (CI has no private wheels on PyPI).
+PIP_INIT_E := $(foreach d,$(DIRS),-e "$(CURDIR)/$(d)")
+PIP_INIT_D_E := $(foreach d,$(DIRS),-e "$(CURDIR)/$(d)[dev]")
+
 # These are all python files in all the repository (including venv ones).
 PYTHON_FILES := $(wildcard *.py)
 
@@ -64,15 +69,13 @@ with-env:
 # Installs all the packages in the mono-repo into the current environment.
 # This is suitable for production environments.
 init:
-	@for %%d in ($(DIRS)) do ( \
-		pushd "$(CURDIR)\%%d" && python -m pip install -e . && popd)
+	python -m pip install $(PIP_INIT_E)
 
 
 # Installs all the packages in the mono-repo into the current environment with
 # dev dependencies.
 init-d:
-	@for %%d in ($(DIRS)) do ( \
-		pushd "$(CURDIR)\%%d" && python -m pip install -e .[dev] && popd)
+	python -m pip install $(PIP_INIT_D_E)
 
 
 # Runs all the tests in the mono-repo.
@@ -126,46 +129,36 @@ with-env:
 # Installs all the packages in the mono-repo into the current environment.
 # This is suitable for production environments.
 init:
-	@for dir in $(DIRS); do \
-		cd $$dir && python -m pip install -e .; \
-		cd - > /dev/null; \
-	done
+	python -m pip install $(PIP_INIT_E)
 
 
 # Installs all the packages in the mono-repo into the current environment with
 # dev dependencies.
 init-d:
-	@for dir in $(DIRS); do \
-		cd $$dir && python -m pip install -e .[dev]; \
-		cd - > /dev/null; \
-	done
+	python -m pip install $(PIP_INIT_D_E)
 
 
-# Runs all the tests in the mono-repo.
-# This is suitable for production environments.
+# Runs all the tests in the mono-repo (same runner as Windows: PYTHONPATH).
 test:
-	@for dir in $(DIRS); do \
-		cd $$dir && pytest; \
-		cd - > /dev/null; \
-	done
+	python -m exdrf_dev.pytest_dirs --root "$(CURDIR)" $(DIRS)
 
 
 # Checks the code style in all the packages in the mono-repo.
 lint:
 	@for dir in $(DIRS); do \
-		cd $$dir && python -m isort --check .; \
-		cd $$dir && python -m black --check --quiet .; \
-		cd $$dir && python -m pflake8 .; \
-		cd - > /dev/null; \
+		( cd "$(CURDIR)/$$dir" && \
+		  python -m isort --check . && \
+		  python -m black --check --quiet . && \
+		  python -m pflake8 . ) || exit $$?; \
 	done
 
 
 # Fixes the code style in all the packages in the mono-repo.
 delint: ui aflake
 	@for dir in $(DIRS); do \
-		cd $$dir && python -m isort .; \
-		cd $$dir && python -m black --quiet .; \
-		cd - > /dev/null; \
+		( cd "$(CURDIR)/$$dir" && \
+		  python -m isort . && \
+		  python -m black --quiet . ) || exit $$?; \
 	done
 
 

@@ -18,6 +18,7 @@ dependencies = [
   "attrs>=25.1.0",
   "inflect>=7.5.0",
   "SQLAlchemy>=2.0.38",
+  "Unidecode>=1.4.0",
 ]
 
 [project.optional-dependencies]
@@ -58,7 +59,7 @@ profile = "black"
 
 [tool.black]
 line-length = 80
-target-version = ['py312', 'py313']
+target-version = ['py312']
 
 [tool.flake8]
 docstring-convention = "google"
