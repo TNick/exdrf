@@ -64,13 +64,20 @@ def run_pytest_in_dir(
         all_dirs: All package directory names under ``root`` (for PYTHONPATH).
         pytest_args: Extra args passed to pytest.
 
+    Note:
+        Always prepends ``-o asyncio_default_fixture_loop_scope=function`` so
+        pytest-asyncio does not emit an unset-loop-scope deprecation warning.
+
     Returns:
         DirResult for the directory.
     """
     env = dict(os.environ)
     env["PYTHONPATH"] = _pythonpath_for_mono_repo(root, all_dirs)
 
-    cmd = [sys.executable, "-m", "pytest", *pytest_args]
+    # Avoid pytest-asyncio deprecation about unset default fixture loop scope.
+    asyncio_scope_opt = ["-o", "asyncio_default_fixture_loop_scope=function"]
+
+    cmd = [sys.executable, "-m", "pytest", *asyncio_scope_opt, *pytest_args]
     proc = subprocess.run(
         cmd,
         cwd=str(directory),

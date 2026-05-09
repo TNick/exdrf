@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 from typing import Sequence
 
-SUMMARY_RE = re.compile(r"Found (?P<count>\d+) errors? in \d+ files")
+SUMMARY_RE = re.compile(r"Found (?P<count>\d+) errors? in \d+ files?")
 
 
 def _pythonpath_for_mono_repo(root: Path, dirs: Sequence[str]) -> str:
@@ -43,14 +43,35 @@ def _pythonpath_for_mono_repo(root: Path, dirs: Sequence[str]) -> str:
     return joined + os.pathsep + existing
 
 
+def _compact_mypy_summary(output: str) -> str:
+    """Extract Success / Found-N-errors lines from raw mypy output.
+
+    Args:
+        output: Combined stdout and stderr from a mypy subprocess.
+
+    Returns:
+        Short summary text; falls back to full output if no summary matched.
+    """
+
+    lines_out: list[str] = []
+    for line in output.splitlines():
+        if SUMMARY_RE.search(line):
+            lines_out.append(line.strip())
+        elif line.strip().startswith("Success:"):
+            lines_out.append(line.strip())
+    if lines_out:
+        return "\n".join(lines_out)
+    return output
+
+
 def _run_mypy_in_dir(
     *,
     python_executable: str,
     root: Path,
     dir_name: str,
     all_dirs: Sequence[str],
-) -> tuple[int, int]:
-    """Run mypy in one directory and return detected errors.
+) -> tuple[int, int, str]:
+    """Run mypy in one directory and return exit status, error count, and output.
 
     Args:
         python_executable: Python interpreter used to execute mypy.
@@ -59,13 +80,12 @@ def _run_mypy_in_dir(
         all_dirs: All package directories, used to build PYTHONPATH.
 
     Returns:
-        A tuple of `(exit_code, error_count_from_summary_lines)`.
+        Tuple of ``(exit_code, error_count_from_summary_lines, combined_output)``.
     """
 
     target_dir = (root / dir_name).resolve()
     if not target_dir.exists():
-        print(f"Skipping {dir_name} - directory not found", flush=True)
-        return 0, 0
+        return 0, 0, ""
 
     env = dict(os.environ)
     env["PYTHONPATH"] = _pythonpath_for_mono_repo(root, all_dirs)
@@ -76,11 +96,12 @@ def _run_mypy_in_dir(
         python_executable,
         "-m",
         "mypy",
+        "--disable-error-code",
+        "annotation-unchecked",
         "--exclude",
         r"(^|\\|/)setup\.py$|_ui\.py$|(^|\\|/)build(\\|/)",
         ".",
     ]
-    print(f"=== Running mypy in {dir_name} ===", flush=True)
     proc = subprocess.run(
         cmd,
         cwd=str(target_dir),
@@ -90,8 +111,6 @@ def _run_mypy_in_dir(
     )
 
     output = proc.stdout + proc.stderr
-    if output:
-        print(output, end="")
 
     summary_errors = 0
 
@@ -102,7 +121,7 @@ def _run_mypy_in_dir(
             continue
         summary_errors += int(match.group("count"))
 
-    return int(proc.returncode), summary_errors
+    return int(proc.returncode), summary_errors, output
 
 
 def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
@@ -135,6 +154,12 @@ def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         help="Maximum allowed aggregated mypy errors.",
     )
     parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Print full mypy diagnostics for every package.",
+    )
+    parser.add_argument(
         "dirs",
         nargs="+",
         help="Directories to type-check.",
@@ -146,7 +171,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     """Execute mypy checks and enforce the configured error budget.
 
     Args:
-        argv: Optional command line argument override.
+        argv: Optional command line argument vector override.
 
     Returns:
         Process exit code.
@@ -157,36 +182,66 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     total_errors = 0
     non_zero_runs = 0
+    runs: list[tuple[str, int, int, str]] = []
 
-    # Run mypy for each package and aggregate summary counts.
+    # Run mypy for each package and aggregate summary counts (capture only).
     for dir_name in args.dirs:
-        exit_code, found_errors = _run_mypy_in_dir(
+        target_dir = (root / dir_name).resolve()
+        if not target_dir.exists():
+            print(f"Skipping {dir_name} - directory not found", flush=True)
+            continue
+
+        exit_code, found_errors, output = _run_mypy_in_dir(
             python_executable=args.python,
             root=root,
             dir_name=dir_name,
             all_dirs=args.dirs,
         )
+        runs.append((dir_name, exit_code, found_errors, output))
         total_errors += found_errors
         if exit_code != 0:
             non_zero_runs += 1
+
+    over_budget = total_errors > args.max_errors
+    show_full = args.verbose or over_budget
+
+    # Echo compact or full output now that the budget is known.
+    for dir_name, exit_code, found_errors, output in runs:
+        print(f"=== Running mypy in {dir_name} ===", flush=True)
+        if show_full:
+            if output:
+                print(output, end="")
+            continue
+
+        # Likely crash or plugin failure: summary line missing but mypy failed.
+        if exit_code != 0 and found_errors == 0:
+            if output:
+                print(output, end="")
+            continue
+
+        if output.strip():
+            print(_compact_mypy_summary(output), flush=True)
 
     print(
         f"Mypy aggregated errors: {total_errors} (budget: {args.max_errors})",
         flush=True,
     )
 
-    if total_errors > args.max_errors:
+    if over_budget:
         print(
-            f"ERROR: mypy error budget exceeded by {total_errors - args.max_errors}.",
+            "ERROR: mypy error budget exceeded by %d."
+            % (total_errors - args.max_errors),
             file=sys.stderr,
             flush=True,
         )
         return 1
 
-    # Preserve signal that mypy ran and checked code paths in each package.
-    if non_zero_runs > 0:
+    if total_errors == 0:
+        print("Mypy status: no issues found.", flush=True)
+    elif non_zero_runs > 0:
         print(
-            "Mypy completed with existing errors inside budget.",
+            "Mypy status: within error budget "
+            "(%d packages reported issues)." % non_zero_runs,
             flush=True,
         )
     return 0
