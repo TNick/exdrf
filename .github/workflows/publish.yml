@@ -43,6 +43,7 @@ jobs:
         with:
           repository-url: https://test.pypi.org/legacy/
           packages-dir: release_dist/
+          skip-existing: true
           user: __token__
           password: ${{ secrets.TEST_PYPI_API_TOKEN }}
 

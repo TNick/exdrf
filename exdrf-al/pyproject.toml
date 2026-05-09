@@ -55,6 +55,7 @@ exdrf_al = ["py.typed"]
 exclude = ["venv*", "playground*"]
 
 [tool.setuptools_scm]
+root = ".."
 fallback_version = "0.0.1-dev"
 version_file = "exdrf_al/__version__.py"
 

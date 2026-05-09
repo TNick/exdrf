@@ -53,6 +53,7 @@ exdrf_gen_openapi2rtk = ["openapi2rtk_templates/**/*.j2", "py.typed"]
 exclude = ["venv*", "playground*"]
 
 [tool.setuptools_scm]
+root = ".."
 fallback_version = "0.0.1-dev"
 version_file = "exdrf_gen_openapi2rtk/__version__.py"
 

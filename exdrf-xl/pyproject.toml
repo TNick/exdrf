@@ -49,6 +49,7 @@ exdrf_xl = ["py.typed"]
 exclude = ["venv*", "playground*"]
 
 [tool.setuptools_scm]
+root = ".."
 fallback_version = "0.0.1-dev"
 write_to = "exdrf_xl/__version__.py"
 
