@@ -877,7 +877,8 @@ def raw_filter_to_text(filter: Union[FilterType, FieldFilter]) -> str:
                     do_part(part[1], indent + 1)
                     result += prefix + ")\n"
                 elif op_name == "not":
-                    # NOT can have dict or FieldFilter directly, not wrapped in list
+                    # NOT can have dict or FieldFilter directly; it does not
+                    # need to be wrapped in a list.
                     result += prefix + "NOT (\n"
                     do_part(part[1], indent + 1)
                     result += prefix + ")\n"

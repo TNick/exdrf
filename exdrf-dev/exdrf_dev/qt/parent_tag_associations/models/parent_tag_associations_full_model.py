@@ -23,7 +23,7 @@ class QtParentTagAssociationFuMo(QtModel["ParentTagAssociation"]):
     """The model that contains all the fields of the ParentTagAssociation table."""
 
     def __init__(self, ctx: "QtContext", **kwargs):
-        from exdrf_dev.db.models import (
+        from exdrf_dev.db.models import (  # isort: skip
             ParentTagAssociation as DbParentTagAssociation,
         )
 

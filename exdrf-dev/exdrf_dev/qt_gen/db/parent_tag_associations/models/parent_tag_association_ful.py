@@ -53,7 +53,7 @@ class QtParentTagAssociationFuMo(QtModel["ParentTagAssociation"]):
         fields=None,
         **kwargs,
     ):
-        from exdrf_dev.db.api import (
+        from exdrf_dev.db.api import (  # isort: skip
             ParentTagAssociation as DbParentTagAssociation,
         )
 

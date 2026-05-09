@@ -360,7 +360,7 @@ class VarItemDelegate(QStyledItemDelegate):
             return None
         model = cast(Any, index.model())
         try:
-            from exdrf_qt.controls.templ_viewer.model import (
+            from exdrf_qt.controls.templ_viewer.model import (  # isort: skip
                 VarModel as _VarModel,
             )
 
@@ -502,7 +502,7 @@ class VarItemDelegate(QStyledItemDelegate):
         if isinstance(editor, QLineEdit):
             text = editor.text()
             try:
-                from exdrf_qt.controls.templ_viewer.model import (
+                from exdrf_qt.controls.templ_viewer.model import (  # isort: skip
                     VarModel as _VarModel,
                 )
 

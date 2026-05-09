@@ -39,7 +39,7 @@ class QtParentTagAssociationEditor(
 
     def __init__(self, ctx: "QtContext", **kwargs):
         """Initialize the editor widget."""
-        from exdrf_dev.db.api import (
+        from exdrf_dev.db.api import (  # isort: skip
             ParentTagAssociation as DbParentTagAssociation,
         )
 

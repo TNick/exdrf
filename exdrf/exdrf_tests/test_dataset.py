@@ -237,7 +237,7 @@ class TestExDatasetVisit:
         # Assert that the visitor's visit_dataset method was called
         mock_visitor.visit_dataset.assert_called_once_with(dataset)
 
-        # Assert that the visitor's visit_category method was called for each category
+        # Assert visit_category was called for each category.
         mock_visitor.visit_category.assert_any_call("Category1", 0, mocker.ANY)
         mock_visitor.visit_category.assert_any_call(
             "SubCategory1", 1, mocker.ANY
@@ -388,7 +388,7 @@ class TestExDatasetSortedByDeps:
         dataset = ExDataset()
         dataset.resources.extend([mock_resource1, mock_resource2])
 
-        # Call sorted_by_deps - this may print to stdout when circular deps detected
+        # Call sorted_by_deps; circular deps may print a warning.
         sorted_resources = dataset.sorted_by_deps()
 
         # Capture the output after calling sorted_by_deps
@@ -398,7 +398,7 @@ class TestExDatasetSortedByDeps:
         # and prints to stdout. Check if it was captured.
         output = captured.out
         if "Circular dependency detected" not in output:
-            # If not captured, the function still works but warning may not print
+            # If not captured, function still works but warning may not print.
             # depending on execution path. Just verify the function completes.
             pass
 

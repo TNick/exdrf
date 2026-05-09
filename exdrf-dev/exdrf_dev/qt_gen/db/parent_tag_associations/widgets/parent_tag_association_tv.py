@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from exdrf_qt.context import QtContext  # noqa: F401
     from sqlalchemy.orm import Session  # noqa: F401
 
-    from exdrf_dev.db.api import (  # noqa: F401
+    from exdrf_dev.db.api import (  # noqa: F401 isort: skip
         ParentTagAssociation as ParentTagAssociation,
     )
 
@@ -38,7 +38,7 @@ class QtParentTagAssociationTv(RecordTemplViewer):
     # exdrf-keep-end other_attributes ------------------------------------------
 
     def __init__(self, ctx: "QtContext", **kwargs):
-        from exdrf_dev.db.api import (
+        from exdrf_dev.db.api import (  # isort: skip
             ParentTagAssociation as DbParentTagAssociation,
         )
 

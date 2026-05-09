@@ -60,3 +60,4 @@ extend-exclude = "__version__\\.py"
 [tool.flake8]
 docstring-convention = "google"
 max-line-length = 80
+extend-ignore = ["E203", "E501", "W503"]
