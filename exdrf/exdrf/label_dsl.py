@@ -24,9 +24,7 @@ from typing import Any, Dict, List, Literal, Union, cast
 
 from attrs import define, field
 
-ASTNode = Union[
-    "ParsedOp", "ParsedLiteral", "ParsedIdentifier", List["ASTNode"]
-]
+ASTNode = Union["ParsedOp", "ParsedLiteral", "ParsedIdentifier", List["ASTNode"]]
 
 # \s*: This part matches zero or more whitespace characters.
 # (\(|\)|\"[^\"]*\"|[^\s()]+): This is the main capturing group, enclosed
@@ -161,9 +159,7 @@ class ParsedIdentifier(Parsed):
             for part in parts:
                 attr = getattr(attr, part, Null)
                 if attr is Null:
-                    raise AttributeError(
-                        f"Attribute `{part}` not found in {attr}"
-                    )
+                    raise AttributeError(f"Attribute `{part}` not found in {attr}")
         return attr
 
 
@@ -450,13 +446,7 @@ class FloatStr(Operation):
             f"{'\n'.join(map(str, args))}"
         )
         number, digits = args
-        return (
-            '("{:." + str('
-            + str(digits)
-            + ') + "f}").format('
-            + str(number)
-            + ")"
-        )
+        return '("{:." + str(' + str(digits) + ') + "f}").format(' + str(number) + ")"
 
     def to_typescript(self, *args) -> str:
         assert len(args) == 2, (

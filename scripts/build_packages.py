@@ -37,9 +37,7 @@ def _run_build(package_dir: Path) -> None:
         check=False,
     )
     if proc.returncode != 0:
-        logger.error(
-            "build failed for %s with code %s", package_dir, proc.returncode
-        )
+        logger.error("build failed for %s with code %s", package_dir, proc.returncode)
         raise SystemExit(proc.returncode)
 
 
@@ -57,9 +55,7 @@ def _run_twine_check(package_dir: Path) -> None:
 
     cmd = [sys.executable, "-m", "twine", "check", str(dist_dir / "*")]
     # twine check does not expand globs on Windows the same way; pass explicit files.
-    artifacts = sorted(dist_dir.glob("*.whl")) + sorted(
-        dist_dir.glob("*.tar.gz")
-    )
+    artifacts = sorted(dist_dir.glob("*.whl")) + sorted(dist_dir.glob("*.tar.gz"))
     if not artifacts:
         logger.error("No wheel or sdist in %s", dist_dir)
         raise SystemExit(1)

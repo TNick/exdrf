@@ -154,9 +154,7 @@ class WorkerListModel(QAbstractListModel):
         super().__init__(parent)
         self._items = []
 
-    def rowCount(
-        self, parent: QModelIndex = QModelIndex()
-    ) -> int:  # noqa: N802
+    def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:  # noqa: N802
         if parent.isValid():
             return 0
         return len(self._items)
@@ -468,15 +466,11 @@ class WorkerDetailsModel(QAbstractItemModel):
         self._root = self._Node(label="root")
         self._header = ("Label", "Value")
 
-    def columnCount(
-        self, parent: QModelIndex = QModelIndex()
-    ) -> int:  # noqa: N802
+    def columnCount(self, parent: QModelIndex = QModelIndex()) -> int:  # noqa: N802
         _ = parent
         return 2
 
-    def rowCount(
-        self, parent: QModelIndex = QModelIndex()
-    ) -> int:  # noqa: N802
+    def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:  # noqa: N802
         node = self._node_from_index(parent)
         return len(node.children)
 

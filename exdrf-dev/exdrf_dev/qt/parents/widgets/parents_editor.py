@@ -41,9 +41,7 @@ class QtParentEditor(ExdrfEditor["Parent"], Ui_QtParentEditor):
     def populate(self, record: Union["Parent", None]):
         pass
 
-    def save_to_record(
-        self, record: "Parent", is_new: bool, session: "Session"
-    ):
+    def save_to_record(self, record: "Parent", is_new: bool, session: "Session"):
         pass
 
     def get_id_of_record(self, record: "Parent") -> RecIdType:

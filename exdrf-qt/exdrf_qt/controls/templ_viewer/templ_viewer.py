@@ -187,27 +187,19 @@ snippets = {
     "templ.snp.var_name": ("Insert variable", "{{ $(name) }}"),
     "templ.snp.for_loop": (
         "Insert for loop",
-        "{% for $(itr) in $(src) %}\n" "$(body)\n" "{% endfor %}",
+        "{% for $(itr) in $(src) %}\n$(body)\n{% endfor %}",
     ),
     "templ.snp.if_stmt": (
         "Insert if statement",
-        "{% if $(cond) %}\n" "$(body)\n" "{% endif %}",
+        "{% if $(cond) %}\n$(body)\n{% endif %}",
     ),
     "templ.snp.if_stmt_else": (
         "Insert if-else",
-        "{% if $(cond) %}\n"
-        "$(body)\n"
-        "{% else %}\n"
-        "$(body)\n"
-        "{% endif %}",
+        "{% if $(cond) %}\n$(body)\n{% else %}\n$(body)\n{% endif %}",
     ),
     "templ.snp.if_stmt_else_if": (
         "Insert if-else-if",
-        "{% if $(cond) %}\n"
-        "$(body)\n"
-        "{% elif $(cond) %}\n"
-        "$(body)\n"
-        "{% endif %}",
+        "{% if $(cond) %}\n$(body)\n{% elif $(cond) %}\n$(body)\n{% endif %}",
     ),
     "templ.snp.namespaced_name": (
         "Insert namespaced name",
@@ -1948,7 +1940,7 @@ class RecordTemplViewer(TemplViewer, Generic[DBM]):
                         count = count_relationship(session, record, fld.name)
                     except Exception as e:
                         logger.error(
-                            "Error counting relation %s in model " "%s: %s",
+                            "Error counting relation %s in model %s: %s",
                             fld.name,
                             record.__class__.__name__,
                             e,

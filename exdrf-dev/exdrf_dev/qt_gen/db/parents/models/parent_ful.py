@@ -5,12 +5,6 @@
 from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Union
 
 from exdrf.constants import RecIdType
-from exdrf_qt.models import QtModel
-from exdrf_qt.plugins import exdrf_qt_pm
-from exdrf_qt.utils.plugins import safe_hook_call
-from sqlalchemy import select
-from sqlalchemy.orm import joinedload, selectinload
-
 from exdrf_dev.qt_gen.db.parents.fields.fld_children import ChildrenField
 from exdrf_dev.qt_gen.db.parents.fields.fld_created_at import CreatedAtField
 from exdrf_dev.qt_gen.db.parents.fields.fld_id import IdField
@@ -18,6 +12,11 @@ from exdrf_dev.qt_gen.db.parents.fields.fld_is_active import IsActiveField
 from exdrf_dev.qt_gen.db.parents.fields.fld_name import NameField
 from exdrf_dev.qt_gen.db.parents.fields.fld_profile import ProfileField
 from exdrf_dev.qt_gen.db.parents.fields.fld_tags import TagsField
+from exdrf_qt.models import QtModel
+from exdrf_qt.plugins import exdrf_qt_pm
+from exdrf_qt.utils.plugins import safe_hook_call
+from sqlalchemy import select
+from sqlalchemy.orm import joinedload, selectinload
 
 # exdrf-keep-start other_imports ----------------------------------------------
 
@@ -25,10 +24,9 @@ from exdrf_dev.qt_gen.db.parents.fields.fld_tags import TagsField
 
 if TYPE_CHECKING:
     from exdrf.filter import FilterType  # noqa: F401
+    from exdrf_dev.db.api import Parent  # noqa: F401
     from exdrf_qt.context import QtContext  # noqa: F401
     from sqlalchemy import Select  # noqa: F401
-
-    from exdrf_dev.db.api import Parent  # noqa: F401
 
 # exdrf-keep-start other_globals ----------------------------------------------
 
@@ -87,13 +85,9 @@ class QtParentFuMo(QtModel["Parent"]):
 
         super().__init__(
             ctx=ctx,
-            db_model=ctx.get_ovr(
-                "exdrf_dev.qt_gen.db.parents.ful.model", DbParent
-            ),
+            db_model=ctx.get_ovr("exdrf_dev.qt_gen.db.parents.ful.model", DbParent),
             selection=(
-                selection
-                if selection is not None
-                else default_parent_list_selection()
+                selection if selection is not None else default_parent_list_selection()
             ),
             fields=(
                 fields

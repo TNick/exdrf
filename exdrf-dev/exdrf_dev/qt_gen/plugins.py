@@ -12,14 +12,15 @@ from exdrf_qt.plugins import hook_spec
 
 if TYPE_CHECKING:
     from exdrf.filter import FilterType  # noqa: F401
-
-    from exdrf_dev.qt_gen.db.children.api import QtChildEditor  # noqa: F401
-    from exdrf_dev.qt_gen.db.children.api import QtChildFuMo  # noqa: F401
-    from exdrf_dev.qt_gen.db.children.api import QtChildList  # noqa: F401
-    from exdrf_dev.qt_gen.db.children.api import QtChildMuSe  # noqa: F401
-    from exdrf_dev.qt_gen.db.children.api import QtChildNaMo  # noqa: F401
-    from exdrf_dev.qt_gen.db.children.api import QtChildSiSe  # noqa: F401
-    from exdrf_dev.qt_gen.db.children.api import QtChildTv  # noqa: F401
+    from exdrf_dev.qt_gen.db.children.api import (
+        QtChildEditor,  # noqa: F401
+        QtChildFuMo,  # noqa: F401
+        QtChildList,  # noqa: F401
+        QtChildMuSe,  # noqa: F401
+        QtChildNaMo,  # noqa: F401
+        QtChildSiSe,  # noqa: F401
+        QtChildTv,  # noqa: F401
+    )
     from exdrf_dev.qt_gen.db.composite_key_models.api import (  # noqa: F401
         QtCompositeKeyModelEditor,
         QtCompositeKeyModelFuMo,
@@ -38,20 +39,24 @@ if TYPE_CHECKING:
         QtParentTagAssociationSiSe,
         QtParentTagAssociationTv,
     )
-    from exdrf_dev.qt_gen.db.parents.api import QtParentEditor  # noqa: F401
-    from exdrf_dev.qt_gen.db.parents.api import QtParentFuMo  # noqa: F401
-    from exdrf_dev.qt_gen.db.parents.api import QtParentList  # noqa: F401
-    from exdrf_dev.qt_gen.db.parents.api import QtParentMuSe  # noqa: F401
-    from exdrf_dev.qt_gen.db.parents.api import QtParentNaMo  # noqa: F401
-    from exdrf_dev.qt_gen.db.parents.api import QtParentSiSe  # noqa: F401
-    from exdrf_dev.qt_gen.db.parents.api import QtParentTv  # noqa: F401
-    from exdrf_dev.qt_gen.db.profiles.api import QtProfileEditor  # noqa: F401
-    from exdrf_dev.qt_gen.db.profiles.api import QtProfileFuMo  # noqa: F401
-    from exdrf_dev.qt_gen.db.profiles.api import QtProfileList  # noqa: F401
-    from exdrf_dev.qt_gen.db.profiles.api import QtProfileMuSe  # noqa: F401
-    from exdrf_dev.qt_gen.db.profiles.api import QtProfileNaMo  # noqa: F401
-    from exdrf_dev.qt_gen.db.profiles.api import QtProfileSiSe  # noqa: F401
-    from exdrf_dev.qt_gen.db.profiles.api import QtProfileTv  # noqa: F401
+    from exdrf_dev.qt_gen.db.parents.api import (
+        QtParentEditor,  # noqa: F401
+        QtParentFuMo,  # noqa: F401
+        QtParentList,  # noqa: F401
+        QtParentMuSe,  # noqa: F401
+        QtParentNaMo,  # noqa: F401
+        QtParentSiSe,  # noqa: F401
+        QtParentTv,  # noqa: F401
+    )
+    from exdrf_dev.qt_gen.db.profiles.api import (
+        QtProfileEditor,  # noqa: F401
+        QtProfileFuMo,  # noqa: F401
+        QtProfileList,  # noqa: F401
+        QtProfileMuSe,  # noqa: F401
+        QtProfileNaMo,  # noqa: F401
+        QtProfileSiSe,  # noqa: F401
+        QtProfileTv,  # noqa: F401
+    )
     from exdrf_dev.qt_gen.db.related_items.api import (  # noqa: F401
         QtRelatedItemEditor,
         QtRelatedItemFuMo,
@@ -61,13 +66,15 @@ if TYPE_CHECKING:
         QtRelatedItemSiSe,
         QtRelatedItemTv,
     )
-    from exdrf_dev.qt_gen.db.tags.api import QtTagEditor  # noqa: F401
-    from exdrf_dev.qt_gen.db.tags.api import QtTagFuMo  # noqa: F401
-    from exdrf_dev.qt_gen.db.tags.api import QtTagList  # noqa: F401
-    from exdrf_dev.qt_gen.db.tags.api import QtTagMuSe  # noqa: F401
-    from exdrf_dev.qt_gen.db.tags.api import QtTagNaMo  # noqa: F401
-    from exdrf_dev.qt_gen.db.tags.api import QtTagSiSe  # noqa: F401
-    from exdrf_dev.qt_gen.db.tags.api import QtTagTv  # noqa: F401
+    from exdrf_dev.qt_gen.db.tags.api import (
+        QtTagEditor,  # noqa: F401
+        QtTagFuMo,  # noqa: F401
+        QtTagList,  # noqa: F401
+        QtTagMuSe,  # noqa: F401
+        QtTagNaMo,  # noqa: F401
+        QtTagSiSe,  # noqa: F401
+        QtTagTv,  # noqa: F401
+    )
 
 logger = logging.getLogger(__name__)
 # exdrf-keep-start other_globals ----------------------------------------------
@@ -184,9 +191,7 @@ class CompositeKeyModelHooks:
         raise NotImplementedError
 
     @hook_spec
-    def composite_key_model_tv_created(
-        self, widget: "QtCompositeKeyModelTv"
-    ) -> None:
+    def composite_key_model_tv_created(self, widget: "QtCompositeKeyModelTv") -> None:
         """Called when a template-based viewer is created."""
         raise NotImplementedError
 
@@ -384,9 +389,7 @@ class RelatedItemHooks:
         raise NotImplementedError
 
     @hook_spec
-    def related_item_editor_created(
-        self, widget: "QtRelatedItemEditor"
-    ) -> None:
+    def related_item_editor_created(self, widget: "QtRelatedItemEditor") -> None:
         """Called when an editor of an item is created."""
         raise NotImplementedError
 

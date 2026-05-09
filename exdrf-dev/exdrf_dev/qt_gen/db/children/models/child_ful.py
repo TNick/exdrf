@@ -5,16 +5,15 @@
 from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Union
 
 from exdrf.constants import RecIdType
+from exdrf_dev.qt_gen.db.children.fields.fld_data import DataField
+from exdrf_dev.qt_gen.db.children.fields.fld_id import IdField
+from exdrf_dev.qt_gen.db.children.fields.fld_parent import ParentField
+from exdrf_dev.qt_gen.db.children.fields.fld_parent_id import ParentIdField
 from exdrf_qt.models import QtModel
 from exdrf_qt.plugins import exdrf_qt_pm
 from exdrf_qt.utils.plugins import safe_hook_call
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload
-
-from exdrf_dev.qt_gen.db.children.fields.fld_data import DataField
-from exdrf_dev.qt_gen.db.children.fields.fld_id import IdField
-from exdrf_dev.qt_gen.db.children.fields.fld_parent import ParentField
-from exdrf_dev.qt_gen.db.children.fields.fld_parent_id import ParentIdField
 
 # exdrf-keep-start other_imports ----------------------------------------------
 
@@ -22,10 +21,9 @@ from exdrf_dev.qt_gen.db.children.fields.fld_parent_id import ParentIdField
 
 if TYPE_CHECKING:
     from exdrf.filter import FilterType  # noqa: F401
+    from exdrf_dev.db.api import Child  # noqa: F401
     from exdrf_qt.context import QtContext  # noqa: F401
     from sqlalchemy import Select  # noqa: F401
-
-    from exdrf_dev.db.api import Child  # noqa: F401
 
 # exdrf-keep-start other_globals ----------------------------------------------
 
@@ -64,17 +62,13 @@ class QtChildFuMo(QtModel["Child"]):
         # otherwise calculate it from context overrides
         db_model = kwargs.pop("db_model", None)
         if db_model is None:
-            db_model = ctx.get_ovr(
-                "exdrf_dev.qt_gen.db.children.ful.model", DbChild
-            )
+            db_model = ctx.get_ovr("exdrf_dev.qt_gen.db.children.ful.model", DbChild)
 
         super().__init__(
             ctx=ctx,
             db_model=db_model,
             selection=(
-                selection
-                if selection is not None
-                else default_child_list_selection()
+                selection if selection is not None else default_child_list_selection()
             ),
             fields=(
                 fields

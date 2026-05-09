@@ -5,7 +5,6 @@ import ast
 from exdrf.field_types.int_field import IntField
 from exdrf.label_dsl import parse_expr
 from exdrf.resource import ExResource
-
 from exdrf_gen_al2rcv.rcv_field_emit import (
     build_rcv_resource_data_access_dict,
     rcv_field_dicts_py_literal,

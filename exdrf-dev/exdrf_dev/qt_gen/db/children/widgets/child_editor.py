@@ -5,23 +5,21 @@
 from typing import TYPE_CHECKING, Union
 
 from exdrf.constants import RecIdType
-from exdrf_qt.controls import ExdrfEditor
-from exdrf_qt.plugins import exdrf_qt_pm
-from exdrf_qt.utils.plugins import safe_hook_call
-
 from exdrf_dev.qt_gen.db.children.widgets.child_editor_ui import (
     Ui_QtChildEditor,
 )
+from exdrf_qt.controls import ExdrfEditor
+from exdrf_qt.plugins import exdrf_qt_pm
+from exdrf_qt.utils.plugins import safe_hook_call
 
 # exdrf-keep-start other_imports ----------------------------------------------
 
 # exdrf-keep-end other_imports ------------------------------------------------
 
 if TYPE_CHECKING:
+    from exdrf_dev.db.api import Child  # noqa: F401
     from exdrf_qt.context import QtContext  # noqa: F401
     from sqlalchemy.orm import Session  # noqa: F401
-
-    from exdrf_dev.db.api import Child  # noqa: F401
 
 # exdrf-keep-start other_globals ----------------------------------------------
 
@@ -43,9 +41,7 @@ class QtChildEditor(ExdrfEditor["Child"], Ui_QtChildEditor):
             ctx=ctx,
             db_model=kwargs.pop(
                 "db_model",
-                ctx.get_ovr(
-                    "exdrf_dev.qt_gen.db.children.editor.model", DbChild
-                ),
+                ctx.get_ovr("exdrf_dev.qt_gen.db.children.editor.model", DbChild),
             ),
             **kwargs,
         )

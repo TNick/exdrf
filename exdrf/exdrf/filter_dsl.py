@@ -95,9 +95,7 @@ class FltSyntaxError(Exception):
         self.lineno = lineno
         self.column = column
         self.offset = offset
-        self.end_offset = (
-            end_offset if end_offset != -1 else (len(text) - offset)
-        )
+        self.end_offset = end_offset if end_offset != -1 else (len(text) - offset)
         self.value = value
         self.expected = expected
 
@@ -305,10 +303,7 @@ class DSLTokenizer:
                     end_pos += 1
             if end_pos >= len(self.text) or self.text[end_pos] != "'":
                 raise FltSyntaxError(
-                    msg=(
-                        f"Unterminated string at line {start_line} "
-                        f"col {start_col}"
-                    ),
+                    msg=(f"Unterminated string at line {start_line} col {start_col}"),
                     code=FltErrCode.UNTERMINATED_STRING,
                     text=self.text,
                     lineno=start_line,
@@ -335,10 +330,7 @@ class DSLTokenizer:
                 end_pos += 1
             if bracket_level != 0:
                 raise FltSyntaxError(
-                    msg=(
-                        f"Unmatched brackets at line {start_line} "
-                        f"col {start_col}"
-                    ),
+                    msg=(f"Unmatched brackets at line {start_line} col {start_col}"),
                     code=FltErrCode.UNMATCHED_BRACKETS,
                     text=self.text,
                     lineno=start_line,
@@ -374,10 +366,7 @@ class DSLTokenizer:
             return Token(token_value, start_line, start_col, self.pos)
 
         raise FltSyntaxError(
-            msg=(
-                f"Unexpected character '{ch}' at line {start_line} "
-                f"col {start_col}"
-            ),
+            msg=(f"Unexpected character '{ch}' at line {start_line} col {start_col}"),
             code=FltErrCode.UNEXPECTED_CHAR,
             text=self.text,
             lineno=start_line,
@@ -533,9 +522,7 @@ class DSLParser:
         Returns:
             The current token, or None if the end of the tokens is reached.
         """
-        return (
-            self.tokens[self.index] if self.index < len(self.tokens) else None
-        )
+        return self.tokens[self.index] if self.index < len(self.tokens) else None
 
     def match(self, expected: str) -> Token:
         """Match the expected token.
@@ -664,13 +651,9 @@ class DSLParser:
                 self.match(",")
         self.match(")")
         if op_str == "AND":
-            return ParsedLogicAnd(
-                tk_op=op, items=cast(List[ParsedFieldFilter], items)
-            )
+            return ParsedLogicAnd(tk_op=op, items=cast(List[ParsedFieldFilter], items))
         elif op_str == "OR":
-            return ParsedLogicOr(
-                tk_op=op, items=cast(List[ParsedFieldFilter], items)
-            )
+            return ParsedLogicOr(tk_op=op, items=cast(List[ParsedFieldFilter], items))
         else:
             raise ValueError(f"Unknown operator: {op}")
 
@@ -854,8 +837,7 @@ def raw_filter_to_text(filter: Union[FilterType, FieldFilter]) -> str:
                 op_name = part[0].lower()
                 if len(part) != 2:
                     raise ValueError(
-                        f"The logic operator list expects two elements. "
-                        f"Got {part}"
+                        f"The logic operator list expects two elements. Got {part}"
                     )
                 op_name = part[0].lower()
                 if op_name == "and":

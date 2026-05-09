@@ -28,7 +28,6 @@ class _RegistryVisitorMixin:
     ) -> None:
         """Walk all mapped models and forward them to ``visitor``."""
         for model in cls.all_models():
-
             # Compute the categories (list of modules) of the model.
             categories = visitor.category(model)
 

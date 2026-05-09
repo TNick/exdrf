@@ -31,9 +31,7 @@ class QtProfileEditor(ExdrfEditor["Profile"], Ui_QtProfileEditor):
     def editing_changed(self, value: bool):
         pass
 
-    def read_record(
-        self, session: "Session", record_id: RecIdType
-    ) -> "Profile":
+    def read_record(self, session: "Session", record_id: RecIdType) -> "Profile":
         return session.scalar(
             self.selection.where(
                 self.db_model.id == record_id  # type: ignore[operator]
@@ -43,9 +41,7 @@ class QtProfileEditor(ExdrfEditor["Profile"], Ui_QtProfileEditor):
     def populate(self, record: Union["Profile", None]):
         pass
 
-    def save_to_record(
-        self, record: "Profile", is_new: bool, session: "Session"
-    ):
+    def save_to_record(self, record: "Profile", is_new: bool, session: "Session"):
         pass
 
     def get_id_of_record(self, record: "Profile") -> RecIdType:

@@ -28,9 +28,7 @@ def build_al2r_list_relation_query_specs(
     """
 
     by_ex: Dict[str, Dict[str, Any]] = {
-        cast(str, s["ex_field_name"]): s
-        for s in rel_specs
-        if s.get("ex_field_name")
+        cast(str, s["ex_field_name"]): s for s in rel_specs if s.get("ex_field_name")
     }
     ref_by_name: Dict[str, Any] = {}
     for f in getattr(resource, "fields", ()) or ():

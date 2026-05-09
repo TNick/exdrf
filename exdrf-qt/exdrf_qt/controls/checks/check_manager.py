@@ -353,9 +353,7 @@ class CheckManager(
             return
         viewport.installEventFilter(self)
 
-    def eventFilter(
-        self, a0: Optional[QObject], a1: Optional[QEvent]
-    ) -> bool:  # noqa: N802
+    def eventFilter(self, a0: Optional[QObject], a1: Optional[QEvent]) -> bool:  # noqa: N802
         """React to viewport resize events to recompute row heights.
 
         Args:
@@ -621,7 +619,7 @@ class CheckManager(
                     address = html_escape(str(link[3]))
                     link_parts.append(f'<a href="{address}">{label}</a>')
             if link_parts:
-                links_html = f"<h4>Links</h4>" f"<p>{', '.join(link_parts)}</p>"
+                links_html = f"<h4>Links</h4><p>{', '.join(link_parts)}</p>"
 
         html_text = (
             f"<h3>{html_escape(entry.check_category)}</h3>"

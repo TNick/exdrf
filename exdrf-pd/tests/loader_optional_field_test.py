@@ -6,9 +6,8 @@ from typing import Optional
 
 from exdrf.field_types.str_field import StrField
 from exdrf.resource import ExResource
-from pydantic import BaseModel
-
 from exdrf_pd.loader import field_from_pydantic
+from pydantic import BaseModel
 
 
 class TestFieldFromPydanticOptional:

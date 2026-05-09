@@ -54,7 +54,6 @@ class Ui_QtCompositeKeyModelEditor:
     verticalLayout: "QtWidgets.QVBoxLayout"
 
     def setup_ui(self, QtCompositeKeyModelEditor):
-
         QtCompositeKeyModelEditor.setObjectName("QtCompositeKeyModelEditor")
         QtCompositeKeyModelEditor.resize(480, 640)
         self.verticalLayout = QtWidgets.QVBoxLayout(QtCompositeKeyModelEditor)
@@ -72,9 +71,7 @@ class Ui_QtCompositeKeyModelEditor:
         )
         self.c_key_part1 = QtWidgets.QLineEdit(self.tab_general)
         self.c_key_part1.setObjectName("c_key_part1")
-        self.formLayout.setWidget(
-            0, QtWidgets.QFormLayout.FieldRole, self.c_key_part1
-        )
+        self.formLayout.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.c_key_part1)
         self.lbl_key_part2 = QtWidgets.QLabel(self.tab_general)
         self.lbl_key_part2.setObjectName("lbl_key_part2")
         self.formLayout.setWidget(
@@ -82,9 +79,7 @@ class Ui_QtCompositeKeyModelEditor:
         )
         self.c_key_part2 = QtWidgets.QSpinBox(self.tab_general)
         self.c_key_part2.setObjectName("c_key_part2")
-        self.formLayout.setWidget(
-            1, QtWidgets.QFormLayout.FieldRole, self.c_key_part2
-        )
+        self.formLayout.setWidget(1, QtWidgets.QFormLayout.FieldRole, self.c_key_part2)
         self.lbl_some_binary = QtWidgets.QLabel(self.tab_general)
         self.lbl_some_binary.setObjectName("lbl_some_binary")
         self.formLayout.setWidget(
@@ -102,9 +97,7 @@ class Ui_QtCompositeKeyModelEditor:
         )
         self.c_some_date = QtWidgets.QDateEdit(self.tab_general)
         self.c_some_date.setObjectName("c_some_date")
-        self.formLayout.setWidget(
-            3, QtWidgets.QFormLayout.FieldRole, self.c_some_date
-        )
+        self.formLayout.setWidget(3, QtWidgets.QFormLayout.FieldRole, self.c_some_date)
         self.lbl_some_enum = QtWidgets.QLabel(self.tab_general)
         self.lbl_some_enum.setObjectName("lbl_some_enum")
         self.formLayout.setWidget(
@@ -112,9 +105,7 @@ class Ui_QtCompositeKeyModelEditor:
         )
         self.c_some_enum = QtWidgets.QLineEdit(self.tab_general)
         self.c_some_enum.setObjectName("c_some_enum")
-        self.formLayout.setWidget(
-            4, QtWidgets.QFormLayout.FieldRole, self.c_some_enum
-        )
+        self.formLayout.setWidget(4, QtWidgets.QFormLayout.FieldRole, self.c_some_enum)
         self.lbl_some_float = QtWidgets.QLabel(self.tab_general)
         self.lbl_some_float.setObjectName("lbl_some_float")
         self.formLayout.setWidget(
@@ -122,9 +113,7 @@ class Ui_QtCompositeKeyModelEditor:
         )
         self.c_some_float = QtWidgets.QDoubleSpinBox(self.tab_general)
         self.c_some_float.setObjectName("c_some_float")
-        self.formLayout.setWidget(
-            5, QtWidgets.QFormLayout.FieldRole, self.c_some_float
-        )
+        self.formLayout.setWidget(5, QtWidgets.QFormLayout.FieldRole, self.c_some_float)
         self.lbl_some_json = QtWidgets.QLabel(self.tab_general)
         self.lbl_some_json.setObjectName("lbl_some_json")
         self.formLayout.setWidget(
@@ -132,9 +121,7 @@ class Ui_QtCompositeKeyModelEditor:
         )
         self.c_some_json = QtWidgets.QCheckBox(self.tab_general)
         self.c_some_json.setObjectName("c_some_json")
-        self.formLayout.setWidget(
-            6, QtWidgets.QFormLayout.FieldRole, self.c_some_json
-        )
+        self.formLayout.setWidget(6, QtWidgets.QFormLayout.FieldRole, self.c_some_json)
         self.lbl_some_time = QtWidgets.QLabel(self.tab_general)
         self.lbl_some_time.setObjectName("lbl_some_time")
         self.formLayout.setWidget(

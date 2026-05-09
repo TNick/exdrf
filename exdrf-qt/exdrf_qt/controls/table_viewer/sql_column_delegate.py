@@ -380,9 +380,7 @@ class SqlColumnDelegate(QStyledItemDelegate):
                     ed.setDate(value.date())  # type: ignore[arg-type]
                 else:
                     ed.setDate(
-                        datetime.strptime(
-                            str(value).strip(), "%Y-%m-%d"
-                        ).date()  # type: ignore[arg-type]
+                        datetime.strptime(str(value).strip(), "%Y-%m-%d").date()  # type: ignore[arg-type]
                     )
             except Exception as e:
                 logger.log(

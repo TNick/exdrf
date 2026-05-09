@@ -25,7 +25,6 @@ def depends_on_fk_field_names(model: Any) -> Set[str]:
     raw = getattr(model, "depends_on", None) or ()
     out: Set[str] = set()
     for item in raw:
-
         # Ignore malformed entries; second element must be a non-empty str.
         if isinstance(item, (tuple, list)) and len(item) >= 2:
             name = item[1]

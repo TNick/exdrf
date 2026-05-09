@@ -5,23 +5,21 @@
 from typing import TYPE_CHECKING, Union
 
 from exdrf.constants import RecIdType
-from exdrf_qt.controls import ExdrfEditor
-from exdrf_qt.plugins import exdrf_qt_pm
-from exdrf_qt.utils.plugins import safe_hook_call
-
 from exdrf_dev.qt_gen.db.related_items.widgets.related_item_editor_ui import (
     Ui_QtRelatedItemEditor,
 )
+from exdrf_qt.controls import ExdrfEditor
+from exdrf_qt.plugins import exdrf_qt_pm
+from exdrf_qt.utils.plugins import safe_hook_call
 
 # exdrf-keep-start other_imports ----------------------------------------------
 
 # exdrf-keep-end other_imports ------------------------------------------------
 
 if TYPE_CHECKING:
+    from exdrf_dev.db.api import RelatedItem  # noqa: F401
     from exdrf_qt.context import QtContext  # noqa: F401
     from sqlalchemy.orm import Session  # noqa: F401
-
-    from exdrf_dev.db.api import RelatedItem  # noqa: F401
 
 # exdrf-keep-start other_globals ----------------------------------------------
 
@@ -57,9 +55,7 @@ class QtRelatedItemEditor(ExdrfEditor["RelatedItem"], Ui_QtRelatedItemEditor):
         )
 
         # Inform plugins that the editor has been created.
-        safe_hook_call(
-            exdrf_qt_pm.hook.related_item_editor_created, widget=self
-        )
+        safe_hook_call(exdrf_qt_pm.hook.related_item_editor_created, widget=self)
 
         # exdrf-keep-start extra_init -----------------------------------------
 
@@ -68,9 +64,7 @@ class QtRelatedItemEditor(ExdrfEditor["RelatedItem"], Ui_QtRelatedItemEditor):
     def editing_changed(self, value: bool):
         pass
 
-    def read_record(
-        self, session: "Session", record_id: RecIdType
-    ) -> "RelatedItem":
+    def read_record(self, session: "Session", record_id: RecIdType) -> "RelatedItem":
         return session.scalar(
             self.selection.where(
                 self.db_model.id == record_id,  # type: ignore

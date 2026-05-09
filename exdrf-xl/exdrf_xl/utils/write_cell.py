@@ -66,9 +66,9 @@ def lxml_write_cell_o(xf, worksheet: "Worksheet", cell: "Cell", styled=False):
 
             with xf.element("f", attrib):
                 if value is not None and not attrib.get("t") == "dataTable":
-                    assert value.startswith(
-                        "="
-                    ), "The formula type expects the first character to be `=`"
+                    assert value.startswith("="), (
+                        "The formula type expects the first character to be `=`"
+                    )
                     xf.write(value[1:])
                     value = final_value
 

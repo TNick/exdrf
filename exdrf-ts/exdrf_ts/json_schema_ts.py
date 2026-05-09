@@ -124,8 +124,7 @@ def json_schema_to_ts(
 
     if "oneOf" in schema and isinstance(schema["oneOf"], list):
         parts = [
-            json_schema_to_ts(s, resolve_root, seen_refs=stack)
-            for s in schema["oneOf"]
+            json_schema_to_ts(s, resolve_root, seen_refs=stack) for s in schema["oneOf"]
         ]
         parts_u = [p for p in parts if p != "unknown"]
         if not parts_u:
@@ -134,8 +133,7 @@ def json_schema_to_ts(
 
     if "anyOf" in schema and isinstance(schema["anyOf"], list):
         parts = [
-            json_schema_to_ts(s, resolve_root, seen_refs=stack)
-            for s in schema["anyOf"]
+            json_schema_to_ts(s, resolve_root, seen_refs=stack) for s in schema["anyOf"]
         ]
         parts_u = [p for p in parts if p != "unknown"]
         if not parts_u:
@@ -144,8 +142,7 @@ def json_schema_to_ts(
 
     if "allOf" in schema and isinstance(schema["allOf"], list):
         parts = [
-            json_schema_to_ts(s, resolve_root, seen_refs=stack)
-            for s in schema["allOf"]
+            json_schema_to_ts(s, resolve_root, seen_refs=stack) for s in schema["allOf"]
         ]
         if all(p == "unknown" for p in parts):
             return "unknown"

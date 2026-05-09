@@ -87,13 +87,9 @@ class QtParentTagAssociationTv(RecordTemplViewer):
         # exdrf-keep-end extra_viewer_init -------------------------------------
 
         # Inform plugins that the viewer has been created.
-        safe_hook_call(
-            exdrf_qt_pm.hook.parent_tag_association_tv_created, widget=self
-        )
+        safe_hook_call(exdrf_qt_pm.hook.parent_tag_association_tv_created, widget=self)
 
-    def read_record(
-        self, session: "Session"
-    ) -> Union[None, "ParentTagAssociation"]:
+    def read_record(self, session: "Session") -> Union[None, "ParentTagAssociation"]:
         from .db.parent_tag_association import parent_tag_association_label
 
         result = session.scalar(

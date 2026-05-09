@@ -5,7 +5,7 @@ on:
   pull_request:
 
 jobs:
-  lint-test:
+  check:
     runs-on: ubuntu-latest
 
     steps:
@@ -22,10 +22,7 @@ jobs:
       - name: Install packages (editable, dev)
         run: make init-d
 
-      - name: Lint
-        run: make lint
-
-      - name: Test
+      - name: Check
         env:
           QT_QPA_PLATFORM: offscreen
-        run: make test
+        run: make check

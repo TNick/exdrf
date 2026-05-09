@@ -33,9 +33,7 @@ def test_cmp_template_exists():
     content = open(template_path, encoding="utf-8").read()
     assert "RecordComparatorBase" in content
     assert "Qt{{ ResPascal }}Cmp" in content
-    assert (
-        "RecordToNodeAdapter" in content or "FieldAwareRecordAdapter" in content
-    )
+    assert "RecordToNodeAdapter" in content or "FieldAwareRecordAdapter" in content
     assert "safe_hook_call" in content
     assert "cmp_created" in content
 

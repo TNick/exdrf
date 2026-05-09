@@ -1,7 +1,6 @@
 from datetime import datetime
 
 import pytest
-
 from exdrf.label_dsl import (
     ParsedIdentifier,
     ParsedLiteral,
@@ -131,7 +130,7 @@ def test_eq_non_parsed_object():
     # When comparing with an object that is not an instance of Parsed or str,
     # equality should return False.
     assert not (op == 123)
-    assert not (op is None)
+    assert op is not None
 
 
 def test_if():
@@ -187,11 +186,7 @@ def test_is_none():
     assert '("Yes" if record.name is None else "No")' in py_code
 
     ts_code = generate_typescript_code(ast)
-    assert (
-        "(record.name == null || "
-        "record.name == undefined) ? "
-        '"Yes" : "No"' in ts_code
-    )
+    assert '(record.name == null || record.name == undefined) ? "Yes" : "No"' in ts_code
 
     context = DummyContext(name="test")
     expr = '(is_none name "Yes" "No")'

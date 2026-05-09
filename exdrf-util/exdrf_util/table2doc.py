@@ -15,7 +15,6 @@ logger = logging.getLogger(__name__)
 
 @define
 class Range2Docx(Range2Other):
-
     document: "Document"
     table_style: str = field(default="Table Grid")
     para_style: str = field(default="Normal")

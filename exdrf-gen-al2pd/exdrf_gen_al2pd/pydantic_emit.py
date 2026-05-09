@@ -194,9 +194,7 @@ def _emit_exdrf_lines(value: Any, indent: str, width: int) -> List[str]:
                     out.append(line)
                 else:
                     out.append(f"{child}{ks}:")
-                    out.extend(
-                        _split_long_string_literal(lit, child + step, width)
-                    )
+                    out.extend(_split_long_string_literal(lit, child + step, width))
                     out[-1] = out[-1] + trail
         out.append(indent + "}")
         return out
@@ -268,10 +266,7 @@ def _exdrf_json_schema_extra_expr(props: dict) -> str:
 
     wrapped = wrap_exdrf_props(props)
     one_line = _py_inline_value(wrapped)
-    if (
-        _FIELD_JSON_SCHEMA_EXTRA_PREFIX_LEN + len(one_line) + 1
-        <= _DB2M_MAX_LINE
-    ):
+    if _FIELD_JSON_SCHEMA_EXTRA_PREFIX_LEN + len(one_line) + 1 <= _DB2M_MAX_LINE:
         return one_line
 
     cont_indent = "        "
@@ -292,11 +287,7 @@ def _exdrf_json_schema_extra_expr(props: dict) -> str:
         ):
             return last_lines[0]
         inner_w -= 8
-    return (
-        last_lines[0]
-        + "\n"
-        + "\n".join(cont_indent + ln for ln in last_lines[1:])
-    )
+    return last_lines[0] + "\n" + "\n".join(cont_indent + ln for ln in last_lines[1:])
 
 
 # Strip common type-leading noise from column/field descriptions so attribute
@@ -322,7 +313,6 @@ def model_summary_one_line(model: Any) -> str:
     # Prefer the first paragraph / first line of the resource description.
     desc = (getattr(model, "description", None) or "").strip()
     if desc:
-
         # Strip trailing paragraphs and take the first physical line only.
         head = desc.split("\n\n", 1)[0]
         first = head.split("\n", 1)[0].strip()
@@ -450,7 +440,6 @@ def build_google_db2m_class_doc_body(
     sum_line = (summary or "").strip() or fallback_summary
     lines: List[str] = list(_wrap_summary_lines(sum_line))
     if fields:
-
         # Blank line, ``Attributes:`` header, blank line, then each field block.
         lines.append("")
         lines.append("Attributes:")
@@ -735,7 +724,6 @@ def scalar_pydantic_type(field: ExField) -> str:
     if isinstance(field, EnumField):
         return "str"
     if isinstance(field, FormattedField):
-
         # JSON-shaped formatted columns map to ``Any``; other formats stay str.
         if field.format == "json":
             return "Any"
@@ -1066,8 +1054,7 @@ def collect_typing_imports(
     need_time = any(isinstance(f, TimeField) for f in scalar_fields)
     need_td = any(f.type_name == FIELD_TYPE_DURATION for f in scalar_fields)
     need_any = any(
-        isinstance(f, FormattedField) and f.format == "json"
-        for f in scalar_fields
+        isinstance(f, FormattedField) and f.format == "json" for f in scalar_fields
     )
     return (need_date, need_datetime, need_time, need_td, need_any)
 
@@ -1161,9 +1148,7 @@ def build_al2pd_template_kwargs(model: Any) -> dict:
     create_scalar_specs = [
         build_scalar_field_spec(f, mname) for f in create_scalar_fields
     ]
-    edit_scalar_specs = [
-        build_scalar_field_spec(f, mname) for f in edit_scalar_fields
-    ]
+    edit_scalar_specs = [build_scalar_field_spec(f, mname) for f in edit_scalar_fields]
 
     # ``datetime`` imports and ``Any`` for JSON / composite list payloads.
     need_date, need_dt, need_time, need_td, need_any = collect_typing_imports(

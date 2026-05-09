@@ -17,10 +17,11 @@ from sqlalchemy.orm import aliased
 if TYPE_CHECKING:
     from exdrf.filter import FieldFilter
     from exdrf.resource import ExResource  # noqa: F401
+    from exdrf_dev.db.api import (
+        Parent,  # noqa: F401
+        Profile,  # noqa: F401
+    )
     from exdrf_qt.models.selector import Selector
-
-    from exdrf_dev.db.api import Parent  # noqa: F401
-    from exdrf_dev.db.api import Profile  # noqa: F401
 
 # exdrf-keep-start other_globals ----------------------------------------------
 

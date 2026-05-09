@@ -16,9 +16,7 @@ class IsActiveField(QtBoolField["Parent"]):
 
     name: str = field(default="is_active", init=False)
     title: str = field(default="Is Active")
-    description: str = field(
-        default=("Flag indicating if the parent is active.")
-    )
+    description: str = field(default=("Flag indicating if the parent is active."))
     visible: bool = field(default=True)
     nullable: bool = field(default=False)
     read_only: bool = field(default=False)

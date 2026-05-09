@@ -80,9 +80,7 @@ class QtCompositeKeyModelTv(RecordTemplViewer):
         )
         if not self.windowTitle():
             self.setWindowTitle(
-                self.t(
-                    "composite_key_model.tv.title", "Composite key model viewer"
-                ),
+                self.t("composite_key_model.tv.title", "Composite key model viewer"),
             )
 
         # exdrf-keep-start extra_viewer_init -----------------------------------
@@ -90,13 +88,9 @@ class QtCompositeKeyModelTv(RecordTemplViewer):
         # exdrf-keep-end extra_viewer_init -------------------------------------
 
         # Inform plugins that the viewer has been created.
-        safe_hook_call(
-            exdrf_qt_pm.hook.composite_key_model_tv_created, widget=self
-        )
+        safe_hook_call(exdrf_qt_pm.hook.composite_key_model_tv_created, widget=self)
 
-    def read_record(
-        self, session: "Session"
-    ) -> Union[None, "CompositeKeyModel"]:
+    def read_record(self, session: "Session") -> Union[None, "CompositeKeyModel"]:
         from .db.composite_key_model import composite_key_model_label
 
         result = session.scalar(

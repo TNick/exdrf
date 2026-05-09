@@ -1,5 +1,4 @@
 import pytest
-
 from exdrf.dataset import ExDataset
 
 
@@ -60,9 +59,7 @@ class TestExDatasetGetItem:
         dataset.resources.append(mock_resource)
 
         # Attempt to access a resource by an invalid name
-        with pytest.raises(
-            KeyError, match="No resource found for key: InvalidName"
-        ):
+        with pytest.raises(KeyError, match="No resource found for key: InvalidName"):
             _ = dataset["InvalidName"]
 
 
@@ -152,9 +149,7 @@ class TestExDatasetVisit:
         mock_visitor.visit_dataset.assert_called_once_with(dataset)
 
         # Assert that the resource's visit method was called
-        mock_resource.visit.assert_called_once_with(
-            mock_visitor, omit_fields=False
-        )
+        mock_resource.visit.assert_called_once_with(mock_visitor, omit_fields=False)
 
         # Assert that the visit method returned True
         assert result is True
@@ -198,12 +193,8 @@ class TestExDatasetVisit:
         mock_visitor.visit_dataset.assert_called_once_with(dataset)
 
         # Assert that each resource's visit method was called
-        mock_resource1.visit.assert_called_once_with(
-            mock_visitor, omit_fields=False
-        )
-        mock_resource2.visit.assert_called_once_with(
-            mock_visitor, omit_fields=False
-        )
+        mock_resource1.visit.assert_called_once_with(mock_visitor, omit_fields=False)
+        mock_resource2.visit.assert_called_once_with(mock_visitor, omit_fields=False)
 
         # Assert that the visit method returned True
         assert result is True
@@ -239,17 +230,11 @@ class TestExDatasetVisit:
 
         # Assert visit_category was called for each category.
         mock_visitor.visit_category.assert_any_call("Category1", 0, mocker.ANY)
-        mock_visitor.visit_category.assert_any_call(
-            "SubCategory1", 1, mocker.ANY
-        )
+        mock_visitor.visit_category.assert_any_call("SubCategory1", 1, mocker.ANY)
 
         # Assert that each resource's visit method was called
-        mock_resource1.visit.assert_called_once_with(
-            mock_visitor, omit_fields=False
-        )
-        mock_resource2.visit.assert_called_once_with(
-            mock_visitor, omit_fields=False
-        )
+        mock_resource1.visit.assert_called_once_with(mock_visitor, omit_fields=False)
+        mock_resource2.visit.assert_called_once_with(mock_visitor, omit_fields=False)
 
         # Assert that the visit method returned True
         assert result is True
@@ -276,9 +261,7 @@ class TestExDatasetVisit:
         mock_visitor.visit_dataset.assert_called_once_with(dataset)
 
         # Assert that the resource's visit method was called
-        mock_resource.visit.assert_called_once_with(
-            mock_visitor, omit_fields=False
-        )
+        mock_resource.visit.assert_called_once_with(mock_visitor, omit_fields=False)
 
         # Assert that the visit method returned False
         assert result is False
@@ -347,9 +330,7 @@ class TestExDatasetSortedByDeps:
 
         # Create a dataset and add the mock resources
         dataset = ExDataset()
-        dataset.resources.extend(
-            [mock_resource3, mock_resource2, mock_resource1]
-        )
+        dataset.resources.extend([mock_resource3, mock_resource2, mock_resource1])
 
         # Call sorted_by_deps
         sorted_resources = dataset.sorted_by_deps()

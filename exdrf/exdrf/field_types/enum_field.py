@@ -22,7 +22,7 @@ class EnumField(ExField):
     enum_values: List[Tuple[str, str]] = field(factory=list)
 
     def __repr__(self) -> str:
-        return f"EnumF(" f"{self.resource.name}.{self.name})"
+        return f"EnumF({self.resource.name}.{self.name})"
 
     def field_properties(self, explicit: bool = False) -> dict[str, Any]:
         result = super().field_properties(explicit)

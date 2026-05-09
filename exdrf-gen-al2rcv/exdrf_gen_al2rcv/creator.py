@@ -44,8 +44,7 @@ def parse_get_db_import(spec: str) -> Tuple[str, str]:
     # Exactly one ``:`` separates module path from callable name.
     if ":" not in raw:
         raise ValueError(
-            "get_db import must look like 'pkg.mod:dependency_fn' "
-            "(got %r)." % (spec,),
+            "get_db import must look like 'pkg.mod:dependency_fn' (got %r)." % (spec,),
         )
 
     # ``rpartition`` keeps dotted modules intact (only the last ``:`` splits).
@@ -56,8 +55,7 @@ def parse_get_db_import(spec: str) -> Tuple[str, str]:
     # Reject ``":fn"`` or ``"mod:"`` style garbage after stripping.
     if not mod or not symbol:
         raise ValueError(
-            "get_db import must look like 'pkg.mod:dependency_fn' "
-            "(got %r)." % (spec,),
+            "get_db import must look like 'pkg.mod:dependency_fn' (got %r)." % (spec,),
         )
     return mod, symbol
 
@@ -119,9 +117,7 @@ class Al2rcvResourcePathFile(Base):
                 "rcv_resource_data_access_repr": rcv_resource_data_access_py_literal(
                     res,
                 ),
-                "al2rcv_category_dot_path": (
-                    ".".join(cats_t) if cats_t else ""
-                ),
+                "al2rcv_category_dot_path": (".".join(cats_t) if cats_t else ""),
             }
 
             dest = os.path.join(out_path, *cats_t)

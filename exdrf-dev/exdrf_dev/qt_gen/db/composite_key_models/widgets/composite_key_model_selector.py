@@ -60,9 +60,7 @@ class QtCompositeKeyModelSiSe(DrfSelOneEditor):
         self.qt_model.setParent(self)
 
         # Inform plugins that the widget has been created.
-        safe_hook_call(
-            exdrf_qt_pm.hook.composite_key_model_sise_created, widget=self
-        )
+        safe_hook_call(exdrf_qt_pm.hook.composite_key_model_sise_created, widget=self)
 
         # exdrf-keep-start extra_sise_init -----------------------------------
 
@@ -112,9 +110,7 @@ class QtCompositeKeyModelMuSe(DrfSelMultiEditor):
         self.qt_model.setParent(self)
 
         # Inform plugins that the widget has been created.
-        safe_hook_call(
-            exdrf_qt_pm.hook.composite_key_model_muse_created, widget=self
-        )
+        safe_hook_call(exdrf_qt_pm.hook.composite_key_model_muse_created, widget=self)
 
         # exdrf-keep-start extra_muse_init -----------------------------------
 

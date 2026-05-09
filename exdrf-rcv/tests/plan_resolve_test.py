@@ -6,7 +6,6 @@ import textwrap
 from pathlib import Path
 
 import pytest
-
 from exdrf_rcv.models import RcvPlan
 from exdrf_rcv.plan_resolve import (
     RcvPlanCache,
@@ -78,9 +77,7 @@ class TestResolveRcvPlan:
         assert plan.record_id == 7
         assert plan.fields[0].name == "n"
         assert plan.resource_data_access is not None
-        assert (
-            plan.resource_data_access.url_pattern == "/classic/cat/res-items/"
-        )
+        assert plan.resource_data_access.url_pattern == "/classic/cat/res-items/"
         assert plan.resource_data_access.requires_org_id is True
         assert plan.resource_data_access.requires_town_id is False
         again = resolve_rcv_plan(
@@ -93,9 +90,7 @@ class TestResolveRcvPlan:
         )
         assert again.record_id == 99
         assert again.resource_data_access is not None
-        assert (
-            again.resource_data_access.url_pattern == "/classic/cat/res-items/"
-        )
+        assert again.resource_data_access.url_pattern == "/classic/cat/res-items/"
 
     def test_resource_data_access_bad_type(self, tmp_path: Path) -> None:
         """``RCV_RESOURCE_DATA_ACCESS`` must be a ``dict``."""

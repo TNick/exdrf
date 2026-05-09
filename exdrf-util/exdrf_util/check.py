@@ -125,9 +125,9 @@ class CheckTask(Task, Generic[T]):
                 "check.no-results", "The check did not find any results."
             )
         elif self.check.is_global:
-            assert (
-                len(self.results) == 1
-            ), "Global check should have exactly one result."
+            assert len(self.results) == 1, (
+                "Global check should have exactly one result."
+            )
 
             result = self.results[0]
             state = result.state

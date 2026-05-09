@@ -228,17 +228,13 @@ class ResultsModel(QAbstractItemModel, QtUseContext):
     # QAbstractItemModel
     # ------------------------------------------------------------------
 
-    def columnCount(
-        self, parent: QModelIndex = QModelIndex()
-    ) -> int:  # noqa: N802
+    def columnCount(self, parent: QModelIndex = QModelIndex()) -> int:  # noqa: N802
         del parent
         if self._view_mode == ResultsViewMode.FLAT:
             return 2
         return 1
 
-    def rowCount(
-        self, parent: QModelIndex = QModelIndex()
-    ) -> int:  # noqa: N802
+    def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:  # noqa: N802
         node = self._node_for_index(parent)
         if node is None:
             node = self._root

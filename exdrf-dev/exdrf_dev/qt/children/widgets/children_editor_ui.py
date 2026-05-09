@@ -58,15 +58,11 @@ class Ui_QtChildEditor:
         self.formLayout.setObjectName("formLayout")
         self.lbl_data = QtWidgets.QLabel(self.tab_general)
         self.lbl_data.setObjectName("lbl_data")
-        self.formLayout.setWidget(
-            0, QtWidgets.QFormLayout.LabelRole, self.lbl_data
-        )
+        self.formLayout.setWidget(0, QtWidgets.QFormLayout.LabelRole, self.lbl_data)
         self.c_data = DrfTextEditor(parent=self.tab_general, ctx=self.ctx)
         self.c_data.setProperty("name", "data")
         self.c_data.setObjectName("c_data")
-        self.formLayout.setWidget(
-            0, QtWidgets.QFormLayout.FieldRole, self.c_data
-        )
+        self.formLayout.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.c_data)
         self.main_tab.addTab(self.tab_general, "")
         self.tab_relations = QtWidgets.QWidget()
         self.tab_relations.setObjectName("tab_relations")
@@ -74,15 +70,11 @@ class Ui_QtChildEditor:
         self.formLayout1.setObjectName("formLayout1")
         self.lbl_parent = QtWidgets.QLabel(self.tab_relations)
         self.lbl_parent.setObjectName("lbl_parent")
-        self.formLayout1.setWidget(
-            0, QtWidgets.QFormLayout.LabelRole, self.lbl_parent
-        )
+        self.formLayout1.setWidget(0, QtWidgets.QFormLayout.LabelRole, self.lbl_parent)
         self.c_parent = QtParentSiSe(parent=self.tab_relations, ctx=self.ctx)
         self.c_parent.setProperty("name", "parent_id")
         self.c_parent.setObjectName("c_parent")
-        self.formLayout1.setWidget(
-            0, QtWidgets.QFormLayout.FieldRole, self.c_parent
-        )
+        self.formLayout1.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.c_parent)
         self.main_tab.addTab(self.tab_relations, "")
         self.tab_info = QtWidgets.QWidget()
         self.tab_info.setObjectName("tab_info")
@@ -90,15 +82,11 @@ class Ui_QtChildEditor:
         self.formLayout2.setObjectName("formLayout2")
         self.lbl_id = QtWidgets.QLabel(self.tab_info)
         self.lbl_id.setObjectName("lbl_id")
-        self.formLayout2.setWidget(
-            0, QtWidgets.QFormLayout.LabelRole, self.lbl_id
-        )
+        self.formLayout2.setWidget(0, QtWidgets.QFormLayout.LabelRole, self.lbl_id)
         self.c_id = QtWidgets.QLineEdit(self.tab_info)
         self.c_id.setReadOnly(True)
         self.c_id.setObjectName("c_id")
-        self.formLayout2.setWidget(
-            0, QtWidgets.QFormLayout.FieldRole, self.c_id
-        )
+        self.formLayout2.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.c_id)
         self.main_tab.addTab(self.tab_info, "")
         self.verticalLayout.addWidget(self.main_tab)
 
@@ -108,9 +96,7 @@ class Ui_QtChildEditor:
 
     def retranslate_ui(self, QtChildEditor):
         _translate = QtCore.QCoreApplication.translate
-        QtChildEditor.setWindowTitle(
-            _translate("QtChildEditor", "Child Editor")
-        )
+        QtChildEditor.setWindowTitle(_translate("QtChildEditor", "Child Editor"))
         self.lbl_data.setText(_translate("QtChildEditor", "Data "))
         self.main_tab.setTabText(
             self.main_tab.indexOf(self.tab_general),

@@ -7,9 +7,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 _LIST_ROUTE_PATH = (
-    Path(__file__).resolve().parents[1]
-    / "exdrf_gen_al2r"
-    / "list_route_specs.py"
+    Path(__file__).resolve().parents[1] / "exdrf_gen_al2r" / "list_route_specs.py"
 )
 
 

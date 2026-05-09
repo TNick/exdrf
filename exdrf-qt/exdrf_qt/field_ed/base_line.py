@@ -200,7 +200,6 @@ class InfoLabel(QLabel):
 
 
 class SpecialLine(QLineEdit):
-
     geometryChange = pyqtSignal()
 
     def keyPressEvent(self, event):  # type: ignore[override]

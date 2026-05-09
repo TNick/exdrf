@@ -38,9 +38,7 @@ class ExDataset:
     name: str = field(default="Dataset")
     resources: List["ExResource"] = field(factory=list, repr=False)
     category_map: dict = field(factory=OrderedDict, repr=False)
-    res_class: Type["ExResource"] = field(
-        default=ExResource, repr=False, kw_only=True
-    )
+    res_class: Type["ExResource"] = field(default=ExResource, repr=False, kw_only=True)
 
     def __hash__(self):
         return hash(self.name)
@@ -76,8 +74,7 @@ class ExDataset:
         """
         if not isinstance(resource, self.res_class):
             raise TypeError(
-                f"Expected resource of type {self.res_class}, "
-                f"but got {type(resource)}."
+                f"Expected resource of type {self.res_class}, but got {type(resource)}."
             )
         self.resources.append(resource)
         resource.dataset = self  # type: ignore
@@ -159,9 +156,7 @@ class ExDataset:
         name_to_resource: Dict[str, "ExResource"] = {}
         for resource in self.resources:
             deps[resource.name] = list(resource.get_dependencies())
-            short_deps[resource.name] = list(
-                resource.get_dependencies(fk_only=True)
-            )
+            short_deps[resource.name] = list(resource.get_dependencies(fk_only=True))
             name_to_resource[resource.name] = resource
 
         # Start with those that have no dependencies.
@@ -175,8 +170,7 @@ class ExDataset:
             """Examine the dependency chain of a resource."""
             if name in visited:
                 print(
-                    f"Circular dependency detected: {name} -> "
-                    + " -> ".join(visited)
+                    f"Circular dependency detected: {name} -> " + " -> ".join(visited)
                 )
                 return
 

@@ -44,11 +44,15 @@ class ExModel(BaseModel):
 
             # Visit the model itself.
             visitor.visit_model(
-                model, model.__name__, categories  # type: ignore
+                model,
+                model.__name__,
+                categories,  # type: ignore
             )
 
             # Then visit all fields of the model.
             for field_name, field_info in model.model_fields.items():
                 visitor.visit_field(
-                    model, field_name, field_info  # type: ignore
+                    model,
+                    field_name,
+                    field_info,  # type: ignore
                 )

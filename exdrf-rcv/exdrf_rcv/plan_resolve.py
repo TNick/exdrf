@@ -33,8 +33,7 @@ def _resource_data_access_from_module(mod: Any) -> RcvResourceDataAccess | None:
         return None
     if not isinstance(raw, dict):
         raise TypeError(
-            "RCV_RESOURCE_DATA_ACCESS must be a dict (got %s)."
-            % (type(raw).__name__,),
+            "RCV_RESOURCE_DATA_ACCESS must be a dict (got %s)." % (type(raw).__name__,),
         )
     return RcvResourceDataAccess.model_validate(raw)
 

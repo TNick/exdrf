@@ -75,7 +75,6 @@ class DrfSelMultiEditor(DrfSelBase[DBM_M]):
         tree.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
 
     def on_show_popup(self):
-
         tree = cast("TreeView", self.popup.tree)
         sm = tree.selectionModel()
         if sm is None:

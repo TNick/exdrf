@@ -18,10 +18,9 @@ from sqlalchemy import Select, select
 # exdrf-keep-end other_imports -------------------------------------------------
 
 if TYPE_CHECKING:
+    from exdrf_dev.db.api import Tag as Tag  # noqa: F401
     from exdrf_qt.context import QtContext  # noqa: F401
     from sqlalchemy.orm import Session  # noqa: F401
-
-    from exdrf_dev.db.api import Tag as Tag  # noqa: F401
 
 logger = logging.getLogger(__name__)
 

@@ -4,11 +4,6 @@
 
 from typing import TYPE_CHECKING, Union
 
-from exdrf_qt.plugins import exdrf_qt_pm
-from exdrf_qt.utils.plugins import safe_hook_call
-from sqlalchemy import select
-from sqlalchemy.orm import load_only
-
 from exdrf_dev.qt_gen.db.composite_key_models.fields.fld_description import (
     DescriptionField,
 )
@@ -43,6 +38,10 @@ from exdrf_dev.qt_gen.db.composite_key_models.fields.single_f import LabelField
 from exdrf_dev.qt_gen.db.composite_key_models.models.composite_key_model_ful import (
     QtCompositeKeyModelFuMo,
 )
+from exdrf_qt.plugins import exdrf_qt_pm
+from exdrf_qt.utils.plugins import safe_hook_call
+from sqlalchemy import select
+from sqlalchemy.orm import load_only
 
 # exdrf-keep-start other_imports ----------------------------------------------
 
@@ -79,9 +78,7 @@ class QtCompositeKeyModelNaMo(QtCompositeKeyModelFuMo):
 
     # exdrf-keep-end other_attributes -----------------------------------------
 
-    def __init__(
-        self, selection: Union["Select", None] = None, fields=None, **kwargs
-    ):
+    def __init__(self, selection: Union["Select", None] = None, fields=None, **kwargs):
         pass
 
         super().__init__(
@@ -112,9 +109,7 @@ class QtCompositeKeyModelNaMo(QtCompositeKeyModelFuMo):
         self.column_fields = ["label"]
 
         # Inform plugins that the model has been created.
-        safe_hook_call(
-            exdrf_qt_pm.hook.composite_key_model_namo_created, model=self
-        )
+        safe_hook_call(exdrf_qt_pm.hook.composite_key_model_namo_created, model=self)
 
         # exdrf-keep-start extra_init -----------------------------------------
 

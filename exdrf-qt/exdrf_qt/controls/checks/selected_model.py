@@ -158,9 +158,7 @@ class SelectedChecksModel(ChecksTreeTableModelBase):
     # QAbstractItemModel API
     # ------------------------------------------------------------------
 
-    def columnCount(
-        self, parent: QModelIndex = QModelIndex()
-    ) -> int:  # noqa: N802
+    def columnCount(self, parent: QModelIndex = QModelIndex()) -> int:  # noqa: N802
         del parent
         return 2 if self._running else 1
 

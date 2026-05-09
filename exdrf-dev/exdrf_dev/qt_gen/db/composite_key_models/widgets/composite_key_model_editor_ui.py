@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING
 from PyQt5 import QtCore, QtWidgets
 
 if TYPE_CHECKING:
+    from exdrf_dev.qt_gen.db.related_items.api import QtRelatedItemMuSe
     from exdrf_qt.field_ed.api import (
         DrfBlobEditor,
         DrfDateEditor,
@@ -13,8 +14,6 @@ if TYPE_CHECKING:
         DrfTextEditor,
         DrfTimeEditor,
     )
-
-    from exdrf_dev.qt_gen.db.related_items.api import QtRelatedItemMuSe
 
 
 class Ui_QtCompositeKeyModelEditor:
@@ -68,6 +67,7 @@ class Ui_QtCompositeKeyModelEditor:
     verticalLayout: "QtWidgets.QVBoxLayout"
 
     def setup_ui(self, QtCompositeKeyModelEditor):
+        from exdrf_dev.qt_gen.db.related_items.api import QtRelatedItemMuSe
         from exdrf_qt.field_ed.api import (
             DrfBlobEditor,
             DrfDateEditor,
@@ -78,8 +78,6 @@ class Ui_QtCompositeKeyModelEditor:
             DrfTextEditor,
             DrfTimeEditor,
         )
-
-        from exdrf_dev.qt_gen.db.related_items.api import QtRelatedItemMuSe
 
         QtCompositeKeyModelEditor.setObjectName("QtCompositeKeyModelEditor")
         QtCompositeKeyModelEditor.resize(480, 640)
@@ -96,9 +94,7 @@ class Ui_QtCompositeKeyModelEditor:
         self.formLayout.setWidget(
             0, QtWidgets.QFormLayout.LabelRole, self.lbl_description
         )
-        self.c_description = DrfTextEditor(
-            parent=self.tab_general, ctx=self.ctx
-        )
+        self.c_description = DrfTextEditor(parent=self.tab_general, ctx=self.ctx)
         self.c_description.setProperty("name", "description")
         self.c_description.setProperty("clearable", True)
         self.c_description.setObjectName("c_description")
@@ -110,9 +106,7 @@ class Ui_QtCompositeKeyModelEditor:
         self.formLayout.setWidget(
             1, QtWidgets.QFormLayout.LabelRole, self.lbl_related_items
         )
-        self.c_related_items = QtRelatedItemMuSe(
-            parent=self.tab_general, ctx=self.ctx
-        )
+        self.c_related_items = QtRelatedItemMuSe(parent=self.tab_general, ctx=self.ctx)
         self.c_related_items.setProperty("name", "related_items")
         self.c_related_items.setProperty("clearable", True)
         self.c_related_items.setObjectName("c_related_items")
@@ -124,9 +118,7 @@ class Ui_QtCompositeKeyModelEditor:
         self.formLayout.setWidget(
             2, QtWidgets.QFormLayout.LabelRole, self.lbl_some_binary
         )
-        self.c_some_binary = DrfBlobEditor(
-            parent=self.tab_general, ctx=self.ctx
-        )
+        self.c_some_binary = DrfBlobEditor(parent=self.tab_general, ctx=self.ctx)
         self.c_some_binary.setProperty("name", "some_binary")
         self.c_some_binary.setProperty("clearable", True)
         self.c_some_binary.setObjectName("c_some_binary")
@@ -142,9 +134,7 @@ class Ui_QtCompositeKeyModelEditor:
         self.c_some_date.setProperty("name", "some_date")
         self.c_some_date.setProperty("clearable", True)
         self.c_some_date.setObjectName("c_some_date")
-        self.formLayout.setWidget(
-            3, QtWidgets.QFormLayout.FieldRole, self.c_some_date
-        )
+        self.formLayout.setWidget(3, QtWidgets.QFormLayout.FieldRole, self.c_some_date)
         self.lbl_some_enum = QtWidgets.QLabel(self.tab_general)
         self.lbl_some_enum.setObjectName("lbl_some_enum")
         self.formLayout.setWidget(
@@ -158,9 +148,7 @@ class Ui_QtCompositeKeyModelEditor:
         )
         self.c_some_enum.setProperty("clearable", True)
         self.c_some_enum.setObjectName("c_some_enum")
-        self.formLayout.setWidget(
-            4, QtWidgets.QFormLayout.FieldRole, self.c_some_enum
-        )
+        self.formLayout.setWidget(4, QtWidgets.QFormLayout.FieldRole, self.c_some_enum)
         self.lbl_some_float = QtWidgets.QLabel(self.tab_general)
         self.lbl_some_float.setObjectName("lbl_some_float")
         self.formLayout.setWidget(
@@ -170,9 +158,7 @@ class Ui_QtCompositeKeyModelEditor:
         self.c_some_float.setProperty("name", "some_float")
         self.c_some_float.setProperty("clearable", True)
         self.c_some_float.setObjectName("c_some_float")
-        self.formLayout.setWidget(
-            5, QtWidgets.QFormLayout.FieldRole, self.c_some_float
-        )
+        self.formLayout.setWidget(5, QtWidgets.QFormLayout.FieldRole, self.c_some_float)
         self.lbl_some_json = QtWidgets.QLabel(self.tab_general)
         self.lbl_some_json.setObjectName("lbl_some_json")
         self.formLayout.setWidget(
@@ -182,9 +168,7 @@ class Ui_QtCompositeKeyModelEditor:
         self.c_some_json.setProperty("name", "some_json")
         self.c_some_json.setProperty("clearable", True)
         self.c_some_json.setObjectName("c_some_json")
-        self.formLayout.setWidget(
-            6, QtWidgets.QFormLayout.FieldRole, self.c_some_json
-        )
+        self.formLayout.setWidget(6, QtWidgets.QFormLayout.FieldRole, self.c_some_json)
         self.lbl_some_time = QtWidgets.QLabel(self.tab_general)
         self.lbl_some_time.setObjectName("lbl_some_time")
         self.formLayout.setWidget(
@@ -194,9 +178,7 @@ class Ui_QtCompositeKeyModelEditor:
         self.c_some_time.setProperty("name", "some_time")
         self.c_some_time.setProperty("clearable", True)
         self.c_some_time.setObjectName("c_some_time")
-        self.formLayout.setWidget(
-            7, QtWidgets.QFormLayout.FieldRole, self.c_some_time
-        )
+        self.formLayout.setWidget(7, QtWidgets.QFormLayout.FieldRole, self.c_some_time)
         self.main_tab.addTab(self.tab_general, "")
         self.tab_keys = QtWidgets.QWidget()
         self.tab_keys.setObjectName("tab_keys")
@@ -210,9 +192,7 @@ class Ui_QtCompositeKeyModelEditor:
         self.c_key_part1 = DrfLineEditor(parent=self.tab_keys, ctx=self.ctx)
         self.c_key_part1.setProperty("name", "key_part1")
         self.c_key_part1.setObjectName("c_key_part1")
-        self.formLayout1.setWidget(
-            0, QtWidgets.QFormLayout.FieldRole, self.c_key_part1
-        )
+        self.formLayout1.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.c_key_part1)
         self.lbl_key_part2 = QtWidgets.QLabel(self.tab_keys)
         self.lbl_key_part2.setObjectName("lbl_key_part2")
         self.formLayout1.setWidget(
@@ -221,9 +201,7 @@ class Ui_QtCompositeKeyModelEditor:
         self.c_key_part2 = DrfIntEditor(parent=self.tab_keys, ctx=self.ctx)
         self.c_key_part2.setProperty("name", "key_part2")
         self.c_key_part2.setObjectName("c_key_part2")
-        self.formLayout1.setWidget(
-            1, QtWidgets.QFormLayout.FieldRole, self.c_key_part2
-        )
+        self.formLayout1.setWidget(1, QtWidgets.QFormLayout.FieldRole, self.c_key_part2)
         self.main_tab.addTab(self.tab_keys, "")
         self.verticalLayout.addWidget(self.main_tab)
         self.lbl_description.setBuddy(self.c_description)
@@ -244,9 +222,7 @@ class Ui_QtCompositeKeyModelEditor:
     def retranslate_ui(self, QtCompositeKeyModelEditor):
         _translate = QtCore.QCoreApplication.translate
         QtCompositeKeyModelEditor.setWindowTitle(
-            _translate(
-                "QtCompositeKeyModelEditor", "Composite key model Editor"
-            )
+            _translate("QtCompositeKeyModelEditor", "Composite key model Editor")
         )
         self.lbl_description.setText(
             _translate("QtCompositeKeyModelEditor", "Description ")

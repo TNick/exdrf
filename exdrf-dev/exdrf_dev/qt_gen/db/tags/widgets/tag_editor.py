@@ -5,21 +5,19 @@
 from typing import TYPE_CHECKING, Union
 
 from exdrf.constants import RecIdType
+from exdrf_dev.qt_gen.db.tags.widgets.tag_editor_ui import Ui_QtTagEditor
 from exdrf_qt.controls import ExdrfEditor
 from exdrf_qt.plugins import exdrf_qt_pm
 from exdrf_qt.utils.plugins import safe_hook_call
-
-from exdrf_dev.qt_gen.db.tags.widgets.tag_editor_ui import Ui_QtTagEditor
 
 # exdrf-keep-start other_imports ----------------------------------------------
 
 # exdrf-keep-end other_imports ------------------------------------------------
 
 if TYPE_CHECKING:
+    from exdrf_dev.db.api import Tag  # noqa: F401
     from exdrf_qt.context import QtContext  # noqa: F401
     from sqlalchemy.orm import Session  # noqa: F401
-
-    from exdrf_dev.db.api import Tag  # noqa: F401
 
 # exdrf-keep-start other_globals ----------------------------------------------
 

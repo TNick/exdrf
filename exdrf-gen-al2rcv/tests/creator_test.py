@@ -8,12 +8,11 @@ from types import SimpleNamespace
 from exdrf.field_types.int_field import IntField
 from exdrf.label_dsl import parse_expr
 from exdrf.resource import ExResource
-from jinja2 import Environment, FileSystemLoader
-
 from exdrf_gen_al2rcv.creator import (
     generate_rcv_path_scaffolds_from_alchemy,
     parse_get_db_import,
 )
+from jinja2 import Environment, FileSystemLoader
 
 
 def _minimal_dataset(resources: list) -> SimpleNamespace:
@@ -47,9 +46,7 @@ def test_generate_writes_per_resource_and_category_api(
     )
     d_set = _minimal_dataset([res])
     tmpl_root = (
-        Path(__file__).resolve().parent.parent
-        / "exdrf_gen_al2rcv"
-        / "al2rcv_templates"
+        Path(__file__).resolve().parent.parent / "exdrf_gen_al2rcv" / "al2rcv_templates"
     )
     env = Environment(loader=FileSystemLoader(str(tmpl_root)))
     generate_rcv_path_scaffolds_from_alchemy(
@@ -96,9 +93,7 @@ def test_generate_uncategorized_resource_at_root(tmp_path: Path) -> None:
     )
     d_set = _minimal_dataset([res])
     tmpl_root = (
-        Path(__file__).resolve().parent.parent
-        / "exdrf_gen_al2rcv"
-        / "al2rcv_templates"
+        Path(__file__).resolve().parent.parent / "exdrf_gen_al2rcv" / "al2rcv_templates"
     )
     env = Environment(loader=FileSystemLoader(str(tmpl_root)))
     generate_rcv_path_scaffolds_from_alchemy(
@@ -146,9 +141,7 @@ def test_generate_root_api_imports_renamed_get_db_as_alias(
     )
     d_set = _minimal_dataset([res])
     tmpl_root = (
-        Path(__file__).resolve().parent.parent
-        / "exdrf_gen_al2rcv"
-        / "al2rcv_templates"
+        Path(__file__).resolve().parent.parent / "exdrf_gen_al2rcv" / "al2rcv_templates"
     )
     env = Environment(loader=FileSystemLoader(str(tmpl_root)))
     generate_rcv_path_scaffolds_from_alchemy(

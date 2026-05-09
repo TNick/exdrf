@@ -4,11 +4,6 @@
 
 from typing import TYPE_CHECKING, Union
 
-from exdrf_qt.plugins import exdrf_qt_pm
-from exdrf_qt.utils.plugins import safe_hook_call
-from sqlalchemy import select
-from sqlalchemy.orm import load_only
-
 from exdrf_dev.qt_gen.db.related_items.fields.fld_comp_key_owner import (
     CompKeyOwnerField,
 )
@@ -25,6 +20,10 @@ from exdrf_dev.qt_gen.db.related_items.fields.single_f import LabelField
 from exdrf_dev.qt_gen.db.related_items.models.related_item_ful import (
     QtRelatedItemFuMo,
 )
+from exdrf_qt.plugins import exdrf_qt_pm
+from exdrf_qt.utils.plugins import safe_hook_call
+from sqlalchemy import select
+from sqlalchemy.orm import load_only
 
 # exdrf-keep-start other_imports ----------------------------------------------
 
@@ -59,9 +58,7 @@ class QtRelatedItemNaMo(QtRelatedItemFuMo):
 
     # exdrf-keep-end other_attributes -----------------------------------------
 
-    def __init__(
-        self, selection: Union["Select", None] = None, fields=None, **kwargs
-    ):
+    def __init__(self, selection: Union["Select", None] = None, fields=None, **kwargs):
         pass
 
         super().__init__(

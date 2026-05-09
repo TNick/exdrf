@@ -108,7 +108,8 @@ class DateBase(LineBase):
             current_date = result.value
 
         calendar_dialog = CalendarPopup(
-            current_date, self  # type: ignore[call-arg]
+            current_date,
+            self,  # type: ignore[call-arg]
         )
         if calendar_dialog.exec_() == QDialog.Accepted:
             cal_date = calendar_dialog.selected_date()

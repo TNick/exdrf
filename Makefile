@@ -22,6 +22,12 @@ DIRS = exdrf \
 # deps from the workspace (CI has no private wheels on PyPI).
 PIP_INIT_E := $(foreach d,$(DIRS),-e "$(CURDIR)/$(d)")
 PIP_INIT_D_E := $(foreach d,$(DIRS),-e "$(CURDIR)/$(d)[dev]")
+PYTHON ?= python
+RUFF ?= ruff
+
+# Unified quality tooling configuration.
+COVERAGE_FAIL_UNDER ?= 32
+MYPY_MAX_ERRORS ?= 1218
 
 # These are all python files in all the repository (including venv ones).
 PYTHON_FILES := $(wildcard *.py)
@@ -30,7 +36,7 @@ PYTHON_FILES := $(wildcard *.py)
 # The target runs autoflake on all the python files in the repository.
 # It removes all unused imports.
 aflake: $(PYTHON_FILES)
-	python -m autoflake \
+	$(PYTHON) -m autoflake \
 		--in-place \
 		--remove-all-unused-imports \
 		--recursive \
@@ -69,27 +75,30 @@ with-env:
 # Installs all the packages in the mono-repo into the current environment.
 # This is suitable for production environments.
 init:
-	python -m pip install $(PIP_INIT_E)
+	$(PYTHON) -m pip install $(PIP_INIT_E)
 
 
 # Installs all the packages in the mono-repo into the current environment with
 # dev dependencies.
 init-d:
-	python -m pip install $(PIP_INIT_D_E)
+	$(PYTHON) -m pip install $(PIP_INIT_D_E)
 
 
 # Runs all the tests in the mono-repo.
 test:
-	python -m exdrf_dev.pytest_dirs --root "$(CURDIR)" $(DIRS)
+	$(PYTHON) -m exdrf_dev.pytest_dirs --root "$(CURDIR)" $(DIRS)
+
+
+# Runs static typing checks in all packages in the mono-repo.
+type:
+	$(PYTHON) "$(CURDIR)/scripts/mypy_check.py" --python "$(PYTHON)" --root "$(CURDIR)" --max-errors "$(MYPY_MAX_ERRORS)" $(DIRS)
 
 
 # Checks the code style in all the packages in the mono-repo.
 lint:
 	@for %%d in ($(DIRS)) do ( \
 		pushd "$(CURDIR)\%%d" && \
-		python -m isort --check . && \
-		python -m black --check --quiet --extend-exclude "__version__\.py" . && \
-		python -m pflake8 . && \
+		$(RUFF) check --select E,F,I --ignore E203,E501 . && \
 		popd)
 
 
@@ -97,9 +106,28 @@ lint:
 delint: ui aflake
 	@for %%d in ($(DIRS)) do ( \
 		pushd "$(CURDIR)\%%d" && \
-		python -m isort . && \
-		python -m black --extend-exclude "__version__\.py" . && \
+		$(RUFF) check --select E,F,I --ignore E203,E501 --fix . && \
+		$(RUFF) format . && \
 		popd)
+
+
+# Formats all packages in the mono-repo.
+format: ui aflake
+	@for %%d in ($(DIRS)) do ( \
+		pushd "$(CURDIR)\%%d" && \
+		$(RUFF) format . && \
+		popd)
+
+
+# Runs tests with coverage and enforces the threshold.
+coverage:
+	$(PYTHON) -m coverage erase
+	set COVERAGE_FILE=$(CURDIR)\.coverage && $(PYTHON) -m exdrf_dev.pytest_dirs --root "$(CURDIR)" $(DIRS) --pytest-args --cov=. --cov-append --cov-report=
+	$(PYTHON) -m coverage report --skip-empty --fail-under=$(COVERAGE_FAIL_UNDER)
+
+
+# Runs all mandatory quality gates.
+check: lint type coverage
 
 # Collects all the .ui files.
 UI_FILES := $(shell python -c "import os; [print(os.path.relpath(os.path.join(root, f)).replace('\\', '/')) for root, _, files in os.walk('.') if 'venv' not in root for f in files if f.endswith('.ui')]")
@@ -129,18 +157,23 @@ with-env:
 # Installs all the packages in the mono-repo into the current environment.
 # This is suitable for production environments.
 init:
-	python -m pip install $(PIP_INIT_E)
+	$(PYTHON) -m pip install $(PIP_INIT_E)
 
 
 # Installs all the packages in the mono-repo into the current environment with
 # dev dependencies.
 init-d:
-	python -m pip install $(PIP_INIT_D_E)
+	$(PYTHON) -m pip install $(PIP_INIT_D_E)
 
 
 # Runs all the tests in the mono-repo (same runner as Windows: PYTHONPATH).
 test:
-	python -m exdrf_dev.pytest_dirs --root "$(CURDIR)" $(DIRS)
+	$(PYTHON) -m exdrf_dev.pytest_dirs --root "$(CURDIR)" $(DIRS)
+
+
+# Runs static typing checks in all packages in the mono-repo.
+type:
+	$(PYTHON) "$(CURDIR)/scripts/mypy_check.py" --python "$(PYTHON)" --root "$(CURDIR)" --max-errors "$(MYPY_MAX_ERRORS)" $(DIRS)
 
 
 # Checks the code style in all the packages in the mono-repo.
@@ -148,9 +181,7 @@ lint:
 	@for dir in $(DIRS); do \
 		echo "Running lint in $$dir"; \
 		( cd "$(CURDIR)/$$dir" && \
-		  python -m isort --check . && \
-		  python -m black --check --extend-exclude "__version__\.py" . && \
-		  python -m pflake8 . ) || { \
+		  $(RUFF) check --select E,F,I --ignore E203,E501 . ) || { \
 			exit_code=$$?; \
 			echo "Lint failed in $$dir (exit $$exit_code)"; \
 			exit $$exit_code; \
@@ -162,8 +193,36 @@ lint:
 delint: ui aflake
 	@for dir in $(DIRS); do \
 		( cd "$(CURDIR)/$$dir" && \
-		  python -m isort . && \
-		  python -m black --quiet --extend-exclude "__version__\.py" . ) || exit $$?; \
+		  $(RUFF) check --select E,F,I --ignore E203,E501 --fix . && \
+		  $(RUFF) format . ) || exit $$?; \
+	done
+
+
+# Formats all packages in the mono-repo.
+format: ui aflake
+	@for dir in $(DIRS); do \
+		( cd "$(CURDIR)/$$dir" && \
+		  $(RUFF) format . ) || exit $$?; \
+	done
+
+
+# Runs tests with coverage and enforces the threshold.
+coverage:
+	$(PYTHON) -m coverage erase
+	COVERAGE_FILE="$(CURDIR)/.coverage" $(PYTHON) -m exdrf_dev.pytest_dirs --root "$(CURDIR)" $(DIRS) --pytest-args --cov=. --cov-append --cov-report=
+	$(PYTHON) -m coverage report --skip-empty --fail-under=$(COVERAGE_FAIL_UNDER)
+
+
+# Runs all mandatory quality gates.
+check: lint type coverage
+
+
+# Keeps compatibility with existing tooling that calls make format.
+delint-only:
+	@for dir in $(DIRS); do \
+		( cd "$(CURDIR)/$$dir" && \
+		  $(RUFF) check --select E,F,I --ignore E203,E501 --fix . && \
+		  $(RUFF) format . ) || exit $$?; \
 	done
 
 
@@ -181,44 +240,44 @@ PY_UI_FILES := $(UI_FILES:.ui=_ui.py)
 # Define the .ui to _ui.py conversion rule
 %_ui.py: %.ui exdrf-qt/exdrf_qt/scripts/gen_ui_file.py
 	@echo "Generating $@ from $<..."
-	python -m exdrf_qt.scripts.gen_ui_file $< $@
+	$(PYTHON) -m exdrf_qt.scripts.gen_ui_file $< $@
 
 
 # Add a dependency rule to regenerate _ui.py files only if .ui files change
 ui:
-	python -m exdrf_qt.scripts.gen_ui_file gen "$(CURDIR)" --ex-dir-name "venv" --ex-dir-name "playground"
+	$(PYTHON) -m exdrf_qt.scripts.gen_ui_file gen "$(CURDIR)" --ex-dir-name "venv" --ex-dir-name "playground"
 
 
 # Set the PYQTDESIGNERPATH environment variable to a path inside this directory
 design:
-	python -m exdrf_dev.cli run env:DESIGNER
+	$(PYTHON) -m exdrf_dev.cli run env:DESIGNER
 
 
 # Build sdists and wheels for every package (requires dev extras, e.g. ``make init-d``).
 build-packages:
-	python "$(CURDIR)/scripts/build_packages.py"
+	$(PYTHON) "$(CURDIR)/scripts/build_packages.py"
 
 
 # Merge per-package ``dist/`` into ``release_dist/`` for a single Twine upload.
 collect-dist:
-	python "$(CURDIR)/scripts/collect_dist.py"
+	$(PYTHON) "$(CURDIR)/scripts/collect_dist.py"
 
 
 # Upload merged artifacts to TestPyPI (run ``build-packages`` and ``collect-dist`` first).
 publish-test: build-packages collect-dist
-	python "$(CURDIR)/scripts/publish_packages.py" --artifacts-dir "$(CURDIR)/release_dist" --repository testpypi --non-interactive
+	$(PYTHON) "$(CURDIR)/scripts/publish_packages.py" --artifacts-dir "$(CURDIR)/release_dist" --repository testpypi --non-interactive
 
 
 # Upload merged artifacts to PyPI (run ``build-packages`` and ``collect-dist`` first).
 publish: build-packages collect-dist
-	python "$(CURDIR)/scripts/publish_packages.py" --artifacts-dir "$(CURDIR)/release_dist" --repository pypi --non-interactive
+	$(PYTHON) "$(CURDIR)/scripts/publish_packages.py" --artifacts-dir "$(CURDIR)/release_dist" --repository pypi --non-interactive
 
 
 # Build, upload to TestPyPI, and verify installs in a clean venv (release rehearsal).
 fake-publish:
-	python "$(CURDIR)/scripts/fake_publish.py"
+	$(PYTHON) "$(CURDIR)/scripts/fake_publish.py"
 
 
 # Commit VERSION bump, create annotated ``v*`` tag, and push (set ``EXDRF_RELEASE_ARGS``, e.g. ``--bump patch``).
 release:
-	python "$(CURDIR)/scripts/release.py" $(EXDRF_RELEASE_ARGS)
+	$(PYTHON) "$(CURDIR)/scripts/release.py" $(EXDRF_RELEASE_ARGS)

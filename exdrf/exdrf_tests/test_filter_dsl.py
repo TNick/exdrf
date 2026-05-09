@@ -1,7 +1,6 @@
 from typing import Any, cast
 
 import pytest
-
 from exdrf.filter import FieldFilter, FilterType
 from exdrf.filter_dsl import (
     DSLParser,
@@ -91,9 +90,7 @@ class TestDSLParser:
             p = parser("")
             with pytest.raises(FltSyntaxError) as exc_info:
                 p.match_any("expected")
-            assert "Expected <expected>, but got end of input" in str(
-                exc_info.value
-            )
+            assert "Expected <expected>, but got end of input" in str(exc_info.value)
 
     class TestParseValue:
         """Tests for the parse_value() method."""
@@ -232,9 +229,7 @@ class TestDSLParser:
             p = parser("name eq 'John' extra")
             with pytest.raises(FltSyntaxError) as exc_info:
                 p.parse()
-            assert "Expected <operator>, but got end of input" in str(
-                exc_info.value
-            )
+            assert "Expected <operator>, but got end of input" in str(exc_info.value)
 
         def test_parse_empty_input(self, parser):
             """Test parsing empty input."""
@@ -290,10 +285,7 @@ class TestDSLParser:
 
         def test_serialize_complex_nested(self, parser):
             """Test serializing complex nested expressions."""
-            expr = (
-                "AND(name eq 'John', "
-                "OR(age gt 30, NOT(status eq 'inactive')))"
-            )
+            expr = "AND(name eq 'John', OR(age gt 30, NOT(status eq 'inactive')))"
             p = parser(expr)
             parsed = p.parse()
             result = serialize_filter(parsed[0])
@@ -330,9 +322,7 @@ class TestDSLParser:
             assert "Unknown object type" in str(exc_info.value)
 
         def test_or_with_one_nested(self, parser):
-            p = parser(
-                "OR (\n" "    id == 1\n" ")\n" "OR (\n" "    id == 2\n" ")\n"
-            )
+            p = parser("OR (\n    id == 1\n)\nOR (\n    id == 2\n)\n")
             parsed = p.parse()
             assert isinstance(parsed, list)
             assert len(parsed) == 2
@@ -376,10 +366,7 @@ class TestRawFilterToText:
             ],
         ]
         expected_text_direct_and = "name eq 'John'\nage gt 30\n"
-        assert (
-            raw_filter_to_text(direct_and_filter_data)
-            == expected_text_direct_and
-        )
+        assert raw_filter_to_text(direct_and_filter_data) == expected_text_direct_and
 
     def test_and_logic_stripping_with_field_filter(self) -> None:
         """Test stripping of outer AND when its content is a FieldFilter."""
@@ -388,10 +375,7 @@ class TestRawFilterToText:
             cast(FieldFilter, {"fld": "id", "op": "eq", "vl": 1}),
         ]
         expected_stripped_field = "id eq 1\n"
-        assert (
-            raw_filter_to_text(stripped_and_with_field)
-            == expected_stripped_field
-        )
+        assert raw_filter_to_text(stripped_and_with_field) == expected_stripped_field
 
     def test_and_logic_stripping_with_another_operation(self) -> None:
         """Test stripping of outer AND when its content is another operation."""
@@ -436,9 +420,7 @@ class TestRawFilterToText:
             [  # Inner content for stripped AND is an "or" operation
                 "or",
                 [
-                    cast(
-                        FieldFilter, {"fld": "name", "op": "eq", "vl": "John"}
-                    ),
+                    cast(FieldFilter, {"fld": "name", "op": "eq", "vl": "John"}),
                     [  # This is an inner "not" operation
                         "not",
                         cast(
@@ -450,12 +432,7 @@ class TestRawFilterToText:
             ],
         ]
         expected_text = (
-            "OR (\n"
-            "\tname eq 'John'\n"
-            "\tNOT (\n"
-            "\t\tstatus eq 'active'\n"
-            "\t)\n"
-            ")\n"
+            "OR (\n\tname eq 'John'\n\tNOT (\n\t\tstatus eq 'active'\n\t)\n)\n"
         )
         assert raw_filter_to_text(filter_data_stripped_and) == expected_text
 
@@ -503,7 +480,7 @@ class TestRawFilterToText:
                 [cast(FieldFilter, {"fld": "age", "op": "lt", "vl": 20})],
             ],
         ]
-        expected_text_inner_op = "OR (\n" "\tage lt 20\n" ")\n"
+        expected_text_inner_op = "OR (\n\tage lt 20\n)\n"
         assert (
             raw_filter_to_text(filter_data_inner_op_in_and_corrected)
             == expected_text_inner_op
@@ -521,10 +498,7 @@ class TestRawFilterToText:
         ]
         # This should unwrap correctly, not raise an error
         expected_text = "name eq 'John'\n"
-        assert (
-            raw_filter_to_text(filter_data_list_with_single_dict)
-            == expected_text
-        )
+        assert raw_filter_to_text(filter_data_list_with_single_dict) == expected_text
 
     def test_invalid_filter_part_type(self) -> None:
         """Test with an invalid type in filter parts."""
@@ -557,7 +531,7 @@ class TestRawFilterToText:
         with pytest.raises(KeyError) as exc_info:
             raw_filter_to_text(filter_data)
         error_message = str(exc_info.value).lower()
-        assert exc_info.type == KeyError
+        assert exc_info.type is KeyError
         assert "fld" in error_message
 
     def test_logic_op_invalid_arity(self) -> None:

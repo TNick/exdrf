@@ -4,11 +4,6 @@
 
 from typing import TYPE_CHECKING, Union
 
-from exdrf_qt.plugins import exdrf_qt_pm
-from exdrf_qt.utils.plugins import safe_hook_call
-from sqlalchemy import select
-from sqlalchemy.orm import load_only
-
 from exdrf_dev.qt_gen.db.parents.fields.fld_children import ChildrenField
 from exdrf_dev.qt_gen.db.parents.fields.fld_created_at import CreatedAtField
 from exdrf_dev.qt_gen.db.parents.fields.fld_id import IdField
@@ -18,6 +13,10 @@ from exdrf_dev.qt_gen.db.parents.fields.fld_profile import ProfileField
 from exdrf_dev.qt_gen.db.parents.fields.fld_tags import TagsField
 from exdrf_dev.qt_gen.db.parents.fields.single_f import LabelField
 from exdrf_dev.qt_gen.db.parents.models.parent_ful import QtParentFuMo
+from exdrf_qt.plugins import exdrf_qt_pm
+from exdrf_qt.utils.plugins import safe_hook_call
+from sqlalchemy import select
+from sqlalchemy.orm import load_only
 
 # exdrf-keep-start other_imports ----------------------------------------------
 
@@ -53,16 +52,12 @@ class QtParentNaMo(QtParentFuMo):
 
     # exdrf-keep-end other_attributes -----------------------------------------
 
-    def __init__(
-        self, selection: Union["Select", None] = None, fields=None, **kwargs
-    ):
+    def __init__(self, selection: Union["Select", None] = None, fields=None, **kwargs):
         pass
 
         super().__init__(
             selection=(
-                selection
-                if selection is not None
-                else default_parent_ocm_selection()
+                selection if selection is not None else default_parent_ocm_selection()
             ),
             fields=(
                 fields

@@ -197,7 +197,8 @@ class QtRecord:
             The QModelIndex for the specified column of this record's row.
         """
         return self.model.index(
-            self.model.cache.index(self), col  # type: ignore
+            self.model.cache.index(self),
+            col,  # type: ignore
         )
 
     def get_row_data(self, role=Qt.ItemDataRole.DisplayRole) -> List[Any]:

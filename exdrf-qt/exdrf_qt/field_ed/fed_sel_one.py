@@ -113,7 +113,6 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
         add_kb: Optional[Callable[[str], None]] = None,
         **kwargs,
     ) -> None:
-
         # Initialize instance variables.
         logger.log(VERBOSE, "DrfSelOneEditor.__init__")
         self._in_editing = True
@@ -355,7 +354,8 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
             self._edit_action.setEnabled(enabled)
 
     def change_edit_mode(  # type: ignore
-        self: QWidget, in_editing: bool  # type: ignore
+        self: QWidget,
+        in_editing: bool,  # type: ignore
     ) -> None:
         """Switch between edit mode and display mode.
 
@@ -492,7 +492,7 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
             if record.loaded:
                 logger.log(
                     VERBOSE,
-                    "%s.change_field_value(): " "record found in cache:",
+                    "%s.change_field_value(): record found in cache:",
                     self.__class__.__name__,
                 )
                 return self.record_to_text(record)
@@ -512,7 +512,7 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
             record = self.qt_model.db_item_to_record(db_item)
             logger.log(
                 VERBOSE,
-                "%s.change_field_value(): " "record loaded from database:",
+                "%s.change_field_value(): record loaded from database:",
                 self.__class__.__name__,
             )
             return self.record_to_text(record)

@@ -1,13 +1,12 @@
 import pytest
 from exdrf.filter import FilterType
+from exdrf_dev.db.models import Base, Child, Parent
+from exdrf_dev.qt_gen.db.children.models.child_ful import QtChildFuMo
 from exdrf_qt.context import QtContext
 from exdrf_qt.worker import Work
 from PyQt5.QtCore import Qt
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-
-from exdrf_dev.db.models import Base, Child, Parent
-from exdrf_dev.qt_gen.db.children.models.child_ful import QtChildFuMo
 
 
 class SyncQtContext(QtContext):
@@ -47,9 +46,7 @@ class SyncQtContext(QtContext):
             return work
 
         if callback is None:
-            raise TypeError(
-                "callback is required when push_work receives a statement"
-            )
+            raise TypeError("callback is required when push_work receives a statement")
 
         work = Work(
             statement=statement_or_work,
@@ -136,10 +133,7 @@ def test_model_with_data(qt_context, sample_data):
 
     # Test parent relationship
     parent_index = model.index(0, 3)  # ParentField column
-    assert (
-        model.data(parent_index, Qt.ItemDataRole.DisplayRole)
-        == "ID:1 Name:Parent 1"
-    )
+    assert model.data(parent_index, Qt.ItemDataRole.DisplayRole) == "ID:1 Name:Parent 1"
 
 
 def test_model_sorting(qt_context, sample_data):
@@ -162,18 +156,9 @@ def test_model_sorting(qt_context, sample_data):
     while model.loaded_count == 0 and (time.time() - start) < timeout:
         time.sleep(0.01)
 
-    assert (
-        model.data(model.index(0, 1), Qt.ItemDataRole.DisplayRole)
-        == "Child 1 data"
-    )
-    assert (
-        model.data(model.index(1, 1), Qt.ItemDataRole.DisplayRole)
-        == "Child 2 data"
-    )
-    assert (
-        model.data(model.index(2, 1), Qt.ItemDataRole.DisplayRole)
-        == "Child 3 data"
-    )
+    assert model.data(model.index(0, 1), Qt.ItemDataRole.DisplayRole) == "Child 1 data"
+    assert model.data(model.index(1, 1), Qt.ItemDataRole.DisplayRole) == "Child 2 data"
+    assert model.data(model.index(2, 1), Qt.ItemDataRole.DisplayRole) == "Child 3 data"
 
     # Sort in descending order
     model.sort(1, Qt.SortOrder.DescendingOrder)
@@ -183,18 +168,9 @@ def test_model_sorting(qt_context, sample_data):
     while model.loaded_count == 0 and (time.time() - start) < timeout:
         time.sleep(0.01)
 
-    assert (
-        model.data(model.index(0, 1), Qt.ItemDataRole.DisplayRole)
-        == "Child 3 data"
-    )
-    assert (
-        model.data(model.index(1, 1), Qt.ItemDataRole.DisplayRole)
-        == "Child 2 data"
-    )
-    assert (
-        model.data(model.index(2, 1), Qt.ItemDataRole.DisplayRole)
-        == "Child 1 data"
-    )
+    assert model.data(model.index(0, 1), Qt.ItemDataRole.DisplayRole) == "Child 3 data"
+    assert model.data(model.index(1, 1), Qt.ItemDataRole.DisplayRole) == "Child 2 data"
+    assert model.data(model.index(2, 1), Qt.ItemDataRole.DisplayRole) == "Child 1 data"
 
 
 def test_model_filtering(qt_context, sample_data):
@@ -203,9 +179,7 @@ def test_model_filtering(qt_context, sample_data):
     parent1, _, _, _, _ = sample_data
 
     # Filter by parent_id
-    filter_expr: FilterType = [
-        {"fld": "parent_id", "op": "eq", "vl": parent1.id}
-    ]
+    filter_expr: FilterType = [{"fld": "parent_id", "op": "eq", "vl": parent1.id}]
     model.apply_filter(filter_expr)
     assert model.total_count == 2  # Two children belong to parent1
 
@@ -218,14 +192,8 @@ def test_model_filtering(qt_context, sample_data):
         time.sleep(0.01)
 
     # Verify filtered data
-    assert (
-        model.data(model.index(0, 1), Qt.ItemDataRole.DisplayRole)
-        == "Child 1 data"
-    )
-    assert (
-        model.data(model.index(1, 1), Qt.ItemDataRole.DisplayRole)
-        == "Child 2 data"
-    )
+    assert model.data(model.index(0, 1), Qt.ItemDataRole.DisplayRole) == "Child 1 data"
+    assert model.data(model.index(1, 1), Qt.ItemDataRole.DisplayRole) == "Child 2 data"
 
 
 def test_model_checking(qt_context, sample_data):
@@ -271,9 +239,7 @@ def test_model_checking(qt_context, sample_data):
     assert model.checked_ids == {child1.id}
 
     # Uncheck first item
-    model.setData(
-        index, Qt.CheckState.Unchecked, Qt.ItemDataRole.CheckStateRole
-    )
+    model.setData(index, Qt.CheckState.Unchecked, Qt.ItemDataRole.CheckStateRole)
     assert model.checked_ids == set()
 
 
@@ -283,9 +249,7 @@ def test_model_cloning(qt_context, sample_data):
     parent1, _, _, _, _ = sample_data
 
     # Apply some settings
-    filter_expr: FilterType = [
-        {"fld": "parent_id", "op": "eq", "vl": parent1.id}
-    ]
+    filter_expr: FilterType = [{"fld": "parent_id", "op": "eq", "vl": parent1.id}]
     model.apply_filter(filter_expr)
 
     # Wait for filtered data to load
@@ -318,10 +282,7 @@ def test_model_cloning(qt_context, sample_data):
         time.sleep(0.01)
 
     # Same sort order
-    assert (
-        clone.data(clone.index(0, 1), Qt.ItemDataRole.DisplayRole)
-        == "Child 1 data"
-    )
+    assert clone.data(clone.index(0, 1), Qt.ItemDataRole.DisplayRole) == "Child 1 data"
 
 
 def test_model_header_data(qt_context, sample_data):
@@ -330,27 +291,19 @@ def test_model_header_data(qt_context, sample_data):
 
     # Test horizontal headers
     assert (
-        model.headerData(
-            0, Qt.Orientation.Horizontal, Qt.ItemDataRole.DisplayRole
-        )
+        model.headerData(0, Qt.Orientation.Horizontal, Qt.ItemDataRole.DisplayRole)
         == "ID"
     )
     assert (
-        model.headerData(
-            1, Qt.Orientation.Horizontal, Qt.ItemDataRole.DisplayRole
-        )
+        model.headerData(1, Qt.Orientation.Horizontal, Qt.ItemDataRole.DisplayRole)
         == "Data"
     )
     assert (
-        model.headerData(
-            2, Qt.Orientation.Horizontal, Qt.ItemDataRole.DisplayRole
-        )
+        model.headerData(2, Qt.Orientation.Horizontal, Qt.ItemDataRole.DisplayRole)
         == "Parent ID"
     )
     assert (
-        model.headerData(
-            3, Qt.Orientation.Horizontal, Qt.ItemDataRole.DisplayRole
-        )
+        model.headerData(3, Qt.Orientation.Horizontal, Qt.ItemDataRole.DisplayRole)
         == "Parent"
     )
 
@@ -369,9 +322,7 @@ def test_model_header_data(qt_context, sample_data):
     # Test vertical headers (row numbers) - only if data is loaded
     if model.loaded_count > 0:
         assert (
-            model.headerData(
-                0, Qt.Orientation.Vertical, Qt.ItemDataRole.DisplayRole
-            )
+            model.headerData(0, Qt.Orientation.Vertical, Qt.ItemDataRole.DisplayRole)
             == model.cache[0].db_id
         )
         if model.loaded_count > 1:

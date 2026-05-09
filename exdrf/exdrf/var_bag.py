@@ -179,9 +179,7 @@ class VarBag:
 
         result = VarBag()
         for name in self.values.keys():
-            search_text = (
-                name.lower() if by_name else str(self.values[name]).lower()
-            )
+            search_text = name.lower() if by_name else str(self.values[name]).lower()
             if regex.search(search_text):
                 if name in self._fields:
                     result._fields[name] = self._fields[name]
@@ -210,9 +208,7 @@ class VarBag:
 
         result = VarBag()
         for name in self._fields.keys():
-            search_text = (
-                name.lower() if by_name else str(self.values[name]).lower()
-            )
+            search_text = name.lower() if by_name else str(self.values[name]).lower()
             if regex.search(search_text):
                 result._fields[name] = self._fields[name]
                 result.values[name] = self.values[name]
@@ -294,9 +290,7 @@ class VarBag:
         for item in data:
             self.simple_to_one(item)
 
-    def simple_to_one(
-        self, item: Dict[str, Any]
-    ) -> Tuple[Union["ExField", None], Any]:
+    def simple_to_one(self, item: Dict[str, Any]) -> Tuple[Union["ExField", None], Any]:
         """Load a single item from a simple data structure into the variable
         bag.
 

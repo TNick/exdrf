@@ -3,9 +3,8 @@ from typing import TYPE_CHECKING
 from PyQt5 import QtCore, QtWidgets
 
 if TYPE_CHECKING:
-    from exdrf_qt.field_ed.api import DrfIntEditor, DrfTextEditor
-
     from exdrf_dev.qt_gen.db.parents.api import QtParentSiSe
+    from exdrf_qt.field_ed.api import DrfIntEditor, DrfTextEditor
 
 
 class Ui_QtChildEditor:
@@ -38,9 +37,8 @@ class Ui_QtChildEditor:
     verticalLayout: "QtWidgets.QVBoxLayout"
 
     def setup_ui(self, QtChildEditor):
-        from exdrf_qt.field_ed.api import DrfIntEditor, DrfTextEditor
-
         from exdrf_dev.qt_gen.db.parents.api import QtParentSiSe
+        from exdrf_qt.field_ed.api import DrfIntEditor, DrfTextEditor
 
         QtChildEditor.setObjectName("QtChildEditor")
         QtChildEditor.resize(480, 640)
@@ -54,28 +52,20 @@ class Ui_QtChildEditor:
         self.formLayout.setObjectName("formLayout")
         self.lbl_data = QtWidgets.QLabel(self.tab_general)
         self.lbl_data.setObjectName("lbl_data")
-        self.formLayout.setWidget(
-            0, QtWidgets.QFormLayout.LabelRole, self.lbl_data
-        )
+        self.formLayout.setWidget(0, QtWidgets.QFormLayout.LabelRole, self.lbl_data)
         self.c_data = DrfTextEditor(parent=self.tab_general, ctx=self.ctx)
         self.c_data.setProperty("name", "data")
         self.c_data.setProperty("clearable", True)
         self.c_data.setObjectName("c_data")
-        self.formLayout.setWidget(
-            0, QtWidgets.QFormLayout.FieldRole, self.c_data
-        )
+        self.formLayout.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.c_data)
         self.lbl_parent = QtWidgets.QLabel(self.tab_general)
         self.lbl_parent.setObjectName("lbl_parent")
-        self.formLayout.setWidget(
-            1, QtWidgets.QFormLayout.LabelRole, self.lbl_parent
-        )
+        self.formLayout.setWidget(1, QtWidgets.QFormLayout.LabelRole, self.lbl_parent)
         self.c_parent = QtParentSiSe(parent=self.tab_general, ctx=self.ctx)
         self.c_parent.setProperty("name", "parent")
         self.c_parent.setProperty("clearable", True)
         self.c_parent.setObjectName("c_parent")
-        self.formLayout.setWidget(
-            1, QtWidgets.QFormLayout.FieldRole, self.c_parent
-        )
+        self.formLayout.setWidget(1, QtWidgets.QFormLayout.FieldRole, self.c_parent)
         self.main_tab.addTab(self.tab_general, "")
         self.tab_keys = QtWidgets.QWidget()
         self.tab_keys.setObjectName("tab_keys")
@@ -83,15 +73,11 @@ class Ui_QtChildEditor:
         self.formLayout1.setObjectName("formLayout1")
         self.lbl_id = QtWidgets.QLabel(self.tab_keys)
         self.lbl_id.setObjectName("lbl_id")
-        self.formLayout1.setWidget(
-            0, QtWidgets.QFormLayout.LabelRole, self.lbl_id
-        )
+        self.formLayout1.setWidget(0, QtWidgets.QFormLayout.LabelRole, self.lbl_id)
         self.c_id = DrfIntEditor(parent=self.tab_keys, ctx=self.ctx)
         self.c_id.setProperty("name", "id")
         self.c_id.setObjectName("c_id")
-        self.formLayout1.setWidget(
-            0, QtWidgets.QFormLayout.FieldRole, self.c_id
-        )
+        self.formLayout1.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.c_id)
         self.main_tab.addTab(self.tab_keys, "")
         self.verticalLayout.addWidget(self.main_tab)
         self.lbl_data.setBuddy(self.c_data)
@@ -104,9 +90,7 @@ class Ui_QtChildEditor:
 
     def retranslate_ui(self, QtChildEditor):
         _translate = QtCore.QCoreApplication.translate
-        QtChildEditor.setWindowTitle(
-            _translate("QtChildEditor", "Child Editor")
-        )
+        QtChildEditor.setWindowTitle(_translate("QtChildEditor", "Child Editor"))
         self.lbl_data.setText(_translate("QtChildEditor", "Data "))
         self.lbl_parent.setText(_translate("QtChildEditor", "Parent "))
         self.main_tab.setTabText(

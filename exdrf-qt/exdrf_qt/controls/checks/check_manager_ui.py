@@ -76,7 +76,6 @@ class Ui_ChecksManager:
     verticalLayout_7: "QtWidgets.QVBoxLayout"
 
     def setup_ui(self, ChecksManager):
-
         ChecksManager.setObjectName("ChecksManager")
         ChecksManager.resize(640, 480)
         self.verticalLayout = QtWidgets.QVBoxLayout(ChecksManager)

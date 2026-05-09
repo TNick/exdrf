@@ -23,6 +23,4 @@ class QtParentTagAssociationNaMo(QtModel["ParentTagAssociation"]):
             ParentTagAssociation as DbParentTagAssociation,
         )
 
-        super().__init__(
-            ctx=ctx, db_model=DbParentTagAssociation, fields=[], **kwargs
-        )
+        super().__init__(ctx=ctx, db_model=DbParentTagAssociation, fields=[], **kwargs)

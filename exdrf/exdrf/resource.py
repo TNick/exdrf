@@ -87,7 +87,7 @@ class ExResource:
         return f"<Resource {self.name} ({len(self.fields)} fields)>"
 
     def __hash__(self):
-        return hash(f'{self.name}.{".".join(self.categories)}')
+        return hash(f"{self.name}.{'.'.join(self.categories)}")
 
     def __contains__(self, key: Union[int, str]) -> bool:
         if isinstance(key, int):
@@ -396,9 +396,7 @@ class ExResource:
         names: Set[str] = set(
             [n.split(".")[0] for n in get_used_fields(self.label_ast)]
         )
-        return sorted(
-            n for n in names if self.__in__(n) and not self[n].primary
-        )
+        return sorted(n for n in names if self.__in__(n) and not self[n].primary)
 
     def primary_fields(self) -> List[str]:
         """Get the fields that are primary keys of the resource."""
@@ -502,9 +500,7 @@ class ExResource:
 
         return path_sep.join(path)
 
-    def ensure_path(
-        self, path: str, extension: str, name: Optional[str] = None
-    ):
+    def ensure_path(self, path: str, extension: str, name: Optional[str] = None):
         """Ensure that a path exists and computes file path.
 
         The final path is computed by joining the base `path` with the
@@ -555,15 +551,11 @@ class ExResource:
         before_name = before_match.group(1).strip() if before_match else None
 
         # Remove relationship tokens to keep the sort value intact.
-        sort_value = re.sub(
-            r"\[(?:after|before):[^\]]+\]", "", pos_hint
-        ).strip()
+        sort_value = re.sub(r"\[(?:after|before):[^\]]+\]", "", pos_hint).strip()
 
         return sort_value, after_name, before_name
 
-    def apply_pos_hint_relations(
-        self, fields: List["ExField"]
-    ) -> List["ExField"]:
+    def apply_pos_hint_relations(self, fields: List["ExField"]) -> List["ExField"]:
         """Apply [after]/[before] relations to a sorted field list.
 
         Args:
@@ -727,11 +719,7 @@ class ExResource:
                 return False
             if exclude_one_to_one and f.is_one_to_one_type:
                 return False
-            if (
-                exclude_bridge
-                and hasattr(f, "bridge")
-                and bool(getattr(f, "bridge"))
-            ):
+            if exclude_bridge and hasattr(f, "bridge") and bool(getattr(f, "bridge")):
                 return False
             if exclude_one_to_many_use_rel:
                 if (
@@ -838,8 +826,7 @@ class ExResource:
         result = {}
         for fld in self.fields:
             if (
-                hasattr(fld, "no_dia_field")
-                and fld.no_dia_field is not None  # type: ignore
+                hasattr(fld, "no_dia_field") and fld.no_dia_field is not None  # type: ignore
             ):
                 result[fld.name] = fld.no_dia_field.name  # type: ignore
         return result
@@ -857,10 +844,7 @@ class ExResource:
                         yield other_r, fld_m, fld_m.ref_intermediate
                     continue
 
-                if (
-                    include_bridge
-                    and fld.type_name == FIELD_TYPE_REF_ONE_TO_MANY
-                ):
+                if include_bridge and fld.type_name == FIELD_TYPE_REF_ONE_TO_MANY:
                     fld_o = cast("RefOneToManyField", fld)
                     if fld_o.bridge is self:
                         yield other_r, fld_o, fld_o.ref

@@ -61,9 +61,7 @@ def run(args):
                 env_var = a[4:]
                 env_value = os.environ.get(env_var)
                 if env_value is None:
-                    click.echo(
-                        f"Env. variable '{env_var}' not found.", err=True
-                    )
+                    click.echo(f"Env. variable '{env_var}' not found.", err=True)
                     return
                 a = env_value
             final_args.append(a)

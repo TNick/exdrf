@@ -24,14 +24,9 @@ class Ui_QtParentTagAssociationEditor:
     verticalLayout: "QtWidgets.QVBoxLayout"
 
     def setup_ui(self, QtParentTagAssociationEditor):
-
-        QtParentTagAssociationEditor.setObjectName(
-            "QtParentTagAssociationEditor"
-        )
+        QtParentTagAssociationEditor.setObjectName("QtParentTagAssociationEditor")
         QtParentTagAssociationEditor.resize(480, 640)
-        self.verticalLayout = QtWidgets.QVBoxLayout(
-            QtParentTagAssociationEditor
-        )
+        self.verticalLayout = QtWidgets.QVBoxLayout(QtParentTagAssociationEditor)
         self.verticalLayout.setObjectName("verticalLayout")
         self.main_tab = QtWidgets.QTabWidget(QtParentTagAssociationEditor)
         self.main_tab.setObjectName("main_tab")
@@ -46,19 +41,13 @@ class Ui_QtParentTagAssociationEditor:
         )
         self.c_parent_id = QtWidgets.QSpinBox(self.tab_general)
         self.c_parent_id.setObjectName("c_parent_id")
-        self.formLayout.setWidget(
-            0, QtWidgets.QFormLayout.FieldRole, self.c_parent_id
-        )
+        self.formLayout.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.c_parent_id)
         self.lbl_tag_id = QtWidgets.QLabel(self.tab_general)
         self.lbl_tag_id.setObjectName("lbl_tag_id")
-        self.formLayout.setWidget(
-            1, QtWidgets.QFormLayout.LabelRole, self.lbl_tag_id
-        )
+        self.formLayout.setWidget(1, QtWidgets.QFormLayout.LabelRole, self.lbl_tag_id)
         self.c_tag_id = QtWidgets.QSpinBox(self.tab_general)
         self.c_tag_id.setObjectName("c_tag_id")
-        self.formLayout.setWidget(
-            1, QtWidgets.QFormLayout.FieldRole, self.c_tag_id
-        )
+        self.formLayout.setWidget(1, QtWidgets.QFormLayout.FieldRole, self.c_tag_id)
         self.main_tab.addTab(self.tab_general, "")
         self.verticalLayout.addWidget(self.main_tab)
 
@@ -69,16 +58,12 @@ class Ui_QtParentTagAssociationEditor:
     def retranslate_ui(self, QtParentTagAssociationEditor):
         _translate = QtCore.QCoreApplication.translate
         QtParentTagAssociationEditor.setWindowTitle(
-            _translate(
-                "QtParentTagAssociationEditor", "ParentTagAssociation Editor"
-            )
+            _translate("QtParentTagAssociationEditor", "ParentTagAssociation Editor")
         )
         self.lbl_parent_id.setText(
             _translate("QtParentTagAssociationEditor", "Parent Id ")
         )
-        self.lbl_tag_id.setText(
-            _translate("QtParentTagAssociationEditor", "Tag Id ")
-        )
+        self.lbl_tag_id.setText(_translate("QtParentTagAssociationEditor", "Tag Id "))
         self.main_tab.setTabText(
             self.main_tab.indexOf(self.tab_general),
             _translate("QtParentTagAssociationEditor", "General"),

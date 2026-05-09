@@ -14,9 +14,7 @@ def init_qt_info():
     QCoreApplication.setOrganizationDomain("exdrf.dev")
     QCoreApplication.setApplicationName("Field Editor Showcase")
     QCoreApplication.setApplicationVersion(__version__)
-    QCoreApplication.setAttribute(
-        Qt.ApplicationAttribute.AA_EnableHighDpiScaling, True
-    )
+    QCoreApplication.setAttribute(Qt.ApplicationAttribute.AA_EnableHighDpiScaling, True)
 
 
 def main():

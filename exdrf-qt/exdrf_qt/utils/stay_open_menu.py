@@ -30,7 +30,6 @@ class StayOpenMenu(QMenu):
         self._about_to_hide = False
 
     def eventFilter(self, obj: QObject, event: QEvent) -> bool:  # type: ignore
-
         while True:
             if obj is not self:
                 break

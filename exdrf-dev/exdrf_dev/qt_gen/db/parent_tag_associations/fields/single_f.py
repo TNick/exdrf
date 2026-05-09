@@ -43,9 +43,7 @@ class LabelField(QtStringField["ParentTagAssociation"]):
 
     # exdrf-keep-end other_label_attributes -----------------------------------
 
-    def values(
-        self, record: "ParentTagAssociation"
-    ) -> Dict[Qt.ItemDataRole, Any]:
+    def values(self, record: "ParentTagAssociation") -> Dict[Qt.ItemDataRole, Any]:
         return self.expand_value(
             (
                 str("Parent:")

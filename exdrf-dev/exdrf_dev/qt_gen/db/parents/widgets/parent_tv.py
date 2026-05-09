@@ -22,10 +22,9 @@ from sqlalchemy import Select, select
 # exdrf-keep-end other_imports -------------------------------------------------
 
 if TYPE_CHECKING:
+    from exdrf_dev.db.api import Parent as Parent  # noqa: F401
     from exdrf_qt.context import QtContext  # noqa: F401
     from sqlalchemy.orm import Session  # noqa: F401
-
-    from exdrf_dev.db.api import Parent as Parent  # noqa: F401
 
 logger = logging.getLogger(__name__)
 
@@ -136,9 +135,7 @@ class QtParentTv(RecordTemplViewer):
                     BoolField(
                         name="is_active",
                         title="Is Active",
-                        description=(
-                            "Flag indicating if the parent is active."
-                        ),
+                        description=("Flag indicating if the parent is active."),
                     ),
                     record.is_active,
                 ),

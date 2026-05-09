@@ -24,7 +24,6 @@ from exdrf.constants import (
     FIELD_TYPE_STRING_LIST,
     FIELD_TYPE_TIME,
 )
-
 from exdrf_rcv.models import RcvPlan, RcvResourceDataAccess
 
 

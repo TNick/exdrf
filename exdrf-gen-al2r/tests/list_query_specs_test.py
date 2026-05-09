@@ -7,9 +7,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 _LIST_QUERY_PATH = (
-    Path(__file__).resolve().parents[1]
-    / "exdrf_gen_al2r"
-    / "list_query_specs.py"
+    Path(__file__).resolve().parents[1] / "exdrf_gen_al2r" / "list_query_specs.py"
 )
 
 
@@ -50,9 +48,7 @@ def test_build_al2r_list_relation_query_specs_joins_sync() -> None:
             ),
         )
     )
-    merged = build_al2r_list_relation_query_specs(
-        resource, list_specs, rel_specs
-    )
+    merged = build_al2r_list_relation_query_specs(resource, list_specs, rel_specs)
     assert len(merged) == 1
     assert merged[0]["attr"] == "widgets"
     assert merged[0]["sync"]["kind"] == "o2m_fk"
@@ -86,9 +82,7 @@ def test_build_al2r_list_relation_query_specs_composite_related_pk() -> None:
             ),
         )
     )
-    merged = build_al2r_list_relation_query_specs(
-        resource, list_specs, rel_specs
-    )
+    merged = build_al2r_list_relation_query_specs(resource, list_specs, rel_specs)
     assert merged[0]["related_pk_col"] == "kind"
     assert merged[0]["related_pk_order"] == (
         "kind",

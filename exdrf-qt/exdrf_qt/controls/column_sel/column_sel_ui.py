@@ -30,7 +30,6 @@ class Ui_ColumnSelDlg:
     widget1: "QtWidgets.QWidget"
 
     def setup_ui(self, ColumnSelDlg):
-
         ColumnSelDlg.setObjectName("ColumnSelDlg")
         ColumnSelDlg.resize(439, 389)
         self.verticalLayout_3 = QtWidgets.QVBoxLayout(ColumnSelDlg)

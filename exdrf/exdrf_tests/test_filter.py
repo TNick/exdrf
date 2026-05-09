@@ -100,9 +100,7 @@ def test_or_filter_visitor() -> None:
 
 def test_not_filter_visitor() -> None:
     """Test visiting a NOT filter."""
-    filter: FilterType = cast(
-        FilterType, ["not", FieldFilter(fld="id", op="eq", vl=1)]
-    )
+    filter: FilterType = cast(FilterType, ["not", FieldFilter(fld="id", op="eq", vl=1)])
     visitor = FilterVisitorCollector(filter)
     visitor.run(filter)
 
@@ -238,24 +236,18 @@ def test_validate_filter_edge_cases() -> None:
     assert validate_filter(cast(FilterType, ["or", []])) == []
 
     # Single field filter as dict is valid
-    dict_filter: FilterType = cast(
-        FilterType, {"fld": "id", "op": "eq", "vl": 1}
-    )
+    dict_filter: FilterType = cast(FilterType, {"fld": "id", "op": "eq", "vl": 1})
     assert validate_filter(dict_filter) == []
 
     # Single field filter as FieldFilter instance is valid
-    field_filter: FilterType = cast(
-        FilterType, [FieldFilter(fld="id", op="eq", vl=1)]
-    )
+    field_filter: FilterType = cast(FilterType, [FieldFilter(fld="id", op="eq", vl=1)])
     assert validate_filter(field_filter) == []
 
 
 def test_insert_quick_search_basic() -> None:
     """Test basic quick search insertion."""
     # Test with None filter
-    result = insert_quick_search(
-        "name", "test", search_type=SearchType.EXTENDED
-    )
+    result = insert_quick_search("name", "test", search_type=SearchType.EXTENDED)
     assert isinstance(result, list)
     assert len(result) == 1
     assert isinstance(result[0], FieldFilter)
@@ -303,27 +295,21 @@ def test_insert_quick_search_exact() -> None:
 def test_insert_quick_search_wildcards() -> None:
     """Test quick search with wildcards and spaces."""
     # Test with spaces
-    result = insert_quick_search(
-        "name", "test value", search_type=SearchType.EXTENDED
-    )
+    result = insert_quick_search("name", "test value", search_type=SearchType.EXTENDED)
     assert isinstance(result, list)
     assert len(result) == 1
     assert isinstance(result[0], FieldFilter)
     assert result[0].vl == "%test%value%"
 
     # Test with asterisks
-    result = insert_quick_search(
-        "name", "test*value", search_type=SearchType.EXTENDED
-    )
+    result = insert_quick_search("name", "test*value", search_type=SearchType.EXTENDED)
     assert isinstance(result, list)
     assert len(result) == 1
     assert isinstance(result[0], FieldFilter)
     assert result[0].vl == "test%value"
 
     # Test with mixed wildcards
-    result = insert_quick_search(
-        "name", "test* value", search_type=SearchType.EXTENDED
-    )
+    result = insert_quick_search("name", "test* value", search_type=SearchType.EXTENDED)
     assert isinstance(result, list)
     assert len(result) == 1
     assert isinstance(result[0], FieldFilter)
@@ -397,9 +383,7 @@ def test_insert_quick_search_edge_cases() -> None:
     assert len(result) == 0
 
     # Test with existing quick search in dict form
-    dict_filter = cast(
-        FilterType, [{"fld": "name", "op": "ilike", "vl": "%old%"}]
-    )
+    dict_filter = cast(FilterType, [{"fld": "name", "op": "ilike", "vl": "%old%"}])
     result = insert_quick_search(
         "name", "new", dict_filter, search_type=SearchType.EXTENDED
     )

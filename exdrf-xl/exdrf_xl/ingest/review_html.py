@@ -379,8 +379,7 @@ def render_review_html(plan: Any) -> str:
                     v = getattr(r, "xl_row", {}).get(c, None)
                     if v is None:
                         parts.append(
-                            '<td><span class="cell-null-solo">null</span>'
-                            "</td>"
+                            '<td><span class="cell-null-solo">null</span></td>'
                         )
                     elif isinstance(v, str) and v.strip() == "":
                         parts.append(

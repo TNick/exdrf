@@ -43,7 +43,9 @@ class VarHeader(ListDbHeader):
             **kwargs: Passed to ListDbHeader (e.g. parent).
         """
         super().__init__(
-            save_settings=False, qt_model=None, **kwargs  # type: ignore
+            save_settings=False,
+            qt_model=None,
+            **kwargs,  # type: ignore
         )  # type: ignore
         self.viewer = viewer
 

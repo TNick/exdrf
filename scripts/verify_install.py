@@ -9,6 +9,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
+
 import tomllib
 
 _SCRIPTS_DIR = Path(__file__).resolve().parent
@@ -57,9 +58,7 @@ def main() -> None:
     parser.add_argument(
         "--version",
         required=True,
-        help=(
-            "Exact PEP 440 version for every distribution " "(example: 1.2.3)."
-        ),
+        help=("Exact PEP 440 version for every distribution (example: 1.2.3)."),
     )
     parser.add_argument(
         "--index-url",

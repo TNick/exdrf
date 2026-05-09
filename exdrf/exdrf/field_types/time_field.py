@@ -24,7 +24,7 @@ class TimeField(ExField):
     format: str = field(default="HH:mm:ss")
 
     def __repr__(self) -> str:
-        return f"TimeF(" f"{self.resource.name}.{self.name})"
+        return f"TimeF({self.resource.name}.{self.name})"
 
     def field_properties(self, explicit: bool = False) -> dict[str, Any]:
         result = super().field_properties(explicit)

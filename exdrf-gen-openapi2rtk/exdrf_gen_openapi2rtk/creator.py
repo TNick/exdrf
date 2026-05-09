@@ -82,8 +82,7 @@ def _build_api_bundle(
 
     global_sourced = {
         **{
-            arg: f"(api.getState() as LocalState).runtime.{arg}.id"
-            for arg in _IN_STATE
+            arg: f"(api.getState() as LocalState).runtime.{arg}.id" for arg in _IN_STATE
         },
     }
 

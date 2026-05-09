@@ -5,12 +5,6 @@
 from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Union
 
 from exdrf.constants import RecIdType
-from exdrf_qt.models import QtModel
-from exdrf_qt.plugins import exdrf_qt_pm
-from exdrf_qt.utils.plugins import safe_hook_call
-from sqlalchemy import select
-from sqlalchemy.orm import joinedload
-
 from exdrf_dev.qt_gen.db.related_items.fields.fld_comp_key_owner import (
     CompKeyOwnerField,
 )
@@ -23,6 +17,11 @@ from exdrf_dev.qt_gen.db.related_items.fields.fld_comp_key_part2 import (
 from exdrf_dev.qt_gen.db.related_items.fields.fld_id import IdField
 from exdrf_dev.qt_gen.db.related_items.fields.fld_item_data import ItemDataField
 from exdrf_dev.qt_gen.db.related_items.fields.fld_some_int import SomeIntField
+from exdrf_qt.models import QtModel
+from exdrf_qt.plugins import exdrf_qt_pm
+from exdrf_qt.utils.plugins import safe_hook_call
+from sqlalchemy import select
+from sqlalchemy.orm import joinedload
 
 # exdrf-keep-start other_imports ----------------------------------------------
 
@@ -30,10 +29,9 @@ from exdrf_dev.qt_gen.db.related_items.fields.fld_some_int import SomeIntField
 
 if TYPE_CHECKING:
     from exdrf.filter import FilterType  # noqa: F401
+    from exdrf_dev.db.api import RelatedItem  # noqa: F401
     from exdrf_qt.context import QtContext  # noqa: F401
     from sqlalchemy import Select  # noqa: F401
-
-    from exdrf_dev.db.api import RelatedItem  # noqa: F401
 
 # exdrf-keep-start other_globals ----------------------------------------------
 
@@ -100,9 +98,7 @@ class QtRelatedItemFuMo(QtModel["RelatedItem"]):
     def get_primary_columns(self) -> Any:
         return self.db_model.id
 
-    def get_db_item_id(
-        self, item: "RelatedItem"
-    ) -> Union[int, Tuple[int, ...]]:
+    def get_db_item_id(self, item: "RelatedItem") -> Union[int, Tuple[int, ...]]:
         return item.id
 
     def item_by_id_conditions(self, rec_id: RecIdType) -> List[Any]:

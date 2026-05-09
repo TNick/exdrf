@@ -411,7 +411,7 @@ class SelectDatabaseDlg(QDialog, Ui_SelectDatabase, QtUseContext):
 
     @property
     def local_con_str(self) -> str:
-        return f'sqlite:///{self.c_file_path.text().replace("\\", "/")}'
+        return f"sqlite:///{self.c_file_path.text().replace('\\', '/')}"
 
     @property
     def selected_id(self) -> str:

@@ -80,7 +80,8 @@ def merge_pdf_files(
                 img_pdf = fitz.open("pdf", pdfbytes)
 
                 page = pdf_out.new_page(
-                    width=pix.width, height=pix.height  # new page with ...
+                    width=pix.width,
+                    height=pix.height,  # new page with ...
                 )  # pic dimension
                 r1 = fitz.Rect(0, 0, img.width, img.height)
                 page.show_pdf_page(r1, img_pdf)  # image fills the page

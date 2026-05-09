@@ -207,9 +207,9 @@ class BasicSearchLine(QLineEdit, QtUseContext):
     def create_timer(self) -> "QTimer":
         """Creates the search timer."""
         if self.timer_search is None:
-            assert (
-                self.delay > 0
-            ), f"Delay must be greater than 0, is {self.delay}"
+            assert self.delay > 0, (
+                f"Delay must be greater than 0, is {self.delay}"
+            )
             self.timer_search = QTimer(self)
             self.timer_search.setSingleShot(True)
             self.timer_search.setInterval(self.delay)

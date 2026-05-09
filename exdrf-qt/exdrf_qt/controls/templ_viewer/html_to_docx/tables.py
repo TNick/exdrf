@@ -194,9 +194,9 @@ class TableData:
                 # Assign cell or mark as SPAN
                 for j in range(colspan):
                     cell_value = td_th_element if i == 0 and j == 0 else "SPAN"
-                    self.html_grid[target_r_in_grid][
-                        current_col_idx + j
-                    ] = cell_value
+                    self.html_grid[target_r_in_grid][current_col_idx + j] = (
+                        cell_value
+                    )
 
             # Update column index for the next cell
             current_col_idx += colspan
@@ -240,7 +240,7 @@ class TableData:
 
         html_cell_element: Tag = html_cell_content
         logger.debug(
-            "Processing doc_cell at (grid_row=%d, col=%d) for " "HTML cell: %s",
+            "Processing doc_cell at (grid_row=%d, col=%d) for HTML cell: %s",
             r_idx_grid_local,
             c_idx,
             str(html_cell_element)[:50],

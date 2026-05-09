@@ -81,9 +81,7 @@ class DbVer:
             alembic_cfg.set_main_option(key, value)
 
         # Default options in sections.
-        alembic_cfg.set_section_option(
-            "loggers", "keys", "root,sqlalchemy,alembic"
-        )
+        alembic_cfg.set_section_option("loggers", "keys", "root,sqlalchemy,alembic")
         alembic_cfg.set_section_option("handlers", "keys", "console")
         alembic_cfg.set_section_option("formatters", "keys", "generic")
 
@@ -101,25 +99,17 @@ class DbVer:
         alembic_cfg.set_section_option("logger_alembic", "handlers", "")
         alembic_cfg.set_section_option("logger_alembic", "qualname", "alembic")
 
-        alembic_cfg.set_section_option(
-            "handler_console", "class", "StreamHandler"
-        )
-        alembic_cfg.set_section_option(
-            "handler_console", "args", "(sys.stderr,)"
-        )
+        alembic_cfg.set_section_option("handler_console", "class", "StreamHandler")
+        alembic_cfg.set_section_option("handler_console", "args", "(sys.stderr,)")
         alembic_cfg.set_section_option("handler_console", "level", "NOTSET")
-        alembic_cfg.set_section_option(
-            "handler_console", "formatter", "generic"
-        )
+        alembic_cfg.set_section_option("handler_console", "formatter", "generic")
 
         alembic_cfg.set_section_option(
             "formatter_generic",
             "format",
             r"%%(levelname)-5.5s [%%(name)s] %%(message)s",
         )
-        alembic_cfg.set_section_option(
-            "formatter_generic", "datefmt", r"%%H:%%M:%%S"
-        )
+        alembic_cfg.set_section_option("formatter_generic", "datefmt", r"%%H:%%M:%%S")
 
         # Set the section options.
         for section, key, value in self.section_options:
@@ -299,9 +289,7 @@ class DbVer:
                 else:
                     table_name = alembic_version_table
                 try:
-                    result = conn.execute(
-                        text(f"SELECT version_num FROM {table_name}")
-                    )
+                    result = conn.execute(text(f"SELECT version_num FROM {table_name}"))
                 except Exception as exc:
                     logging.getLogger(__name__).debug(
                         "Error getting current version of the database: %s.",

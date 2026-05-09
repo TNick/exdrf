@@ -101,9 +101,7 @@ class FieldFilter:
     op: str
     vl: Any
 
-    _no_dia: Optional[Tuple[str, str]] = field(
-        default=None, repr=False, init=False
-    )
+    _no_dia: Optional[Tuple[str, str]] = field(default=None, repr=False, init=False)
 
     def __getitem__(self, key: str) -> Any:
         if key == "fld":
@@ -232,8 +230,7 @@ class FilterVisitor:
             if isinstance(item, str):
                 if len(filter) != 2:
                     raise ValueError(
-                        f"Logic operator {item} must be followed by a "
-                        "filter list"
+                        f"Logic operator {item} must be followed by a filter list"
                     )
                 item = item.lower()
                 if item == "and":
@@ -591,8 +588,7 @@ def insert_quick_search(
                     if isinstance(part, FieldFilter) and part.fld == field_name:
                         continue
                     if (
-                        isinstance(part, dict)
-                        and part.get("fld") == field_name  # type: ignore
+                        isinstance(part, dict) and part.get("fld") == field_name  # type: ignore
                     ):
                         continue
                     new_and_value.append(part)
@@ -604,8 +600,7 @@ def insert_quick_search(
             if isinstance(part, FieldFilter) and part.fld == field_name:
                 continue
             if (
-                isinstance(part, dict)
-                and part.get("fld") == field_name  # type: ignore
+                isinstance(part, dict) and part.get("fld") == field_name  # type: ignore
             ):
                 continue
             new_and_value.append(part)
@@ -626,9 +621,7 @@ def insert_quick_search(
     # We give up searching for the field. The old value of the filter
     # will be AND-ed together with the new value.
     return (
-        [existing_filter, inserted]
-        if existing_filter and inserted
-        else []  # type: ignore
+        [existing_filter, inserted] if existing_filter and inserted else []  # type: ignore
     )
 
 

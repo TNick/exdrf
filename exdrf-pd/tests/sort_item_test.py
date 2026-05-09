@@ -5,9 +5,8 @@ from __future__ import annotations
 import json
 
 import pytest
-from pydantic import TypeAdapter, ValidationError
-
 from exdrf_pd.sort_item import SortItem
+from pydantic import TypeAdapter, ValidationError
 
 
 def test_package_exports_sort_item() -> None:

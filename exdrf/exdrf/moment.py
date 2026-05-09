@@ -74,9 +74,7 @@ class YearBit(Bit):
 
     def validate(self, value: str) -> bool:
         return (
-            len(value) == self.size
-            and value.isdigit()
-            and 1900 <= int(value) <= 2100
+            len(value) == self.size and value.isdigit() and 1900 <= int(value) <= 2100
         )
 
 
@@ -104,11 +102,7 @@ class MonthBit(Bit):
         return value + relativedelta(months=offset)
 
     def validate(self, value: str) -> bool:
-        return (
-            len(value) == self.size
-            and value.isdigit()
-            and 1 <= int(value) <= 12
-        )
+        return len(value) == self.size and value.isdigit() and 1 <= int(value) <= 12
 
 
 @define
@@ -131,11 +125,7 @@ class DayBit(Bit):
         return value + relativedelta(days=offset)
 
     def validate(self, value: str) -> bool:
-        return (
-            len(value) == self.size
-            and value.isdigit()
-            and 1 <= int(value) <= 31
-        )
+        return len(value) == self.size and value.isdigit() and 1 <= int(value) <= 31
 
 
 @define
@@ -171,11 +161,7 @@ class HourBit(Bit):
         return value + relativedelta(hours=offset)
 
     def validate(self, value: str) -> bool:
-        return (
-            len(value) == self.size
-            and value.isdigit()
-            and 0 <= int(value) <= 23
-        )
+        return len(value) == self.size and value.isdigit() and 0 <= int(value) <= 23
 
 
 @define
@@ -211,11 +197,7 @@ class MinuteBit(Bit):
         return value + relativedelta(minutes=offset)
 
     def validate(self, value: str) -> bool:
-        return (
-            len(value) == self.size
-            and value.isdigit()
-            and 0 <= int(value) <= 59
-        )
+        return len(value) == self.size and value.isdigit() and 0 <= int(value) <= 59
 
 
 @define
@@ -251,11 +233,7 @@ class SecondBit(Bit):
         return value + relativedelta(seconds=offset)
 
     def validate(self, value: str) -> bool:
-        return (
-            len(value) == self.size
-            and value.isdigit()
-            and 0 <= int(value) <= 59
-        )
+        return len(value) == self.size and value.isdigit() and 0 <= int(value) <= 59
 
 
 @define
@@ -291,11 +269,7 @@ class MillisecondBit(Bit):
         return value + relativedelta(microseconds=offset * 1000)
 
     def validate(self, value: str) -> bool:
-        return (
-            len(value) == self.size
-            and value.isdigit()
-            and 0 <= int(value) <= 999
-        )
+        return len(value) == self.size and value.isdigit() and 0 <= int(value) <= 999
 
 
 @define
@@ -423,8 +397,7 @@ class MomentFormat:
                     continue
                 result.error = t(
                     "cmn.err.date.str",
-                    "Expecting '{expect}' ({size}) at position "
-                    "{pos} but got `{found}`",
+                    "Expecting '{expect}' ({size}) at position {pos} but got `{found}`",
                     expect=component.value,
                     pos=component.start,
                     found=content,
@@ -434,15 +407,15 @@ class MomentFormat:
 
             if component.validate(content):
                 result.value = component.set_part(
-                    result.value, content  # type: ignore[assignment]
+                    result.value,
+                    content,  # type: ignore[assignment]
                 )
                 continue
 
             trk, def_lbl = labels[component.pattern]
             result.error = t(
                 "cmn.err.date.int",
-                "Expecting <{expect}> ({size}) at position "
-                "{pos} but got `{found}`",
+                "Expecting <{expect}> ({size}) at position {pos} but got `{found}`",
                 expect=t(trk, def_lbl),
                 pos=component.start,
                 found=content,

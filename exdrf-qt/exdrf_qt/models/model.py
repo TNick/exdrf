@@ -972,7 +972,6 @@ class QtModel(
                 str(work.error),
             )
         else:
-
             # Clamp the number of items to what we actually received to avoid
             # indexing past the result list when the backend returns fewer rows
             # than requested (e.g. concurrent resets or changes in selection).
@@ -1503,9 +1502,9 @@ class QtModel(
             orientation == Qt.Orientation.Vertical
             and role == Qt.ItemDataRole.DisplayRole
         ):
-            assert (
-                0 <= section < len(self.cache)
-            ), f"Bad section index: {section} not in [0, {len(self.cache)})"
+            assert 0 <= section < len(self.cache), (
+                f"Bad section index: {section} not in [0, {len(self.cache)})"
+            )
             return self.cache[section].db_id
         if role == Qt.ItemDataRole.TextAlignmentRole:
             return Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter
@@ -1573,7 +1572,6 @@ class QtModel(
         # The top level items are those outside the normal flow, not managed
         # directly by the model.
         if row < len(self.top_cache):
-
             # The editing of top level items can be disabled for the
             # whole model.
             if not self.allow_top_cache_edit:
@@ -1670,8 +1668,7 @@ class QtModel(
             if self._checked is None:
                 logger.log(
                     MODEL_LOG_LEVEL,
-                    "M: %s Refusing to edit item %s at row %d; "
-                    "no checked list",
+                    "M: %s Refusing to edit item %s at row %d; no checked list",
                     self.exdrf_model_name(),
                     getattr(record, "db_id", None),
                     row,
@@ -1735,9 +1732,9 @@ class QtModel(
             # Cache all display values to be able to determine f we should
             # emit a dataChanged signal.
             display_values = {
-                column_fields[i]
-                .name: record.values.get(i, {})
-                .get(Qt.ItemDataRole.DisplayRole, None)
+                column_fields[i].name: record.values.get(i, {}).get(
+                    Qt.ItemDataRole.DisplayRole, None
+                )
                 for i in range(len(column_fields))
                 if i != column
             }
@@ -1823,7 +1820,6 @@ class QtModel(
         The function clears the cache and resets the total count.
         """
         try:
-
             # Respect the partially-initialized state.
             if self._total_count == -1:
                 return
@@ -2129,9 +2125,9 @@ class QtModel(
         # If we have found some records to replace, we need to update the
         # checked list.
         for record_id, db_id in replace:
-            assert (
-                db_id in self._db_to_row
-            ), f"Database ID {db_id} not found in _db_to_row"
+            assert db_id in self._db_to_row, (
+                f"Database ID {db_id} not found in _db_to_row"
+            )
             if isinstance(self._checked, set):
                 self._checked.discard(record_id)
                 self._checked.add(db_id)
@@ -2460,7 +2456,6 @@ class QtModel(
     def change_top_level_value(
         self, record: "QtRecord", column: int, value: Any
     ) -> None:
-
         # Get the field that manages this record.
         field = self.column_fields[column]
         assert field.is_editable()

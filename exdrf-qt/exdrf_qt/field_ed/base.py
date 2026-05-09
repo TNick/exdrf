@@ -190,7 +190,8 @@ class DrfFieldEd(QtUseContext):
             self.setStatusTip(self.description)
 
     def change_edit_mode(  # type: ignore
-        self: QWidget, in_editing: bool  # type: ignore
+        self: QWidget,
+        in_editing: bool,  # type: ignore
     ) -> None:
         """Switch between edit mode and display mode.
 
@@ -260,8 +261,7 @@ class DrfFieldEd(QtUseContext):
         """
         self._nullable = value
         if (
-            hasattr(self, "ac_clear")
-            and self.ac_clear is not None  # type: ignore
+            hasattr(self, "ac_clear") and self.ac_clear is not None  # type: ignore
         ):
             # We have an action to clear the field...
             if value:

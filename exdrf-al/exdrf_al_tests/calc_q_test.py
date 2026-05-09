@@ -1,5 +1,4 @@
 import pytest
-
 from exdrf_al.calc_q import FieldRef, JoinLoad
 
 
@@ -29,12 +28,13 @@ class DummyModel:
 
 
 class TestJoinLoad:
-
     def make_join(self, resource_name, field_name, is_list=False):
         """Helper to create a JoinLoad with a single FieldRef container."""
         res = DummyResource(resource_name)
         fr = FieldRef(
-            resource=res, name=field_name, is_list=is_list  # type: ignore
+            resource=res,
+            name=field_name,
+            is_list=is_list,  # type: ignore
         )
         return JoinLoad(container=fr)
 
@@ -101,7 +101,9 @@ class TestJoinLoad:
             model = DummyModel("ResX", {"f": DummyField(is_list=False)})
             existing = JoinLoad(
                 container=FieldRef(
-                    resource=model, name="f", is_list=False  # type: ignore
+                    resource=model,
+                    name="f",
+                    is_list=False,  # type: ignore
                 )
             )
             parent = JoinLoad(
@@ -131,13 +133,14 @@ class TestJoinLoad:
                 parent.get_join(model, "nonexistent")  # type: ignore
 
     class TestCollectResources:
-
         def test_single_node(self):
             # A single JoinLoad node with no children or load_only
             root_res = DummyResource("root")
             root = JoinLoad(
                 container=FieldRef(
-                    resource=root_res, name="f", is_list=False  # type: ignore
+                    resource=root_res,
+                    name="f",
+                    is_list=False,  # type: ignore
                 )
             )
             result = []
@@ -155,7 +158,9 @@ class TestJoinLoad:
 
             root = JoinLoad(
                 container=FieldRef(
-                    resource=root_res, name="f", is_list=False  # type: ignore
+                    resource=root_res,
+                    name="f",
+                    is_list=False,  # type: ignore
                 )
             )
             child = JoinLoad(
@@ -164,13 +169,17 @@ class TestJoinLoad:
             # child has one load_only
             child.load_only.append(
                 FieldRef(
-                    resource=lo_child_res, name="x", is_list=False  # type: ignore
+                    resource=lo_child_res,
+                    name="x",
+                    is_list=False,  # type: ignore
                 )
             )
             # root has one load_only
             root.load_only.append(
                 FieldRef(
-                    resource=lo_root_res, name="y", is_list=False  # type: ignore
+                    resource=lo_root_res,
+                    name="y",
+                    is_list=False,  # type: ignore
                 )
             )
             # attach child to root
@@ -183,12 +192,13 @@ class TestJoinLoad:
             assert result == [root_res, child_res, lo_child_res, lo_root_res]
 
     class TestStringify:
-
         def test_no_children_no_load_only(self):
             root_res = DummyResource("R")
             root = JoinLoad(
                 container=FieldRef(
-                    resource=root_res, name="f", is_list=False  # type: ignore
+                    resource=root_res,
+                    name="f",
+                    is_list=False,  # type: ignore
                 )
             )
             result = root.stringify()
@@ -204,12 +214,16 @@ class TestJoinLoad:
             lo_res = DummyResource("Lo")
             root = JoinLoad(
                 container=FieldRef(
-                    resource=root_res, name="fld", is_list=False  # type: ignore
+                    resource=root_res,
+                    name="fld",
+                    is_list=False,  # type: ignore
                 )
             )
             root.load_only.append(
                 FieldRef(
-                    resource=lo_res, name="x", is_list=True  # type: ignore
+                    resource=lo_res,
+                    name="x",
+                    is_list=True,  # type: ignore
                 )
             )
             result = root.stringify()
@@ -227,17 +241,23 @@ class TestJoinLoad:
             child_res = DummyResource("Child")
             root = JoinLoad(
                 container=FieldRef(
-                    resource=root_res, name="fld", is_list=False  # type: ignore
+                    resource=root_res,
+                    name="fld",
+                    is_list=False,  # type: ignore
                 )
             )
             child = JoinLoad(
                 container=FieldRef(
-                    resource=child_res, name="fld2", is_list=True  # type: ignore
+                    resource=child_res,
+                    name="fld2",
+                    is_list=True,  # type: ignore
                 )
             )
             child.load_only.append(
                 FieldRef(
-                    resource=child_res, name="sub", is_list=False  # type: ignore
+                    resource=child_res,
+                    name="sub",
+                    is_list=False,  # type: ignore
                 )
             )
             root.children.append(child)
@@ -261,29 +281,39 @@ class TestJoinLoad:
 
             root = JoinLoad(
                 container=FieldRef(
-                    resource=root_res, name="mid", is_list=False  # type: ignore
+                    resource=root_res,
+                    name="mid",
+                    is_list=False,  # type: ignore
                 )
             )
             child_a = JoinLoad(
                 container=FieldRef(
-                    resource=mid_res, name="a", is_list=False  # type: ignore
+                    resource=mid_res,
+                    name="a",
+                    is_list=False,  # type: ignore
                 )
             )
             child_b = JoinLoad(
                 container=FieldRef(
-                    resource=mid_res, name="b", is_list=False  # type: ignore
+                    resource=mid_res,
+                    name="b",
+                    is_list=False,  # type: ignore
                 )
             )
 
             # Add leaf joins under each sibling.
             leaf_a = JoinLoad(
                 container=FieldRef(
-                    resource=a_res, name="x", is_list=False  # type: ignore
+                    resource=a_res,
+                    name="x",
+                    is_list=False,  # type: ignore
                 )
             )
             leaf_b = JoinLoad(
                 container=FieldRef(
-                    resource=b_res, name="y", is_list=False  # type: ignore
+                    resource=b_res,
+                    name="y",
+                    is_list=False,  # type: ignore
                 )
             )
             child_a.children.append(leaf_a)

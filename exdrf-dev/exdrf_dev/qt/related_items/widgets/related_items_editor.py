@@ -33,9 +33,7 @@ class QtRelatedItemEditor(ExdrfEditor["RelatedItem"], Ui_QtRelatedItemEditor):
     def editing_changed(self, value: bool):
         pass
 
-    def read_record(
-        self, session: "Session", record_id: RecIdType
-    ) -> "RelatedItem":
+    def read_record(self, session: "Session", record_id: RecIdType) -> "RelatedItem":
         return session.scalar(
             self.selection.where(
                 self.db_model.id == record_id  # type: ignore[operator]
@@ -45,9 +43,7 @@ class QtRelatedItemEditor(ExdrfEditor["RelatedItem"], Ui_QtRelatedItemEditor):
     def populate(self, record: Union["RelatedItem", None]):
         pass
 
-    def save_to_record(
-        self, record: "RelatedItem", is_new: bool, session: "Session"
-    ):
+    def save_to_record(self, record: "RelatedItem", is_new: bool, session: "Session"):
         pass
 
     def get_id_of_record(self, record: "RelatedItem") -> RecIdType:

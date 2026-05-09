@@ -461,7 +461,8 @@ if __name__ == "__main__":
             from PyQt5.QtCore import QCoreApplication, Qt
 
             QCoreApplication.setAttribute(  # type: ignore
-                Qt.AA_ShareOpenGLContexts, True  # type: ignore
+                Qt.AA_ShareOpenGLContexts,
+                True,  # type: ignore
             )
         except Exception:
             pass
@@ -509,7 +510,9 @@ if __name__ == "__main__":
         from exdrf_qt.comparator.widgets.webview import ComparatorWebView
 
         webview = ComparatorWebView(
-            ctx=ctx, manager=manager, parent=host  # type: ignore
+            ctx=ctx,
+            manager=manager,
+            parent=host,  # type: ignore
         )
         tabs.addTab(webview, "Web View")
     except Exception as e:

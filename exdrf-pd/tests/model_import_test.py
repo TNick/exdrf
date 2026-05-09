@@ -6,7 +6,6 @@ import sys
 import types
 
 import pytest
-
 from exdrf_pd import model_import
 
 
@@ -23,9 +22,7 @@ def test_load_pydantic_modules_skips_empty_and_imports(
         sys.modules[name] = mod
         return mod
 
-    monkeypatch.setattr(
-        model_import.importlib, "import_module", fake_import_module
-    )
+    monkeypatch.setattr(model_import.importlib, "import_module", fake_import_module)
     result = model_import.load_pydantic_modules(["  ", "a.b", "  c.d  ", ""])
     assert result == ["a.b", "c.d"]
     assert created == ["a.b", "c.d"]

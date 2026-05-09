@@ -80,9 +80,7 @@ def dump_database(
             elif file_format_lower == "yaml":
                 import yaml
 
-                yield table, columns, rows, yaml.dump(
-                    rows, default_flow_style=False
-                )
+                yield table, columns, rows, yaml.dump(rows, default_flow_style=False)
             elif file_format_lower == "pickle":
                 import pickle
 
@@ -100,9 +98,7 @@ def write_db_to_file(
     cn: "DbConn",
     output_path: "Path | str",
     file_format: FormatType = "pickle",
-    archive_format: Optional[
-        Literal["zip", "tar", "tar.gz", "tar.bz2"]
-    ] = "zip",
+    archive_format: Optional[Literal["zip", "tar", "tar.gz", "tar.bz2"]] = "zip",
     date_in_name: bool = False,
     time_in_name: bool = False,
     encoding: str = "utf-8",
@@ -219,9 +215,7 @@ def write_db_to_file(
             if file_format == "csv":
                 pass
             else:
-                with zipfile.ZipFile(
-                    output_path, "w", zipfile.ZIP_DEFLATED
-                ) as zf:
+                with zipfile.ZipFile(output_path, "w", zipfile.ZIP_DEFLATED) as zf:
                     zf.writestr(archive_filename, content_bytes)
         elif archive_format == "tar":
             with tarfile.open(output_path, "w") as tf:

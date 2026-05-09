@@ -87,9 +87,7 @@ class ColumnFilterProxy(QSortFilterProxyModel):
                 return False
         return True
 
-    def lessThan(
-        self, left: QModelIndex, right: QModelIndex
-    ) -> bool:  # type: ignore[override]
+    def lessThan(self, left: QModelIndex, right: QModelIndex) -> bool:  # type: ignore[override]
         """Sort numbers numerically when possible, fallback to text compare.
 
         Args:

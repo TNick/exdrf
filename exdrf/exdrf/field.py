@@ -411,8 +411,7 @@ class ExField(ExFieldBase):
                 return value.split(",")
             else:
                 raise ValueError(
-                    f"Invalid value for one-to-many: {value} of "
-                    f"type {type(value)}"
+                    f"Invalid value for one-to-many: {value} of type {type(value)}"
                 )
         elif self.type_name == FIELD_TYPE_REF_MANY_TO_MANY:
             if isinstance(value, (tuple, list)):
@@ -421,8 +420,7 @@ class ExField(ExFieldBase):
                 return value.split(",")
             else:
                 raise ValueError(
-                    f"Invalid value for many-to-many: {value} of "
-                    f"type {type(value)}"
+                    f"Invalid value for many-to-many: {value} of type {type(value)}"
                 )
         elif self.type_name == FIELD_TYPE_INT_LIST:
             if isinstance(value, (tuple, list)):
@@ -431,8 +429,7 @@ class ExField(ExFieldBase):
                 return [int(v) for v in value.split(",")]
             else:
                 raise ValueError(
-                    f"Invalid value for int list: {value} of "
-                    f"type {type(value)}"
+                    f"Invalid value for int list: {value} of type {type(value)}"
                 )
         elif self.type_name == FIELD_TYPE_FLOAT_LIST:
             if isinstance(value, (tuple, list)):
@@ -441,8 +438,7 @@ class ExField(ExFieldBase):
                 return [float(v) for v in value.split(",")]
             else:
                 raise ValueError(
-                    f"Invalid value for float list: {value} of "
-                    f"type {type(value)}"
+                    f"Invalid value for float list: {value} of type {type(value)}"
                 )
         elif self.type_name == FIELD_TYPE_STRING_LIST:
             if isinstance(value, (tuple, list)):
@@ -451,8 +447,7 @@ class ExField(ExFieldBase):
                 return value.split(",")
             else:
                 raise ValueError(
-                    f"Invalid value for string list: {value} of "
-                    f"type {type(value)}"
+                    f"Invalid value for string list: {value} of type {type(value)}"
                 )
         else:
             return value

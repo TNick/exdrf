@@ -111,10 +111,7 @@ class Pd2dareCategoryIndex(Base):
                 value = the_map[map_name]
                 if isinstance(value, dict):
                     model_list.extend(
-                        [
-                            (m, map_name)
-                            for m in do_map(value, parts + [map_name])
-                        ],
+                        [(m, map_name) for m in do_map(value, parts + [map_name])],
                     )
                 else:
                     model_list.append((map_name, map_name))

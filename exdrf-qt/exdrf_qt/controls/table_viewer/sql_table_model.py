@@ -139,9 +139,7 @@ class SqlTableModel(QAbstractTableModel):
         self._base_column_count = 0
         self._load(engine, schema, table, limit, extra_columns or [])
 
-    def rowCount(
-        self, parent: QModelIndex = QModelIndex()
-    ) -> int:  # noqa: N802
+    def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:  # noqa: N802
         """Number of rows in the table model.
 
         Args:
@@ -152,9 +150,7 @@ class SqlTableModel(QAbstractTableModel):
         """
         return 0 if parent.isValid() else len(self._rows)
 
-    def columnCount(
-        self, parent: QModelIndex = QModelIndex()
-    ) -> int:  # noqa: N802
+    def columnCount(self, parent: QModelIndex = QModelIndex()) -> int:  # noqa: N802
         """Number of columns.
 
         Args:

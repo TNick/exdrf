@@ -9,9 +9,7 @@ from typing import Any, Mapping
 
 from exdrf_ts.json_schema_ts import json_schema_to_ts
 
-_HTTP_METHODS = frozenset(
-    {"get", "post", "put", "patch", "delete", "head", "options"}
-)
+_HTTP_METHODS = frozenset({"get", "post", "put", "patch", "delete", "head", "options"})
 
 _REF_SCHEMA = re.compile(r"^#/components/schemas/([A-Za-z0-9_.-]+)$")
 

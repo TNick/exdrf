@@ -1,7 +1,6 @@
 from unittest.mock import Mock
 
 import pytest
-
 from exdrf.resource import ExResource
 
 
@@ -88,9 +87,7 @@ def test_exresource_text_name():
 
 
 def test_exresource_doc_lines():
-    resource = ExResource(
-        name="TestResource", description="This is a test resource."
-    )
+    resource = ExResource(name="TestResource", description="This is a test resource.")
     assert resource.doc_lines == ["This is a test resource."]
 
 

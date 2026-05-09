@@ -115,9 +115,7 @@ def relation_list_spec_from_sync(
         p_cols = tuple(str(x) for x in (sync.get("parent_fk_cols") or ()))
         rfk = sync.get("related_fk_col")
         if not p_cols or rfk is None:
-            raise ValueError(
-                "m2m sync requires parent_fk_cols and related_fk_col"
-            )
+            raise ValueError("m2m sync requires parent_fk_cols and related_fk_col")
         return RelationListSpec(
             kind=kind,
             parent_pk_attrs=parent_pk_attrs,
@@ -174,9 +172,7 @@ def ex_model_from_orm_columns(row: Any, ex_model: type[TEx]) -> TEx:
     return ex_model.model_validate(column_values_for_ex(row))
 
 
-def filter_items_to_clauses(
-    model: type[Any], items: list[FilterItem]
-) -> list[Any]:
+def filter_items_to_clauses(model: type[Any], items: list[FilterItem]) -> list[Any]:
     """Translate JSON filter items into SQLAlchemy boolean AND clauses.
 
     Args:
@@ -197,13 +193,9 @@ def filter_items_to_clauses(
         ff = it.as_op
         fi = filter_op_registry.get(ff.op)
         if fi is None:
-            raise ValueError(
-                "unknown filter op %r for field %r" % (ff.op, ff.fld)
-            )
+            raise ValueError("unknown filter op %r for field %r" % (ff.op, ff.fld))
         if not hasattr(model, ff.fld):
-            raise ValueError(
-                "unknown field %r on %s" % (ff.fld, model.__name__)
-            )
+            raise ValueError("unknown field %r on %s" % (ff.fld, model.__name__))
         col = getattr(model, ff.fld)
         out.append(fi.predicate(col, ff.vl))
     return out
@@ -244,9 +236,7 @@ def sort_items_to_order_by(
     seen: set[str] = set()
     for s in sort_items:
         if not hasattr(model, s.attr):
-            raise ValueError(
-                "unknown sort field %r on %s" % (s.attr, model.__name__)
-            )
+            raise ValueError("unknown sort field %r on %s" % (s.attr, model.__name__))
         c = getattr(model, s.attr)
         cols.append(c.asc() if s.order == "asc" else c.desc())
         seen.add(s.attr)
@@ -292,11 +282,7 @@ def select_paged_rows(
         )
         order_by = sort_items_to_order_by(model, sort, pk_names)
         stmt: Select[Any] = (
-            select(model)
-            .where(where)
-            .order_by(*order_by)
-            .offset(offset)
-            .limit(limit)
+            select(model).where(where).order_by(*order_by).offset(offset).limit(limit)
         )
     else:
         # No filters: full-table count, ordered scan with offset/limit.
@@ -356,17 +342,9 @@ def list_relation_subresource_page(
         base = [fk == p_val]
         base.extend(filter_items_to_clauses(rel, filters))
         where = and_(*base)
-        total = int(
-            db.scalar(select(func.count()).select_from(rel).where(where)) or 0
-        )
+        total = int(db.scalar(select(func.count()).select_from(rel).where(where)) or 0)
         order_by = sort_items_to_order_by(rel, sort, pk_order)
-        stmt = (
-            select(rel)
-            .where(where)
-            .order_by(*order_by)
-            .offset(offset)
-            .limit(limit)
-        )
+        stmt = select(rel).where(where).order_by(*order_by).offset(offset).limit(limit)
     elif spec.kind in ("m2m", "o2m_bridge"):
         # Many-to-many (or bridge): join related through association table.
         if (
@@ -401,17 +379,9 @@ def list_relation_subresource_page(
         base = [fk == p_val]
         base.extend(filter_items_to_clauses(rel, filters))
         where = and_(*base)
-        total = int(
-            db.scalar(select(func.count()).select_from(rel).where(where)) or 0
-        )
+        total = int(db.scalar(select(func.count()).select_from(rel).where(where)) or 0)
         order_by = sort_items_to_order_by(rel, sort, pk_order)
-        stmt = (
-            select(rel)
-            .where(where)
-            .order_by(*order_by)
-            .offset(offset)
-            .limit(limit)
-        )
+        stmt = select(rel).where(where).order_by(*order_by).offset(offset).limit(limit)
     else:
         raise ValueError("unsupported kind %r" % (spec.kind,))
 

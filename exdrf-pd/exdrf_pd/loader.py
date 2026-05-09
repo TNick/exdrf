@@ -266,19 +266,19 @@ def field_from_pydantic(
         resource.add_field(result)
         return result
 
-    if annotation == bool:
+    if annotation is bool:
         result = BoolField(
             **extra,
         )
-    elif annotation == str:
+    elif annotation is str:
         result = StrField(
             **extra,
         )
-    elif annotation == int:
+    elif annotation is int:
         result = IntField(
             **extra,
         )
-    elif annotation == float:
+    elif annotation is float:
         result = FloatField(
             **extra,
         )

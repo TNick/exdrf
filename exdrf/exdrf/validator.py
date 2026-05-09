@@ -42,6 +42,4 @@ class Validator(Generic[T]):
         Returns:
             ValidationResult: The result of the validation.
         """
-        raise NotImplementedError(
-            "Subclasses must implement validate_value method."
-        )
+        raise NotImplementedError("Subclasses must implement validate_value method.")

@@ -27,7 +27,7 @@ class DateTimeField(ExField):
     format: str = field(default="DD-MM-YYYY HH:mm:ss")
 
     def __repr__(self) -> str:
-        return f"DaTiF(" f"{self.resource.name}.{self.name})"
+        return f"DaTiF({self.resource.name}.{self.name})"
 
     def field_properties(self, explicit: bool = False) -> dict[str, Any]:
         result = super().field_properties(explicit)

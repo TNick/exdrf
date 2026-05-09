@@ -1,10 +1,9 @@
 from unittest import mock
 
+from exdrf_al.visitor import DbVisitor
 from sqlalchemy import ForeignKey, Integer
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-from exdrf_al.visitor import DbVisitor
 
 
 def test_all_models_returns_registered_model_classes(LocalBase):
@@ -97,9 +96,7 @@ def test_visit_calls_visit_hybrid_for_hybrid_properties(LocalBase):
 
     class MockModelWithHybrid(LocalBase):
         __tablename__ = "mock_hybrid"
-        id: Mapped[int] = mapped_column(
-            Integer, primary_key=True, doc="Primary key."
-        )
+        id: Mapped[int] = mapped_column(Integer, primary_key=True, doc="Primary key.")
         x: Mapped[int] = mapped_column(Integer, doc="Column x.")
         y: Mapped[int] = mapped_column(Integer, doc="Column y.")
 
@@ -117,8 +114,6 @@ def test_visit_calls_visit_hybrid_for_hybrid_properties(LocalBase):
     LocalBase.visit(visitor)
 
     assert visitor.visit_hybrid.call_count == 1
-    visitor.visit_hybrid.assert_called_once_with(
-        MockModelWithHybrid, "total", mock.ANY
-    )
+    visitor.visit_hybrid.assert_called_once_with(MockModelWithHybrid, "total", mock.ANY)
     call_args = visitor.visit_hybrid.call_args[0]
     assert call_args[2].extension_type is not None

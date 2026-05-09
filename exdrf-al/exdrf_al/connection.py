@@ -123,9 +123,7 @@ class DbConn:
         engine_kwargs.update(kwargs)
 
         # Remove engine_kwargs whose values are None
-        engine_kwargs = {
-            k: v for k, v in engine_kwargs.items() if v is not None
-        }
+        engine_kwargs = {k: v for k, v in engine_kwargs.items() if v is not None}
 
         self.engine = create_engine(self.c_string, **engine_kwargs)
         dialect_name = self.engine.dialect.name
@@ -347,7 +345,7 @@ class DbConn:
             else:
                 raise KeyError(
                     f'No cache record for "{key}"; allowed keys '
-                    f'are: {",".join(list(self.auto_cache.keys()))}'
+                    f"are: {','.join(list(self.auto_cache.keys()))}"
                 )
 
         # Retrieve value from the database.
@@ -368,18 +366,14 @@ class DbConn:
 
     def get_migration_handler(self, mig_loc: Optional[str] = None) -> "DbVer":
         assert self.engine is not None, "Engine is not connected."
-        final_mig_loc = mig_loc or os.environ.get(
-            "EXDRF_DB_MIGRATIONS_DIR", None
-        )
+        final_mig_loc = mig_loc or os.environ.get("EXDRF_DB_MIGRATIONS_DIR", None)
         if not final_mig_loc:
             raise ValueError("Migration location is not set.")
 
         # SQLite (and similar dialects) do not support schemas. Passing a schema
         # causes Alembic to look for e.g. "public.alembic_version".
         schema = (
-            self.schema
-            if self.engine.dialect.name in dialects_with_schema
-            else None
+            self.schema if self.engine.dialect.name in dialects_with_schema else None
         )
         return DbVer(
             engine=self.engine,

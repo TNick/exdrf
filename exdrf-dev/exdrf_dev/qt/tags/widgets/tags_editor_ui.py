@@ -35,7 +35,6 @@ class Ui_QtTagEditor:
     verticalLayout: "QtWidgets.QVBoxLayout"
 
     def setup_ui(self, QtTagEditor):
-
         QtTagEditor.setObjectName("QtTagEditor")
         QtTagEditor.resize(480, 640)
         self.verticalLayout = QtWidgets.QVBoxLayout(QtTagEditor)
@@ -48,14 +47,10 @@ class Ui_QtTagEditor:
         self.formLayout.setObjectName("formLayout")
         self.lbl_name = QtWidgets.QLabel(self.tab_general)
         self.lbl_name.setObjectName("lbl_name")
-        self.formLayout.setWidget(
-            0, QtWidgets.QFormLayout.LabelRole, self.lbl_name
-        )
+        self.formLayout.setWidget(0, QtWidgets.QFormLayout.LabelRole, self.lbl_name)
         self.c_name = QtWidgets.QLineEdit(self.tab_general)
         self.c_name.setObjectName("c_name")
-        self.formLayout.setWidget(
-            0, QtWidgets.QFormLayout.FieldRole, self.c_name
-        )
+        self.formLayout.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.c_name)
         self.main_tab.addTab(self.tab_general, "")
         self.tab_relations = QtWidgets.QWidget()
         self.tab_relations.setObjectName("tab_relations")
@@ -63,14 +58,10 @@ class Ui_QtTagEditor:
         self.formLayout1.setObjectName("formLayout1")
         self.lbl_parents = QtWidgets.QLabel(self.tab_relations)
         self.lbl_parents.setObjectName("lbl_parents")
-        self.formLayout1.setWidget(
-            0, QtWidgets.QFormLayout.LabelRole, self.lbl_parents
-        )
+        self.formLayout1.setWidget(0, QtWidgets.QFormLayout.LabelRole, self.lbl_parents)
         self.c_parents = QtWidgets.QCheckBox(self.tab_relations)
         self.c_parents.setObjectName("c_parents")
-        self.formLayout1.setWidget(
-            0, QtWidgets.QFormLayout.FieldRole, self.c_parents
-        )
+        self.formLayout1.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.c_parents)
         self.main_tab.addTab(self.tab_relations, "")
         self.tab_info = QtWidgets.QWidget()
         self.tab_info.setObjectName("tab_info")
@@ -78,14 +69,10 @@ class Ui_QtTagEditor:
         self.formLayout2.setObjectName("formLayout2")
         self.lbl_id = QtWidgets.QLabel(self.tab_info)
         self.lbl_id.setObjectName("lbl_id")
-        self.formLayout2.setWidget(
-            0, QtWidgets.QFormLayout.LabelRole, self.lbl_id
-        )
+        self.formLayout2.setWidget(0, QtWidgets.QFormLayout.LabelRole, self.lbl_id)
         self.c_id = QtWidgets.QSpinBox(self.tab_info)
         self.c_id.setObjectName("c_id")
-        self.formLayout2.setWidget(
-            0, QtWidgets.QFormLayout.FieldRole, self.c_id
-        )
+        self.formLayout2.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.c_id)
         self.main_tab.addTab(self.tab_info, "")
         self.verticalLayout.addWidget(self.main_tab)
 

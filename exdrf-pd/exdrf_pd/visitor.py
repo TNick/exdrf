@@ -20,14 +20,10 @@ class ExModelVisitor:
 
     categ_map: dict = field(factory=dict)
 
-    def visit_model(
-        self, model: Type["ExModel"], name: str, categories: List[str]
-    ):
+    def visit_model(self, model: Type["ExModel"], name: str, categories: List[str]):
         """Visit a model."""
 
-    def visit_field(
-        self, model: Type["ExModel"], name: str, field: "FieldInfo"
-    ):
+    def visit_field(self, model: Type["ExModel"], name: str, field: "FieldInfo"):
         """Visit a field."""
 
     @staticmethod

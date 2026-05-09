@@ -376,9 +376,7 @@ class DrfEnumEditor(DropBase, EditorWithChoices):
         if event.text() and self._choices:
             QTimer.singleShot(
                 10,
-                lambda: self._filter_choices(
-                    self.text()
-                ),  # type: ignore[arg-type]
+                lambda: self._filter_choices(self.text()),  # type: ignore[arg-type]
             )
 
     def create_ex_field(self) -> "ExField":

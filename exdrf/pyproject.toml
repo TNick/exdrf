@@ -29,6 +29,7 @@ dev = [
   "flake8",
   "isort",
   "mypy",
+  "ruff",
   "pre-commit",
   "pyproject-flake8",
   "pytest-cov",

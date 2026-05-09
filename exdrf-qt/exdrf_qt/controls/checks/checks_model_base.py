@@ -285,15 +285,11 @@ class ChecksTreeTableModelBase(QAbstractItemModel, QtUseContext):
     # QAbstractItemModel API (tree-enabled)
     # ------------------------------------------------------------------
 
-    def columnCount(
-        self, parent: QModelIndex = QModelIndex()
-    ) -> int:  # noqa: N802
+    def columnCount(self, parent: QModelIndex = QModelIndex()) -> int:  # noqa: N802
         del parent
         return 1
 
-    def rowCount(
-        self, parent: QModelIndex = QModelIndex()
-    ) -> int:  # noqa: N802
+    def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:  # noqa: N802
         node = self._node_for_index(parent)
         if node is None:
             node = self._root

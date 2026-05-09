@@ -11,7 +11,7 @@ class FloatListField(FloatField):
     type_name: str = field(default=FIELD_TYPE_FLOAT_LIST)
 
     def __repr__(self) -> str:
-        return f"FloatListF(" f"{self.resource.name}.{self.name})"
+        return f"FloatListF({self.resource.name}.{self.name})"
 
 
 class FloatListInfo(FloatInfo):

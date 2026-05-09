@@ -176,17 +176,13 @@ def print_db_schema_diff(
     for table_name, (code_table, db_table) in compare.items():
         # If there is no such table in code
         if code_table is None:
-            push_info(
-                f"Table {table_name} is in the database but not in " "the code."
-            )
+            push_info(f"Table {table_name} is in the database but not in the code.")
             table_diffs += 1
             continue
 
         # If there is no such table in the database
         if db_table is None:
-            push_info(
-                f"Table {table_name} is in the code but not in " "the database."
-            )
+            push_info(f"Table {table_name} is in the code but not in the database.")
             table_diffs += 1
             continue
 
@@ -199,15 +195,13 @@ def print_db_schema_diff(
         for column_name, (code_column, db_columns) in columns.items():
             if code_column is None:
                 differences.append(
-                    f"column {column_name} is in the database but "
-                    "not in the code."
+                    f"column {column_name} is in the database but not in the code."
                 )
                 continue
 
             if db_columns is None:
                 differences.append(
-                    f"column {column_name} is in the code but not in "
-                    "the database."
+                    f"column {column_name} is in the code but not in the database."
                 )
                 continue
 
@@ -226,10 +220,7 @@ def print_db_schema_diff(
 
         if differences:
             str_diff = "\n - ".join(differences)
-            push_info(
-                f"Table {table_name} has differences in columns:\n - "
-                f"{str_diff}"
-            )
+            push_info(f"Table {table_name} has differences in columns:\n - {str_diff}")
             col_diffs += 1
         else:
             identical += 1
@@ -238,9 +229,7 @@ def print_db_schema_diff(
     if table_diffs:
         push_info(f"{table_diffs} tables exist only in code or database.")
     if col_diffs:
-        push_info(
-            f"{col_diffs} columns are different between code and database."
-        )
+        push_info(f"{col_diffs} columns are different between code and database.")
 
     return {
         IDENTICAL_COUNT: identical,

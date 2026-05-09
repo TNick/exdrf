@@ -10,6 +10,21 @@ The monorepo includes the following packages:
 - `exdrf-al`: A package that provides support for using SQLAlchemy with Ex-DRF.
 - `exdrf-pd`: A package that provides support for using Pydantic with Ex-DRF.
 
+## Unified quality checks
+
+Use the root `Makefile` as the single interface for quality validation:
+
+- `make lint`: Ruff lint checks (canonical lint tool).
+- `make delint`: UI regeneration + autoflake + Ruff autofixes and formatting.
+- `make format`: UI regeneration + autoflake + Ruff formatting.
+- `make type`: mandatory mypy gate with an inferred baseline error budget.
+- `make test`: multi-package pytest runner (`exdrf_dev.pytest_dirs`).
+- `make coverage`: mandatory coverage gate with inferred fail-under baseline.
+- `make check`: authoritative CI contract (`lint + type + coverage`).
+
+Threshold defaults are defined in `Makefile` and can be overridden when needed
+via `MYPY_MAX_ERRORS` and `COVERAGE_FAIL_UNDER`.
+
 ## Releases and PyPI
 
 CI runs tests on every push/PR (see ``.github/workflows/tests.yml``). Tagged

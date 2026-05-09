@@ -55,9 +55,7 @@ class ExdrfMenus:
         )
 
         self.open_composite_key_model_list_ac = OpenListAc(
-            self.ctx.t(
-                "menus.db.composite_key_model.list", "Composite key model list"
-            ),
+            self.ctx.t("menus.db.composite_key_model.list", "Composite key model list"),
             ctx=ctx,
             route="exdrf://navigation/resource/CompositeKeyModel",
             menu_or_parent=self.db_menu,

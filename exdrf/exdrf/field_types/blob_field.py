@@ -25,7 +25,7 @@ class BlobField(ExField):
     mime_type: str = field(default="")
 
     def __repr__(self) -> str:
-        return f"BlobF(" f"{self.resource.name}.{self.name})"
+        return f"BlobF({self.resource.name}.{self.name})"
 
     def field_properties(self, explicit: bool = False) -> dict[str, Any]:
         result = super().field_properties(explicit)

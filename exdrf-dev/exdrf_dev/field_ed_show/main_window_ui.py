@@ -80,136 +80,90 @@ class Ui_MainWindow:
         self.formLayout.setObjectName("formLayout")
         self.lbl_bool = QtWidgets.QLabel(self.central_widget)
         self.lbl_bool.setObjectName("lbl_bool")
-        self.formLayout.setWidget(
-            1, QtWidgets.QFormLayout.LabelRole, self.lbl_bool
-        )
+        self.formLayout.setWidget(1, QtWidgets.QFormLayout.LabelRole, self.lbl_bool)
         self.ed_bool = DrfBoolEditor(parent=self.central_widget, ctx=self.ctx)
         self.ed_bool.setText("")
         self.ed_bool.setProperty("clearable", True)
         self.ed_bool.setObjectName("ed_bool")
-        self.formLayout.setWidget(
-            1, QtWidgets.QFormLayout.FieldRole, self.ed_bool
-        )
+        self.formLayout.setWidget(1, QtWidgets.QFormLayout.FieldRole, self.ed_bool)
         self.lbl_date = QtWidgets.QLabel(self.central_widget)
         self.lbl_date.setObjectName("lbl_date")
-        self.formLayout.setWidget(
-            2, QtWidgets.QFormLayout.LabelRole, self.lbl_date
-        )
+        self.formLayout.setWidget(2, QtWidgets.QFormLayout.LabelRole, self.lbl_date)
         self.ed_date = DrfDateEditor(parent=self.central_widget, ctx=self.ctx)
         self.ed_date.setProperty("clearable", True)
         self.ed_date.setObjectName("ed_date")
-        self.formLayout.setWidget(
-            2, QtWidgets.QFormLayout.FieldRole, self.ed_date
-        )
+        self.formLayout.setWidget(2, QtWidgets.QFormLayout.FieldRole, self.ed_date)
         self.lbl_date_time = QtWidgets.QLabel(self.central_widget)
         self.lbl_date_time.setObjectName("lbl_date_time")
         self.formLayout.setWidget(
             3, QtWidgets.QFormLayout.LabelRole, self.lbl_date_time
         )
-        self.ed_date_time = DrfDateTimeEditor(
-            parent=self.central_widget, ctx=self.ctx
-        )
+        self.ed_date_time = DrfDateTimeEditor(parent=self.central_widget, ctx=self.ctx)
         self.ed_date_time.setProperty("clearable", True)
         self.ed_date_time.setObjectName("ed_date_time")
-        self.formLayout.setWidget(
-            3, QtWidgets.QFormLayout.FieldRole, self.ed_date_time
-        )
+        self.formLayout.setWidget(3, QtWidgets.QFormLayout.FieldRole, self.ed_date_time)
         self.lbl_time = QtWidgets.QLabel(self.central_widget)
         self.lbl_time.setObjectName("lbl_time")
-        self.formLayout.setWidget(
-            4, QtWidgets.QFormLayout.LabelRole, self.lbl_time
-        )
+        self.formLayout.setWidget(4, QtWidgets.QFormLayout.LabelRole, self.lbl_time)
         self.ed_time = DrfTimeEditor(parent=self.central_widget, ctx=self.ctx)
         self.ed_time.setProperty("clearable", True)
         self.ed_time.setObjectName("ed_time")
-        self.formLayout.setWidget(
-            4, QtWidgets.QFormLayout.FieldRole, self.ed_time
-        )
+        self.formLayout.setWidget(4, QtWidgets.QFormLayout.FieldRole, self.ed_time)
         self.lbl_int = QtWidgets.QLabel(self.central_widget)
         self.lbl_int.setObjectName("lbl_int")
-        self.formLayout.setWidget(
-            5, QtWidgets.QFormLayout.LabelRole, self.lbl_int
-        )
+        self.formLayout.setWidget(5, QtWidgets.QFormLayout.LabelRole, self.lbl_int)
         self.ed_int = DrfIntEditor(parent=self.central_widget, ctx=self.ctx)
         self.ed_int.setProperty("clearable", True)
         self.ed_int.setObjectName("ed_int")
-        self.formLayout.setWidget(
-            5, QtWidgets.QFormLayout.FieldRole, self.ed_int
-        )
+        self.formLayout.setWidget(5, QtWidgets.QFormLayout.FieldRole, self.ed_int)
         self.lbl_real = QtWidgets.QLabel(self.central_widget)
         self.lbl_real.setObjectName("lbl_real")
-        self.formLayout.setWidget(
-            6, QtWidgets.QFormLayout.LabelRole, self.lbl_real
-        )
+        self.formLayout.setWidget(6, QtWidgets.QFormLayout.LabelRole, self.lbl_real)
         self.ed_real = DrfRealEditor(parent=self.central_widget, ctx=self.ctx)
         self.ed_real.setProperty("clearable", True)
         self.ed_real.setObjectName("ed_real")
-        self.formLayout.setWidget(
-            6, QtWidgets.QFormLayout.FieldRole, self.ed_real
-        )
+        self.formLayout.setWidget(6, QtWidgets.QFormLayout.FieldRole, self.ed_real)
         self.lbl_string = QtWidgets.QLabel(self.central_widget)
         self.lbl_string.setObjectName("lbl_string")
-        self.formLayout.setWidget(
-            7, QtWidgets.QFormLayout.LabelRole, self.lbl_string
-        )
+        self.formLayout.setWidget(7, QtWidgets.QFormLayout.LabelRole, self.lbl_string)
         self.ed_string = DrfLineEditor(parent=self.central_widget, ctx=self.ctx)
         self.ed_string.setProperty("clearable", True)
         self.ed_string.setObjectName("ed_string")
-        self.formLayout.setWidget(
-            7, QtWidgets.QFormLayout.FieldRole, self.ed_string
-        )
+        self.formLayout.setWidget(7, QtWidgets.QFormLayout.FieldRole, self.ed_string)
         self.lbl_text = QtWidgets.QLabel(self.central_widget)
         sizePolicy = QtWidgets.QSizePolicy(
             QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed
         )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(
-            self.lbl_text.sizePolicy().hasHeightForWidth()
-        )
+        sizePolicy.setHeightForWidth(self.lbl_text.sizePolicy().hasHeightForWidth())
         self.lbl_text.setSizePolicy(sizePolicy)
         self.lbl_text.setObjectName("lbl_text")
-        self.formLayout.setWidget(
-            8, QtWidgets.QFormLayout.LabelRole, self.lbl_text
-        )
+        self.formLayout.setWidget(8, QtWidgets.QFormLayout.LabelRole, self.lbl_text)
         self.lbl_single = QtWidgets.QLabel(self.central_widget)
         self.lbl_single.setObjectName("lbl_single")
-        self.formLayout.setWidget(
-            11, QtWidgets.QFormLayout.LabelRole, self.lbl_single
-        )
+        self.formLayout.setWidget(11, QtWidgets.QFormLayout.LabelRole, self.lbl_single)
         self.ed_single = QtWidgets.QLineEdit(self.central_widget)
         self.ed_single.setObjectName("ed_single")
-        self.formLayout.setWidget(
-            11, QtWidgets.QFormLayout.FieldRole, self.ed_single
-        )
+        self.formLayout.setWidget(11, QtWidgets.QFormLayout.FieldRole, self.ed_single)
         self.lbl_multi = QtWidgets.QLabel(self.central_widget)
         self.lbl_multi.setObjectName("lbl_multi")
-        self.formLayout.setWidget(
-            12, QtWidgets.QFormLayout.LabelRole, self.lbl_multi
-        )
+        self.formLayout.setWidget(12, QtWidgets.QFormLayout.LabelRole, self.lbl_multi)
         self.ed_multi = QtWidgets.QLineEdit(self.central_widget)
         self.ed_multi.setObjectName("ed_multi")
-        self.formLayout.setWidget(
-            12, QtWidgets.QFormLayout.FieldRole, self.ed_multi
-        )
+        self.formLayout.setWidget(12, QtWidgets.QFormLayout.FieldRole, self.ed_multi)
         self.ed_text = DrfTextEditor(parent=self.central_widget, ctx=self.ctx)
         self.ed_text.setProperty("clearable", True)
         self.ed_text.setObjectName("ed_text")
-        self.formLayout.setWidget(
-            10, QtWidgets.QFormLayout.SpanningRole, self.ed_text
-        )
+        self.formLayout.setWidget(10, QtWidgets.QFormLayout.SpanningRole, self.ed_text)
         self.lbl_blob = QtWidgets.QLabel(self.central_widget)
         self.lbl_blob.setObjectName("lbl_blob")
-        self.formLayout.setWidget(
-            0, QtWidgets.QFormLayout.LabelRole, self.lbl_blob
-        )
+        self.formLayout.setWidget(0, QtWidgets.QFormLayout.LabelRole, self.lbl_blob)
         self.ed_blob = DrfBlobEditor(parent=self.central_widget, ctx=self.ctx)
         self.ed_blob.setReadOnly(True)
         self.ed_blob.setProperty("clearable", True)
         self.ed_blob.setObjectName("ed_blob")
-        self.formLayout.setWidget(
-            0, QtWidgets.QFormLayout.FieldRole, self.ed_blob
-        )
+        self.formLayout.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.ed_blob)
         MainWindow.setCentralWidget(self.central_widget)
         self.statusbar = QtWidgets.QStatusBar(MainWindow)
         self.statusbar.setObjectName("statusbar")
@@ -223,9 +177,7 @@ class Ui_MainWindow:
         MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
         self.lbl_bool.setText(_translate("MainWindow", "Boolean Editor"))
         self.lbl_date.setText(_translate("MainWindow", "Date Editor"))
-        self.lbl_date_time.setText(
-            _translate("MainWindow", "Date & Time Editor")
-        )
+        self.lbl_date_time.setText(_translate("MainWindow", "Date & Time Editor"))
         self.lbl_time.setText(_translate("MainWindow", "Time Editor"))
         self.lbl_int.setText(_translate("MainWindow", "Integer  Editor"))
         self.lbl_real.setText(_translate("MainWindow", "Real Nr.  Editor"))

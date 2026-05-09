@@ -12,7 +12,6 @@ from typing import cast
 import pytest
 from exdrf.field_types.ref_base import RefBaseField
 from exdrf_gen_al2pd.field_partition import partition_fields
-
 from exdrf_gen_al2r.relation_specs import build_al2r_relation_sync_specs
 
 

@@ -44,7 +44,6 @@ class Ui_QtRelatedItemEditor:
     verticalLayout: "QtWidgets.QVBoxLayout"
 
     def setup_ui(self, QtRelatedItemEditor):
-
         QtRelatedItemEditor.setObjectName("QtRelatedItemEditor")
         QtRelatedItemEditor.resize(480, 640)
         self.verticalLayout = QtWidgets.QVBoxLayout(QtRelatedItemEditor)
@@ -82,19 +81,13 @@ class Ui_QtRelatedItemEditor:
         )
         self.c_item_data = QtWidgets.QLineEdit(self.tab_general)
         self.c_item_data.setObjectName("c_item_data")
-        self.formLayout.setWidget(
-            2, QtWidgets.QFormLayout.FieldRole, self.c_item_data
-        )
+        self.formLayout.setWidget(2, QtWidgets.QFormLayout.FieldRole, self.c_item_data)
         self.lbl_some_int = QtWidgets.QLabel(self.tab_general)
         self.lbl_some_int.setObjectName("lbl_some_int")
-        self.formLayout.setWidget(
-            3, QtWidgets.QFormLayout.LabelRole, self.lbl_some_int
-        )
+        self.formLayout.setWidget(3, QtWidgets.QFormLayout.LabelRole, self.lbl_some_int)
         self.c_some_int = QtWidgets.QSpinBox(self.tab_general)
         self.c_some_int.setObjectName("c_some_int")
-        self.formLayout.setWidget(
-            3, QtWidgets.QFormLayout.FieldRole, self.c_some_int
-        )
+        self.formLayout.setWidget(3, QtWidgets.QFormLayout.FieldRole, self.c_some_int)
         self.main_tab.addTab(self.tab_general, "")
         self.tab_relations = QtWidgets.QWidget()
         self.tab_relations.setObjectName("tab_relations")
@@ -117,14 +110,10 @@ class Ui_QtRelatedItemEditor:
         self.formLayout2.setObjectName("formLayout2")
         self.lbl_id = QtWidgets.QLabel(self.tab_info)
         self.lbl_id.setObjectName("lbl_id")
-        self.formLayout2.setWidget(
-            0, QtWidgets.QFormLayout.LabelRole, self.lbl_id
-        )
+        self.formLayout2.setWidget(0, QtWidgets.QFormLayout.LabelRole, self.lbl_id)
         self.c_id = QtWidgets.QSpinBox(self.tab_info)
         self.c_id.setObjectName("c_id")
-        self.formLayout2.setWidget(
-            0, QtWidgets.QFormLayout.FieldRole, self.c_id
-        )
+        self.formLayout2.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.c_id)
         self.main_tab.addTab(self.tab_info, "")
         self.verticalLayout.addWidget(self.main_tab)
 
@@ -143,12 +132,8 @@ class Ui_QtRelatedItemEditor:
         self.lbl_comp_key_part2.setText(
             _translate("QtRelatedItemEditor", "Comp Key Part2 ")
         )
-        self.lbl_item_data.setText(
-            _translate("QtRelatedItemEditor", "Item Data ")
-        )
-        self.lbl_some_int.setText(
-            _translate("QtRelatedItemEditor", "Some Int ")
-        )
+        self.lbl_item_data.setText(_translate("QtRelatedItemEditor", "Item Data "))
+        self.lbl_some_int.setText(_translate("QtRelatedItemEditor", "Some Int "))
         self.main_tab.setTabText(
             self.main_tab.indexOf(self.tab_general),
             _translate("QtRelatedItemEditor", "General"),

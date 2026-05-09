@@ -484,9 +484,7 @@ def _emit_str_py_literal(s: str, hang_spaces: int) -> str:
         return chunks[0]
     pad = "\n" + (" " * cont_spaces)
     inner = pad.join(chunks)
-    return (
-        "(\n" + (" " * cont_spaces) + inner + "\n" + (" " * hang_spaces) + ")"
-    )
+    return "(\n" + (" " * cont_spaces) + inner + "\n" + (" " * hang_spaces) + ")"
 
 
 def _emit_py_literal(value: Any, indent: int) -> str:

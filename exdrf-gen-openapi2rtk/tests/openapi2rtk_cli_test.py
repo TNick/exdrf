@@ -20,9 +20,7 @@ def _load_plugins() -> None:
 def test_openapi2rtk_writes_route_files(tmp_path: Path) -> None:
     """``openapi2rtk`` emits ``widgets.ts``, ``index.ts``, and shared helpers."""
 
-    fixture = (
-        Path(__file__).resolve().parent / "fixtures" / "minimal_openapi.json"
-    )
+    fixture = Path(__file__).resolve().parent / "fixtures" / "minimal_openapi.json"
     routes = tmp_path / "routes"
     routes.mkdir()
     runner = CliRunner()

@@ -144,9 +144,12 @@ def _parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
     )
     parser.add_argument(
         "--pytest-args",
-        nargs="*",
-        default=[],
-        help="Extra arguments passed to pytest.",
+        nargs=argparse.REMAINDER,
+        default=None,
+        help=(
+            "Extra arguments passed to pytest. "
+            "Place this option last so all remaining tokens are forwarded."
+        ),
     )
     parser.add_argument(
         "dirs",
@@ -159,8 +162,16 @@ def _parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
 def main(argv: Optional[Sequence[str]] = None) -> int:
     args = _parse_args(argv)
     root = Path(args.root).resolve()
+    pytest_args = list(args.pytest_args or [])
+
+    # Strip optional separator marker when caller passes ``--pytest-args -- ...``.
+    if pytest_args and pytest_args[0] == "--":
+        pytest_args = pytest_args[1:]
+
     return run_pytest_in_dirs(
-        root=root, dirs=list(args.dirs), pytest_args=list(args.pytest_args)
+        root=root,
+        dirs=list(args.dirs),
+        pytest_args=pytest_args,
     )
 
 

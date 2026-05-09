@@ -34,7 +34,7 @@ class FloatField(ExField):
     enum_values: List[Tuple[float, str]] = field(factory=list)
 
     def __repr__(self) -> str:
-        return f"FloatF(" f"{self.resource.name}.{self.name})"
+        return f"FloatF({self.resource.name}.{self.name})"
 
     def field_properties(self, explicit: bool = False) -> dict[str, Any]:
         result = super().field_properties(explicit)

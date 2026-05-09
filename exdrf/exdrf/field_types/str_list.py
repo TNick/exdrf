@@ -11,7 +11,7 @@ class StrListField(StrField):
     type_name: str = field(default=FIELD_TYPE_STRING_LIST)
 
     def __repr__(self) -> str:
-        return f"SListF(" f"{self.resource.name}.{self.name})"
+        return f"SListF({self.resource.name}.{self.name})"
 
 
 class StrListInfo(StrInfo):

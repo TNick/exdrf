@@ -14,9 +14,7 @@ from exdrf_gen_al2pd.pydantic_emit import build_payload_list_field_spec
 def _same_resource(a: Any, b: Any) -> bool:
     """Return True when ``a`` and ``b`` name the same logical resource."""
 
-    return a.name == b.name and tuple(
-        getattr(a, "categories", ()) or ()
-    ) == tuple(
+    return a.name == b.name and tuple(getattr(a, "categories", ()) or ()) == tuple(
         getattr(b, "categories", ()) or (),
     )
 
@@ -309,9 +307,7 @@ def build_al2r_relation_sync_specs(
                 )
                 continue
 
-            fk = _o2m_child_fk_column_from_sa(
-                rfb, model
-            ) or _child_fk_toward_parent(
+            fk = _o2m_child_fk_column_from_sa(rfb, model) or _child_fk_toward_parent(
                 child,
                 model,
             )

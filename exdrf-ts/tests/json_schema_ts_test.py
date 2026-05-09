@@ -36,8 +36,7 @@ class TestJsonSchemaToTsPrimitives:
         """OpenAPI 3 ``nullable: true`` adds ``| null``."""
 
         assert (
-            json_schema_to_ts({"type": "string", "nullable": True})
-            == "string | null"
+            json_schema_to_ts({"type": "string", "nullable": True}) == "string | null"
         )
 
 

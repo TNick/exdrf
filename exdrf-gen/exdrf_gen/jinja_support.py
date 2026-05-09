@@ -53,17 +53,13 @@ class Loader(BaseLoader):
                     module = importlib.import_module(m_path)
                     module_file = getattr(module, "__file__", None)
                     if module_file is not None:
-                        template_path = join(
-                            os.path.dirname(module_file), m_name
-                        )
+                        template_path = join(os.path.dirname(module_file), m_name)
                         if not isfile(template_path):
                             template_path = template_path + ".j2"
                             if not isfile(template_path):
                                 template_path = None
                 except Exception as e:
-                    logger.warning(
-                        f"Failed to treat {template} as a module: {e}"
-                    )
+                    logger.warning(f"Failed to treat {template} as a module: {e}")
 
         # If the template is not found in any of these paths, raise an error
         if template_path is None:
@@ -194,9 +190,7 @@ def join_attrs(
     def get_item(s: Any) -> str:
         _prefix = getattr(s, prefix) if prefix_is_attr else prefix
         _suffix = getattr(s, suffix) if suffix_is_attr else suffix
-        return (
-            _prefix + prefix_sep + str(getattr(s, attr)) + suffix_sep + _suffix
-        )
+        return _prefix + prefix_sep + str(getattr(s, attr)) + suffix_sep + _suffix
 
     return sep.join(get_item(s) for s in source)
 
@@ -282,9 +276,7 @@ def to_json(
                 res[key] = _filter_value(val, exclude_set, current_key)
             return res
         if isinstance(data, list):
-            return [
-                _filter_value(item, exclude_set, parent_key) for item in data
-            ]
+            return [_filter_value(item, exclude_set, parent_key) for item in data]
         return data
 
     if exclude:
@@ -343,14 +335,10 @@ def create_jinja_env(auto_reload=False):
     jinja_env.globals["snake_pl"] = lambda x: inflect_e.plural(
         re.sub(r"(?<!^)(?=[A-Z])", "_", x).lower()  # type: ignore
     )
-    jinja_env.globals["snake"] = lambda x: re.sub(
-        r"(?<!^)(?=[A-Z])", "_", x
-    ).lower()
+    jinja_env.globals["snake"] = lambda x: re.sub(r"(?<!^)(?=[A-Z])", "_", x).lower()
 
     # Number utilities.
-    jinja_env.globals["int"] = lambda x: (
-        int(x) if (_is_jinja_defined(x)) else None
-    )
+    jinja_env.globals["int"] = lambda x: (int(x) if (_is_jinja_defined(x)) else None)
     jinja_env.globals["format_int"] = lambda x: (
         f"{x:,.0f}" if (_is_jinja_defined(x)) else "-"
     )
@@ -434,9 +422,7 @@ def create_jinja_env(auto_reload=False):
     jinja_env.filters["snake_pl"] = lambda x: inflect_e.plural(
         re.sub(r"(?<!^)(?=[A-Z])", "_", x).lower()  # type: ignore
     )
-    jinja_env.filters["snake"] = lambda x: re.sub(
-        r"(?<!^)(?=[A-Z])", "_", x
-    ).lower()
+    jinja_env.filters["snake"] = lambda x: re.sub(r"(?<!^)(?=[A-Z])", "_", x).lower()
     jinja_env.filters["to_json"] = to_json
     return jinja_env
 

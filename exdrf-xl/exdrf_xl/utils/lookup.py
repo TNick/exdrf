@@ -147,7 +147,7 @@ def xl_lookup_value(
     )
 
     if not include_link:
-        return "=IFERROR(\n" "    %s,\n" '    ""\n' ")" % vlookup_value
+        return '=IFERROR(\n    %s,\n    ""\n)' % vlookup_value
 
     return (
         "=IFERROR(\n"

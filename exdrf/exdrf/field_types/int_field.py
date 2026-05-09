@@ -27,7 +27,7 @@ class IntField(ExField):
     enum_values: List[Tuple[int, str]] = field(factory=list)
 
     def __repr__(self) -> str:
-        return f"IntF(" f"{self.resource.name}.{self.name})"
+        return f"IntF({self.resource.name}.{self.name})"
 
     def field_properties(self, explicit: bool = False) -> dict[str, Any]:
         result = super().field_properties(explicit)

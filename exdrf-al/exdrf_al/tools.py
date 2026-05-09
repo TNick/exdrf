@@ -28,9 +28,7 @@ def count_relationship(session: "Session", record, rel_attr_name: str) -> int:
 
     # Check if the attribute exists.
     if not hasattr(cls, rel_attr_name):
-        raise AttributeError(
-            f"{cls.__name__} has no attribute '{rel_attr_name}'"
-        )
+        raise AttributeError(f"{cls.__name__} has no attribute '{rel_attr_name}'")
 
     # Check if the attribute is a relationship.
     attr = getattr(cls, rel_attr_name)
@@ -84,8 +82,7 @@ def count_relationship(session: "Session", record, rel_attr_name: str) -> int:
             .select_from(assoc_alias)
             .where(
                 *[
-                    assoc_alias.c[remote_col.name]
-                    == getattr(record, local_col.name)
+                    assoc_alias.c[remote_col.name] == getattr(record, local_col.name)
                     for local_col, remote_col in left_local_cols
                 ]
             )
@@ -129,9 +126,7 @@ def load_with_collection_counts_stm(orm_class, a_id: "RecIdType"):
             sec_key_cols = []
             for pk in pk_cols:
                 matches = [
-                    c
-                    for c in sec.c
-                    if any(fk.column is pk for fk in c.foreign_keys)
+                    c for c in sec.c if any(fk.column is pk for fk in c.foreign_keys)
                 ]
                 if len(matches) != 1:
                     sec_key_cols = []
@@ -197,9 +192,7 @@ def load_with_collection_counts_stm(orm_class, a_id: "RecIdType"):
         if len(pk_cols) == 1:
             stmt = stmt.where(pk_cols[0] == a_id)
         else:
-            raise ValueError(
-                f"Multiple primary keys found for {orm_class.__name__}"
-            )
+            raise ValueError(f"Multiple primary keys found for {orm_class.__name__}")
     elif len(a_list) != len(pk_cols):
         raise ValueError(
             f"Number of primary keys for {orm_class.__name__} ({len(pk_cols)}) "
@@ -210,9 +203,7 @@ def load_with_collection_counts_stm(orm_class, a_id: "RecIdType"):
     return stmt, labels_by_rel
 
 
-def load_with_collection_counts(
-    session: "Session", orm_class, a_id: "RecIdType"
-):
+def load_with_collection_counts(session: "Session", orm_class, a_id: "RecIdType"):
     """Load a record and count the number of related records in collections.
 
     Args:
@@ -231,7 +222,6 @@ def load_with_collection_counts(
 
     a_obj = row[0]
     counts = {
-        rel_name: getattr(row, label)
-        for rel_name, label in labels_by_rel.items()
+        rel_name: getattr(row, label) for rel_name, label in labels_by_rel.items()
     }
     return a_obj, counts

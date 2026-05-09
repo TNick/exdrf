@@ -123,9 +123,7 @@ class TablesModel(QAbstractTableModel, QtUseContext):
             self.endResetModel()
 
     # Model API
-    def rowCount(
-        self, parent: QModelIndex = QModelIndex()
-    ) -> int:  # noqa: N802
+    def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:  # noqa: N802
         """Number of rows in the model.
 
         Args:
@@ -136,9 +134,7 @@ class TablesModel(QAbstractTableModel, QtUseContext):
         """
         return 0 if parent.isValid() else len(self._rows)
 
-    def columnCount(
-        self, parent: QModelIndex = QModelIndex()
-    ) -> int:  # noqa: N802
+    def columnCount(self, parent: QModelIndex = QModelIndex()) -> int:  # noqa: N802
         """Number of columns in the model.
 
         Args:

@@ -111,11 +111,7 @@ def d_base_ui_class(field: "ExField", is_many: bool = False) -> str:
     elif field.type_name == "integer":
         return "DrfIntEditor"
     elif field.type_name == "string":
-        return (
-            "DrfTextEditor"
-            if cast("StrField", field).multiline
-            else "DrfLineEditor"
-        )
+        return "DrfTextEditor" if cast("StrField", field).multiline else "DrfLineEditor"
     elif field.type_name == "formatted":
         return "DrfTextEditor"
     elif hasattr(field, "bridge") and bool(getattr(field, "bridge")):
@@ -400,9 +396,7 @@ def generate_qt_from_alchemy(
             "yes",
         )
     else:
-        use_selectinload_for_nested_scalars = (
-            not disable_nested_scalar_selectinload
-        )
+        use_selectinload_for_nested_scalars = not disable_nested_scalar_selectinload
 
     # Allow explicit override via kwargs (highest priority).
     if "use_selectinload_for_nested_scalars" in kwargs:
@@ -486,9 +480,7 @@ def generate_qt_from_alchemy(
                         part.name,
                         type_name,
                         get_field_value(
-                            new_value
-                            if new_value is not None
-                            else default_value
+                            new_value if new_value is not None else default_value
                         ),
                     )
 
@@ -588,12 +580,8 @@ def generate_qt_from_alchemy(
                                 name="models",
                                 comp=[
                                     File("__init__.py", "__init__.py.j2"),
-                                    File(
-                                        "{res_snake}_ful.py", "c/m/m_ful.py.j2"
-                                    ),
-                                    File(
-                                        "{res_snake}_ocm.py", "c/m/m_ocm.py.j2"
-                                    ),
+                                    File("{res_snake}_ful.py", "c/m/m_ful.py.j2"),
+                                    File("{res_snake}_ocm.py", "c/m/m_ocm.py.j2"),
                                 ],
                             ),
                             Dir(

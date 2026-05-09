@@ -2,9 +2,6 @@ from unittest.mock import MagicMock
 
 import pytest
 from exdrf.resource import ExResource
-from sqlalchemy import Integer
-from sqlalchemy.orm import mapped_column
-
 from exdrf_al.loader import (
     dataset_from_sqlalchemy,
     field_from_sql_col,
@@ -12,6 +9,8 @@ from exdrf_al.loader import (
     res_by_table_name,
     sql_col_to_type,
 )
+from sqlalchemy import Integer
+from sqlalchemy.orm import mapped_column
 
 
 class TestResByTableName:
@@ -74,7 +73,6 @@ class TestSqlColToType:
     def test_sql_col_to_type(
         self, column_type, expected_field, expected_info, extra_updates
     ):
-
         column = MagicMock()
         column.type = MagicMock()
         column.type.__str__ = lambda _: column_type
@@ -88,7 +86,6 @@ class TestSqlColToType:
             assert extra[key] == value
 
     def test_unknown_field_type(self):
-
         column = MagicMock()
         column.type = MagicMock()
         column.type.__str__ = lambda _: "UNKNOWN_TYPE"
@@ -317,15 +314,11 @@ class TestFieldFromSqlRel:
         mock_parser.model_validate.return_value.model_dump.return_value = {
             "direction": "ManyToMany"
         }
-        mock_res_by_table_name = mocker.patch(
-            "exdrf_al.loader.res_by_table_name"
-        )
+        mock_res_by_table_name = mocker.patch("exdrf_al.loader.res_by_table_name")
         mock_res_by_table_name.return_value = "IntermediateResource"
 
         # Call the function
-        result = field_from_sql_rel(
-            resource=mock_resource, relation=mock_relation
-        )
+        result = field_from_sql_rel(resource=mock_resource, relation=mock_relation)
 
         # Assertions
         mock_parser.model_validate.assert_called_once_with(
@@ -368,12 +361,8 @@ class TestDatasetFromSqlAlchemy:
         mock_visitor_class.run = mock_run
         mocker.patch("exdrf_al.loader.DbVisitor", mock_visitor_class)
 
-        mock_field_from_sql_col = mocker.patch(
-            "exdrf_al.loader.field_from_sql_col"
-        )
-        mock_field_from_sql_rel = mocker.patch(
-            "exdrf_al.loader.field_from_sql_rel"
-        )
+        mock_field_from_sql_col = mocker.patch("exdrf_al.loader.field_from_sql_col")
+        mock_field_from_sql_rel = mocker.patch("exdrf_al.loader.field_from_sql_rel")
 
         # Call the function
         result = dataset_from_sqlalchemy(mock_dataset, base=mock_base)
@@ -400,9 +389,7 @@ class TestDatasetFromSqlAlchemy:
         mock_visitor_class = type("DbVisitor", (), {})
         # Mock extra_info as an instance method that returns a mock with get_layer_ast
         mock_extra_info_result = MagicMock()
-        mock_extra_info_result.get_layer_ast.side_effect = Exception(
-            "Parsing error"
-        )
+        mock_extra_info_result.get_layer_ast.side_effect = Exception("Parsing error")
 
         def extra_info(self, model):
             return mock_extra_info_result
@@ -427,9 +414,7 @@ class TestDatasetFromSqlAlchemy:
         mocker.patch("exdrf_al.loader.DbVisitor", mock_visitor_class)
 
         # Call the function and assert exception
-        with pytest.raises(
-            ValueError, match="Error parsing label for MockModel"
-        ):
+        with pytest.raises(ValueError, match="Error parsing label for MockModel"):
             dataset_from_sqlalchemy(mock_dataset, base=mock_base)
 
     def test_field_creation_from_columns(self, mocker):
@@ -447,14 +432,10 @@ class TestDatasetFromSqlAlchemy:
 
         # Create a real class for DbVisitor so @define can work
         mock_visitor_class = type("DbVisitor", (), {})
-        mock_visitor = mocker.patch(
-            "exdrf_al.loader.DbVisitor", mock_visitor_class
-        )
+        mock_visitor = mocker.patch("exdrf_al.loader.DbVisitor", mock_visitor_class)
         mock_visitor.run = lambda base: None
 
-        mock_field_from_sql_col = mocker.patch(
-            "exdrf_al.loader.field_from_sql_col"
-        )
+        mock_field_from_sql_col = mocker.patch("exdrf_al.loader.field_from_sql_col")
 
         # Call the function
         dataset_from_sqlalchemy(mock_dataset, base=mock_base)
@@ -477,14 +458,10 @@ class TestDatasetFromSqlAlchemy:
 
         # Create a real class for DbVisitor so @define can work
         mock_visitor_class = type("DbVisitor", (), {})
-        mock_visitor = mocker.patch(
-            "exdrf_al.loader.DbVisitor", mock_visitor_class
-        )
+        mock_visitor = mocker.patch("exdrf_al.loader.DbVisitor", mock_visitor_class)
         mock_visitor.run = lambda base: None
 
-        mock_field_from_sql_rel = mocker.patch(
-            "exdrf_al.loader.field_from_sql_rel"
-        )
+        mock_field_from_sql_rel = mocker.patch("exdrf_al.loader.field_from_sql_rel")
 
         # Call the function
         dataset_from_sqlalchemy(mock_dataset, base=mock_base)

@@ -5,23 +5,21 @@
 from typing import TYPE_CHECKING, Union
 
 from exdrf.constants import RecIdType
-from exdrf_qt.controls import ExdrfEditor
-from exdrf_qt.plugins import exdrf_qt_pm
-from exdrf_qt.utils.plugins import safe_hook_call
-
 from exdrf_dev.qt_gen.db.profiles.widgets.profile_editor_ui import (
     Ui_QtProfileEditor,
 )
+from exdrf_qt.controls import ExdrfEditor
+from exdrf_qt.plugins import exdrf_qt_pm
+from exdrf_qt.utils.plugins import safe_hook_call
 
 # exdrf-keep-start other_imports ----------------------------------------------
 
 # exdrf-keep-end other_imports ------------------------------------------------
 
 if TYPE_CHECKING:
+    from exdrf_dev.db.api import Profile  # noqa: F401
     from exdrf_qt.context import QtContext  # noqa: F401
     from sqlalchemy.orm import Session  # noqa: F401
-
-    from exdrf_dev.db.api import Profile  # noqa: F401
 
 # exdrf-keep-start other_globals ----------------------------------------------
 
@@ -43,9 +41,7 @@ class QtProfileEditor(ExdrfEditor["Profile"], Ui_QtProfileEditor):
             ctx=ctx,
             db_model=kwargs.pop(
                 "db_model",
-                ctx.get_ovr(
-                    "exdrf_dev.qt_gen.db.profiles.editor.model", DbProfile
-                ),
+                ctx.get_ovr("exdrf_dev.qt_gen.db.profiles.editor.model", DbProfile),
             ),
             **kwargs,
         )
@@ -65,9 +61,7 @@ class QtProfileEditor(ExdrfEditor["Profile"], Ui_QtProfileEditor):
     def editing_changed(self, value: bool):
         pass
 
-    def read_record(
-        self, session: "Session", record_id: RecIdType
-    ) -> "Profile":
+    def read_record(self, session: "Session", record_id: RecIdType) -> "Profile":
         return session.scalar(
             self.selection.where(
                 self.db_model.id == record_id,  # type: ignore

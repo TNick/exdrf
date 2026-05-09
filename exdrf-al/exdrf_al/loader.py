@@ -79,9 +79,7 @@ def res_by_table_name(dataset: "ExDataset", table_name: str) -> "ExResource":
     if len(results) == 1:
         return results[0]
     elif len(results) > 1:
-        raise ValueError(
-            f"Multiple resources found for table name: {table_name}"
-        )
+        raise ValueError(f"Multiple resources found for table name: {table_name}")
     else:
         raise KeyError(f"No resource found for table name: {table_name}")
 
@@ -188,9 +186,7 @@ def field_from_sql_col(
         **extra,
         **kwargs,
     }
-    logger.debug(
-        "Creating field %s for %s.%s", Ctor.__name__, resource.name, column
-    )
+    logger.debug("Creating field %s for %s.%s", Ctor.__name__, resource.name, column)
     result = Ctor(**final_args)
 
     # The field is added to the resource.
@@ -435,9 +431,7 @@ def dataset_from_sqlalchemy(
             try:
                 label_ast = extra_info.get_layer_ast()
             except Exception as e:
-                raise ValueError(
-                    f"Error parsing label for {model.__name__}"
-                ) from e
+                raise ValueError(f"Error parsing label for {model.__name__}") from e
 
             # Create a Resource object for the model.
             rs = ResClass(

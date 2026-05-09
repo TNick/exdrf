@@ -3,16 +3,15 @@ from typing import TYPE_CHECKING
 from PyQt5 import QtCore, QtWidgets
 
 if TYPE_CHECKING:
+    from exdrf_dev.qt_gen.db.children.api import QtChildMuSe
+    from exdrf_dev.qt_gen.db.profiles.api import QtProfileSiSe
+    from exdrf_dev.qt_gen.db.tags.api import QtTagMuSe
     from exdrf_qt.field_ed.api import (
         DrfBoolEditor,
         DrfDateTimeEditor,
         DrfIntEditor,
         DrfLineEditor,
     )
-
-    from exdrf_dev.qt_gen.db.children.api import QtChildMuSe
-    from exdrf_dev.qt_gen.db.profiles.api import QtProfileSiSe
-    from exdrf_dev.qt_gen.db.tags.api import QtTagMuSe
 
 
 class Ui_QtParentEditor:
@@ -57,16 +56,15 @@ class Ui_QtParentEditor:
     verticalLayout: "QtWidgets.QVBoxLayout"
 
     def setup_ui(self, QtParentEditor):
+        from exdrf_dev.qt_gen.db.children.api import QtChildMuSe
+        from exdrf_dev.qt_gen.db.profiles.api import QtProfileSiSe
+        from exdrf_dev.qt_gen.db.tags.api import QtTagMuSe
         from exdrf_qt.field_ed.api import (
             DrfBoolEditor,
             DrfDateTimeEditor,
             DrfIntEditor,
             DrfLineEditor,
         )
-
-        from exdrf_dev.qt_gen.db.children.api import QtChildMuSe
-        from exdrf_dev.qt_gen.db.profiles.api import QtProfileSiSe
-        from exdrf_dev.qt_gen.db.tags.api import QtTagMuSe
 
         QtParentEditor.setObjectName("QtParentEditor")
         QtParentEditor.resize(480, 640)
@@ -80,29 +78,21 @@ class Ui_QtParentEditor:
         self.formLayout.setObjectName("formLayout")
         self.lbl_children = QtWidgets.QLabel(self.tab_general)
         self.lbl_children.setObjectName("lbl_children")
-        self.formLayout.setWidget(
-            0, QtWidgets.QFormLayout.LabelRole, self.lbl_children
-        )
+        self.formLayout.setWidget(0, QtWidgets.QFormLayout.LabelRole, self.lbl_children)
         self.c_children = QtChildMuSe(parent=self.tab_general, ctx=self.ctx)
         self.c_children.setProperty("name", "children")
         self.c_children.setProperty("clearable", True)
         self.c_children.setObjectName("c_children")
-        self.formLayout.setWidget(
-            0, QtWidgets.QFormLayout.FieldRole, self.c_children
-        )
+        self.formLayout.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.c_children)
         self.lbl_created_at = QtWidgets.QLabel(self.tab_general)
         self.lbl_created_at.setObjectName("lbl_created_at")
         self.formLayout.setWidget(
             1, QtWidgets.QFormLayout.LabelRole, self.lbl_created_at
         )
-        self.c_created_at = DrfDateTimeEditor(
-            parent=self.tab_general, ctx=self.ctx
-        )
+        self.c_created_at = DrfDateTimeEditor(parent=self.tab_general, ctx=self.ctx)
         self.c_created_at.setProperty("name", "created_at")
         self.c_created_at.setObjectName("c_created_at")
-        self.formLayout.setWidget(
-            1, QtWidgets.QFormLayout.FieldRole, self.c_created_at
-        )
+        self.formLayout.setWidget(1, QtWidgets.QFormLayout.FieldRole, self.c_created_at)
         self.lbl_is_active = QtWidgets.QLabel(self.tab_general)
         self.lbl_is_active.setObjectName("lbl_is_active")
         self.formLayout.setWidget(
@@ -111,44 +101,30 @@ class Ui_QtParentEditor:
         self.c_is_active = DrfBoolEditor(parent=self.tab_general, ctx=self.ctx)
         self.c_is_active.setProperty("name", "is_active")
         self.c_is_active.setObjectName("c_is_active")
-        self.formLayout.setWidget(
-            2, QtWidgets.QFormLayout.FieldRole, self.c_is_active
-        )
+        self.formLayout.setWidget(2, QtWidgets.QFormLayout.FieldRole, self.c_is_active)
         self.lbl_name = QtWidgets.QLabel(self.tab_general)
         self.lbl_name.setObjectName("lbl_name")
-        self.formLayout.setWidget(
-            3, QtWidgets.QFormLayout.LabelRole, self.lbl_name
-        )
+        self.formLayout.setWidget(3, QtWidgets.QFormLayout.LabelRole, self.lbl_name)
         self.c_name = DrfLineEditor(parent=self.tab_general, ctx=self.ctx)
         self.c_name.setProperty("name", "name")
         self.c_name.setObjectName("c_name")
-        self.formLayout.setWidget(
-            3, QtWidgets.QFormLayout.FieldRole, self.c_name
-        )
+        self.formLayout.setWidget(3, QtWidgets.QFormLayout.FieldRole, self.c_name)
         self.lbl_profile = QtWidgets.QLabel(self.tab_general)
         self.lbl_profile.setObjectName("lbl_profile")
-        self.formLayout.setWidget(
-            4, QtWidgets.QFormLayout.LabelRole, self.lbl_profile
-        )
+        self.formLayout.setWidget(4, QtWidgets.QFormLayout.LabelRole, self.lbl_profile)
         self.c_profile = QtProfileSiSe(parent=self.tab_general, ctx=self.ctx)
         self.c_profile.setProperty("name", "profile")
         self.c_profile.setProperty("clearable", True)
         self.c_profile.setObjectName("c_profile")
-        self.formLayout.setWidget(
-            4, QtWidgets.QFormLayout.FieldRole, self.c_profile
-        )
+        self.formLayout.setWidget(4, QtWidgets.QFormLayout.FieldRole, self.c_profile)
         self.lbl_tags = QtWidgets.QLabel(self.tab_general)
         self.lbl_tags.setObjectName("lbl_tags")
-        self.formLayout.setWidget(
-            5, QtWidgets.QFormLayout.LabelRole, self.lbl_tags
-        )
+        self.formLayout.setWidget(5, QtWidgets.QFormLayout.LabelRole, self.lbl_tags)
         self.c_tags = QtTagMuSe(parent=self.tab_general, ctx=self.ctx)
         self.c_tags.setProperty("name", "tags")
         self.c_tags.setProperty("clearable", True)
         self.c_tags.setObjectName("c_tags")
-        self.formLayout.setWidget(
-            5, QtWidgets.QFormLayout.FieldRole, self.c_tags
-        )
+        self.formLayout.setWidget(5, QtWidgets.QFormLayout.FieldRole, self.c_tags)
         self.main_tab.addTab(self.tab_general, "")
         self.tab_keys = QtWidgets.QWidget()
         self.tab_keys.setObjectName("tab_keys")
@@ -156,15 +132,11 @@ class Ui_QtParentEditor:
         self.formLayout1.setObjectName("formLayout1")
         self.lbl_id = QtWidgets.QLabel(self.tab_keys)
         self.lbl_id.setObjectName("lbl_id")
-        self.formLayout1.setWidget(
-            0, QtWidgets.QFormLayout.LabelRole, self.lbl_id
-        )
+        self.formLayout1.setWidget(0, QtWidgets.QFormLayout.LabelRole, self.lbl_id)
         self.c_id = DrfIntEditor(parent=self.tab_keys, ctx=self.ctx)
         self.c_id.setProperty("name", "id")
         self.c_id.setObjectName("c_id")
-        self.formLayout1.setWidget(
-            0, QtWidgets.QFormLayout.FieldRole, self.c_id
-        )
+        self.formLayout1.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.c_id)
         self.main_tab.addTab(self.tab_keys, "")
         self.verticalLayout.addWidget(self.main_tab)
         self.lbl_children.setBuddy(self.c_children)
@@ -181,9 +153,7 @@ class Ui_QtParentEditor:
 
     def retranslate_ui(self, QtParentEditor):
         _translate = QtCore.QCoreApplication.translate
-        QtParentEditor.setWindowTitle(
-            _translate("QtParentEditor", "Parent Editor")
-        )
+        QtParentEditor.setWindowTitle(_translate("QtParentEditor", "Parent Editor"))
         self.lbl_children.setText(_translate("QtParentEditor", "Children "))
         self.lbl_created_at.setText(_translate("QtParentEditor", "Created At "))
         self.lbl_is_active.setText(_translate("QtParentEditor", "Is Active "))

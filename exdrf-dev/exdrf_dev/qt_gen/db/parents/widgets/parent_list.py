@@ -13,9 +13,8 @@ from exdrf_qt.utils.plugins import safe_hook_call
 # exdrf-keep-end other_imports ------------------------------------------------
 
 if TYPE_CHECKING:
-    from exdrf_qt.context import QtContext  # noqa: F401
-
     from exdrf_dev.db.api import Parent  # noqa: F401
+    from exdrf_qt.context import QtContext  # noqa: F401
 
 # exdrf-keep-start other_globals ----------------------------------------------
 
@@ -39,9 +38,7 @@ class QtParentList(ListDb["Parent"]):
             *args,
             other_actions=kwargs.pop(
                 "other_actions",
-                ctx.get_ovr(
-                    "exdrf_dev.qt_gen.db.parents.list.extra-menus", None
-                ),
+                ctx.get_ovr("exdrf_dev.qt_gen.db.parents.list.extra-menus", None),
             ),
             **kwargs,
         )

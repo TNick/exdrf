@@ -5,17 +5,16 @@
 from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Union
 
 from exdrf.constants import RecIdType
-from exdrf_qt.models import QtModel
-from exdrf_qt.plugins import exdrf_qt_pm
-from exdrf_qt.utils.plugins import safe_hook_call
-from sqlalchemy import select
-
 from exdrf_dev.qt_gen.db.parent_tag_associations.fields.fld_parent_id import (
     ParentIdField,
 )
 from exdrf_dev.qt_gen.db.parent_tag_associations.fields.fld_tag_id import (
     TagIdField,
 )
+from exdrf_qt.models import QtModel
+from exdrf_qt.plugins import exdrf_qt_pm
+from exdrf_qt.utils.plugins import safe_hook_call
+from sqlalchemy import select
 
 # exdrf-keep-start other_imports ----------------------------------------------
 
@@ -23,10 +22,9 @@ from exdrf_dev.qt_gen.db.parent_tag_associations.fields.fld_tag_id import (
 
 if TYPE_CHECKING:
     from exdrf.filter import FilterType  # noqa: F401
+    from exdrf_dev.db.api import ParentTagAssociation  # noqa: F401
     from exdrf_qt.context import QtContext  # noqa: F401
     from sqlalchemy import Select  # noqa: F401
-
-    from exdrf_dev.db.api import ParentTagAssociation  # noqa: F401
 
 # exdrf-keep-start other_globals ----------------------------------------------
 
@@ -80,9 +78,7 @@ class QtParentTagAssociationFuMo(QtModel["ParentTagAssociation"]):
         )
 
         # Inform plugins that the model has been created.
-        safe_hook_call(
-            exdrf_qt_pm.hook.parent_tag_association_fumo_created, model=self
-        )
+        safe_hook_call(exdrf_qt_pm.hook.parent_tag_association_fumo_created, model=self)
 
     def get_primary_columns(self) -> Any:
         return [

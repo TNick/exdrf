@@ -164,7 +164,6 @@ class BridgeAdapter(BaseAdapter):
         self.core.field_value = id(other_pk_keys)
 
     def add_records(self, records: Sequence["QtRecord"]) -> None:
-
         # Get the list of IDs to add.
         incoming = [r.db_id for r in records if r.db_id is not None]
         self.add_db_ids(incoming)

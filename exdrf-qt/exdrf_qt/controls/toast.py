@@ -387,9 +387,7 @@ class _ToastContainer(QWidget):
         except Exception as e:
             logger.debug("Toast container position fallback: %s", e)
 
-    def eventFilter(
-        self, a0: Optional[QObject], a1: Optional[QEvent]
-    ) -> bool:  # type: ignore[override]
+    def eventFilter(self, a0: Optional[QObject], a1: Optional[QEvent]) -> bool:  # type: ignore[override]
         # Reposition container when owner moves/resizes/shows
         if a1 is not None:
             et = a1.type()

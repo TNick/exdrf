@@ -5,12 +5,6 @@
 from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Union
 
 from exdrf.constants import RecIdType
-from exdrf_qt.models import QtModel
-from exdrf_qt.plugins import exdrf_qt_pm
-from exdrf_qt.utils.plugins import safe_hook_call
-from sqlalchemy import select
-from sqlalchemy.orm import selectinload
-
 from exdrf_dev.qt_gen.db.composite_key_models.fields.fld_description import (
     DescriptionField,
 )
@@ -41,6 +35,11 @@ from exdrf_dev.qt_gen.db.composite_key_models.fields.fld_some_json import (
 from exdrf_dev.qt_gen.db.composite_key_models.fields.fld_some_time import (
     SomeTimeField,
 )
+from exdrf_qt.models import QtModel
+from exdrf_qt.plugins import exdrf_qt_pm
+from exdrf_qt.utils.plugins import safe_hook_call
+from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 # exdrf-keep-start other_imports ----------------------------------------------
 
@@ -48,10 +47,9 @@ from exdrf_dev.qt_gen.db.composite_key_models.fields.fld_some_time import (
 
 if TYPE_CHECKING:
     from exdrf.filter import FilterType  # noqa: F401
+    from exdrf_dev.db.api import CompositeKeyModel  # noqa: F401
     from exdrf_qt.context import QtContext  # noqa: F401
     from sqlalchemy import Select  # noqa: F401
-
-    from exdrf_dev.db.api import CompositeKeyModel  # noqa: F401
 
 # exdrf-keep-start other_globals ----------------------------------------------
 
@@ -116,9 +114,7 @@ class QtCompositeKeyModelFuMo(QtModel["CompositeKeyModel"]):
         )
 
         # Inform plugins that the model has been created.
-        safe_hook_call(
-            exdrf_qt_pm.hook.composite_key_model_fumo_created, model=self
-        )
+        safe_hook_call(exdrf_qt_pm.hook.composite_key_model_fumo_created, model=self)
 
     def get_primary_columns(self) -> Any:
         return [
@@ -126,9 +122,7 @@ class QtCompositeKeyModelFuMo(QtModel["CompositeKeyModel"]):
             self.db_model.key_part2,
         ]
 
-    def get_db_item_id(
-        self, item: "CompositeKeyModel"
-    ) -> Union[int, Tuple[int, ...]]:
+    def get_db_item_id(self, item: "CompositeKeyModel") -> Union[int, Tuple[int, ...]]:
         return [
             item.key_part1,
             item.key_part2,

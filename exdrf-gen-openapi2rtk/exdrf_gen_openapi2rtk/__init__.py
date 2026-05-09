@@ -52,10 +52,7 @@ install_plugin(
     type=click.Choice(["minimal", "fr_one"]),
     default="minimal",
     show_default=True,
-    help=(
-        "``fr_one`` matches fr-one auth/baseUrl wiring; "
-        "``minimal`` is generic."
-    ),
+    help=("``fr_one`` matches fr-one auth/baseUrl wiring; ``minimal`` is generic."),
 )
 @click.pass_context
 def openapi2rtk(

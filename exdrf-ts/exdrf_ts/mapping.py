@@ -115,9 +115,7 @@ def py_type_to_ts(name: Union[str, type, types.UnionType, Any]) -> str:
             key_t, val_t = args
             if py_type_to_ts(key_t) == "string":
                 return f"{{ [key: string]: {py_type_to_ts(val_t)} }}"
-            return (
-                f"{{ [key: {py_type_to_ts(key_t)}]: {py_type_to_ts(val_t)} }}"
-            )
+            return f"{{ [key: {py_type_to_ts(key_t)}]: {py_type_to_ts(val_t)} }}"
 
     if hasattr(name, "__name__") and origin is None:
         py_name = name.__name__

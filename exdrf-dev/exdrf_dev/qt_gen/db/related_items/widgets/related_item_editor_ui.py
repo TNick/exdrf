@@ -3,11 +3,10 @@ from typing import TYPE_CHECKING
 from PyQt5 import QtCore, QtWidgets
 
 if TYPE_CHECKING:
-    from exdrf_qt.field_ed.api import DrfIntEditor, DrfLineEditor
-
     from exdrf_dev.qt_gen.db.composite_key_models.api import (
         QtCompositeKeyModelSiSe,
     )
+    from exdrf_qt.field_ed.api import DrfIntEditor, DrfLineEditor
 
 
 class Ui_QtRelatedItemEditor:
@@ -49,11 +48,10 @@ class Ui_QtRelatedItemEditor:
     verticalLayout: "QtWidgets.QVBoxLayout"
 
     def setup_ui(self, QtRelatedItemEditor):
-        from exdrf_qt.field_ed.api import DrfIntEditor, DrfLineEditor
-
         from exdrf_dev.qt_gen.db.composite_key_models.api import (
             QtCompositeKeyModelSiSe,
         )
+        from exdrf_qt.field_ed.api import DrfIntEditor, DrfLineEditor
 
         QtRelatedItemEditor.setObjectName("QtRelatedItemEditor")
         QtRelatedItemEditor.resize(480, 640)
@@ -84,9 +82,7 @@ class Ui_QtRelatedItemEditor:
         self.formLayout.setWidget(
             1, QtWidgets.QFormLayout.LabelRole, self.lbl_comp_key_part1
         )
-        self.c_comp_key_part1 = DrfLineEditor(
-            parent=self.tab_general, ctx=self.ctx
-        )
+        self.c_comp_key_part1 = DrfLineEditor(parent=self.tab_general, ctx=self.ctx)
         self.c_comp_key_part1.setProperty("name", "comp_key_part1")
         self.c_comp_key_part1.setObjectName("c_comp_key_part1")
         self.formLayout.setWidget(
@@ -97,9 +93,7 @@ class Ui_QtRelatedItemEditor:
         self.formLayout.setWidget(
             2, QtWidgets.QFormLayout.LabelRole, self.lbl_comp_key_part2
         )
-        self.c_comp_key_part2 = DrfIntEditor(
-            parent=self.tab_general, ctx=self.ctx
-        )
+        self.c_comp_key_part2 = DrfIntEditor(parent=self.tab_general, ctx=self.ctx)
         self.c_comp_key_part2.setProperty("name", "comp_key_part2")
         self.c_comp_key_part2.setObjectName("c_comp_key_part2")
         self.formLayout.setWidget(
@@ -114,21 +108,15 @@ class Ui_QtRelatedItemEditor:
         self.c_item_data.setProperty("name", "item_data")
         self.c_item_data.setProperty("clearable", True)
         self.c_item_data.setObjectName("c_item_data")
-        self.formLayout.setWidget(
-            3, QtWidgets.QFormLayout.FieldRole, self.c_item_data
-        )
+        self.formLayout.setWidget(3, QtWidgets.QFormLayout.FieldRole, self.c_item_data)
         self.lbl_some_int = QtWidgets.QLabel(self.tab_general)
         self.lbl_some_int.setObjectName("lbl_some_int")
-        self.formLayout.setWidget(
-            4, QtWidgets.QFormLayout.LabelRole, self.lbl_some_int
-        )
+        self.formLayout.setWidget(4, QtWidgets.QFormLayout.LabelRole, self.lbl_some_int)
         self.c_some_int = DrfIntEditor(parent=self.tab_general, ctx=self.ctx)
         self.c_some_int.setProperty("name", "some_int")
         self.c_some_int.setProperty("clearable", True)
         self.c_some_int.setObjectName("c_some_int")
-        self.formLayout.setWidget(
-            4, QtWidgets.QFormLayout.FieldRole, self.c_some_int
-        )
+        self.formLayout.setWidget(4, QtWidgets.QFormLayout.FieldRole, self.c_some_int)
         self.main_tab.addTab(self.tab_general, "")
         self.tab_keys = QtWidgets.QWidget()
         self.tab_keys.setObjectName("tab_keys")
@@ -136,15 +124,11 @@ class Ui_QtRelatedItemEditor:
         self.formLayout1.setObjectName("formLayout1")
         self.lbl_id = QtWidgets.QLabel(self.tab_keys)
         self.lbl_id.setObjectName("lbl_id")
-        self.formLayout1.setWidget(
-            0, QtWidgets.QFormLayout.LabelRole, self.lbl_id
-        )
+        self.formLayout1.setWidget(0, QtWidgets.QFormLayout.LabelRole, self.lbl_id)
         self.c_id = DrfIntEditor(parent=self.tab_keys, ctx=self.ctx)
         self.c_id.setProperty("name", "id")
         self.c_id.setObjectName("c_id")
-        self.formLayout1.setWidget(
-            0, QtWidgets.QFormLayout.FieldRole, self.c_id
-        )
+        self.formLayout1.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.c_id)
         self.main_tab.addTab(self.tab_keys, "")
         self.verticalLayout.addWidget(self.main_tab)
         self.lbl_comp_key_owner.setBuddy(self.c_comp_key_owner)
@@ -172,12 +156,8 @@ class Ui_QtRelatedItemEditor:
         self.lbl_comp_key_part2.setText(
             _translate("QtRelatedItemEditor", "Comp Key Part2 ")
         )
-        self.lbl_item_data.setText(
-            _translate("QtRelatedItemEditor", "Item Data ")
-        )
-        self.lbl_some_int.setText(
-            _translate("QtRelatedItemEditor", "Some Int ")
-        )
+        self.lbl_item_data.setText(_translate("QtRelatedItemEditor", "Item Data "))
+        self.lbl_some_int.setText(_translate("QtRelatedItemEditor", "Some Int "))
         self.main_tab.setTabText(
             self.main_tab.indexOf(self.tab_general),
             _translate("QtRelatedItemEditor", "General"),

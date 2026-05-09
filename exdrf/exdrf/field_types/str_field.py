@@ -32,7 +32,7 @@ class StrField(ExField):
     no_dia_field: Optional["ExField"] = field(default=None)
 
     def __repr__(self) -> str:
-        return f"StrF(" f"{self.resource.name}.{self.name})"
+        return f"StrF({self.resource.name}.{self.name})"
 
     def field_properties(self, explicit: bool = False) -> dict[str, Any]:
         result = super().field_properties(explicit)

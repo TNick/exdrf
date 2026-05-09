@@ -163,8 +163,7 @@ class DbVersionCheckerWorker(PythonThread):
                         "version": "",
                         "color_status": None,
                         "tooltip": (
-                            "Alembic version table is malformed: "
-                            f"{error_str}"
+                            f"Alembic version table is malformed: {error_str}"
                         ),
                     }
                 else:

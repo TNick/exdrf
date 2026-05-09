@@ -18,10 +18,9 @@ from sqlalchemy import Select, select
 # exdrf-keep-end other_imports -------------------------------------------------
 
 if TYPE_CHECKING:
+    from exdrf_dev.db.api import RelatedItem as RelatedItem  # noqa: F401
     from exdrf_qt.context import QtContext  # noqa: F401
     from sqlalchemy.orm import Session  # noqa: F401
-
-    from exdrf_dev.db.api import RelatedItem as RelatedItem  # noqa: F401
 
 logger = logging.getLogger(__name__)
 
@@ -64,9 +63,7 @@ class QtRelatedItemTv(RecordTemplViewer):
             ),
             other_actions=kwargs.pop(
                 "other_actions",
-                ctx.get_ovr(
-                    "exdrf_dev.qt_gen.db.related_items.tv.extra-menus", None
-                ),
+                ctx.get_ovr("exdrf_dev.qt_gen.db.related_items.tv.extra-menus", None),
             ),
             ctx=ctx,
             **kwargs,

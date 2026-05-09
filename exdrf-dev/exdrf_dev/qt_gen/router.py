@@ -175,9 +175,7 @@ class ExdrfRouter(BaseRouter):
         )
 
         router.open_viewer(
-            router.ctx.get_ovr(
-                "exdrf_dev.qt_gen.db.children.qt.viewer", QtChildTv
-            ),
+            router.ctx.get_ovr("exdrf_dev.qt_gen.db.children.qt.viewer", QtChildTv),
             id=(id),
         )
 
@@ -186,9 +184,7 @@ class ExdrfRouter(BaseRouter):
         from exdrf_dev.qt_gen.db.children.api import QtChildList
 
         router.open_list(
-            router.ctx.get_ovr(
-                "exdrf_dev.qt_gen.db.children.qt.list", QtChildList
-            )
+            router.ctx.get_ovr("exdrf_dev.qt_gen.db.children.qt.list", QtChildList)
         )
 
     @staticmethod
@@ -198,9 +194,7 @@ class ExdrfRouter(BaseRouter):
         )
 
         router.open_editor(
-            router.ctx.get_ovr(
-                "exdrf_dev.qt_gen.db.children.qt.editor", QtChildEditor
-            ),
+            router.ctx.get_ovr("exdrf_dev.qt_gen.db.children.qt.editor", QtChildEditor),
             id=(id),
         )
 
@@ -211,9 +205,7 @@ class ExdrfRouter(BaseRouter):
         )
 
         router.open_editor(
-            router.ctx.get_ovr(
-                "exdrf_dev.qt_gen.db.children.qt.editor", QtChildEditor
-            ),
+            router.ctx.get_ovr("exdrf_dev.qt_gen.db.children.qt.editor", QtChildEditor),
         )
 
     @staticmethod
@@ -228,9 +220,7 @@ class ExdrfRouter(BaseRouter):
         )
 
     @staticmethod
-    def view_composite_key_model(
-        router: "ExdrfRouter", key_part1: str, key_part2: int
-    ):
+    def view_composite_key_model(router: "ExdrfRouter", key_part1: str, key_part2: int):
         from exdrf_dev.qt_gen.db.composite_key_models.api import (
             QtCompositeKeyModelTv,
         )
@@ -257,9 +247,7 @@ class ExdrfRouter(BaseRouter):
         )
 
     @staticmethod
-    def edit_composite_key_model(
-        router: "ExdrfRouter", key_part1: str, key_part2: int
-    ):
+    def edit_composite_key_model(router: "ExdrfRouter", key_part1: str, key_part2: int):
         from exdrf_dev.qt_gen.db.composite_key_models.api import (
             QtCompositeKeyModelEditor,
         )
@@ -311,9 +299,7 @@ class ExdrfRouter(BaseRouter):
         )
 
         router.open_viewer(
-            router.ctx.get_ovr(
-                "exdrf_dev.qt_gen.db.parents.qt.viewer", QtParentTv
-            ),
+            router.ctx.get_ovr("exdrf_dev.qt_gen.db.parents.qt.viewer", QtParentTv),
             id=(id),
         )
 
@@ -322,9 +308,7 @@ class ExdrfRouter(BaseRouter):
         from exdrf_dev.qt_gen.db.parents.api import QtParentList
 
         router.open_list(
-            router.ctx.get_ovr(
-                "exdrf_dev.qt_gen.db.parents.qt.list", QtParentList
-            )
+            router.ctx.get_ovr("exdrf_dev.qt_gen.db.parents.qt.list", QtParentList)
         )
 
     @staticmethod
@@ -334,9 +318,7 @@ class ExdrfRouter(BaseRouter):
         )
 
         router.open_editor(
-            router.ctx.get_ovr(
-                "exdrf_dev.qt_gen.db.parents.qt.editor", QtParentEditor
-            ),
+            router.ctx.get_ovr("exdrf_dev.qt_gen.db.parents.qt.editor", QtParentEditor),
             id=(id),
         )
 
@@ -347,9 +329,7 @@ class ExdrfRouter(BaseRouter):
         )
 
         router.open_editor(
-            router.ctx.get_ovr(
-                "exdrf_dev.qt_gen.db.parents.qt.editor", QtParentEditor
-            ),
+            router.ctx.get_ovr("exdrf_dev.qt_gen.db.parents.qt.editor", QtParentEditor),
         )
 
     @staticmethod
@@ -364,9 +344,7 @@ class ExdrfRouter(BaseRouter):
         )
 
     @staticmethod
-    def view_parent_tag_association(
-        router: "ExdrfRouter", parent_id: int, tag_id: int
-    ):
+    def view_parent_tag_association(router: "ExdrfRouter", parent_id: int, tag_id: int):
         from exdrf_dev.qt_gen.db.parent_tag_associations.api import (
             QtParentTagAssociationTv,
         )
@@ -393,9 +371,7 @@ class ExdrfRouter(BaseRouter):
         )
 
     @staticmethod
-    def edit_parent_tag_association(
-        router: "ExdrfRouter", parent_id: int, tag_id: int
-    ):
+    def edit_parent_tag_association(router: "ExdrfRouter", parent_id: int, tag_id: int):
         from exdrf_dev.qt_gen.db.parent_tag_associations.api import (
             QtParentTagAssociationEditor,
         )
@@ -447,9 +423,7 @@ class ExdrfRouter(BaseRouter):
         )
 
         router.open_viewer(
-            router.ctx.get_ovr(
-                "exdrf_dev.qt_gen.db.profiles.qt.viewer", QtProfileTv
-            ),
+            router.ctx.get_ovr("exdrf_dev.qt_gen.db.profiles.qt.viewer", QtProfileTv),
             id=(id),
         )
 
@@ -458,9 +432,7 @@ class ExdrfRouter(BaseRouter):
         from exdrf_dev.qt_gen.db.profiles.api import QtProfileList
 
         router.open_list(
-            router.ctx.get_ovr(
-                "exdrf_dev.qt_gen.db.profiles.qt.list", QtProfileList
-            )
+            router.ctx.get_ovr("exdrf_dev.qt_gen.db.profiles.qt.list", QtProfileList)
         )
 
     @staticmethod
@@ -586,9 +558,7 @@ class ExdrfRouter(BaseRouter):
         )
 
         router.open_editor(
-            router.ctx.get_ovr(
-                "exdrf_dev.qt_gen.db.tags.qt.editor", QtTagEditor
-            ),
+            router.ctx.get_ovr("exdrf_dev.qt_gen.db.tags.qt.editor", QtTagEditor),
             id=(id),
         )
 
@@ -599,9 +569,7 @@ class ExdrfRouter(BaseRouter):
         )
 
         router.open_editor(
-            router.ctx.get_ovr(
-                "exdrf_dev.qt_gen.db.tags.qt.editor", QtTagEditor
-            ),
+            router.ctx.get_ovr("exdrf_dev.qt_gen.db.tags.qt.editor", QtTagEditor),
         )
 
     @staticmethod

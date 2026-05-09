@@ -38,7 +38,6 @@ class Ui_QtProfileEditor:
     verticalLayout: "QtWidgets.QVBoxLayout"
 
     def setup_ui(self, QtProfileEditor):
-
         QtProfileEditor.setObjectName("QtProfileEditor")
         QtProfileEditor.resize(480, 640)
         self.verticalLayout = QtWidgets.QVBoxLayout(QtProfileEditor)
@@ -51,14 +50,10 @@ class Ui_QtProfileEditor:
         self.formLayout.setObjectName("formLayout")
         self.lbl_bio = QtWidgets.QLabel(self.tab_general)
         self.lbl_bio.setObjectName("lbl_bio")
-        self.formLayout.setWidget(
-            0, QtWidgets.QFormLayout.LabelRole, self.lbl_bio
-        )
+        self.formLayout.setWidget(0, QtWidgets.QFormLayout.LabelRole, self.lbl_bio)
         self.c_bio = QtWidgets.QLineEdit(self.tab_general)
         self.c_bio.setObjectName("c_bio")
-        self.formLayout.setWidget(
-            0, QtWidgets.QFormLayout.FieldRole, self.c_bio
-        )
+        self.formLayout.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.c_bio)
         self.lbl_parent_id = QtWidgets.QLabel(self.tab_general)
         self.lbl_parent_id.setObjectName("lbl_parent_id")
         self.formLayout.setWidget(
@@ -66,9 +61,7 @@ class Ui_QtProfileEditor:
         )
         self.c_parent_id = QtWidgets.QSpinBox(self.tab_general)
         self.c_parent_id.setObjectName("c_parent_id")
-        self.formLayout.setWidget(
-            1, QtWidgets.QFormLayout.FieldRole, self.c_parent_id
-        )
+        self.formLayout.setWidget(1, QtWidgets.QFormLayout.FieldRole, self.c_parent_id)
         self.main_tab.addTab(self.tab_general, "")
         self.tab_relations = QtWidgets.QWidget()
         self.tab_relations.setObjectName("tab_relations")
@@ -76,14 +69,10 @@ class Ui_QtProfileEditor:
         self.formLayout1.setObjectName("formLayout1")
         self.lbl_parent = QtWidgets.QLabel(self.tab_relations)
         self.lbl_parent.setObjectName("lbl_parent")
-        self.formLayout1.setWidget(
-            0, QtWidgets.QFormLayout.LabelRole, self.lbl_parent
-        )
+        self.formLayout1.setWidget(0, QtWidgets.QFormLayout.LabelRole, self.lbl_parent)
         self.c_parent = QtWidgets.QCheckBox(self.tab_relations)
         self.c_parent.setObjectName("c_parent")
-        self.formLayout1.setWidget(
-            0, QtWidgets.QFormLayout.FieldRole, self.c_parent
-        )
+        self.formLayout1.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.c_parent)
         self.main_tab.addTab(self.tab_relations, "")
         self.tab_info = QtWidgets.QWidget()
         self.tab_info.setObjectName("tab_info")
@@ -91,14 +80,10 @@ class Ui_QtProfileEditor:
         self.formLayout2.setObjectName("formLayout2")
         self.lbl_id = QtWidgets.QLabel(self.tab_info)
         self.lbl_id.setObjectName("lbl_id")
-        self.formLayout2.setWidget(
-            0, QtWidgets.QFormLayout.LabelRole, self.lbl_id
-        )
+        self.formLayout2.setWidget(0, QtWidgets.QFormLayout.LabelRole, self.lbl_id)
         self.c_id = QtWidgets.QSpinBox(self.tab_info)
         self.c_id.setObjectName("c_id")
-        self.formLayout2.setWidget(
-            0, QtWidgets.QFormLayout.FieldRole, self.c_id
-        )
+        self.formLayout2.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.c_id)
         self.main_tab.addTab(self.tab_info, "")
         self.verticalLayout.addWidget(self.main_tab)
 
@@ -108,9 +93,7 @@ class Ui_QtProfileEditor:
 
     def retranslate_ui(self, QtProfileEditor):
         _translate = QtCore.QCoreApplication.translate
-        QtProfileEditor.setWindowTitle(
-            _translate("QtProfileEditor", "Profile Editor")
-        )
+        QtProfileEditor.setWindowTitle(_translate("QtProfileEditor", "Profile Editor"))
         self.lbl_bio.setText(_translate("QtProfileEditor", "Bio "))
         self.lbl_parent_id.setText(_translate("QtProfileEditor", "Parent Id "))
         self.main_tab.setTabText(

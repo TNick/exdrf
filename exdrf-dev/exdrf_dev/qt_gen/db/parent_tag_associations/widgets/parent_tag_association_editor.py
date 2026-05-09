@@ -5,23 +5,21 @@
 from typing import TYPE_CHECKING, Any, Union, cast
 
 from exdrf.constants import RecIdType
-from exdrf_qt.controls import ExdrfEditor
-from exdrf_qt.plugins import exdrf_qt_pm
-from exdrf_qt.utils.plugins import safe_hook_call
-
 from exdrf_dev.qt_gen.db.parent_tag_associations.widgets.parent_tag_association_editor_ui import (
     Ui_QtParentTagAssociationEditor,
 )
+from exdrf_qt.controls import ExdrfEditor
+from exdrf_qt.plugins import exdrf_qt_pm
+from exdrf_qt.utils.plugins import safe_hook_call
 
 # exdrf-keep-start other_imports ----------------------------------------------
 
 # exdrf-keep-end other_imports ------------------------------------------------
 
 if TYPE_CHECKING:
+    from exdrf_dev.db.api import ParentTagAssociation  # noqa: F401
     from exdrf_qt.context import QtContext  # noqa: F401
     from sqlalchemy.orm import Session  # noqa: F401
-
-    from exdrf_dev.db.api import ParentTagAssociation  # noqa: F401
 
 # exdrf-keep-start other_globals ----------------------------------------------
 

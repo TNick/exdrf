@@ -337,9 +337,7 @@ class QtDateTimeField(QtField[DBM], DateTimeField):  # type: ignore
             return self.expand_value(None)  # type: ignore[no-untyped-call]
 
         if self.formatter is None:
-            self.formatter = MomentFormat.from_string(
-                self.format
-            )  # type: ignore[assignment]
+            self.formatter = MomentFormat.from_string(self.format)  # type: ignore[assignment]
 
         display = self.formatter.moment_to_string(value)
         return self.expand_value(  # type: ignore[no-untyped-call]
@@ -375,9 +373,7 @@ class QtDateField(DateField, QtField[DBM]):
             return self.expand_value(None)  # type: ignore[no-untyped-call]
 
         if self.formatter is None:
-            self.formatter = MomentFormat.from_string(
-                self.format
-            )  # type: ignore[assignment]
+            self.formatter = MomentFormat.from_string(self.format)  # type: ignore[assignment]
 
         display = self.formatter.moment_to_string(value)
         return self.expand_value(  # type: ignore[no-untyped-call]
@@ -413,9 +409,7 @@ class QtTimeField(TimeField, QtField[DBM]):
             return self.expand_value(None)  # type: ignore[no-untyped-call]
 
         if self.formatter is None:
-            self.formatter = MomentFormat.from_string(
-                self.format
-            )  # type: ignore[assignment]
+            self.formatter = MomentFormat.from_string(self.format)  # type: ignore[assignment]
 
         display = self.formatter.moment_to_string(value)
         return self.expand_value(  # type: ignore[no-untyped-call]
@@ -845,7 +839,6 @@ class QtIntListField(IntListField, QtField[DBM]):
             display = "[]"
             tip = self.t("cmn.empty_list", "Empty list")
         else:
-
             display = ", ".join([f"{v:,}" for v in value])
             tip = "\n".join([f"{v:,}{self.unit_symbol or ''}" for v in value])
         if len(display) > 50:
@@ -988,7 +981,8 @@ class RefFilterByPart:
             self.name  # type: ignore[attr-defined]
         )
         related_entity = getattr(
-            self.resource.db_model, self.name  # type: ignore[attr-defined]
+            self.resource.db_model,
+            self.name,  # type: ignore[attr-defined]
         )
 
         # Build the chain of relationships to reach the target column.
@@ -1187,7 +1181,6 @@ class QtRefOneToManyField(RefOneToManyField, RefFilterByPart, QtField[DBM]):
         if hasattr(editor, "editingFinished"):
 
             def _on_finish() -> None:
-
                 # Skip committing when the editor cancelled the edit.
                 if hasattr(editor, "consume_skip_commit"):
                     if editor.consume_skip_commit():
@@ -1324,7 +1317,6 @@ class QtRefOneToOneField(RefOneToOneField, RefFilterByPart, QtField[DBM]):
         if hasattr(editor, "editingFinished"):
 
             def _on_finish() -> None:
-
                 # Skip committing when the editor cancelled the edit.
                 if hasattr(editor, "consume_skip_commit"):
                     if editor.consume_skip_commit():
@@ -1433,7 +1425,6 @@ class QtRefManyToManyField(RefManyToManyField, RefFilterByPart, QtField[DBM]):
         if hasattr(editor, "editingFinished"):
 
             def _on_finish() -> None:
-
                 # Skip committing when the editor cancelled the edit.
                 if hasattr(editor, "consume_skip_commit"):
                     if editor.consume_skip_commit():

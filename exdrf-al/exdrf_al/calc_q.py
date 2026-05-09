@@ -72,9 +72,7 @@ class JoinLoad:
         # Create a new join and add it to the list of children.
         fld = model[field_name]
         new_join = JoinLoad(
-            container=FieldRef(
-                resource=model, name=field_name, is_list=fld.is_list
-            ),
+            container=FieldRef(resource=model, name=field_name, is_list=fld.is_list),
         )
         self.children.append(new_join)
         return new_join
@@ -123,13 +121,9 @@ class JoinLoad:
         # Collect "leaf" loader option specs. We must NOT chain siblings, so we
         # output one loader option per leaf path (plus one per node that has
         # load_only columns).
-        option_specs: List[
-            tuple[List["JoinLoad"], Optional[List[FieldRef]]]
-        ] = []
+        option_specs: List[tuple[List["JoinLoad"], Optional[List[FieldRef]]]] = []
 
-        def collect_specs(
-            node: "JoinLoad", parent_path: List["JoinLoad"]
-        ) -> None:
+        def collect_specs(node: "JoinLoad", parent_path: List["JoinLoad"]) -> None:
             # Emit an option for this node if it specifies load_only columns.
             if node.load_only:
                 option_specs.append((parent_path + [node], node.load_only))
@@ -159,9 +153,7 @@ class JoinLoad:
 
             # Start the chain with the first relationship.
             first = path_nodes[0]
-            first_st = (
-                "selectinload" if first.container.is_list else scalar_strategy
-            )
+            first_st = "selectinload" if first.container.is_list else scalar_strategy
             out_lines.append(f"{s_indent_1}{first_st}(")
             out_lines.append(f"{s_indent_2}Db{repr(path_nodes[0].container)},")
 
@@ -278,9 +270,7 @@ def all_related_paths(model: "ExResource"):
     for fld in model.ref_fields:
         # This is the reference to the related model in the source model.
         top_join = JoinLoad(
-            container=FieldRef(
-                resource=model, name=fld.name, is_list=fld.is_list
-            ),
+            container=FieldRef(resource=model, name=fld.name, is_list=fld.is_list),
         )
         result.append(top_join)
 
@@ -301,9 +291,7 @@ def all_related_models(model: "ExResource"):
         jn.collect_resources(result)
 
     # Deduplicate the result based on the resource name
-    return sorted(
-        {res.name: res for res in result}.values(), key=lambda x: x.name
-    )
+    return sorted({res.name: res for res in result}.values(), key=lambda x: x.name)
 
 
 def all_related_label_paths(model: "ExResource"):
@@ -321,7 +309,6 @@ def all_related_label_paths(model: "ExResource"):
         parts = f_name.split(".")
         fld = model[parts[0]]
         if len(parts) > 1:
-
             # This is the reference to the related model in the source model.
             top_join = top_parts.get(parts[0])
             if top_join is None:
@@ -333,9 +320,9 @@ def all_related_label_paths(model: "ExResource"):
                 result.append(top_join)
                 top_parts[parts[0]] = top_join
 
-            assert isinstance(
-                fld, RefBaseField
-            ), f"Field {fld} is not a reference field"
+            assert isinstance(fld, RefBaseField), (
+                f"Field {fld} is not a reference field"
+            )
             for sub_fld_name in fld.ref.minimum_field_set:
                 top_join.load(sub_fld_name, fld.ref)
 
@@ -357,8 +344,6 @@ def all_related_label_models(model: "ExResource"):
         jn.collect_resources(result)
 
     # Deduplicate the result based on the resource name
-    result = sorted(
-        {res.name: res for res in result}.values(), key=lambda x: x.name
-    )
+    result = sorted({res.name: res for res in result}.values(), key=lambda x: x.name)
 
     return result

@@ -21,6 +21,4 @@ class QtCompositeKeyModelNaMo(QtModel["CompositeKeyModel"]):
     def __init__(self, ctx: "QtContext", **kwargs):
         from exdrf_dev.db.models import CompositeKeyModel as DbCompositeKeyModel
 
-        super().__init__(
-            ctx=ctx, db_model=DbCompositeKeyModel, fields=[], **kwargs
-        )
+        super().__init__(ctx=ctx, db_model=DbCompositeKeyModel, fields=[], **kwargs)

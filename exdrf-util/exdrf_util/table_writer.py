@@ -89,9 +89,7 @@ class XlCreatorBase:
         self.worksheet.page_setup.orientation = (
             self.worksheet.ORIENTATION_LANDSCAPE
         )  # type: ignore
-        self.worksheet.page_setup.paperSize = (
-            self.worksheet.PAPERSIZE_A4
-        )  # type: ignore
+        self.worksheet.page_setup.paperSize = self.worksheet.PAPERSIZE_A4  # type: ignore
         self.setup_page(False)
 
     def setup_a4_portrait_page(self):
@@ -99,9 +97,7 @@ class XlCreatorBase:
         self.worksheet.page_setup.orientation = (
             self.worksheet.ORIENTATION_PORTRAIT
         )  # type: ignore
-        self.worksheet.page_setup.paperSize = (
-            self.worksheet.PAPERSIZE_A4
-        )  # type: ignore
+        self.worksheet.page_setup.paperSize = self.worksheet.PAPERSIZE_A4  # type: ignore
         self.setup_page(True)
 
     def setup_a3_landscape_page(self):
@@ -109,9 +105,7 @@ class XlCreatorBase:
         self.worksheet.page_setup.orientation = (
             self.worksheet.ORIENTATION_LANDSCAPE
         )  # type: ignore
-        self.worksheet.page_setup.paperSize = (
-            self.worksheet.PAPERSIZE_A3
-        )  # type: ignore
+        self.worksheet.page_setup.paperSize = self.worksheet.PAPERSIZE_A3  # type: ignore
         self.setup_page(False)
 
     def setup_a3_portrait_page(self):
@@ -119,9 +113,7 @@ class XlCreatorBase:
         self.worksheet.page_setup.orientation = (
             self.worksheet.ORIENTATION_PORTRAIT
         )  # type: ignore
-        self.worksheet.page_setup.paperSize = (
-            self.worksheet.PAPERSIZE_A3
-        )  # type: ignore
+        self.worksheet.page_setup.paperSize = self.worksheet.PAPERSIZE_A3  # type: ignore
         self.setup_page(True)
 
     @property
@@ -578,9 +570,7 @@ class XlCreatorBase:
                     )
             elif style:
                 cell.style = (
-                    style
-                    if isinstance(style, str)
-                    else style.name  # type: ignore
+                    style if isinstance(style, str) else style.name  # type: ignore
                 )
 
             # Apply the h-trick if requested.
@@ -721,9 +711,9 @@ class XlCreatorBase:
         """
         assert col > 0, "Column index must be positive"
         assert count > 0, "Number of columns to merge must be positive"
-        assert col + count - 1 <= len(
-            self.column_widths
-        ), "Column index and number of columns to merge must be compatible"
+        assert col + count - 1 <= len(self.column_widths), (
+            "Column index and number of columns to merge must be compatible"
+        )
         return sum(self.column_widths[col - 1 : col + count - 1])
 
     def sanitize_sheet_title(self, value: str) -> str:

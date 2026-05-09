@@ -183,16 +183,14 @@ def parse_get_db_import(spec: str) -> Tuple[str, str]:
         raise ValueError("get_db import spec must be non-empty.")
     if ":" not in raw:
         raise ValueError(
-            "get_db import must look like 'pkg.mod:dependency_fn' "
-            "(got %r)." % (spec,),
+            "get_db import must look like 'pkg.mod:dependency_fn' (got %r)." % (spec,),
         )
     mod, _, symbol = raw.rpartition(":")
     mod = mod.strip()
     symbol = symbol.strip()
     if not mod or not symbol:
         raise ValueError(
-            "get_db import must look like 'pkg.mod:dependency_fn' "
-            "(got %r)." % (spec,),
+            "get_db import must look like 'pkg.mod:dependency_fn' (got %r)." % (spec,),
         )
     return mod, symbol
 
@@ -453,9 +451,7 @@ def generate_fastapi_routes_from_alchemy(
     al2r_get_db_module: str | None = None
     al2r_get_db_attr: str | None = None
     if get_db_import:
-        al2r_get_db_module, al2r_get_db_attr = parse_get_db_import(
-            get_db_import
-        )
+        al2r_get_db_module, al2r_get_db_attr = parse_get_db_import(get_db_import)
 
     # Drop root-level ``*_routes.py`` from an older flat layout so categorized
     # resources do not leave duplicate modules next to the new per-category tree.
@@ -465,9 +461,7 @@ def generate_fastapi_routes_from_alchemy(
                 os.unlink(entry.path)
 
     models_list = list(d_set.resources)
-    uncategorized = [
-        m for m in models_list if not getattr(m, "categories", None)
-    ]
+    uncategorized = [m for m in models_list if not getattr(m, "categories", None)]
     cat_keys = sorted(
         {
             tuple(cast("ExResource", m).categories)

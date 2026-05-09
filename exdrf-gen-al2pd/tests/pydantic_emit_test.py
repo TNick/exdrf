@@ -5,14 +5,13 @@ from __future__ import annotations
 import json
 import re
 
+import exdrf_gen_al2pd  # noqa: F401 — register templates on shared Jinja env
 from exdrf.field_types.date_time import DateTimeField
 from exdrf.field_types.int_field import IntField
 from exdrf.field_types.str_field import StrField
 from exdrf.label_dsl import parse_expr
 from exdrf.resource import ExResource
 from exdrf_gen.jinja_support import jinja_env
-
-import exdrf_gen_al2pd  # noqa: F401 — register templates on shared Jinja env
 from exdrf_gen_al2pd.pydantic_emit import (
     _field_exdrf_properties,
     _folded_json_string_literal,
@@ -24,10 +23,7 @@ from exdrf_gen_al2pd.pydantic_emit import (
 def test_folded_description_prefers_whitespace_breaks() -> None:
     """Fold long descriptions at spaces; avoid mid-word cuts (e.g. addre + ss)."""
 
-    text = (
-        "Special handling for some entries "
-        "(like indicating an official address)"
-    )
+    text = "Special handling for some entries (like indicating an official address)"
     folded = _folded_json_string_literal(text, max_single_line=20)
     pieces = re.findall(r'"(?:\\.|[^"\\])*"', folded)
     reconstructed = "".join(json.loads(p) for p in pieces)

@@ -5,15 +5,14 @@
 from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Union
 
 from exdrf.constants import RecIdType
+from exdrf_dev.qt_gen.db.tags.fields.fld_id import IdField
+from exdrf_dev.qt_gen.db.tags.fields.fld_name import NameField
+from exdrf_dev.qt_gen.db.tags.fields.fld_parents import ParentsField
 from exdrf_qt.models import QtModel
 from exdrf_qt.plugins import exdrf_qt_pm
 from exdrf_qt.utils.plugins import safe_hook_call
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
-
-from exdrf_dev.qt_gen.db.tags.fields.fld_id import IdField
-from exdrf_dev.qt_gen.db.tags.fields.fld_name import NameField
-from exdrf_dev.qt_gen.db.tags.fields.fld_parents import ParentsField
 
 # exdrf-keep-start other_imports ----------------------------------------------
 
@@ -21,10 +20,9 @@ from exdrf_dev.qt_gen.db.tags.fields.fld_parents import ParentsField
 
 if TYPE_CHECKING:
     from exdrf.filter import FilterType  # noqa: F401
+    from exdrf_dev.db.api import Tag  # noqa: F401
     from exdrf_qt.context import QtContext  # noqa: F401
     from sqlalchemy import Select  # noqa: F401
-
-    from exdrf_dev.db.api import Tag  # noqa: F401
 
 # exdrf-keep-start other_globals ----------------------------------------------
 
@@ -63,9 +61,7 @@ class QtTagFuMo(QtModel["Tag"]):
             ctx=ctx,
             db_model=ctx.get_ovr("exdrf_dev.qt_gen.db.tags.ful.model", DbTag),
             selection=(
-                selection
-                if selection is not None
-                else default_tag_list_selection()
+                selection if selection is not None else default_tag_list_selection()
             ),
             fields=(
                 fields

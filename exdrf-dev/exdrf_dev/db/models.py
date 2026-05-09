@@ -65,9 +65,7 @@ class ParentTagAssociation(Base):
 
     def __repr__(self) -> str:
         return (
-            f"<ParentTagAssociation("
-            f"parent_id={self.parent_id}, "
-            f"tag_id={self.tag_id})>"
+            f"<ParentTagAssociation(parent_id={self.parent_id}, tag_id={self.tag_id})>"
         )
 
 
@@ -196,10 +194,7 @@ class Child(Base):
     )
 
     def __repr__(self) -> str:
-        return (
-            f"<Child(id={self.id}, data='{self.data}', "
-            f"parent_id={self.parent_id})>"
-        )
+        return f"<Child(id={self.id}, data='{self.data}', parent_id={self.parent_id})>"
 
 
 class Profile(Base):

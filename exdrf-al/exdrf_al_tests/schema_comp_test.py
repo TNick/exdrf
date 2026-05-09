@@ -1,5 +1,3 @@
-from sqlalchemy import Column, Integer, MetaData, String, Table, text
-
 from exdrf_al.connection import DbConn
 from exdrf_al.schema_comp import (
     COL_DIFFS_COUNT,
@@ -11,6 +9,7 @@ from exdrf_al.schema_comp import (
     print_db_schema_diff,
     read_db_schema,
 )
+from sqlalchemy import Column, Integer, MetaData, String, Table, text
 
 
 def make_metadata():

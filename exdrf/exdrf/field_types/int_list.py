@@ -11,7 +11,7 @@ class IntListField(IntField):
     type_name: str = field(default=FIELD_TYPE_INT_LIST)
 
     def __repr__(self) -> str:
-        return f"IntListF(" f"{self.resource.name}.{self.name})"
+        return f"IntListF({self.resource.name}.{self.name})"
 
 
 class IntListInfo(IntInfo):

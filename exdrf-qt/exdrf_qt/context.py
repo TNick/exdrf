@@ -47,8 +47,7 @@ DEFAULT_LOGGING = {
         "sql-pretty": {
             "()": "exdrf_qt.context.SQLPrettyFormatter",
             "format": (
-                "%(asctime)s [%(levelname)s] %(name)s:%(lineno)d: "
-                "%(message)s"
+                "%(asctime)s [%(levelname)s] %(name)s:%(lineno)d: %(message)s"
             ),
             "datefmt": "%Y-%m-%d %H:%M:%S",
         },

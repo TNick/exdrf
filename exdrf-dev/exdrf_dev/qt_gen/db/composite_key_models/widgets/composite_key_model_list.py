@@ -13,9 +13,8 @@ from exdrf_qt.utils.plugins import safe_hook_call
 # exdrf-keep-end other_imports ------------------------------------------------
 
 if TYPE_CHECKING:
-    from exdrf_qt.context import QtContext  # noqa: F401
-
     from exdrf_dev.db.api import CompositeKeyModel  # noqa: F401
+    from exdrf_qt.context import QtContext  # noqa: F401
 
 # exdrf-keep-start other_globals ----------------------------------------------
 
@@ -56,15 +55,11 @@ class QtCompositeKeyModelList(ListDb["CompositeKeyModel"]):
         )
 
         self.setWindowTitle(
-            self.t(
-                "composite_key_model.list.title", "Composite key model list"
-            ),
+            self.t("composite_key_model.list.title", "Composite key model list"),
         )
 
         # Inform plugins that the list has been created.
-        safe_hook_call(
-            exdrf_qt_pm.hook.composite_key_model_list_created, widget=self
-        )
+        safe_hook_call(exdrf_qt_pm.hook.composite_key_model_list_created, widget=self)
 
         # exdrf-keep-start extra_init -----------------------------------------
 

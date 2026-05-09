@@ -40,9 +40,7 @@ def fetch_one_strict(
 
     if not pk_attr_value:
         raise ValueError("pk_attr_value must not be empty.")
-    clauses = tuple(
-        getattr(model, name) == value for name, value in pk_attr_value
-    )
+    clauses = tuple(getattr(model, name) == value for name, value in pk_attr_value)
     if len(clauses) == 1:
         stmt = select(model).where(clauses[0])
     else:
@@ -148,9 +146,7 @@ def persist_row_as_ex_cm(
         )
 
 
-def _parent_pk_values(
-    parent_row: Any, parent_pk_attrs: tuple[str, ...]
-) -> tuple:
+def _parent_pk_values(parent_row: Any, parent_pk_attrs: tuple[str, ...]) -> tuple:
     return tuple(getattr(parent_row, a) for a in parent_pk_attrs)
 
 
@@ -185,8 +181,7 @@ def sync_m2m_list_replace(
 
     pvals = _parent_pk_values(parent_row, parent_pk_attrs)
     del_clauses = tuple(
-        getattr(assoc_model, col) == val
-        for col, val in zip(parent_fk_cols, pvals)
+        getattr(assoc_model, col) == val for col, val in zip(parent_fk_cols, pvals)
     )
     db.execute(delete(assoc_model).where(and_(*del_clauses)))
     if not items:
@@ -241,13 +236,9 @@ def sync_o2m_fk_list_replace(
     pk_attr = getattr(child_model, child_pk_col)
 
     # Detach every child currently pointing at this parent (full replace).
-    db.execute(
-        update(child_model).where(fk_attr == pval).values({child_fk_col: None})
-    )
+    db.execute(update(child_model).where(fk_attr == pval).values({child_fk_col: None}))
     if not child_ids:
         return
     db.execute(
-        update(child_model)
-        .where(pk_attr.in_(child_ids))
-        .values({child_fk_col: pval})
+        update(child_model).where(pk_attr.in_(child_ids)).values({child_fk_col: pval})
     )

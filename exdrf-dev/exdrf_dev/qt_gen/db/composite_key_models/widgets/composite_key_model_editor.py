@@ -5,23 +5,21 @@
 from typing import TYPE_CHECKING, Any, Union, cast
 
 from exdrf.constants import RecIdType
-from exdrf_qt.controls import ExdrfEditor
-from exdrf_qt.plugins import exdrf_qt_pm
-from exdrf_qt.utils.plugins import safe_hook_call
-
 from exdrf_dev.qt_gen.db.composite_key_models.widgets.composite_key_model_editor_ui import (
     Ui_QtCompositeKeyModelEditor,
 )
+from exdrf_qt.controls import ExdrfEditor
+from exdrf_qt.plugins import exdrf_qt_pm
+from exdrf_qt.utils.plugins import safe_hook_call
 
 # exdrf-keep-start other_imports ----------------------------------------------
 
 # exdrf-keep-end other_imports ------------------------------------------------
 
 if TYPE_CHECKING:
+    from exdrf_dev.db.api import CompositeKeyModel  # noqa: F401
     from exdrf_qt.context import QtContext  # noqa: F401
     from sqlalchemy.orm import Session  # noqa: F401
-
-    from exdrf_dev.db.api import CompositeKeyModel  # noqa: F401
 
 # exdrf-keep-start other_globals ----------------------------------------------
 
@@ -55,15 +53,11 @@ class QtCompositeKeyModelEditor(
         self.verticalLayout.addWidget(self.create_button_box())
 
         self.setWindowTitle(
-            self.t(
-                "composite_key_model.ed.title", "Composite key model editor"
-            ),
+            self.t("composite_key_model.ed.title", "Composite key model editor"),
         )
 
         # Inform plugins that the editor has been created.
-        safe_hook_call(
-            exdrf_qt_pm.hook.composite_key_model_editor_created, widget=self
-        )
+        safe_hook_call(exdrf_qt_pm.hook.composite_key_model_editor_created, widget=self)
 
         # exdrf-keep-start extra_init -----------------------------------------
 

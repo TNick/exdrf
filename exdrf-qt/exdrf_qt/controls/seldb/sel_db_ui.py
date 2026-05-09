@@ -59,7 +59,6 @@ class Ui_SelectDatabase:
     verticalLayout_3: "QtWidgets.QVBoxLayout"
 
     def setup_ui(self, SelectDatabase):
-
         SelectDatabase.setObjectName("SelectDatabase")
         SelectDatabase.resize(376, 338)
         self.verticalLayout = QtWidgets.QVBoxLayout(SelectDatabase)

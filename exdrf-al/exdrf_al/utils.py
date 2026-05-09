@@ -40,9 +40,7 @@ class DelChoice(Enum):
             The select statement with the choice applied.
         """
         fld = getattr(OrmClass, del_field, None)
-        assert (
-            fld is not None
-        ), f"OrmClass must have a `{del_field}` column/field"
+        assert fld is not None, f"OrmClass must have a `{del_field}` column/field"
 
         if self == DelChoice.DELETED:
             return sel.where(fld.is_(True))
@@ -66,9 +64,7 @@ class DelChoice(Enum):
             A select statement for the choice.
         """
         fld = getattr(OrmClass, del_field, None)
-        assert (
-            fld is not None
-        ), f"OrmClass must have a `{del_field}` column/field"
+        assert fld is not None, f"OrmClass must have a `{del_field}` column/field"
         sel = select(OrmClass)
         if self == DelChoice.DELETED:
             return sel.where(fld.is_(True))

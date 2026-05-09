@@ -158,9 +158,9 @@ class Selector(Generic[DBM]):
             # This is a dictionary with the field name and the filter.
             f_item = FieldFilter(**item)
         else:
-            assert isinstance(
-                item, FieldFilter
-            ), "The field filter must be an instance of FieldFilter."
+            assert isinstance(item, FieldFilter), (
+                "The field filter must be an instance of FieldFilter."
+            )
             f_item = item
 
         parts = f_item.fld.split(".")

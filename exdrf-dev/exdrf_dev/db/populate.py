@@ -28,9 +28,7 @@ class TagFactory(SQLAlchemyModelFactory):
         sqlalchemy_session_persistence = "commit"
 
     id = Sequence(lambda n: n + 1)
-    name = LazyFunction(
-        lambda: f"{fake.word()}_{fake.random_int(min=1, max=9999999)}"
-    )
+    name = LazyFunction(lambda: f"{fake.word()}_{fake.random_int(min=1, max=9999999)}")
 
 
 class ParentFactory(SQLAlchemyModelFactory):
@@ -286,17 +284,12 @@ def populate_database(
             print(f"- {len(created_objects['tags'])} tags")
             print(f"- {total_children} children")
             print(f"- {total_parent_tags} parent-tag associations")
-            print(
-                f"- {len(created_objects['composite_models'])} composite "
-                "key models"
-            )
+            print(f"- {len(created_objects['composite_models'])} composite key models")
             print(f"- {total_related_items} related items")
 
             # Print database content
             if (
-                input(
-                    "\nDo you want to see all database content? (y/n): "
-                ).lower()
+                input("\nDo you want to see all database content? (y/n): ").lower()
                 == "y"
             ):
                 print_db_content(engine)
@@ -308,15 +301,11 @@ def populate_database(
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(
-        description="Populate database with fake data"
-    )
+    parser = argparse.ArgumentParser(description="Populate database with fake data")
     parser.add_argument(
         "--parents", type=int, default=10, help="Number of parent records"
     )
-    parser.add_argument(
-        "--tags", type=int, default=15, help="Number of tag records"
-    )
+    parser.add_argument("--tags", type=int, default=15, help="Number of tag records")
     parser.add_argument(
         "--max-children",
         type=int,

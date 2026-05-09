@@ -9,8 +9,6 @@ from exdrf.field_types.int_field import IntField
 from exdrf.field_types.str_field import StrField
 from exdrf.label_dsl import parse_expr
 from exdrf.resource import ExResource
-from jinja2 import Environment, FileSystemLoader
-
 from exdrf_gen_al2r.creator import (
     build_al2r_list_relation_import_groups,
     category_router_export_name,
@@ -20,6 +18,7 @@ from exdrf_gen_al2r.creator import (
     primary_key_names_for_routes,
     schema_module_dotted,
 )
+from jinja2 import Environment, FileSystemLoader
 
 
 def _minimal_dataset(resources: list) -> SimpleNamespace:
@@ -115,9 +114,7 @@ def test_generate_writes_router_with_schemas(tmp_path: Path) -> None:
     d_set = _minimal_dataset([res])
 
     tmpl_root = (
-        Path(__file__).resolve().parents[1]
-        / "exdrf_gen_al2r"
-        / "al2r_templates"
+        Path(__file__).resolve().parents[1] / "exdrf_gen_al2r" / "al2r_templates"
     )
     env = Environment(loader=FileSystemLoader(str(tmpl_root)))
 
@@ -203,9 +200,7 @@ def test_generate_get_db_import_line(tmp_path: Path) -> None:
     d_set = _minimal_dataset([res])
 
     tmpl_root = (
-        Path(__file__).resolve().parents[1]
-        / "exdrf_gen_al2r"
-        / "al2r_templates"
+        Path(__file__).resolve().parents[1] / "exdrf_gen_al2r" / "al2r_templates"
     )
     env = Environment(loader=FileSystemLoader(str(tmpl_root)))
 
@@ -241,9 +236,7 @@ def test_generate_omits_patch_for_composite_pk_link(tmp_path: Path) -> None:
     d_set = _minimal_dataset([link])
 
     tmpl_root = (
-        Path(__file__).resolve().parents[1]
-        / "exdrf_gen_al2r"
-        / "al2r_templates"
+        Path(__file__).resolve().parents[1] / "exdrf_gen_al2r" / "al2r_templates"
     )
     env = Environment(loader=FileSystemLoader(str(tmpl_root)))
 
@@ -291,9 +284,7 @@ def test_generate_writes_category_subdir_and_init(tmp_path: Path) -> None:
     d_set = _minimal_dataset([res])
 
     tmpl_root = (
-        Path(__file__).resolve().parents[1]
-        / "exdrf_gen_al2r"
-        / "al2r_templates"
+        Path(__file__).resolve().parents[1] / "exdrf_gen_al2r" / "al2r_templates"
     )
     env = Environment(loader=FileSystemLoader(str(tmpl_root)))
 
@@ -314,9 +305,7 @@ def test_generate_writes_category_subdir_and_init(tmp_path: Path) -> None:
     assert api_py.is_file()
     api_body = api_py.read_text(encoding="utf-8")
     assert "from . import l18_router" in api_body
-    assert (
-        "from .widget_routes import router as widget_routes_router" in api_body
-    )
+    assert "from .widget_routes import router as widget_routes_router" in api_body
     assert "l18_router.include_router(widget_routes_router)" in api_body
     assert '__all__ = ["l18_router"]' in api_body
 

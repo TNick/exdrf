@@ -92,9 +92,7 @@ _FILTER_OPS_BY_FIELD_TYPE: Dict[str, FrozenSet[str]] = {
     FIELD_TYPE_FORMATTED: _STRING_LIKE_OPS,
     FIELD_TYPE_INTEGER: _ORDER_AND_MEMBERSHIP_OPS,
     FIELD_TYPE_FLOAT: _ORDER_AND_MEMBERSHIP_OPS,
-    FIELD_TYPE_BOOL: frozenset(
-        {FILTER_OP_EQ, FILTER_OP_NOT_EQ, FILTER_OP_NONE}
-    ),
+    FIELD_TYPE_BOOL: frozenset({FILTER_OP_EQ, FILTER_OP_NOT_EQ, FILTER_OP_NONE}),
     FIELD_TYPE_DATE: _ORDER_AND_MEMBERSHIP_OPS,
     FIELD_TYPE_DT: _ORDER_AND_MEMBERSHIP_OPS,
     FIELD_TYPE_TIME: _ORDER_AND_MEMBERSHIP_OPS,
@@ -102,9 +100,7 @@ _FILTER_OPS_BY_FIELD_TYPE: Dict[str, FrozenSet[str]] = {
     FIELD_TYPE_ENUM: frozenset(
         {FILTER_OP_EQ, FILTER_OP_NOT_EQ, FILTER_OP_IN, FILTER_OP_NONE}
     ),
-    FIELD_TYPE_BLOB: frozenset(
-        {FILTER_OP_EQ, FILTER_OP_NOT_EQ, FILTER_OP_NONE}
-    ),
+    FIELD_TYPE_BLOB: frozenset({FILTER_OP_EQ, FILTER_OP_NOT_EQ, FILTER_OP_NONE}),
     FIELD_TYPE_STRING_LIST: frozenset(
         {FILTER_OP_EQ, FILTER_OP_NOT_EQ, FILTER_OP_IN, FILTER_OP_NONE}
     ),
@@ -120,8 +116,8 @@ _FILTER_OPS_BY_FIELD_TYPE: Dict[str, FrozenSet[str]] = {
     FIELD_TYPE_REF_MANY_TO_MANY: _ORDER_AND_MEMBERSHIP_OPS,
 }
 
-FILTER_OPS_BY_FIELD_TYPE: Final[Mapping[str, FrozenSet[str]]] = (
-    MappingProxyType(_FILTER_OPS_BY_FIELD_TYPE)
+FILTER_OPS_BY_FIELD_TYPE: Final[Mapping[str, FrozenSet[str]]] = MappingProxyType(
+    _FILTER_OPS_BY_FIELD_TYPE
 )
 
 # Every surface form maps to exactly one canonical id.
@@ -152,9 +148,7 @@ _FILTER_OP_ALIASES: Dict[str, str] = {
     "~=": FILTER_OP_ILIKE,
 }
 
-FILTER_OP_ALIASES: Final[Mapping[str, str]] = MappingProxyType(
-    _FILTER_OP_ALIASES
-)
+FILTER_OP_ALIASES: Final[Mapping[str, str]] = MappingProxyType(_FILTER_OP_ALIASES)
 
 
 def normalize_filter_op(op: str) -> Optional[str]:
