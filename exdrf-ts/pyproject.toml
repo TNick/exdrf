@@ -1,12 +1,13 @@
 [project]
 authors = [
-  { name = "Nicu Tofan", email = "nicu.tofan@gmail.com" },
+    { name = "Nicu Tofan", email = "nicu.tofan@gmail.com" },
 ]
+license = { text = "MIT" }
 classifiers = [
   "Operating System :: OS Independent",
   "Programming Language :: Python :: 3 :: Only",
   "Development Status :: 3 - Alpha",
-  "License :: Other/Proprietary License",
+  "License :: OSI Approved :: MIT License",
   "Typing :: Typed",
 ]
 dependencies = [

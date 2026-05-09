@@ -11,7 +11,10 @@ from exdrf_qt.plugins import hook_spec
 # exdrf-keep-end other_imports ------------------------------------------------
 
 if TYPE_CHECKING:
-    from exdrf.filter import FilterType  # noqa: F401
+    from exdrf.filter import (
+        FilterType,  # noqa: F401
+        SearchType,  # noqa: F401
+    )
     from exdrf_dev.qt_gen.db.children.api import (
         QtChildEditor,  # noqa: F401
         QtChildFuMo,  # noqa: F401
@@ -148,7 +151,7 @@ class CompositeKeyModelHooks:
         self,
         model: "QtCompositeKeyModelFuMo",
         text: str,
-        exact: Optional[bool],
+        search_type: Optional["SearchType"],
         limit: Optional[str],
         filters: "FilterType",
     ) -> None:
@@ -262,7 +265,7 @@ class ParentTagAssociationHooks:
         self,
         model: "QtParentTagAssociationFuMo",
         text: str,
-        exact: Optional[bool],
+        search_type: Optional["SearchType"],
         limit: Optional[str],
         filters: "FilterType",
     ) -> None:
@@ -325,7 +328,7 @@ class ProfileHooks:
         self,
         model: "QtProfileFuMo",
         text: str,
-        exact: Optional[bool],
+        search_type: Optional["SearchType"],
         limit: Optional[str],
         filters: "FilterType",
     ) -> None:
@@ -427,7 +430,7 @@ class TagHooks:
         self,
         model: "QtTagFuMo",
         text: str,
-        exact: Optional[bool],
+        search_type: Optional["SearchType"],
         limit: Optional[str],
         filters: "FilterType",
     ) -> None:

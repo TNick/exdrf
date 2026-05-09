@@ -1,8 +1,8 @@
+import importlib
 import logging
 from typing import TYPE_CHECKING, Any, Callable, List, Union
 
 from attrs import define, field
-from parse import compile as parse_compile
 from PyQt5.QtWidgets import QMessageBox
 from sqlalchemy import Select, and_, select
 
@@ -43,7 +43,8 @@ class Route:
     segment_count: int = field(init=False)
 
     def __attrs_post_init__(self):
-        self.parser = parse_compile(self.pattern)
+        _parse = importlib.import_module("parse")
+        self.parser = _parse.compile(self.pattern)
         self.segment_count = self.pattern.count("/")
 
     def match(self, path: str):
@@ -272,9 +273,9 @@ class ExdrfRouter(QtUseContext):
             with self.ctx.same_session() as session:
                 record = session.scalar(select_stm)
                 if record is None:
-                    return
+                    return False
                 if not perform_deletion(record, session):
-                    return
+                    return False
                 session.commit()
                 return True
         except Exception as e:

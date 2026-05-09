@@ -122,7 +122,7 @@ class NumberBase(LineBase, Generic[T]):
             return
         result = self.check_value(text)
         if final:
-            self.field_value = result
+            self._change_field_value(result)
 
     def change_field_value(self, new_value: Any) -> None:
         """Change the field value.
@@ -135,7 +135,7 @@ class NumberBase(LineBase, Generic[T]):
         else:
             result = self.check_value(str(new_value))
             if result is not None:
-                self.field_value = result
+                self._change_field_value(result)
 
                 new_value = self.stringify(new_value)
                 if self.prefix:
@@ -153,7 +153,7 @@ class NumberBase(LineBase, Generic[T]):
         If the control does not support null values, the control will enter
         the error state.
         """
-        self.field_value = None
+        self._change_field_value(None)
         self.set_line_empty()
         if self.nullable:
             assert self.ac_clear is not None

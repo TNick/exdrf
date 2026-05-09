@@ -406,12 +406,11 @@ def generate_qt_from_alchemy(
             kwargs.pop("use_selectinload_for_nested_scalars")
         )
     # Only allow our templates to be used.
-    env.loader.paths = list(  # type: ignore
-        filter(  # type: ignore
-            lambda x: x.endswith("al2qt_templates"),
-            env.loader.paths,  # type: ignore
-        )
-    )
+    paths_obj = env.loader.paths  # type: ignore[attr-defined]
+    paths_list = list(paths_obj)
+    env.loader.paths = [  # type: ignore[attr-defined, assignment]
+        p for p in paths_list if str(p).endswith("al2qt_templates")
+    ]
 
     # Allow the caller to update field categories.
     for res in d_set.resources:

@@ -791,7 +791,7 @@ class PdfImageViewer(QWidget, QtUseContext):
 
         if not text_result:
             try:
-                import pytesseract  # type: ignore[import-untyped]
+                import pytesseract  # type: ignore[import-not-found]
 
                 # Allow overriding the Tesseract binary via environment.
                 tess_path = os.environ.get("EXDRF_TESSERACT_PATH")

@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Union
 from sqlalchemy import select
 
 from exdrf.constants import RecIdType
+from exdrf.filter import SearchType
 from exdrf_dev.qt_gen.db.parent_tag_associations.fields.fld_parent_id import (
     ParentIdField,
 )
@@ -91,10 +92,7 @@ class QtParentTagAssociationFuMo(QtModel["ParentTagAssociation"]):
     def get_db_item_id(
         self, item: "ParentTagAssociation"
     ) -> Union[int, Tuple[int, ...]]:
-        return [
-            item.parent_id,
-            item.tag_id,
-        ]
+        return (item.parent_id, item.tag_id)
 
     def item_by_id_conditions(self, rec_id: RecIdType) -> List[Any]:
         """Return the conditions that filter by ID.
@@ -102,6 +100,11 @@ class QtParentTagAssociationFuMo(QtModel["ParentTagAssociation"]):
         Args:
             rec_id: The ID of the item to filter by.
         """
+        assert isinstance(rec_id, tuple), (
+            "ID tuple expected. "
+            f"Model: {self.db_model.__name__} "
+            f"ID: {rec_id}/{rec_id.__class__.__name__}"
+        )
         assert 2 == len(rec_id), (
             "ID tuple does not match the number of primary keys. "
             f"Model: {self.db_model.__name__} "
@@ -115,7 +118,7 @@ class QtParentTagAssociationFuMo(QtModel["ParentTagAssociation"]):
     def text_to_filter(
         self,
         text: str,
-        exact: Optional[bool] = False,
+        search_type: Optional[SearchType] = SearchType.EXTENDED,
         limit: Optional[str] = None,
     ) -> "FilterType":
         """Convert a text to a filter.
@@ -123,20 +126,16 @@ class QtParentTagAssociationFuMo(QtModel["ParentTagAssociation"]):
         The function converts a text to a filter. The text is converted to a
         filter using the `simple_search_fields` property.
         """
-        filters = super().text_to_filter(text, exact, limit)
+        filters = super().text_to_filter(text, search_type, limit)
         safe_hook_call(
             exdrf_qt_pm.hook.parent_tag_association_fumo_ttf,
             model=self,
             filters=filters,
             text=text,
-            exact=exact,
+            search_type=search_type,
             limit=limit,
         )
         return filters
-
-        # exdrf-keep-start extra_init -----------------------------------------
-
-        # exdrf-keep-end extra_init -------------------------------------------
 
     # exdrf-keep-start extra_fumo_content -------------------------------------
 

@@ -87,7 +87,10 @@ class QtParentTv(RecordTemplViewer):
         safe_hook_call(exdrf_qt_pm.hook.parent_tv_created, widget=self)
 
     def read_record(self, session: "Session") -> Union[None, "Parent"]:
-        from .db.parent import parent_label
+        def parent_tv_record_label(rec: "Parent") -> str:
+            """Short title fragment for window captions."""
+
+            return f"{rec.name} (#{rec.id})"
 
         result = session.scalar(
             select(self.db_model).where(
@@ -106,7 +109,7 @@ class QtParentTv(RecordTemplViewer):
                 label = self.t(
                     "parent.tv.title-found",
                     "Parent: view {name}",
-                    name=parent_label(result),
+                    name=parent_tv_record_label(result),
                 )
             except Exception as e:
                 logger.error("Error getting label: %s", e, exc_info=True)

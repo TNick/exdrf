@@ -93,7 +93,12 @@ class QtCompositeKeyModelTv(RecordTemplViewer):
         safe_hook_call(exdrf_qt_pm.hook.composite_key_model_tv_created, widget=self)
 
     def read_record(self, session: "Session") -> Union[None, "CompositeKeyModel"]:
-        from .db.composite_key_model import composite_key_model_label
+        def composite_key_model_tv_record_label(rec: "CompositeKeyModel") -> str:
+            """Short title fragment for window captions."""
+
+            if getattr(rec, "description", None):
+                return str(rec.description)
+            return f"{rec.key_part1}/{rec.key_part2}"
 
         result = session.scalar(
             select(self.db_model).where(
@@ -113,7 +118,7 @@ class QtCompositeKeyModelTv(RecordTemplViewer):
                 label = self.t(
                     "composite_key_model.tv.title-found",
                     "Composite key model: view {name}",
-                    name=composite_key_model_label(result),
+                    name=composite_key_model_tv_record_label(result),
                 )
             except Exception as e:
                 logger.error("Error getting label: %s", e, exc_info=True)

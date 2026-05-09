@@ -323,8 +323,8 @@ class VarItemDelegate(QStyledItemDelegate):
             index: Model index of the cell.
         """
         try:
-            is_selected = bool(option.state & QStyle.State_Selected)
-            is_hover = bool(option.state & QStyle.State_MouseOver)
+            is_selected = bool(option.state & QStyle.StateFlag.State_Selected)
+            is_hover = bool(option.state & QStyle.StateFlag.State_MouseOver)
             if not is_selected and not is_hover:
                 mdl = cast(Any, index.model())
                 back = mdl.data(index, Qt.ItemDataRole.BackgroundRole)

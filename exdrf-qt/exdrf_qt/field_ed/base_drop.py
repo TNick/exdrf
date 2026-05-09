@@ -57,7 +57,7 @@ class DropBase(LineBase):
         """Sets the line edit to null."""
         if self._read_only:
             return
-        self.field_value = None
+        self._change_field_value(None)
         self.set_line_empty()
         if self.nullable:
             assert self.ac_clear is not None

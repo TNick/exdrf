@@ -460,10 +460,9 @@ if __name__ == "__main__":
         try:
             from PyQt5.QtCore import QCoreApplication, Qt
 
-            QCoreApplication.setAttribute(  # type: ignore
-                Qt.AA_ShareOpenGLContexts,
-                True,  # type: ignore
-            )
+            _aa_share = getattr(Qt, "AA_ShareOpenGLContexts", None)
+            if _aa_share is not None:
+                QCoreApplication.setAttribute(_aa_share, True)
         except Exception:
             pass
 

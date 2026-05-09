@@ -1,5 +1,5 @@
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, List
 
 from sqlalchemy import and_, func, inspect, literal_column, select
 from sqlalchemy.orm import (
@@ -124,7 +124,7 @@ def load_with_collection_counts_stm(orm_class, a_id: "RecIdType"):
             sec = rel.secondary
 
             # Map each PK col to the matching FK col in the secondary table
-            sec_key_cols = []
+            sec_key_cols: List[Any] = []
             for pk in pk_cols:
                 matches = [
                     c for c in sec.c if any(fk.column is pk for fk in c.foreign_keys)
@@ -155,7 +155,7 @@ def load_with_collection_counts_stm(orm_class, a_id: "RecIdType"):
         # --- ONE-TO-MANY: count child rows grouped by child FK(s) that point
         # to A's PK(s) relationship.foreign_keys are the child-side FK columns
         # participating in the join
-        child_fk_cols = []
+        child_fk_cols: List[Any] = []
         for pk in pk_cols:
             matches = []
             for fk_col in rel.foreign_keys:

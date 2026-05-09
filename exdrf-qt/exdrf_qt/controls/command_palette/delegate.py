@@ -1,4 +1,4 @@
-from typing import cast
+from typing import Optional, cast
 
 from PyQt5.QtCore import (
     QModelIndex,
@@ -38,11 +38,13 @@ class CompleterItemDelegate(QStyledItemDelegate):
 
     def paint(
         self,
-        painter: "QPainter",
-        option: "QStyleOptionViewItem",
-        index: "QModelIndex",
+        painter: Optional[QPainter],
+        option: QStyleOptionViewItem,
+        index: QModelIndex,
     ) -> None:
         """Paint the item with icon, title, and subtitle."""
+        if painter is None:
+            return
         # Get data from the model
         title = index.data(TITLE_ROLE)
         subtitle = index.data(SUBTITLE_ROLE)
@@ -55,7 +57,9 @@ class CompleterItemDelegate(QStyledItemDelegate):
         option.showDecorationSelected = True
         view: "QListView" = cast(QListView, self.parent())
         if view.currentIndex() == index:
-            option.state |= QStyle.StateFlag.State_HasFocus
+            option.state = QStyle.StateFlag(
+                int(option.state) | int(QStyle.StateFlag.State_HasFocus)
+            )
 
         # Setup painter
         painter.save()

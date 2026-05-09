@@ -1,12 +1,10 @@
 import logging
 from enum import Enum
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from sqlalchemy import or_, select
 from sqlalchemy.inspection import inspect
-
-if TYPE_CHECKING:
-    from sqlalchemy import Select
+from sqlalchemy.sql import Select
 
 logger = logging.getLogger(__name__)
 
@@ -24,8 +22,8 @@ class DelChoice(Enum):
     ALL = 0
 
     def apply(
-        self, OrmClass: type, sel: "Select", del_field: str = "deleted"
-    ) -> "Select":
+        self, OrmClass: type, sel: Select[Any], del_field: str = "deleted"
+    ) -> Select[Any]:
         """Apply the choice to a select statement.
 
         The record is assumed to be deleted if the `del_field` column/field is
@@ -40,7 +38,7 @@ class DelChoice(Enum):
             The select statement with the choice applied.
         """
         fld = getattr(OrmClass, del_field, None)
-        assert fld is not None, f"OrmClass must have a `{del_field}` column/field"
+        assert fld is not None, ("OrmClass must have a `%s` column/field" % del_field,)
 
         if self == DelChoice.DELETED:
             return sel.where(fld.is_(True))
@@ -49,7 +47,7 @@ class DelChoice(Enum):
         else:
             return sel
 
-    def create(self, OrmClass: type, del_field: str = "deleted") -> "Select":
+    def create(self, OrmClass: type, del_field: str = "deleted") -> Select[Any]:
         """Create a select statement for the choice.
 
         The record is assumed to be deleted if the `del_field` column/field is
@@ -64,8 +62,8 @@ class DelChoice(Enum):
             A select statement for the choice.
         """
         fld = getattr(OrmClass, del_field, None)
-        assert fld is not None, f"OrmClass must have a `{del_field}` column/field"
-        sel = select(OrmClass)
+        assert fld is not None, ("OrmClass must have a `%s` column/field" % del_field,)
+        sel: Select[Any] = select(OrmClass)
         if self == DelChoice.DELETED:
             return sel.where(fld.is_(True))
         elif self == DelChoice.ACTIVE:

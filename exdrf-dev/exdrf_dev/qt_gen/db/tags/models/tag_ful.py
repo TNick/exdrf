@@ -22,7 +22,10 @@ from exdrf_qt.utils.plugins import safe_hook_call
 if TYPE_CHECKING:
     from sqlalchemy import Select  # noqa: F401
 
-    from exdrf.filter import FilterType  # noqa: F401
+    from exdrf.filter import (
+        FilterType,  # noqa: F401
+        SearchType,  # noqa: F401
+    )
     from exdrf_dev.db.api import Tag  # noqa: F401
     from exdrf_qt.context import QtContext  # noqa: F401
 
@@ -97,7 +100,7 @@ class QtTagFuMo(QtModel["Tag"]):
     def text_to_filter(
         self,
         text: str,
-        exact: Optional[bool] = False,
+        search_type: Optional["SearchType"] = None,
         limit: Optional[str] = None,
     ) -> "FilterType":
         """Convert a text to a filter.
@@ -105,13 +108,13 @@ class QtTagFuMo(QtModel["Tag"]):
         The function converts a text to a filter. The text is converted to a
         filter using the `simple_search_fields` property.
         """
-        filters = super().text_to_filter(text, exact, limit)
+        filters = super().text_to_filter(text, search_type, limit)
         safe_hook_call(
             exdrf_qt_pm.hook.tag_fumo_ttf,
             model=self,
             filters=filters,
             text=text,
-            exact=exact,
+            search_type=search_type,
             limit=limit,
         )
         return filters

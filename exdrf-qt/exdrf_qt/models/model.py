@@ -46,6 +46,8 @@ from sqlalchemy import (
     update,
 )
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.sql.dml import Delete as DmlDelete
+from sqlalchemy.sql.dml import Update as DmlUpdate
 from sqlalchemy.sql.elements import Tuple as SQLTuple
 from unidecode import unidecode
 
@@ -536,6 +538,21 @@ class QtModel(
         `selection` attribute.
         """
         try:
+            run_arg: Union[FilterType, List[FilterType]]
+            if self._fixed_filters is None:
+                run_arg = self._filters
+            else:
+                fixed_norm: FilterType = (
+                    self._fixed_filters
+                    if isinstance(self._fixed_filters, list)
+                    else cast(FilterType, [self._fixed_filters])
+                )
+                filters_norm: FilterType = (
+                    self._filters
+                    if isinstance(self._filters, list)
+                    else cast(FilterType, [self._filters])
+                )
+                run_arg = cast(List[FilterType], [fixed_norm, filters_norm])
             return (
                 Selector[DBM]
                 .from_qt_model(
@@ -546,22 +563,7 @@ class QtModel(
                         else None
                     ),
                 )  # type: ignore
-                .run(
-                    self._filters
-                    if self._fixed_filters is None
-                    else [
-                        (
-                            self._fixed_filters
-                            if isinstance(self._fixed_filters, list)
-                            else [self._fixed_filters]
-                        ),
-                        (
-                            self._filters
-                            if isinstance(self._filters, list)
-                            else [self._filters]
-                        ),
-                    ]  # type: ignore
-                )
+                .run(run_arg)  # type: ignore[arg-type]
             )
         except Exception:
             logger.error(
@@ -1100,7 +1102,7 @@ class QtModel(
         result.loaded = True
         return result
 
-    def get_db_item_id(self, item: DBM) -> Union[int, Tuple[int, ...]]:
+    def get_db_item_id(self, item: DBM) -> RecIdType:
         """Return the ID of the database item.
 
         In common cases this is the `id` attribute of the database item.
@@ -1980,16 +1982,19 @@ class QtModel(
                 return []
             id_parts = simplified[3:].split(",")
             try:
-                id_parts = [int(part) for part in id_parts]
+                id_ints = [int(part) for part in id_parts]
                 pk_fields = self.primary_key_fields
-                if len(pk_fields) == len(id_parts):
-                    filters = [
-                        FieldFilter(fld=f.name, op="==", vl=id_parts[i])
+                if len(pk_fields) == len(id_ints):
+                    pk_filters = [
+                        FieldFilter(fld=f.name, op="==", vl=id_ints[i])
                         for i, f in enumerate(pk_fields)
                     ]
-                    if len(filters) > 1:
-                        return ["and", filters]  # type: ignore
-                    return [filters[0]] if filters else []  # type: ignore
+                    if len(pk_filters) > 1:
+                        return cast(
+                            FilterType,
+                            cast(Any, ["and", pk_filters]),
+                        )
+                    return [pk_filters[0]] if pk_filters else []
             except ValueError:
                 pass
 
@@ -2012,7 +2017,7 @@ class QtModel(
         prepared_text = search_type.prepare_input(text)
 
         # Create filters for the original text
-        filters = create_multi_field_or_filter(
+        text_filters = create_multi_field_or_filter(
             fields_to_search, prepared_text, search_type
         )
 
@@ -2025,17 +2030,20 @@ class QtModel(
             )
 
             # Combine both sets of filters with OR
-            all_field_filters = extract_field_filters(filters)
+            all_field_filters = extract_field_filters(text_filters)
             all_field_filters.extend(extract_field_filters(ua_filters))
 
             if len(all_field_filters) == 0:
                 return []
             elif len(all_field_filters) == 1:
-                return [all_field_filters[0]]  # type: ignore
+                return cast(FilterType, [all_field_filters[0]])
             else:
-                return ["OR", all_field_filters]  # type: ignore
+                return cast(
+                    FilterType,
+                    cast(Any, ["OR", all_field_filters]),
+                )
 
-        return filters
+        return cast(FilterType, text_filters)
 
     def apply_simple_search(
         self,
@@ -2089,7 +2097,7 @@ class QtModel(
         if self._checked is None:
             return None
 
-        result = []
+        result: List[RecIdType] = []
 
         # Index the top cache by record ID.
         top_id_cache = {id(r): i for i, r in enumerate(self.top_cache)}
@@ -2635,6 +2643,7 @@ class QtModel(
 
         # Apply the bulk update or delete without loading records.
         with self.ctx.same_session() as session:
+            stmt: DmlDelete | DmlUpdate
             if self.has_soft_delete_field:
                 del_field = self.get_soft_delete_field()
                 if del_field is None:

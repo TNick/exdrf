@@ -1,9 +1,15 @@
 """Tests for QtField in exdrf_qt.models.field."""
 
 import unittest
+from typing import TYPE_CHECKING, Any, cast
 from unittest.mock import MagicMock, patch
 
 from exdrf.filter import FieldFilter
+
+if TYPE_CHECKING:
+    from exdrf_qt.context import QtContext
+    from exdrf_qt.models.model import QtModel
+
 from PyQt5.QtCore import QSize, Qt
 from PyQt5.QtGui import QBrush, QColor, QFont
 
@@ -18,7 +24,10 @@ from exdrf_qt.models.field import (
 class TestQtFieldValues(unittest.TestCase):
     def test_values_raises_not_implemented(self) -> None:
         """Test that values method raises NotImplementedError."""
-        field = QtField(ctx=None, resource=None)
+        field: QtField[Any] = QtField(
+            ctx=cast("QtContext", MagicMock()),
+            resource=cast("QtModel[Any]", MagicMock()),
+        )
         record = MagicMock()
 
         with self.assertRaises(NotImplementedError):
@@ -37,8 +46,10 @@ class TestQtFieldApplySorting(unittest.TestCase):
         self.mock_resource = MagicMock()
         self.mock_resource.db_model = self.mock_db_model
 
-        self.field = QtField(
-            ctx=None, resource=self.mock_resource, name="test_field"
+        self.field: QtField[Any] = QtField(
+            ctx=cast("QtContext", MagicMock()),
+            resource=cast("QtModel[Any]", self.mock_resource),
+            name="test_field",
         )
 
     def test_apply_sorting_ascending(self) -> None:
@@ -72,8 +83,10 @@ class TestQtFieldApplyFilter(unittest.TestCase):
         self.mock_fi_op = MagicMock()
         self.mock_fi_op.predicate = self.mock_predicate
 
-        self.field = QtField(
-            ctx=None, resource=self.mock_resource, name="test_field"
+        self.field: QtField[Any] = QtField(
+            ctx=cast("QtContext", MagicMock()),
+            resource=cast("QtModel[Any]", self.mock_resource),
+            name="test_field",
         )
 
     def test_apply_filter_with_valid_operator(self) -> None:
@@ -107,7 +120,10 @@ class TestQtFieldApplyFilter(unittest.TestCase):
 class TestQtFieldBlobValues(unittest.TestCase):
     def setUp(self) -> None:
         """Set up test fixtures."""
-        self.field = QtField(ctx=None, resource=None)
+        self.field: QtField[Any] = QtField(
+            ctx=cast("QtContext", MagicMock()),
+            resource=cast("QtModel[Any]", MagicMock()),
+        )
 
     def test_blob_values(self) -> None:
         """Test blob_values method."""
@@ -132,7 +148,10 @@ class TestQtFieldBlobValues(unittest.TestCase):
 class TestQtFieldNotImplementedValues(unittest.TestCase):
     def setUp(self) -> None:
         """Set up test fixtures."""
-        self.field = QtField(ctx=None, resource=None)
+        self.field: QtField[Any] = QtField(
+            ctx=cast("QtContext", MagicMock()),
+            resource=cast("QtModel[Any]", MagicMock()),
+        )
 
     def test_not_implemented_values(self) -> None:
         """Test not_implemented_values method."""
@@ -155,7 +174,11 @@ class TestQtFieldNotImplementedValues(unittest.TestCase):
 class TestQtFieldExpandValue(unittest.TestCase):
     def setUp(self) -> None:
         """Set up test fixtures."""
-        self.field = QtField(ctx=None, resource=None, preferred_width=150)
+        self.field: QtField[Any] = QtField(
+            ctx=cast("QtContext", MagicMock()),
+            resource=cast("QtModel[Any]", MagicMock()),
+            preferred_width=150,
+        )
 
     def test_expand_value_with_string(self) -> None:
         """Test expand_value with a string value."""
@@ -242,7 +265,11 @@ class TestQtFieldExpandValue(unittest.TestCase):
 
     def test_expand_value_custom_preferred_width(self) -> None:
         """Test expand_value uses custom preferred_width."""
-        field = QtField(ctx=None, resource=None, preferred_width=200)
+        field: QtField[Any] = QtField(
+            ctx=cast("QtContext", MagicMock()),
+            resource=cast("QtModel[Any]", MagicMock()),
+            preferred_width=200,
+        )
         value = "test"
 
         result = field.expand_value(value)

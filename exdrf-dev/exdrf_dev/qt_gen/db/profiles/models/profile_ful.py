@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import joinedload
 
 from exdrf.constants import RecIdType
+from exdrf.filter import SearchType
 from exdrf_dev.qt_gen.db.profiles.fields.fld_bio import BioField
 from exdrf_dev.qt_gen.db.profiles.fields.fld_id import IdField
 from exdrf_dev.qt_gen.db.profiles.fields.fld_parent import ParentField
@@ -99,7 +100,7 @@ class QtProfileFuMo(QtModel["Profile"]):
     def text_to_filter(
         self,
         text: str,
-        exact: Optional[bool] = False,
+        search_type: Optional[SearchType] = SearchType.EXTENDED,
         limit: Optional[str] = None,
     ) -> "FilterType":
         """Convert a text to a filter.
@@ -107,20 +108,16 @@ class QtProfileFuMo(QtModel["Profile"]):
         The function converts a text to a filter. The text is converted to a
         filter using the `simple_search_fields` property.
         """
-        filters = super().text_to_filter(text, exact, limit)
+        filters = super().text_to_filter(text, search_type, limit)
         safe_hook_call(
             exdrf_qt_pm.hook.profile_fumo_ttf,
             model=self,
             filters=filters,
             text=text,
-            exact=exact,
+            search_type=search_type,
             limit=limit,
         )
         return filters
-
-        # exdrf-keep-start extra_init -----------------------------------------
-
-        # exdrf-keep-end extra_init -------------------------------------------
 
     # exdrf-keep-start extra_fumo_content -------------------------------------
 

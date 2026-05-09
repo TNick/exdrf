@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING, Any
 
 from jinja2 import Environment
+from jinja2.loaders import FileSystemLoader
 
 from exdrf.constants import (
     FIELD_TYPE_BLOB,
@@ -69,13 +70,30 @@ def generate_attrs_from_alchemy(
     env: "Environment",
     **kwargs: Any,
 ):
+    """Emit attrs typings from an SQLAlchemy-backed dataset.
+
+    Args:
+        d_set: Dataset describing resources and fields.
+        out_path: Output directory for generated files.
+        out_module: Python package path written into templates.
+        db_module: Database models module path for templates.
+        env: Jinja environment (must use :class:`~jinja2.loaders.FileSystemLoader`).
+        **kwargs: Forwarded to :meth:`~exdrf_gen.fs_support.TopDir.generate`.
+
+    Raises:
+        TypeError: If ``env.loader`` is not a :class:`~jinja2.loaders.FileSystemLoader`.
+    """
     # Only allow our templates to be used.
-    env.loader.paths = list(
-        filter(  # type: ignore
-            lambda x: x.endswith("al2at_templates"),
-            env.loader.paths,  # type: ignore
+    loader = env.loader
+    if not isinstance(loader, FileSystemLoader):
+        raise TypeError(
+            "Expected FileSystemLoader, got %s" % type(loader).__name__,
         )
-    )
+    loader.searchpath = [
+        p
+        for p in loader.searchpath
+        if str(p).replace("\\", "/").endswith("al2at_templates")
+    ]
     generator = TopDir(
         comp=[
             File("__init__.py", "__init__.py.j2"),

@@ -2,7 +2,7 @@
 
 import logging
 from functools import partial
-from typing import Any, Union
+from typing import TYPE_CHECKING, Any, Union
 
 from attrs import define, field
 from sqlalchemy import String
@@ -23,6 +23,9 @@ from sqlalchemy.sql.operators import (
 
 logger = logging.getLogger(__name__)
 
+if TYPE_CHECKING:
+    from sqlalchemy.sql.selectable import Select
+
 
 @define
 class FiOp:
@@ -35,6 +38,30 @@ class FiOp:
 
     uniq: str
     predicate: Any
+
+    def apply_filter(
+        self,
+        *,
+        selector: Any,
+        value: Any,
+        selection: "Select[Any]",
+        item: Any,
+    ) -> "Select[Any]":
+        """Append ``predicate(selector, value)`` as a WHERE clause.
+
+        Args:
+            selector: Column or SQL expression passed as the predicate's first
+                argument (same role as in Qt ``QtField.apply_filter``).
+            value: Value passed as the predicate's second argument.
+            selection: Existing SELECT to constrain.
+            item: The originating filter item (for API symmetry with Qt-side
+                call patterns).
+
+        Returns:
+            ``selection`` with the predicate applied via ``WHERE``.
+        """
+        expr = self.predicate(selector, value)
+        return selection.where(expr)
 
 
 @define

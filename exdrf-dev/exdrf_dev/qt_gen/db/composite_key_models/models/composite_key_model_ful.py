@@ -2,7 +2,7 @@
 # Source: exdrf_gen_al2qt.creator -> c/m/m_ful.py.j2
 # Don't change it manually.
 
-from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, List, Optional, Union
 
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -49,7 +49,10 @@ from exdrf_qt.utils.plugins import safe_hook_call
 if TYPE_CHECKING:
     from sqlalchemy import Select  # noqa: F401
 
-    from exdrf.filter import FilterType  # noqa: F401
+    from exdrf.filter import (
+        FilterType,  # noqa: F401
+        SearchType,  # noqa: F401
+    )
     from exdrf_dev.db.api import CompositeKeyModel  # noqa: F401
     from exdrf_qt.context import QtContext  # noqa: F401
 
@@ -124,11 +127,8 @@ class QtCompositeKeyModelFuMo(QtModel["CompositeKeyModel"]):
             self.db_model.key_part2,
         ]
 
-    def get_db_item_id(self, item: "CompositeKeyModel") -> Union[int, Tuple[int, ...]]:
-        return [
-            item.key_part1,
-            item.key_part2,
-        ]
+    def get_db_item_id(self, item: "CompositeKeyModel") -> RecIdType:
+        return (item.key_part1, item.key_part2)
 
     def item_by_id_conditions(self, rec_id: RecIdType) -> List[Any]:
         """Return the conditions that filter by ID.
@@ -136,20 +136,26 @@ class QtCompositeKeyModelFuMo(QtModel["CompositeKeyModel"]):
         Args:
             rec_id: The ID of the item to filter by.
         """
-        assert 2 == len(rec_id), (
-            "ID tuple does not match the number of primary keys. "
-            f"Model: {self.db_model.__name__} "
-            f"ID: {rec_id}/{rec_id.__class__.__name__}"
-        )
+        if not isinstance(rec_id, (list, tuple)):
+            raise TypeError(
+                "CompositeKeyModel IDs must be a two-element sequence; "
+                "got %s" % (type(rec_id).__name__,)
+            )
+        parts = tuple(rec_id)
+        if len(parts) != 2:
+            raise TypeError(
+                "ID tuple does not match the number of primary keys. "
+                "Model: %s ID: %r" % (self.db_model.__name__, rec_id)
+            )
         return [
-            self.db_model.key_part1 == rec_id[0],
-            self.db_model.key_part2 == rec_id[1],
+            self.db_model.key_part1 == parts[0],
+            self.db_model.key_part2 == parts[1],
         ]
 
     def text_to_filter(
         self,
         text: str,
-        exact: Optional[bool] = False,
+        search_type: Optional["SearchType"] = None,
         limit: Optional[str] = None,
     ) -> "FilterType":
         """Convert a text to a filter.
@@ -157,13 +163,13 @@ class QtCompositeKeyModelFuMo(QtModel["CompositeKeyModel"]):
         The function converts a text to a filter. The text is converted to a
         filter using the `simple_search_fields` property.
         """
-        filters = super().text_to_filter(text, exact, limit)
+        filters = super().text_to_filter(text, search_type, limit)
         safe_hook_call(
             exdrf_qt_pm.hook.composite_key_model_fumo_ttf,
             model=self,
             filters=filters,
             text=text,
-            exact=exact,
+            search_type=search_type,
             limit=limit,
         )
         return filters

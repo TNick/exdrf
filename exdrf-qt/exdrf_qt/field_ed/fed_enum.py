@@ -169,7 +169,7 @@ class DrfEnumEditor(DropBase, EditorWithChoices):
         self._choices = choices or []
 
         # Stores the currently selected key.
-        self.field_value = None
+        self._field_value = None
 
         # Create dropdown list
         self._dropdown = DropdownList(parent=self, ctx=self.ctx)
@@ -278,8 +278,7 @@ class DrfEnumEditor(DropBase, EditorWithChoices):
         if found_key is not None:
             self.set_line_normal()
 
-            # Change the value and signal the change.
-            self.field_value = found_key
+            self._change_field_value(found_key)
             return
 
         # If we get here, the text doesn't match any choice exactly
@@ -297,8 +296,7 @@ class DrfEnumEditor(DropBase, EditorWithChoices):
             self.set_line_normal()
             self.setFocus()  # Return focus to line edit after selection
 
-            # Change the value and signal the change.
-            self.field_value = key
+            self._change_field_value(key)
 
     def set_choices(self, choices: List[Tuple[str, str]]):
         """Set the available choices."""
@@ -324,7 +322,7 @@ class DrfEnumEditor(DropBase, EditorWithChoices):
                     new_value = new_value.name
                 for choice_key, label in self._choices:
                     if choice_key == new_value:
-                        self.field_value = new_value
+                        self._change_field_value(new_value)
                         self.setText(label)
                         self.set_line_normal()
                         return

@@ -4,6 +4,8 @@
 
 from typing import TYPE_CHECKING, Union
 
+from sqlalchemy import and_
+
 from exdrf.constants import RecIdType
 from exdrf_dev.qt.parent_tag_associations.widgets.parent_tag_associations_editor_ui import (
     Ui_QtParentTagAssociationEditor,
@@ -39,11 +41,25 @@ class QtParentTagAssociationEditor(
     def read_record(
         self, session: "Session", record_id: RecIdType
     ) -> "ParentTagAssociation":
-        return session.scalar(
+        if not isinstance(record_id, tuple) or len(record_id) != 2:
+            raise TypeError(
+                "ParentTagAssociation record_id must be a (parent_id, tag_id) tuple",
+            )
+        parent_id, tag_id = record_id[0], record_id[1]
+        result = session.scalar(
             self.selection.where(
-                self.db_model.id == record_id  # type: ignore[operator]
+                and_(
+                    self.db_model.parent_id == parent_id,
+                    self.db_model.tag_id == tag_id,
+                )
             )
         )
+        if result is None:
+            raise ValueError(
+                "ParentTagAssociation not found for parent_id=%s tag_id=%s"
+                % (parent_id, tag_id)
+            )
+        return result
 
     def populate(self, record: Union["ParentTagAssociation", None]):
         pass
@@ -54,4 +70,4 @@ class QtParentTagAssociationEditor(
         pass
 
     def get_id_of_record(self, record: "ParentTagAssociation") -> RecIdType:
-        return record.id
+        return (record.parent_id, record.tag_id)

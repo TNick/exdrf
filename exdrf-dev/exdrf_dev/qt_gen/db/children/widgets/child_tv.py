@@ -83,8 +83,6 @@ class QtChildTv(RecordTemplViewer):
         safe_hook_call(exdrf_qt_pm.hook.child_tv_created, widget=self)
 
     def read_record(self, session: "Session") -> Union[None, "Child"]:
-        from .db.child import child_label
-
         result = session.scalar(
             select(self.db_model).where(
                 self.db_model.id == self.record_id,  # type: ignore
@@ -102,7 +100,7 @@ class QtChildTv(RecordTemplViewer):
                 label = self.t(
                     "child.tv.title-found",
                     "Child: view {name}",
-                    name=child_label(result),
+                    name=(result.data or "") or str(result.id),
                 )
             except Exception as e:
                 logger.error("Error getting label: %s", e, exc_info=True)

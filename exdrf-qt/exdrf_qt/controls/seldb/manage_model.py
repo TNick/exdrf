@@ -1,7 +1,16 @@
 import logging
 import os
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, TypedDict, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    TypedDict,
+    cast,
+)
 
 import humanize
 from PyQt5.QtCore import (
@@ -792,11 +801,17 @@ class DatabaseConfigModel(QAbstractItemModel):
         if not index.isValid():
             return cast(Qt.ItemFlags, Qt.ItemFlag.NoItemFlags)
 
-        flags = Qt.ItemFlag.ItemIsEnabled
-        flags |= Qt.ItemFlag.ItemIsSelectable
+        flags = cast(Qt.ItemFlags, Qt.ItemFlag.ItemIsEnabled)
+        flags = cast(
+            Qt.ItemFlags,
+            int(flags) | int(Qt.ItemFlag.ItemIsSelectable),
+        )
         # Created date and DB version columns are not editable
         if index.column() not in (COL_CREATED, COL_DB_VERSION):
-            flags |= Qt.ItemFlag.ItemIsEditable
+            flags = cast(
+                Qt.ItemFlags,
+                int(flags) | int(Qt.ItemFlag.ItemIsEditable),
+            )
         return cast(Qt.ItemFlags, flags)
 
     def headerData(
@@ -861,6 +876,7 @@ class DatabaseConfigModel(QAbstractItemModel):
             return
 
         # Determine the key function based on the column
+        key_func: Callable[[DatabaseConfig], Any]
         if column == COL_NAME:
             key_func = _sort_key_name
         elif column == COL_TYPE:

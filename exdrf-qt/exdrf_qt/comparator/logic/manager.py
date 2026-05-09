@@ -285,8 +285,9 @@ class ComparatorManager:
             state = LeafMergeState()
         context = self.get_merge_context(leaf)
         resolved = self._get_strategy().resolve_value(context, state)
-        if getattr(leaf, "merge_state", None) is not None:
-            leaf.merge_state.resolved_value = resolved
+        ms = getattr(leaf, "merge_state", None)
+        if ms is not None:
+            ms.resolved_value = resolved
         return resolved
 
     def get_merged_payload(self) -> Dict[str, Any]:

@@ -168,7 +168,7 @@ class DrfSelMultiEditor(DrfSelBase[DBM_M]):
             self.qt_model.set_prioritized_ids(converted)
         else:
             self.qt_model.prioritized_ids = converted
-        self.field_value = converted
+        self._change_field_value(converted)
         return True
 
     def update_label(self, items_list: List["RecIdType"]):

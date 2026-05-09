@@ -91,7 +91,7 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
 
     editingFinished = pyqtSignal()
 
-    popup: "PopupWidget[DBM]"
+    popup: Optional["PopupWidget[DBM]"]
     line_edit: "ClickableLineEdit"
     _in_editing: bool
     _clear_action: Optional[QAction]
@@ -193,6 +193,9 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
             self.popup.closed.connect(self._on_popup_closed)
             self.post_popup_init()
 
+        pop = self.popup
+        assert pop is not None
+
         # Remember the current value so we can restore it on cancel.
         self._popup_restore_value = self._field_value
         if isinstance(self._popup_restore_value, list):
@@ -205,13 +208,13 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
 
         # Position and display the popup below the line edit.
         logger.log(VERBOSE, "%s.show_popup()", self.__class__.__name__)
-        self.popup.move(self.mapToGlobal(QPoint(0, self.height())))
-        self.popup.resize(self.width(), 150)
-        self.popup.show()
-        self.popup.filter_edit.setFocus()
+        pop.move(self.mapToGlobal(QPoint(0, self.height())))
+        pop.resize(self.width(), 150)
+        pop.show()
+        pop.filter_edit.setFocus()
 
         # Allow subclasses to do additional setup.
-        with self.popup.block_signals():
+        with pop.block_signals():
             self.on_show_popup()
 
     def post_init(self):
@@ -417,7 +420,7 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
             return
 
         # Clear the field value and update the UI.
-        self.field_value = None
+        self._field_value = None
         self.line_edit.setText("")
         if self._clear_action:
             self._clear_action.setEnabled(False)
@@ -646,7 +649,7 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
                 return
 
             # Create a selector that uses this filter...
-            selector = Selector[DBM].from_qt_model(
+            selector = Selector.from_qt_model(
                 self._qt_model,
                 dialect=(
                     self.ctx.engine.dialect.name
@@ -710,18 +713,29 @@ class DrfSelBase(QWidget, Generic[DBM], DrfFieldEd):
         return default or []
 
     def get_depends_on(self, default: Optional[List[str]] = None) -> List[str]:
-        """Get the depends on for the field."""
+        """Return dependency concept keys for subscriber registration.
+
+        Reads the optional ``depends_on`` Qt property with comma-separated
+        ``concept:target`` entries; only concept keys are returned so callers
+        match :meth:`Constraints.register_subscriber`.
+
+        Args:
+            default: Fallback concept names when no property is set.
+
+        Returns:
+            Ordered dependency concept keys.
+        """
         prop_deps = self.property("depends_on")
         if prop_deps is not None:
-            result = []
+            concepts: List[str] = []
             for part in prop_deps.split(","):
                 if not part.strip():
                     continue
-                concept, target = part.strip().split(":", maxsplit=1)
-                result.append((concept.strip(), target.strip()))
-            if result:
-                return result
-        return default or []
+                concept, _target = part.strip().split(":", maxsplit=1)
+                concepts.append(concept.strip())
+            if concepts:
+                return concepts
+        return list(default or [])
 
     def integrate_concepts(self, provides: List[str], depends_on: List[str]):
         """Helper for set_form that allows you to declare in one go
@@ -787,12 +801,16 @@ class DrfSelOneEditor(DrfSelBase[DBM_O]):
     """
 
     def post_popup_init(self):
-        tree = cast("TreeView", self.popup.tree)
+        pop = self.popup
+        assert pop is not None
+        tree = cast("TreeView", pop.tree)
         tree.itemSelected.connect(self.on_item_selected)
         tree.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
 
     def on_show_popup(self):
         # Set the current selection in the popup tree to match the field value.
+        pop = self.popup
+        assert pop is not None
         index = QModelIndex()
         if self.field_value is None:
             logger.log(VERBOSE, "Tree cleared")
@@ -818,7 +836,7 @@ class DrfSelOneEditor(DrfSelBase[DBM_O]):
                 )
 
         # Either select what we have found or clear the selection.
-        tree = cast("TreeView", self.popup.tree)
+        tree = cast("TreeView", pop.tree)
         tree.setCurrentIndex(index)
 
     def on_item_selected(self, item: "QtRecord"):
@@ -837,10 +855,12 @@ class DrfSelOneEditor(DrfSelBase[DBM_O]):
         )
 
         self.line_edit.setText(text)
-        self.popup.hide()
+        pop = self.popup
+        assert pop is not None
+        pop.hide()
 
         # Store the selected record's database ID as the field value.
-        self.field_value = item.db_id
+        self._change_field_value(item.db_id)
 
     def _sel_field_value(self, new_value: "None | DBM_O | RecIdType") -> bool:
         """Change the field value.
@@ -866,34 +886,36 @@ class DrfSelOneEditor(DrfSelBase[DBM_O]):
             )
             new_value = self.qt_model.get_db_item_id(new_value)  # type: ignore
 
+        rid = cast("RecIdType", new_value)
+
         logger.log(
             VERBOSE,
             "%s.change_field_value() to %s (%s)",
             self.__class__.__name__,
-            new_value,
-            new_value.__class__.__name__,
+            rid,
+            type(rid).__name__,
         )
 
         # Skip update if the value hasn't changed.
-        if new_value == self.field_value:
+        if rid == self.field_value:
             logger.log(
                 VERBOSE,
                 "%s.change_field_value(): same value: %s",
                 self.__class__.__name__,
-                new_value,
+                rid,
             )
             return False
 
         # Change the label.
-        label = self.get_record_label(new_value)
+        label = self.get_record_label(rid)
         if label == "":
             self.set_to_null()
             return False
         self.line_edit.setText(label)
 
         # Set value.
-        self.qt_model.set_prioritized_ids([new_value])
-        self.field_value = new_value
+        self.qt_model.set_prioritized_ids([rid])
+        self._change_field_value(rid)
         return True
 
     def save_value_to(self, record: Any):

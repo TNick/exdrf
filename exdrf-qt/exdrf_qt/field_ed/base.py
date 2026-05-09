@@ -1,9 +1,9 @@
 import logging
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any, Optional, cast
 
 from exdrf.validator import ValidationResult
 from PyQt5.QtCore import pyqtProperty, pyqtSignal  # type: ignore
-from PyQt5.QtWidgets import QWidget  # type: ignore
+from PyQt5.QtWidgets import QAction, QWidget  # type: ignore
 from sqlalchemy.ext.hybrid import hybrid_property
 
 from exdrf_qt.context_use import QtUseContext
@@ -76,6 +76,7 @@ class DrfFieldEd(QtUseContext):
     _read_only: bool = False
     description: Optional[str]
     form: Optional["ExdrfEditorBase"] = None
+    ac_clear: Optional[QAction] = None
 
     controlChanged = pyqtSignal()
     enteredErrorState = pyqtSignal(str)
@@ -101,10 +102,17 @@ class DrfFieldEd(QtUseContext):
         """Set the form that this field editor is part of."""
         self.form = form
 
-    @property
-    def field_value(self) -> Any:
-        """Get the field value."""
+    def _get_field_value(self) -> Any:
+        """Return the current field value."""
+
         return self._field_value
+
+    def _set_field_value(self, value: Any) -> None:
+        """Assign the field value and emit change notifications."""
+
+        self._change_field_value(value)
+
+    field_value = property(_get_field_value, _set_field_value)
 
     @property
     def is_empty(self) -> bool:
@@ -117,6 +125,7 @@ class DrfFieldEd(QtUseContext):
         The default implementation returns True if field_value is None
         or if it is a list or string that is empty.
         """
+
         return (
             self._field_value is None
             or isinstance(self._field_value, list)
@@ -124,11 +133,6 @@ class DrfFieldEd(QtUseContext):
             or isinstance(self._field_value, str)
             and not self._field_value
         )
-
-    @field_value.setter
-    def field_value(self, value: Any) -> None:
-        """Set the field value."""
-        self._change_field_value(value)
 
     def _change_field_value(self, value: Any, force: bool = False) -> None:
         """Set the field value."""
@@ -183,11 +187,12 @@ class DrfFieldEd(QtUseContext):
             raise ValueError("Field name is not set.")
         self.change_field_value(getattr(record, self._name, None))
 
-    def apply_description(self: QWidget):  # type: ignore
+    def apply_description(self) -> None:
         """Apply the description to the widget."""
+        widget = cast(QWidget, self)
         if self.description:
-            self.setToolTip(self.description)
-            self.setStatusTip(self.description)
+            widget.setToolTip(self.description)
+            widget.setStatusTip(self.description)
 
     def change_edit_mode(  # type: ignore
         self: QWidget,

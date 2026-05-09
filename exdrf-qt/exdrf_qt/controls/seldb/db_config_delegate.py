@@ -1,9 +1,9 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 from urllib.parse import urlparse
 
 from PyQt5.QtCore import QRect, QSize, Qt
 from PyQt5.QtGui import QFont, QFontMetrics, QPainter
-from PyQt5.QtWidgets import QStyle, QStyledItemDelegate, QStyleOptionViewItem
+from PyQt5.QtWidgets import QStyle, QStyledItemDelegate, QStyleOption
 
 from exdrf_qt.context_use import QtUseContext
 from exdrf_qt.controls.seldb.utils import (
@@ -97,7 +97,7 @@ class DbConfigDelegate(QStyledItemDelegate, QtUseContext):
         base_size = super().sizeHint(option, index)
         return QSize(base_size.width(), max(base_size.height(), total_height))
 
-    def paint(self, painter: QPainter, option: QStyleOptionViewItem, index):
+    def paint(self, painter: Optional[QPainter], option: QStyleOption, index):
         """Paint the item with custom formatting.
 
         Args:
@@ -105,6 +105,8 @@ class DbConfigDelegate(QStyledItemDelegate, QtUseContext):
             option: Style options.
             index: Model index.
         """
+        if painter is None:
+            return
         config = index.data(Qt.ItemDataRole.UserRole)
         if not config or not isinstance(config, dict):
             super().paint(painter, option, index)

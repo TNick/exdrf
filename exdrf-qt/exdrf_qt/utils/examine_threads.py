@@ -257,7 +257,7 @@ class WorkerItemDelegate(QStyledItemDelegate):
         base = super().sizeHint(option, index)
         return QSize(base.width(), max(base.height(), 54))
 
-    def paint(
+    def paint(  # type: ignore[override]
         self,
         painter: QPainter,
         option: QStyleOptionViewItem,
@@ -677,9 +677,9 @@ class ExamineThreadsWidget(QWidget, QtUseContext):
         layout.addWidget(btn_frame, 0)
 
         # React to selection changes.
-        self._workers_view.selectionModel().selectionChanged.connect(
-            self._on_worker_selected
-        )
+        sel_changes = self._workers_view.selectionModel()
+        if sel_changes is not None:
+            sel_changes.selectionChanged.connect(self._on_worker_selected)
 
         # Start polling.
         self._timer.start()
@@ -1027,7 +1027,9 @@ class ExamineThreadsWidget(QWidget, QtUseContext):
         menu = QMenu(self._workers_view)
         act_copy_sql = menu.addAction("Copy formatted SQL")
         act_copy_info = menu.addAction("Copy request info")
-        act = menu.exec_(self._workers_view.viewport().mapToGlobal(pos))
+        viewport = self._workers_view.viewport()
+        assert viewport is not None
+        act = menu.exec_(viewport.mapToGlobal(pos))
         if act is None:
             return
 
@@ -1187,15 +1189,15 @@ class ExamineThreadsWidget(QWidget, QtUseContext):
                 idx.data(WorkerListModel.ROLE_WORKER_ID)
                 == self._selected_worker_id
             ):
-                sel_model: QItemSelectionModel = (
-                    self._workers_view.selectionModel()
-                )
+                sm_restore = self._workers_view.selectionModel()
+                if sm_restore is None:
+                    continue
                 flags = cast(
                     QItemSelectionModel.SelectionFlags,
                     QItemSelectionModel.SelectionFlag.ClearAndSelect
                     | QItemSelectionModel.SelectionFlag.Rows,
                 )
-                sel_model.setCurrentIndex(idx, flags)
+                sm_restore.setCurrentIndex(idx, flags)
                 worker = idx.data(WorkerListModel.ROLE_WORKER)
                 if isinstance(worker, dict):
                     self._details_model.set_tree(

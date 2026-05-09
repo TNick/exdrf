@@ -26,6 +26,23 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+
+def _related_item_title_name(record: Any) -> str:
+    """Build a short descriptive label from a RelatedItem instance.
+
+    Args:
+        record: ORM RelatedItem loaded from the viewer query.
+
+    Returns:
+        Viewer title fragment including primary key (and brief data hint).
+    """
+    rid = getattr(record, "id", "")
+    item_data = getattr(record, "item_data", None)
+    if item_data is None:
+        return "id:%s" % (rid,)
+    return "id:%s (%s)" % (rid, item_data)
+
+
 # exdrf-keep-start other_globals -----------------------------------------------
 
 # exdrf-keep-end other_globals -------------------------------------------------
@@ -83,8 +100,6 @@ class QtRelatedItemTv(RecordTemplViewer):
         safe_hook_call(exdrf_qt_pm.hook.related_item_tv_created, widget=self)
 
     def read_record(self, session: "Session") -> Union[None, "RelatedItem"]:
-        from .db.related_item import related_item_label
-
         result = session.scalar(
             select(self.db_model).where(
                 self.db_model.id == self.record_id,  # type: ignore
@@ -102,7 +117,7 @@ class QtRelatedItemTv(RecordTemplViewer):
                 label = self.t(
                     "related_item.tv.title-found",
                     "Related item: view {name}",
-                    name=related_item_label(result),
+                    name=_related_item_title_name(result),
                 )
             except Exception as e:
                 logger.error("Error getting label: %s", e, exc_info=True)

@@ -83,7 +83,9 @@ class QtProfileTv(RecordTemplViewer):
         safe_hook_call(exdrf_qt_pm.hook.profile_tv_created, widget=self)
 
     def read_record(self, session: "Session") -> Union[None, "Profile"]:
-        from .db.profile import profile_label
+        from exdrf_dev.qt_gen.db.profiles.widgets.db.profile import (
+            profile_label,
+        )
 
         result = session.scalar(
             select(self.db_model).where(

@@ -15,7 +15,7 @@ def merge_pdf_files(
     keywords: str = "",
     adjust_image: bool = False,
 ):
-    import fitz
+    import fitz  # type: ignore[import-untyped]
     from PIL import Image, ImageOps
 
     c_date = fitz.get_pdf_now()
@@ -65,7 +65,9 @@ def merge_pdf_files(
                     continue
                 pix = page.get_pixmap(matrix=mat)
                 img = Image.frombytes(
-                    "RGB", [pix.width, pix.height], pix.samples
+                    "RGB",
+                    (pix.width, pix.height),
+                    pix.samples,
                 )
                 gray_image = ImageOps.grayscale(img)
                 imagefile = BytesIO()

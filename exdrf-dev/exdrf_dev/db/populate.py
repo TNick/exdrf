@@ -2,9 +2,13 @@ import datetime
 import random
 from typing import Any, Dict, List
 
-from factory.alchemy import SQLAlchemyModelFactory
-from factory.declarations import LazyFunction, Sequence, SubFactory
-from faker import Faker
+from factory.alchemy import SQLAlchemyModelFactory  # type: ignore[import-not-found]
+from factory.declarations import (  # type: ignore[import-not-found]
+    LazyFunction,
+    Sequence,
+    SubFactory,
+)
+from faker import Faker  # type: ignore[import-not-found]
 from sqlalchemy.orm import Session, sessionmaker
 
 from exdrf_dev.db.models import (
@@ -148,8 +152,10 @@ def populate_session(
         CompositeKeyModelFactory,
         RelatedItemFactory,
     ]
-    for factory_class in factories:
-        factory_class._meta.sqlalchemy_session = session
+    for factory_cls in factories:
+        meta = getattr(factory_cls, "_meta", None)
+        if meta is not None:
+            setattr(meta, "sqlalchemy_session", session)
 
     # Create tags
     tags = [TagFactory() for _ in range(num_tags)]

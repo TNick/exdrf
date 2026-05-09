@@ -145,7 +145,7 @@ class DbViewer(QWidget, QtUseContext):
             )
         if effective_initial_id:
             model = self._chooser.model()
-            if hasattr(model, "find_config_index"):
+            if model is not None and hasattr(model, "find_config_index"):
                 idx = model.find_config_index(effective_initial_id)
                 if idx is not None:
                     self._chooser.setCurrentIndex(idx.row())
@@ -317,7 +317,7 @@ class DbViewer(QWidget, QtUseContext):
         self._chooser.populate_db_connections()
         if prev_id:
             model = self._chooser.model()
-            if hasattr(model, "find_config_index"):
+            if model is not None and hasattr(model, "find_config_index"):
                 idx = model.find_config_index(prev_id)
                 if idx is not None:
                     self._chooser.setCurrentIndex(idx.row())
@@ -424,6 +424,8 @@ class DbViewer(QWidget, QtUseContext):
         needle = self._list_filter_line.text().strip().lower()
         for i in range(self._list_widget.count()):
             item = self._list_widget.item(i)
+            if item is None:
+                continue
             if not needle:
                 item.setHidden(False)
             else:
@@ -474,17 +476,25 @@ class DbViewer(QWidget, QtUseContext):
     def _check_all_tables(self) -> None:
         """Set all table list items to checked."""
         for i in range(self._list_widget.count()):
-            self._list_widget.item(i).setCheckState(Qt.CheckState.Checked)
+            item = self._list_widget.item(i)
+            if item is None:
+                continue
+            item.setCheckState(Qt.CheckState.Checked)
 
     def _check_none_tables(self) -> None:
         """Set all table list items to unchecked."""
         for i in range(self._list_widget.count()):
-            self._list_widget.item(i).setCheckState(Qt.CheckState.Unchecked)
+            item = self._list_widget.item(i)
+            if item is None:
+                continue
+            item.setCheckState(Qt.CheckState.Unchecked)
 
     def _invert_table_checks(self) -> None:
         """Toggle check state of every table list item."""
         for i in range(self._list_widget.count()):
             item = self._list_widget.item(i)
+            if item is None:
+                continue
             item.setCheckState(
                 Qt.CheckState.Unchecked
                 if item.checkState() == Qt.CheckState.Checked
@@ -499,6 +509,8 @@ class DbViewer(QWidget, QtUseContext):
         checked = []
         for i in range(self._list_widget.count()):
             item = self._list_widget.item(i)
+            if item is None:
+                continue
             if item.checkState() == Qt.CheckState.Checked:
                 checked.append(item.text())
 
@@ -519,6 +531,8 @@ class DbViewer(QWidget, QtUseContext):
 
         for i in range(self._list_widget.count()):
             item = self._list_widget.item(i)
+            if item is None:
+                continue
             if item.checkState() == Qt.CheckState.Checked:
                 table = item.text()
                 tab_label = self._next_tab_label(table)
@@ -665,7 +679,7 @@ class DbViewer(QWidget, QtUseContext):
         try:
             self._chooser.populate_db_connections()
             model = self._chooser.model()
-            if hasattr(model, "find_config_index"):
+            if model is not None and hasattr(model, "find_config_index"):
                 idx = model.find_config_index(conn_id)
                 if idx is not None:
                     self._chooser.setCurrentIndex(idx.row())
@@ -803,7 +817,7 @@ class DbViewer(QWidget, QtUseContext):
         if not cfg_id:
             return
         model = self._chooser.model()
-        if not hasattr(model, "find_config_index"):
+        if model is None or not hasattr(model, "find_config_index"):
             return
         idx = model.find_config_index(cfg_id)
         if idx is not None:

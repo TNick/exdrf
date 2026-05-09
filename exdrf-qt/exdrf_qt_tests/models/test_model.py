@@ -1,9 +1,10 @@
 """Tests for model module."""
 
 import unittest
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
-from exdrf.filter import FieldFilter
+from exdrf.filter import FieldFilter, FilterType
 from PyQt5.QtCore import QModelIndex, Qt
 
 from exdrf_qt.models.model import QtModel, compare_filters
@@ -16,67 +17,95 @@ class TestCompareFilters(unittest.TestCase):
         """Test comparing equal filter dictionaries."""
         f1 = {"fld": "name", "op": "==", "vl": "test"}
         f2 = {"fld": "name", "op": "==", "vl": "test"}
-        self.assertTrue(compare_filters(f1, f2))
+        self.assertTrue(
+            compare_filters(cast(FilterType, f1), cast(FilterType, f2))
+        )
 
     def test_compare_filters_unequal_dicts(self) -> None:
         """Test comparing unequal filter dictionaries."""
         f1 = {"fld": "name", "op": "==", "vl": "test"}
         f2 = {"fld": "name", "op": "==", "vl": "other"}
-        self.assertFalse(compare_filters(f1, f2))
+        self.assertFalse(
+            compare_filters(cast(FilterType, f1), cast(FilterType, f2))
+        )
 
     def test_compare_filters_equal_field_filters(self) -> None:
         """Test comparing equal FieldFilter objects."""
         f1 = FieldFilter(fld="name", op="==", vl="test")
         f2 = FieldFilter(fld="name", op="==", vl="test")
-        self.assertTrue(compare_filters(f1, f2))
+        self.assertTrue(
+            compare_filters(cast(FilterType, f1), cast(FilterType, f2))
+        )
 
     def test_compare_filters_unequal_field_filters(self) -> None:
         """Test comparing unequal FieldFilter objects."""
         f1 = FieldFilter(fld="name", op="==", vl="test")
         f2 = FieldFilter(fld="name", op="!=", vl="test")
-        self.assertFalse(compare_filters(f1, f2))
+        self.assertFalse(
+            compare_filters(cast(FilterType, f1), cast(FilterType, f2))
+        )
 
     def test_compare_filters_equal_lists(self) -> None:
         """Test comparing equal filter lists."""
-        f1 = ["OR", [{"fld": "name", "op": "==", "vl": "test"}]]
-        f2 = ["OR", [{"fld": "name", "op": "==", "vl": "test"}]]
+        f1: FilterType = cast(
+            FilterType,
+            ["or", [{"fld": "name", "op": "==", "vl": "test"}]],
+        )
+        f2: FilterType = cast(
+            FilterType,
+            ["or", [{"fld": "name", "op": "==", "vl": "test"}]],
+        )
         self.assertTrue(compare_filters(f1, f2))
 
     def test_compare_filters_unequal_list_lengths(self) -> None:
         """Test comparing filter lists with different lengths."""
-        f1 = ["OR", [{"fld": "name", "op": "==", "vl": "test"}]]
-        f2 = [
-            "OR",
+        f1: FilterType = cast(
+            FilterType,
+            ["or", [{"fld": "name", "op": "==", "vl": "test"}]],
+        )
+        f2: FilterType = cast(
+            FilterType,
             [
-                {"fld": "name", "op": "==", "vl": "test"},
-                {"fld": "id", "op": "==", "vl": 1},
+                "or",
+                [
+                    {"fld": "name", "op": "==", "vl": "test"},
+                    {"fld": "id", "op": "==", "vl": 1},
+                ],
             ],
-        ]
+        )
         self.assertFalse(compare_filters(f1, f2))
 
     def test_compare_filters_nested_lists(self) -> None:
         """Test comparing nested filter lists."""
-        f1 = [
-            "AND",
+        f1: FilterType = cast(
+            FilterType,
             [
-                {"fld": "name", "op": "==", "vl": "test"},
-                {"fld": "id", "op": ">", "vl": 0},
+                "and",
+                [
+                    {"fld": "name", "op": "==", "vl": "test"},
+                    {"fld": "id", "op": ">", "vl": 0},
+                ],
             ],
-        ]
-        f2 = [
-            "AND",
+        )
+        f2: FilterType = cast(
+            FilterType,
             [
-                {"fld": "name", "op": "==", "vl": "test"},
-                {"fld": "id", "op": ">", "vl": 0},
+                "and",
+                [
+                    {"fld": "name", "op": "==", "vl": "test"},
+                    {"fld": "id", "op": ">", "vl": 0},
+                ],
             ],
-        ]
+        )
         self.assertTrue(compare_filters(f1, f2))
 
     def test_compare_filters_mixed_types(self) -> None:
         """Test comparing filters with mixed dict and FieldFilter."""
         f1 = {"fld": "name", "op": "==", "vl": "test"}
         f2 = FieldFilter(fld="name", op="==", vl="test")
-        self.assertTrue(compare_filters(f1, f2))
+        self.assertTrue(
+            compare_filters(cast(FilterType, f1), cast(FilterType, f2))
+        )
 
 
 class TestQtModelRowCount(unittest.TestCase):
@@ -86,7 +115,7 @@ class TestQtModelRowCount(unittest.TestCase):
         """Set up test fixtures."""
         self.mock_ctx = MagicMock()
         self.mock_db_model = MagicMock()
-        self.model = QtModel(
+        self.model: QtModel[Any] = QtModel(
             ctx=self.mock_ctx,
             db_model=self.mock_db_model,
             prevent_total_count=True,
@@ -116,7 +145,7 @@ class TestQtModelColumnCount(unittest.TestCase):
         self.mock_db_model = MagicMock()
         self.mock_field1 = MagicMock()
         self.mock_field2 = MagicMock()
-        self.model = QtModel(
+        self.model: QtModel[Any] = QtModel(
             ctx=self.mock_ctx,
             db_model=self.mock_db_model,
             prevent_total_count=True,
@@ -141,7 +170,7 @@ class TestQtModelHasChildren(unittest.TestCase):
         """Set up test fixtures."""
         self.mock_ctx = MagicMock()
         self.mock_db_model = MagicMock()
-        self.model = QtModel(
+        self.model: QtModel[Any] = QtModel(
             ctx=self.mock_ctx,
             db_model=self.mock_db_model,
             prevent_total_count=True,
@@ -167,7 +196,7 @@ class TestQtModelParent(unittest.TestCase):
         """Set up test fixtures."""
         self.mock_ctx = MagicMock()
         self.mock_db_model = MagicMock()
-        self.model = QtModel(
+        self.model: QtModel[Any] = QtModel(
             ctx=self.mock_ctx,
             db_model=self.mock_db_model,
             prevent_total_count=True,
@@ -187,7 +216,7 @@ class TestQtModelIndex(unittest.TestCase):
         """Set up test fixtures."""
         self.mock_ctx = MagicMock()
         self.mock_db_model = MagicMock()
-        self.model = QtModel(
+        self.model: QtModel[Any] = QtModel(
             ctx=self.mock_ctx,
             db_model=self.mock_db_model,
             prevent_total_count=True,
@@ -227,7 +256,7 @@ class TestQtModelName(unittest.TestCase):
         self.mock_ctx = MagicMock()
         self.mock_db_model = MagicMock()
         self.mock_db_model.__name__ = "TestModel"
-        self.model = QtModel(
+        self.model: QtModel[Any] = QtModel(
             ctx=self.mock_ctx,
             db_model=self.mock_db_model,
             prevent_total_count=True,
@@ -245,7 +274,7 @@ class TestQtModelFlags(unittest.TestCase):
         """Set up test fixtures."""
         self.mock_ctx = MagicMock()
         self.mock_db_model = MagicMock()
-        self.model = QtModel(
+        self.model: QtModel[Any] = QtModel(
             ctx=self.mock_ctx,
             db_model=self.mock_db_model,
             prevent_total_count=True,
@@ -284,7 +313,7 @@ class TestQtModelIsFullyLoaded(unittest.TestCase):
         """Set up test fixtures."""
         self.mock_ctx = MagicMock()
         self.mock_db_model = MagicMock()
-        self.model = QtModel(
+        self.model: QtModel[Any] = QtModel(
             ctx=self.mock_ctx,
             db_model=self.mock_db_model,
             prevent_total_count=True,
@@ -310,7 +339,7 @@ class TestQtModelCheckedIds(unittest.TestCase):
         """Set up test fixtures."""
         self.mock_ctx = MagicMock()
         self.mock_db_model = MagicMock()
-        self.model = QtModel(
+        self.model: QtModel[Any] = QtModel(
             ctx=self.mock_ctx,
             db_model=self.mock_db_model,
             prevent_total_count=True,
@@ -340,7 +369,7 @@ class TestQtModelDataRecord(unittest.TestCase):
         """Set up test fixtures."""
         self.mock_ctx = MagicMock()
         self.mock_db_model = MagicMock()
-        self.model = QtModel(
+        self.model: QtModel[Any] = QtModel(
             ctx=self.mock_ctx,
             db_model=self.mock_db_model,
             prevent_total_count=True,
@@ -380,7 +409,7 @@ class TestQtModelCloneMe(unittest.TestCase):
         """Set up test fixtures."""
         self.mock_ctx = MagicMock()
         self.mock_db_model = MagicMock()
-        self.model = QtModel(
+        self.model: QtModel[Any] = QtModel(
             ctx=self.mock_ctx,
             db_model=self.mock_db_model,
             prevent_total_count=True,
@@ -410,7 +439,7 @@ class TestQtModelCheckedRows(unittest.TestCase):
         """Set up test fixtures."""
         self.mock_ctx = MagicMock()
         self.mock_db_model = MagicMock()
-        self.model = QtModel(
+        self.model: QtModel[Any] = QtModel(
             ctx=self.mock_ctx,
             db_model=self.mock_db_model,
             prevent_total_count=True,
@@ -436,7 +465,7 @@ class TestQtModelSetPrioritizedIds(unittest.TestCase):
         """Set up test fixtures."""
         self.mock_ctx = MagicMock()
         self.mock_db_model = MagicMock()
-        self.model = QtModel(
+        self.model: QtModel[Any] = QtModel(
             ctx=self.mock_ctx,
             db_model=self.mock_db_model,
             prevent_total_count=True,

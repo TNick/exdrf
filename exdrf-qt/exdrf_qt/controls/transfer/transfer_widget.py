@@ -1,7 +1,7 @@
 """Main transfer widget: two-pane DB transfer with table list and viewer."""
 
 import logging
-from typing import TYPE_CHECKING, List, Optional, cast
+from typing import TYPE_CHECKING, List, Optional, Protocol, cast
 
 from exdrf_al.connection import DbConn
 from PyQt5.QtCore import (
@@ -49,6 +49,13 @@ logger = logging.getLogger(__name__)
 VERBOSE = 1
 
 
+class _SupportsTableName(Protocol):
+    """Source or proxy-side model that exposes row table names."""
+
+    def table_name(self, row: int) -> Optional[str]:
+        """Return the physical table name for the given row index."""
+
+
 class TransferWidget(QWidget, QtUseContext):
     """Widget to transfer data from one DB connection to another.
 
@@ -81,8 +88,8 @@ class TransferWidget(QWidget, QtUseContext):
     # Private attributes
     _src_conn: Optional["DbConn"]
     _dst_conn: Optional["DbConn"]
-    _src_view_win: TableViewer = None  # type: ignore
-    _dst_view_win: TableViewer = None  # type: ignore
+    _src_view_win: Optional[TableViewer]
+    _dst_view_win: Optional[TableViewer]
     _spin_chunk: "QSpinBox"
     _src_db: "ChooseDb"
     _dst_db: "ChooseDb"
@@ -109,6 +116,8 @@ class TransferWidget(QWidget, QtUseContext):
         # Connections for both sides
         self._src_conn: Optional[DbConn] = None
         self._dst_conn: Optional[DbConn] = None
+        self._src_view_win: Optional[TableViewer] = None
+        self._dst_view_win: Optional[TableViewer] = None
 
         # One count-error toast per connection selection (cleared when
         # selection changes)
@@ -861,7 +870,7 @@ class TransferWidget(QWidget, QtUseContext):
             except Exception:
                 r = idx.row()
             # Lookup table name in the source model
-            name = source_model.table_name(r)  # type: ignore[attr-defined]
+            name = cast(_SupportsTableName, source_model).table_name(r)
             if name:
                 out.append(name)
         return out
@@ -1053,10 +1062,13 @@ class TransferWidget(QWidget, QtUseContext):
         if conn is None:
             return
         table_names = [
-            self._src_model.table_name(row)
-            for row in range(self._src_model.rowCount())
+            n
+            for n in (
+                self._src_model.table_name(row)
+                for row in range(self._src_model.rowCount())
+            )
+            if n
         ]
-        table_names = [n for n in table_names if n]
         if not table_names:
             return
         counts = self._src_model.count_all_tables(conn, table_names)
@@ -1111,6 +1123,8 @@ class TransferWidget(QWidget, QtUseContext):
             return
         sv = self._src_view.verticalScrollBar()
         dv = self._dst_view.verticalScrollBar()
+        if sv is None or dv is None:
+            return
         try:
             sv.valueChanged.connect(self._on_src_scroll)
         except Exception as e:
@@ -1125,13 +1139,15 @@ class TransferWidget(QWidget, QtUseContext):
         try:
             if getattr(self, "_src_view", None) is not None:
                 sv = self._src_view.verticalScrollBar()
-                sv.valueChanged.disconnect(self._on_src_scroll)
+                if sv is not None:
+                    sv.valueChanged.disconnect(self._on_src_scroll)
         except Exception as e:
             logger.log(VERBOSE, "TransferWidget: %s", e, exc_info=True)
         try:
             if getattr(self, "_dst_view", None) is not None:
                 dv = self._dst_view.verticalScrollBar()
-                dv.valueChanged.disconnect(self._on_dst_scroll)
+                if dv is not None:
+                    dv.valueChanged.disconnect(self._on_dst_scroll)
         except Exception as e:
             logger.log(VERBOSE, "TransferWidget: %s", e, exc_info=True)
 
@@ -1149,6 +1165,8 @@ class TransferWidget(QWidget, QtUseContext):
             return
         dv = self._dst_view.verticalScrollBar()
         sv = self._src_view.verticalScrollBar()
+        if dv is None or sv is None:
+            return
         try:
             self._sync_in_progress = True
             src_max = max(1, sv.maximum())
@@ -1174,6 +1192,8 @@ class TransferWidget(QWidget, QtUseContext):
             return
         sv = self._src_view.verticalScrollBar()
         dv = self._dst_view.verticalScrollBar()
+        if sv is None or dv is None:
+            return
         try:
             self._sync_in_progress = True
             dst_max = max(1, dv.maximum())

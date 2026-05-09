@@ -5,6 +5,7 @@ from typing import (
     Any,
     ForwardRef,
     Optional,
+    cast,
     get_args,
     get_origin,
 )
@@ -42,13 +43,13 @@ from exdrf.api import (
     StrField,
     StrListField,
 )
+from exdrf.field import ExField
 from exdrf_pd.visitor import ExModelVisitor
 
 if TYPE_CHECKING:
     from pydantic.fields import FieldInfo as PdFieldInfo  # noqa: F401
 
     from exdrf.dataset import ExDataset
-    from exdrf.field import ExField
     from exdrf.resource import ExResource
 
 
@@ -123,10 +124,11 @@ def _paged_list_item_type(annotation: Any) -> Any | None:
 
     if meta.get("origin") is not PagedList:
         return None
-    args = meta.get("args") or ()
-    if len(args) != 1:
+    args_raw = meta.get("args") or ()
+    args_tuple = tuple(args_raw)
+    if len(args_tuple) != 1:
         return None
-    return args[0]
+    return args_tuple[0]
 
 
 def _parse_forward_ref_arg(
@@ -159,7 +161,7 @@ def _parse_forward_ref_arg(
         inner_cls = models_by_name.get(m.group(1))
         if inner_cls is None:
             return None
-        return PagedList[inner_cls]
+        return cast(Any, PagedList)[inner_cls]
 
     return models_by_name.get(expr)
 
@@ -246,6 +248,8 @@ def field_from_pydantic(
             **kwargs,
         )
 
+    result: ExField
+
     paged_item = _paged_list_item_type(annotation)
     if paged_item is not None and _is_exmodel_type(paged_item):
         ds = resource.dataset
@@ -259,8 +263,9 @@ def field_from_pydantic(
 
     if _is_exmodel_type(annotation):
         ds = resource.dataset
+        model_cls = cast(type, annotation)
         result = RefOneToOneField(
-            ref=ds[annotation.__name__],
+            ref=ds[model_cls.__name__],
             **extra,
         )
         resource.add_field(result)
@@ -302,33 +307,34 @@ def field_from_pydantic(
         )
     elif get_origin(annotation) is list:
         # Homogeneous ``list[T]`` / ``List[T]`` (Pydantic v2 uses ``list[int]``).
-        result = None
         args = get_args(annotation)
+        list_field: Optional[ExField] = None
         if len(args) == 1:
             referenced = args[0]
             if isinstance(referenced, ForwardRef):
                 pass
             elif referenced is str:
-                result = StrListField(
+                list_field = StrListField(
                     **extra,
                 )
             elif referenced is int:
-                result = IntListField(
+                list_field = IntListField(
                     **extra,
                 )
             elif referenced is float:
-                result = FloatListField(
+                list_field = FloatListField(
                     **extra,
                 )
 
-        if result is None:
+        if list_field is None:
             # Composite lists (for example ``list[dict[str, Any]]`` relation key
             # payloads): use a string scalar exdrf field for metadata, but keep
             # the original pydantic ``FieldInfo`` as ``src`` so ``m2ts`` can read
             # ``field.src.annotation`` when emitting TypeScript.
-            result = StrField(
+            list_field = StrField(
                 **extra,
             )
+        result = list_field
     elif isinstance(annotation, ForwardRef):
         resolved = _resolve_forward_ref_annotation(annotation)
         if resolved is not None:

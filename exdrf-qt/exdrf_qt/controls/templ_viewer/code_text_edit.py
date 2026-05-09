@@ -89,7 +89,7 @@ class JinjaHtmlHighlighter(QSyntaxHighlighter):
             active: Whether to apply highlighting; default True.
         """
         super().__init__(document)
-        self.formats = {}
+        self.formats: Dict[Any, QTextCharFormat] = {}
         self._active = active
         self._init_formats()
         try:
@@ -133,7 +133,7 @@ class JinjaHtmlHighlighter(QSyntaxHighlighter):
         self.formats[Token.Literal] = make_format("#2E8B57")
         self.formats[Token.Error] = make_format("#FF0000", bold=True)
 
-    def highlightBlock(self, text: str) -> None:
+    def highlightBlock(self, text: str) -> None:  # type: ignore[override]
         """Apply syntax highlighting to the current block.
 
         When _active is false, returns without doing anything. Re-lexes

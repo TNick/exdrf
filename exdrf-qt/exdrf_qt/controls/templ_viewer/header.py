@@ -6,13 +6,16 @@ search line to the viewer's VarModel filters and delegates apply_filter
 to the model.
 """
 
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any, Optional, cast
+
+from exdrf.filter import SearchType
 
 from exdrf_qt.controls.tree_header import ListDbHeader
 
 if TYPE_CHECKING:
     from PyQt5.QtWidgets import QTreeView
 
+    from exdrf_qt.controls.search_lines.base import SearchData
     from exdrf_qt.controls.templ_viewer.templ_viewer import TemplViewer
 
 
@@ -43,16 +46,17 @@ class VarHeader(ListDbHeader):
             **kwargs: Passed to ListDbHeader (e.g. parent).
         """
         super().__init__(
-            save_settings=False,
+            parent=kwargs["parent"],
+            ctx=kwargs["ctx"],
             qt_model=None,
-            **kwargs,  # type: ignore
-        )  # type: ignore
+            save_settings=False,
+        )
         self.viewer = viewer
 
     @property
     def treeview(self) -> "QTreeView":
         """Return the variables table tree view (viewer.c_vars)."""
-        return self.viewer.c_vars
+        return cast("QTreeView", self.viewer.c_vars)
 
     def create_show_columns_action(self, section: int) -> Optional[Any]:
         """Return no column-visibility action; table has fixed columns.
@@ -94,15 +98,12 @@ class VarHeader(ListDbHeader):
         """
         self._load_current_filter(section)
 
-    def _apply_filter(self, section: int, text: str, exact: bool) -> None:
-        """Apply the filter to the viewer's model for the given section.
-
-        Delegates to viewer.model.apply_filter with the same arguments.
-        Called by the base header when the user commits a search.
+    def _apply_filter(self, section: int, data: "SearchData") -> None:
+        """Apply the filter using the viewer's VarModel.
 
         Args:
             section: Column index; 0 to filter by name, 1 by value.
-            text: Filter text.
-            exact: Whether to require exact match.
+            data: Search line payload (term and search type).
         """
-        self.viewer.model.apply_filter(section, text, exact)
+        exact = data.search_type == SearchType.EXACT
+        self.viewer.model.apply_filter(section, data.term, exact)

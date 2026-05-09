@@ -3,7 +3,7 @@ from typing import List
 from attrs import define, field
 
 from exdrf_qt.utils.router import ExdrfRouter as BaseRouter
-from exdrf_qt.utils.router import Route
+from exdrf_qt.utils.router import Route, session_del_record
 
 # exdrf-keep-start other_imports ----------------------------------------------
 
@@ -217,7 +217,7 @@ class ExdrfRouter(BaseRouter):
             Child,
             id=(id,),
             selectors=(Child.id,),  # type: ignore
-            perform_deletion=lambda rec, session: session.delete(rec),
+            perform_deletion=session_del_record,
         )
 
     @staticmethod
@@ -290,7 +290,7 @@ class ExdrfRouter(BaseRouter):
                 CompositeKeyModel.key_part1,
                 CompositeKeyModel.key_part2,
             ),
-            perform_deletion=lambda rec, session: session.delete(rec),
+            perform_deletion=session_del_record,
         )
 
     @staticmethod
@@ -341,7 +341,7 @@ class ExdrfRouter(BaseRouter):
             Parent,
             id=(id,),
             selectors=(Parent.id,),  # type: ignore
-            perform_deletion=lambda rec, session: session.delete(rec),
+            perform_deletion=session_del_record,
         )
 
     @staticmethod
@@ -414,7 +414,7 @@ class ExdrfRouter(BaseRouter):
                 ParentTagAssociation.parent_id,
                 ParentTagAssociation.tag_id,
             ),
-            perform_deletion=lambda rec, session: session.delete(rec),
+            perform_deletion=session_del_record,
         )
 
     @staticmethod
@@ -469,7 +469,7 @@ class ExdrfRouter(BaseRouter):
             Profile,
             id=(id,),
             selectors=(Profile.id,),  # type: ignore
-            perform_deletion=lambda rec, session: session.delete(rec),
+            perform_deletion=session_del_record,
         )
 
     @staticmethod
@@ -530,7 +530,7 @@ class ExdrfRouter(BaseRouter):
             RelatedItem,
             id=(id,),
             selectors=(RelatedItem.id,),  # type: ignore
-            perform_deletion=lambda rec, session: session.delete(rec),
+            perform_deletion=session_del_record,
         )
 
     @staticmethod
@@ -581,7 +581,7 @@ class ExdrfRouter(BaseRouter):
             Tag,
             id=(id,),
             selectors=(Tag.id,),  # type: ignore
-            perform_deletion=lambda rec, session: session.delete(rec),
+            perform_deletion=session_del_record,
         )
 
     # exdrf-keep-start extra_router_content ------------------------------------

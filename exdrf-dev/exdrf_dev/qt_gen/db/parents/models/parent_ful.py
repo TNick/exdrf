@@ -30,6 +30,8 @@ if TYPE_CHECKING:
     from exdrf_dev.db.api import Parent  # noqa: F401
     from exdrf_qt.context import QtContext  # noqa: F401
 
+from exdrf.filter import SearchType
+
 # exdrf-keep-start other_globals ----------------------------------------------
 
 # exdrf-keep-end other_globals ------------------------------------------------
@@ -127,7 +129,7 @@ class QtParentFuMo(QtModel["Parent"]):
     def text_to_filter(
         self,
         text: str,
-        exact: Optional[bool] = False,
+        search_type: Optional[SearchType] = SearchType.EXTENDED,
         limit: Optional[str] = None,
     ) -> "FilterType":
         """Convert a text to a filter.
@@ -135,13 +137,16 @@ class QtParentFuMo(QtModel["Parent"]):
         The function converts a text to a filter. The text is converted to a
         filter using the `simple_search_fields` property.
         """
-        filters = super().text_to_filter(text, exact, limit)
+        filters = super().text_to_filter(text, search_type, limit)
+        hook_exact = (
+            search_type == SearchType.EXACT if search_type is not None else None
+        )
         safe_hook_call(
             exdrf_qt_pm.hook.parent_fumo_ttf,
             model=self,
             filters=filters,
             text=text,
-            exact=exact,
+            exact=hook_exact,
             limit=limit,
         )
         return filters

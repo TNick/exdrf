@@ -39,7 +39,7 @@ class DrfDateTimeEditor(DateBase):
                 new_value, datetime
             ):
                 new_value = datetime.combine(new_value, datetime.min.time())
-            self.field_value = new_value
+            self._change_field_value(new_value)
             self.set_line_normal()
             self.setText(self.formatter.moment_to_string(new_value))
             if self.nullable:

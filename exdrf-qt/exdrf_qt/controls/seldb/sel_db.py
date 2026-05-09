@@ -46,7 +46,7 @@ class SelectDatabaseDlg(QDialog, Ui_SelectDatabase, QtUseContext):
     save_btn: QPushButton
     ok_btn: QPushButton
     _config_model: DatabaseConfigModel
-    btn_transfer: QPushButton
+    btn_transfer: Optional[QPushButton]
 
     def __init__(
         self, ctx: "QtContext", show_transfer_button: bool = True, **kwargs
@@ -115,9 +115,9 @@ class SelectDatabaseDlg(QDialog, Ui_SelectDatabase, QtUseContext):
         self.c_username.textChanged.connect(self.on_content_changed)
         self.main_tab.currentChanged.connect(self.on_content_changed)
         self.c_backend.currentIndexChanged.connect(self.on_content_changed)
-        self.c_list.selectionModel().selectionChanged.connect(
-            self.on_content_changed
-        )
+        list_sel = self.c_list.selectionModel()
+        if list_sel is not None:
+            list_sel.selectionChanged.connect(self.on_content_changed)
 
     def _setup_backend_combo(self):
         self.c_backend.addItem(
@@ -631,7 +631,10 @@ class SelectDatabaseDlg(QDialog, Ui_SelectDatabase, QtUseContext):
         menu.addAction(self.ac_remove)
         menu.addSeparator()
         menu.addAction(self.ac_backup)
-        menu.exec(self.c_list.viewport().mapToGlobal(pos))
+        vp = self.c_list.viewport()
+        if vp is None:
+            return
+        menu.exec(vp.mapToGlobal(pos))
 
     @classmethod
     def change_connection_str(cls, ctx: "QtContext") -> Tuple[str, str]:

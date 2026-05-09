@@ -312,22 +312,29 @@ class TableViewer(QWidget, QtUseContext):
         proxy = ctx.proxy
         header = ctx.view.horizontalHeader()
         headers = model.raw_headers()
-        column_order = [
-            str(headers[header.logicalIndex(vis)])
-            for vis in range(header.count())
-        ]
+        if header is None:
+            column_order = [str(h) for h in headers]
+            sort_column = None
+            sort_direction = "asc"
+        else:
+            column_order = [
+                str(headers[header.logicalIndex(vis)])
+                for vis in range(header.count())
+            ]
+            sort_logical = header.sortIndicatorSection()
+            sort_column = (
+                str(headers[sort_logical]) if sort_logical >= 0 else None
+            )
+            sort_direction = (
+                "desc"
+                if header.sortIndicatorOrder() == Qt.SortOrder.DescendingOrder
+                else "asc"
+            )
         filters = {
             str(headers[col]): str(proxy._filters.get(col, "") or "")
             for col in range(len(headers))
         }
         filters = {k: v for k, v in filters.items() if v}
-        sort_logical = header.sortIndicatorSection()
-        sort_column = str(headers[sort_logical]) if sort_logical >= 0 else None
-        sort_direction = (
-            "desc"
-            if header.sortIndicatorOrder() == Qt.SortOrder.DescendingOrder
-            else "asc"
-        )
         user_extra_columns = [
             [str(fk), str(tt), str(tc)]
             for (fk, tt, tc) in ctx.extra_columns
@@ -724,6 +731,8 @@ class TableViewer(QWidget, QtUseContext):
         """
         headers = ctx.model.raw_headers()
         header = ctx.view.horizontalHeader()
+        if header is None:
+            return
         initial_visible = [
             not header.isSectionHidden(i) for i in range(len(headers))
         ]
@@ -783,8 +792,9 @@ class TableViewer(QWidget, QtUseContext):
         """
         out: List[Tuple[str, str, str]] = []
         for ac in menu.actions():
-            if ac.menu():
-                out.extend(self._collect_join_choices_from_menu(ac.menu()))
+            sub = ac.menu()
+            if sub is not None:
+                out.extend(self._collect_join_choices_from_menu(sub))
             elif ac.isCheckable() and ac.isChecked():
                 data = ac.data()
                 if isinstance(data, (list, tuple)) and len(data) == 3:

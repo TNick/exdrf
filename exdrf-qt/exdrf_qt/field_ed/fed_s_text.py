@@ -41,7 +41,7 @@ class DrfLineEditor(LineBase, EditorWithChoices):
             # If the text is a choice, replace it with the true value.
             new_label = self.get_choices_label(str(new_value))
 
-            self.field_value = new_value
+            self._change_field_value(new_value)
             self.setText(new_label)
 
     def check_value(self, text: Any) -> Optional[str]:
@@ -89,7 +89,7 @@ class DrfLineEditor(LineBase, EditorWithChoices):
             self.set_line_normal()
         if final:
             # Change the value and signal the change.
-            self.field_value = result
+            self._change_field_value(result)
 
     def on_text_changed(self, text: str) -> None:
         self._on_text_changed(text, False)
@@ -104,7 +104,7 @@ class DrfLineEditor(LineBase, EditorWithChoices):
         If the control does not support null values, the control will enter
         the error state.
         """
-        self.field_value = None
+        self._change_field_value(None)
         self.set_line_empty()
         if self.nullable:
             assert self.ac_clear is not None

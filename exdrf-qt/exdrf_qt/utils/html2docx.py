@@ -2,7 +2,7 @@ import os
 import re
 import tempfile
 
-import cairosvg
+import cairosvg  # type: ignore[import-not-found]
 from bs4 import BeautifulSoup, Tag
 from bs4.element import NavigableString
 from docx import Document

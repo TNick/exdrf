@@ -33,17 +33,29 @@ class QtParentTagAssociationList(ListDb["ParentTagAssociation"]):
             QtParentTagAssociationFuMo,
         )
 
+        _list_pass_kw = {
+            k: kwargs[k]
+            for k in (
+                "parent",
+                "menu_handler",
+                "compare_merge_enabled",
+                "compare_merge_max_selection",
+            )
+            if k in kwargs
+        }
+        _other = (
+            kwargs["other_actions"]
+            if "other_actions" in kwargs
+            else ctx.get_ovr(
+                "exdrf_dev.qt_gen.db.parent_tag_associations.list.extra-menus",
+                None,
+            )
+        )
         super().__init__(
             ctx=ctx,
             *args,
-            other_actions=kwargs.pop(
-                "other_actions",
-                ctx.get_ovr(
-                    "exdrf_dev.qt_gen.db.parent_tag_associations.list.extra-menus",
-                    None,
-                ),
-            ),
-            **kwargs,
+            other_actions=_other,
+            **_list_pass_kw,
         )
         self.setModel(
             ctx.get_c_ovr(

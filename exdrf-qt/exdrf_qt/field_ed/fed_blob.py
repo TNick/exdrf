@@ -56,7 +56,7 @@ class DrfBlobEditor(LineBase):
         If the control does not support null values, the control will enter
         the error state.
         """
-        self.field_value = None
+        self._change_field_value(None)
         self.set_line_empty()
         self.ac_download.setEnabled(False)
         if self.nullable:
@@ -72,7 +72,7 @@ class DrfBlobEditor(LineBase):
         if new_value is None:
             self.set_line_null()
         else:
-            self.field_value = new_value
+            self._change_field_value(new_value)
             self.set_line_normal()
             self.setText(
                 self.t("cmn.bytes_length", "({cnt} bytes)", cnt=len(new_value))

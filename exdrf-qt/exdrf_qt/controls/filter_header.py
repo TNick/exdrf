@@ -132,8 +132,9 @@ class FilterHeader(QHeaderView, QtUseContext):
         # Debounce non-empty text: restart timer for this column
         if column >= len(self._timers):
             return
-        if self._timers[column] is not None and self._timers[column].isActive():
-            self._timers[column].stop()
+        col_timer = self._timers[column]
+        if col_timer is not None and col_timer.isActive():
+            col_timer.stop()
         tmr = QTimer(self)
         tmr.setSingleShot(True)
         tmr.timeout.connect(lambda: self._apply_debounced_filter(column))
@@ -206,7 +207,7 @@ class FilterHeader(QHeaderView, QtUseContext):
 
     def paintSection(
         self,
-        painter: QPainter,
+        painter: Optional[QPainter],
         rect: QRect,
         logicalIndex: int,
     ) -> None:
@@ -217,6 +218,8 @@ class FilterHeader(QHeaderView, QtUseContext):
         drawn rect to the label area and set the text from the model so the
         column name is visible.
         """
+        if painter is None:
+            return
         label_height = max(0, rect.height() - self._filter_height)
         label_rect = QRect(rect.x(), rect.y(), rect.width(), label_height)
         if label_rect.isEmpty():
@@ -235,8 +238,9 @@ class FilterHeader(QHeaderView, QtUseContext):
         opt.rect = label_rect
         opt.section = logicalIndex
         opt.text = text
-        opt.textAlignment = (
-            Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter
+        opt.textAlignment = cast(
+            Any,
+            Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter,
         )
         if (
             self.isSortIndicatorShown()

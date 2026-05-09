@@ -9,11 +9,9 @@ on:
 jobs:
   build-test-publish-testpypi:
     runs-on: ubuntu-latest
-    environment: testpypi
 
     permissions:
       contents: read
-      id-token: write
 
     steps:
       - name: Checkout
@@ -45,6 +43,8 @@ jobs:
         with:
           repository-url: https://test.pypi.org/legacy/
           packages-dir: release_dist/
+          user: __token__
+          password: ${{ secrets.TEST_PYPI_API_TOKEN }}
 
       - name: Verify install from TestPyPI
         run: |
@@ -55,11 +55,9 @@ jobs:
   publish-pypi:
     runs-on: ubuntu-latest
     needs: build-test-publish-testpypi
-    environment: pypi
 
     permissions:
       contents: read
-      id-token: write
 
     steps:
       - name: Checkout
@@ -85,3 +83,5 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: release_dist/
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}

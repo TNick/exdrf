@@ -29,9 +29,12 @@ from PyQt5.QtWidgets import (
     QPushButton,
     QStyle,
     QStyledItemDelegate,
+    QStyleOption,
     QStyleOptionViewItem,
     QWidget,
 )
+
+from exdrf_qt.controls.table_viewer.sql_table_model import SqlTableModel
 
 logger = logging.getLogger(__name__)
 VERBOSE = 1
@@ -118,8 +121,8 @@ class TableCellDelegate(QStyledItemDelegate):
 
     def paint(
         self,
-        painter: QPainter,
-        option: QStyleOptionViewItem,
+        painter: Optional[QPainter],
+        option: QStyleOption,
         index: QModelIndex,
     ) -> None:
         """Paint the cell; show NULL for null/empty values.
@@ -129,12 +132,19 @@ class TableCellDelegate(QStyledItemDelegate):
             option: Style option for the cell.
             index: Model index.
         """
+        if painter is None:
+            return
         if index.isValid():
             model = index.model()
             if model is not None:
                 value = model.data(index, Qt.ItemDataRole.DisplayRole)
                 if _is_null_display(value):
-                    _paint_null_cell(self, painter, option, index)
+                    _paint_null_cell(
+                        self,
+                        painter,
+                        cast(QStyleOptionViewItem, option),
+                        index,
+                    )
                     return
         super().paint(painter, option, index)
 
@@ -184,8 +194,8 @@ class SqlColumnDelegate(QStyledItemDelegate):
 
     def paint(
         self,
-        painter: QPainter,
-        option: QStyleOptionViewItem,
+        painter: Optional[QPainter],
+        option: QStyleOption,
         index: QModelIndex,
     ) -> None:
         """Paint the cell; show NULL for null/empty values.
@@ -195,19 +205,26 @@ class SqlColumnDelegate(QStyledItemDelegate):
             option: Style option for the cell.
             index: Model index (proxy space).
         """
+        if painter is None:
+            return
         if index.isValid():
             model = index.model()
             if model is not None:
                 value = model.data(index, Qt.ItemDataRole.DisplayRole)
                 if _is_null_display(value):
-                    _paint_null_cell(self, painter, option, index)
+                    _paint_null_cell(
+                        self,
+                        painter,
+                        cast(QStyleOptionViewItem, option),
+                        index,
+                    )
                     return
         super().paint(painter, option, index)
 
     def createEditor(
         self,
-        parent: QWidget,
-        option: QStyleOptionViewItem,
+        parent: Optional[QWidget],
+        option: QStyleOption,
         index: QModelIndex,
     ) -> Optional[QWidget]:
         """Create a type-appropriate editor for the cell if the column is
@@ -231,17 +248,18 @@ class SqlColumnDelegate(QStyledItemDelegate):
         source_model = proxy.sourceModel()
         if source_model is None:
             return None
+        sql_model = cast(SqlTableModel, source_model)
         col = source_index.column()
-        headers = source_model.raw_headers()
+        headers = sql_model.raw_headers()
         if col < 0 or col >= len(headers):
             return None
         column_name = headers[col]
         if not self.is_column_editable(column_name):
             return None
 
-        col_type = source_model.raw_column_type(col)
+        col_type = sql_model.raw_column_type(col)
         type_name = type(col_type).__name__ if col_type else ""
-        nullable = source_model.raw_column_nullable(col)
+        nullable = sql_model.raw_column_nullable(col)
 
         inner: Optional[QWidget] = None
         if type_name == "Boolean":
@@ -275,6 +293,8 @@ class SqlColumnDelegate(QStyledItemDelegate):
 
         # Add Clear as a trailing action on QLineEdit when possible; nullable
         # Boolean uses tristate checkbox (no wrapper); wrap only date/datetime.
+        if parent is None:
+            return inner
         if isinstance(inner, QLineEdit):
             self._add_clear_action_to_line_edit(inner)
             return inner
@@ -489,8 +509,8 @@ class SqlColumnDelegate(QStyledItemDelegate):
 
     def updateEditorGeometry(
         self,
-        editor: QWidget,
-        option: QStyleOptionViewItem,
+        editor: Optional[QWidget],
+        option: QStyleOption,
         index: QModelIndex,
     ) -> None:
         """Set the editor geometry to the cell rect.
@@ -500,4 +520,6 @@ class SqlColumnDelegate(QStyledItemDelegate):
             option: Style option whose rect is used for geometry.
             index: Model index (unused).
         """
+        if editor is None:
+            return
         editor.setGeometry(option.rect)

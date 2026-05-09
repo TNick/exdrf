@@ -268,7 +268,7 @@ class VarModel(QAbstractItemModel, QtUseContext):
             and ItemIsEditable for column 1.
         """
         if not index.isValid():
-            return Qt.ItemFlag.NoItemFlags
+            return cast(Qt.ItemFlags, Qt.ItemFlag.NoItemFlags)
         column = index.column()
         base = Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable
         if column == 1:

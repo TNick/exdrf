@@ -2,7 +2,7 @@
 
 import os
 import threading
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import yaml
 from pyrsistent import freeze
@@ -104,7 +104,7 @@ class TestLocalSettingsPersistence:
 
     @patch("exdrf_qt.local_settings.user_config_dir")
     def test_concurrent_save_merges_distinct_keys(
-        self, mock_ud: object, tmp_path: object
+        self, mock_ud: MagicMock, tmp_path: object
     ) -> None:
         mock_ud.return_value = str(tmp_path)
 
@@ -128,7 +128,7 @@ class TestLocalSettingsPersistence:
 
     @patch("exdrf_qt.local_settings.user_config_dir")
     def test_save_uses_unique_temp_and_atomic_replace(
-        self, mock_ud: object, tmp_path: object
+        self, mock_ud: MagicMock, tmp_path: object
     ) -> None:
         mock_ud.return_value = str(tmp_path)
         ls = LocalSettings()

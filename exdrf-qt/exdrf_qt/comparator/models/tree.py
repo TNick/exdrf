@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 from PyQt5.QtCore import QAbstractItemModel, QModelIndex, Qt
 from PyQt5.QtGui import QBrush, QColor
@@ -279,7 +279,7 @@ class ComparatorTreeModel(QAbstractItemModel):
             return base
         col = index.column()
         if col == self._method_column() or col == self._result_column():
-            return base | Qt.ItemFlags(ITEM_IS_EDITABLE)
+            return cast(Qt.ItemFlags, int(base) | ITEM_IS_EDITABLE)
         return base
 
     def setData(

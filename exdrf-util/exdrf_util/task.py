@@ -236,7 +236,9 @@ class Task:
         self,
     ) -> Dict[str, OrderedDict[str, "TaskParameter"]]:
         """Get the parameters split into categories."""
-        result = defaultdict(OrderedDict)
+        result: Dict[str, OrderedDict[str, TaskParameter]] = defaultdict(
+            OrderedDict
+        )
         for parameter in self.parameters.values():
             result[parameter.category][parameter.name] = parameter
         return result

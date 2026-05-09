@@ -36,6 +36,7 @@ class Qt{{ ResPascal }}List(ListDb["{{ ResPascal }}"]):
             Qt{{ ResPascal }}FuMo,
         )
 
+        kwargs.pop("ctx", None)
         super().__init__(
             ctx=ctx,
             *args,

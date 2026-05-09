@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from uuid import uuid4
 
 import yaml
-from appdirs import user_config_dir
+from appdirs import user_config_dir  # type: ignore[import-untyped]
 from attrs import define, field
 from exdrf_util.rotate_backups import rotate_backups
 from filelock import FileLock, Timeout

@@ -83,7 +83,8 @@ class QtTagTv(RecordTemplViewer):
         safe_hook_call(exdrf_qt_pm.hook.tag_tv_created, widget=self)
 
     def read_record(self, session: "Session") -> Union[None, "Tag"]:
-        from .db.tag import tag_label
+        def _tag_label(tag: "Tag") -> str:
+            return tag.name
 
         result = session.scalar(
             select(self.db_model).where(
@@ -102,7 +103,7 @@ class QtTagTv(RecordTemplViewer):
                 label = self.t(
                     "tag.tv.title-found",
                     "Tag: view {name}",
-                    name=tag_label(result),
+                    name=_tag_label(result),
                 )
             except Exception as e:
                 logger.error("Error getting label: %s", e, exc_info=True)

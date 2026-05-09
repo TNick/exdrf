@@ -33,17 +33,30 @@ class QtCompositeKeyModelList(ListDb["CompositeKeyModel"]):
             QtCompositeKeyModelFuMo,
         )
 
+        _list_pass_kw = {
+            k: kwargs[k]
+            for k in (
+                "parent",
+                "menu_handler",
+                "compare_merge_enabled",
+                "compare_merge_max_selection",
+            )
+            if k in kwargs
+        }
+        _other = (
+            kwargs["other_actions"]
+            if "other_actions" in kwargs
+            else ctx.get_ovr(
+                "exdrf_dev.qt_gen.db.composite_key_models.list.extra-menus",
+                None,
+            )
+        )
+
         super().__init__(
             ctx=ctx,
             *args,
-            other_actions=kwargs.pop(
-                "other_actions",
-                ctx.get_ovr(
-                    "exdrf_dev.qt_gen.db.composite_key_models.list.extra-menus",
-                    None,
-                ),
-            ),
-            **kwargs,
+            other_actions=_other,
+            **_list_pass_kw,
         )
         self.setModel(
             ctx.get_c_ovr(
@@ -55,11 +68,17 @@ class QtCompositeKeyModelList(ListDb["CompositeKeyModel"]):
         )
 
         self.setWindowTitle(
-            self.t("composite_key_model.list.title", "Composite key model list"),
+            self.t(
+                "composite_key_model.list.title",
+                "Composite key model list",
+            ),
         )
 
         # Inform plugins that the list has been created.
-        safe_hook_call(exdrf_qt_pm.hook.composite_key_model_list_created, widget=self)
+        safe_hook_call(
+            exdrf_qt_pm.hook.composite_key_model_list_created,
+            widget=self,
+        )
 
         # exdrf-keep-start extra_init -----------------------------------------
 

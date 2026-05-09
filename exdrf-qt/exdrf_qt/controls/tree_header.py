@@ -53,13 +53,13 @@ class ListDbHeader(QHeaderView, QtUseContext, Generic[DBM]):
     filtered_sections: Set[int]
     save_settings: bool
     _no_stg_write: bool
-    qt_model: "QtModel[DBM]"
+    qt_model: Optional["QtModel[DBM]"]
 
     def __init__(
         self,
         parent: "QTreeView",
         ctx: "QtContext",
-        qt_model: "QtModel[DBM]",
+        qt_model: Optional["QtModel[DBM]"] = None,
         save_settings: bool = True,
     ):
         super().__init__(Qt.Orientation.Horizontal, parent)
@@ -289,6 +289,8 @@ class ListDbHeader(QHeaderView, QtUseContext, Generic[DBM]):
             dlg.apply_changes()
 
     def _load_current_filter(self, section: int):
+        if self.qt_model is None:
+            return
         # Get the current filter.
         current_filter = self.qt_model.filters
         current_filter_fld = self.qt_model.column_fields[section].name
@@ -414,6 +416,8 @@ class ListDbHeader(QHeaderView, QtUseContext, Generic[DBM]):
         self.apply_filter(section, data)
 
     def _apply_filter(self, section: int, data: "SearchData"):
+        if self.qt_model is None:
+            return
         self.qt_model.apply_filter(
             insert_quick_search(
                 self.qt_model.column_fields[section].name,
@@ -558,6 +562,8 @@ class ListDbHeader(QHeaderView, QtUseContext, Generic[DBM]):
 
     def read_sections_layout(self) -> dict[str, dict[str, int]]:
         """Read the sections layout from the settings."""
+        if self.qt_model is None:
+            return {}
         qt_model = self.qt_model
 
         # Go through all sections and save their current visual index and size.
@@ -587,6 +593,8 @@ class ListDbHeader(QHeaderView, QtUseContext, Generic[DBM]):
         return settings
 
     def stg_key_name(self, field_li: int, key: str) -> str:
+        if self.qt_model is None:
+            return ""
         # Underlying model.
         qt_model = self.qt_model
 
@@ -602,6 +610,8 @@ class ListDbHeader(QHeaderView, QtUseContext, Generic[DBM]):
         sections_layout: dict[str, dict[str, int]],
         save_to_settings: bool = False,
     ):
+        if self.qt_model is None:
+            return
         qt_model = self.qt_model
         prefix = qt_model.__module__ + "." + qt_model.__class__.__name__
         self._no_stg_write = True
@@ -659,6 +669,8 @@ class ListDbHeader(QHeaderView, QtUseContext, Generic[DBM]):
 
     def load_sections_from_settings(self):
         """Load the visible sections and their length from the settings."""
+        if self.qt_model is None:
+            return
         qt_model = self.qt_model
         prefix = qt_model.__module__ + "." + qt_model.__class__.__name__
 

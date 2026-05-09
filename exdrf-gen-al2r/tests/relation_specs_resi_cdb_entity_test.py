@@ -19,10 +19,8 @@ from exdrf_gen_al2r.relation_specs import build_al2r_relation_sync_specs
 def test_entity_relation_sync_specs_covers_all_list_refs() -> None:
     """Every ``Entity`` list relation must get a supported al2r sync spec."""
 
-    pytest.importorskip("resi_cdb.api")
-
-    from resi_cdb.api import Base
-
+    api_mod = pytest.importorskip("resi_cdb.api")
+    Base = api_mod.Base
     from exdrf.dataset import ExDataset
     from exdrf_al.loader import dataset_from_sqlalchemy
 

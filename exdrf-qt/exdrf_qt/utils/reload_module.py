@@ -39,11 +39,7 @@ from PyQt5.QtWidgets import (
     QWidget,
 )
 
-try:  # when imported as a package module
-    from .stay_open_menu import StayOpenMenu
-except Exception:  # pragma: no cover - fallback for __main__ execution
-    from stay_open_menu import StayOpenMenu
-
+from exdrf_qt.utils.stay_open_menu import StayOpenMenu
 
 if TYPE_CHECKING:
     from exdrf_util.typedefs import HasTranslate

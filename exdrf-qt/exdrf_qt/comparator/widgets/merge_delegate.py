@@ -42,7 +42,7 @@ class ComparatorMergeDelegate(QStyledItemDelegate):
         the model at runtime.
     """
 
-    def createEditor(
+    def createEditor(  # type: ignore[override]
         self,
         parent: QWidget,
         option: QStyleOptionViewItem,
@@ -92,7 +92,9 @@ class ComparatorMergeDelegate(QStyledItemDelegate):
 
         return None
 
-    def setEditorData(self, editor: QWidget, index: QModelIndex) -> None:
+    def setEditorData(  # type: ignore[override]
+        self, editor: QWidget, index: QModelIndex
+    ) -> None:
         """Load model data into the editor.
 
         Args:
@@ -122,7 +124,7 @@ class ComparatorMergeDelegate(QStyledItemDelegate):
                 text = "" if val is None else str(val)
                 editor.setText(text)
 
-    def setModelData(
+    def setModelData(  # type: ignore[override]
         self,
         editor: QWidget,
         model: Any,
@@ -144,16 +146,18 @@ class ComparatorMergeDelegate(QStyledItemDelegate):
             if isinstance(editor, QComboBox):
                 method_id = editor.currentData()
                 if method_id is not None:
-                    model.setData(index, method_id, Qt.EditRole)
+                    model.setData(index, method_id, Qt.ItemDataRole.EditRole)
             return
 
         if col == self._result_column(model):
             if hasattr(editor, "field_value"):
-                model.setData(index, editor.field_value, Qt.EditRole)
+                model.setData(
+                    index, editor.field_value, Qt.ItemDataRole.EditRole
+                )
             elif isinstance(editor, QLineEdit):
-                model.setData(index, editor.text(), Qt.EditRole)
+                model.setData(index, editor.text(), Qt.ItemDataRole.EditRole)
 
-    def updateEditorGeometry(
+    def updateEditorGeometry(  # type: ignore[override]
         self,
         editor: QWidget,
         option: QStyleOptionViewItem,

@@ -32,8 +32,6 @@ from exdrf_qt.models.record import QtRecord
 from exdrf_qt.utils.tlh import top_level_handler
 
 if TYPE_CHECKING:
-    pass
-
     from PyQt5.QtWidgets import QAction
 
     from exdrf_qt.context import QtContext
@@ -406,9 +404,9 @@ class DrfRelated(QWidget, Generic[DBM], DrfFieldEd):
         if dst_sm is None:
             return
 
-        # Collect all records.
-        selected_records = dst_sm.iter_records(
-            include_top=True,
+        # Collect every loaded destination row (remove-all applies to the list).
+        selected_records = list(
+            self.dst_model.iter_records(include_top=True),
         )
         if not selected_records:
             return
@@ -444,13 +442,13 @@ class DrfRelated(QWidget, Generic[DBM], DrfFieldEd):
         src_sm = self.src_list.selectionModel()
         src_enabled = in_editing
         if in_editing and src_sm is not None:
-            src_enabled = not src_sm.selectedRows().isEmpty()
+            src_enabled = len(src_sm.selectedRows()) > 0
 
         # Destination selection.
         dst_sm = self.dst_list.selectionModel()
         dst_enabled = in_editing
         if in_editing and dst_sm is not None:
-            dst_enabled = not dst_sm.selectedRows().isEmpty()
+            dst_enabled = len(dst_sm.selectedRows()) > 0
 
         # Change the buttons.
         self.btn_add.setEnabled(src_enabled)

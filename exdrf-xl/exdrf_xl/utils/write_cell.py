@@ -11,11 +11,13 @@ from openpyxl.worksheet.formula import (  # type: ignore[import]
     ArrayFormula,
     DataTableFormula,
 )
-from openpyxl.xml.functions import XML_NS, Element  # type: ignore[import]
+from openpyxl.xml.functions import Element  # type: ignore[import]
 
 if TYPE_CHECKING:
     from openpyxl.cell import Cell
     from openpyxl.worksheet.worksheet import Worksheet
+
+_XML_SPACE_NS = "http://www.w3.org/XML/1998/namespace"
 
 
 def lxml_write_cell_o(xf, worksheet: "Worksheet", cell: "Cell", styled=False):
@@ -81,7 +83,7 @@ def lxml_write_cell_o(xf, worksheet: "Worksheet", cell: "Cell", styled=False):
                     if isinstance(value, str):
                         attrs = {}
                         if value != value.strip():
-                            attrs["{%s}space" % XML_NS] = "preserve"
+                            attrs["{%s}space" % _XML_SPACE_NS] = "preserve"
                         # lxml can't handle xml-ns
                         el = Element("t", attrs)
                         el.text = value

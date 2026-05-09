@@ -1,7 +1,7 @@
 """Tests for proxy module."""
 
 import unittest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from PyQt5.QtCore import QAbstractTableModel, QModelIndex, QObject, Qt
 
@@ -82,13 +82,19 @@ class TestProxyModelSetColumnFilter(unittest.TestCase):
     def setUp(self) -> None:
         """Set up test fixtures."""
         self.proxy = ProxyModel()
-        self.proxy.invalidateFilter = MagicMock()
+        self._patcher = patch.object(
+            self.proxy, "invalidateFilter", autospec=True
+        )
+        self.mock_invalidate = self._patcher.start()
+
+    def tearDown(self) -> None:
+        self._patcher.stop()
 
     def test_set_column_filter_with_text(self) -> None:
         """Test setting column filter with text."""
         self.proxy.set_column_filter(0, "test")
         self.assertIn(0, self.proxy._column_filters)
-        self.proxy.invalidateFilter.assert_called_once()
+        self.mock_invalidate.assert_called_once()
 
     def test_set_column_filter_empty_removes(self) -> None:
         """Test setting empty filter text removes the filter."""
@@ -111,14 +117,20 @@ class TestProxyModelSetRowPredicate(unittest.TestCase):
     def setUp(self) -> None:
         """Set up test fixtures."""
         self.proxy = ProxyModel()
-        self.proxy.invalidateFilter = MagicMock()
+        self._patcher = patch.object(
+            self.proxy, "invalidateFilter", autospec=True
+        )
+        self.mock_invalidate = self._patcher.start()
+
+    def tearDown(self) -> None:
+        self._patcher.stop()
 
     def test_set_row_predicate(self) -> None:
         """Test setting row predicate."""
         predicate = MagicMock(return_value=True)
         self.proxy.set_row_predicate(predicate)
         self.assertEqual(self.proxy._row_predicate, predicate)
-        self.proxy.invalidateFilter.assert_called_once()
+        self.mock_invalidate.assert_called_once()
 
     def test_set_row_predicate_none(self) -> None:
         """Test clearing row predicate."""

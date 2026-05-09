@@ -1,6 +1,7 @@
 import logging
 from typing import (
     TYPE_CHECKING,
+    Any,
     Callable,
     Generic,
     List,
@@ -286,7 +287,10 @@ class DbFieldDelegate(QStyledItemDelegate):
         if field is None or not field.is_editable():
             return None
 
-        editor = field.create_editor(parent)
+        edit_parent = (
+            parent if parent is not None else cast(QWidget, self.parent())
+        )
+        editor = field.create_editor(edit_parent)
         if editor is None:
             return None
 
@@ -300,16 +304,27 @@ class DbFieldDelegate(QStyledItemDelegate):
         field.configure_editor(editor, _commit_and_close)
         return editor
 
-    def setEditorData(self, editor: QWidget, index: QModelIndex) -> None:
+    def setEditorData(
+        self, editor: Optional[QWidget], index: QModelIndex
+    ) -> None:
         """Populate the editor with the current value."""
+        if editor is None:
+            return
         field = self._field_from_index(index)
         if field is None:
             return
         value = index.data(Qt.ItemDataRole.EditRole)
         field.set_editor_data(editor, value)
 
-    def setModelData(self, editor: QWidget, model, index: QModelIndex) -> None:
+    def setModelData(
+        self,
+        editor: Optional[QWidget],
+        model: Any,
+        index: QModelIndex,
+    ) -> None:
         """Commit the editor value back to the model."""
+        if editor is None:
+            return
         if model is None:
             return
         field = self._field_from_index(index)
@@ -321,9 +336,14 @@ class DbFieldDelegate(QStyledItemDelegate):
         model.setData(index, value, Qt.ItemDataRole.EditRole)
 
     def updateEditorGeometry(
-        self, editor: QWidget, option: QStyleOptionViewItem, index: QModelIndex
+        self,
+        editor: Optional[QWidget],
+        option: QStyleOptionViewItem,
+        index: QModelIndex,
     ) -> None:
         """Position the editor within the cell."""
+        if editor is None:
+            return
         editor.setGeometry(option.rect)
 
 
@@ -645,7 +665,7 @@ class TreeViewDb(QTreeView, QtUseContext, Generic[DBM]):
             exclude_top: If True, exclude items that are in the top cache,
                 that is, items that are not directly managed by the model.
         """
-        result = []
+        result: List["QtRecord"] = []
         model = self.qt_model
         # Collect the selected source records.
         src_sm = self.selectionModel()

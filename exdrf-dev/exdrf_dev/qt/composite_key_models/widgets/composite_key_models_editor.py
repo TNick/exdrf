@@ -2,7 +2,9 @@
 # Source: db2qt.database_to_qt
 # Don't change it manually.
 
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Union, cast
+
+from sqlalchemy import select
 
 from exdrf.constants import RecIdType
 from exdrf_dev.qt.composite_key_models.widgets.composite_key_models_editor_ui import (
@@ -35,12 +37,40 @@ class QtCompositeKeyModelEditor(
 
     def read_record(
         self, session: "Session", record_id: RecIdType
-    ) -> "CompositeKeyModel":
-        return session.scalar(
-            self.selection.where(
-                self.db_model.id == record_id  # type: ignore[operator]
-            )
+    ) -> Union["CompositeKeyModel", None]:
+        """Load the CompositeKeyModel row for the structured ``record_id``."""
+        if not isinstance(record_id, tuple):
+            return None
+        if len(record_id) != 2:
+            return None
+
+        k1, k2 = record_id
+
+        stmt = select(self.db_model).where(
+            self.db_model.key_part1 == k1,
+            self.db_model.key_part2 == k2,
         )
+
+        result = session.scalar(stmt)
+
+        if result is None:
+            self.ctx.set_window_title(
+                self,
+                self.t(
+                    "composite_key_model.editor.title-not-found",
+                    "Composite key model - record missing",
+                ),
+            )
+            return None
+
+        title = self.t(
+            "composite_key_model.editor.title-found",
+            "Composite key model: ({k1}, {k2})",
+            k1=k1,
+            k2=k2,
+        )
+        self.ctx.set_window_title(self, title)
+        return cast("CompositeKeyModel", result)
 
     def populate(self, record: Union["CompositeKeyModel", None]):
         pass
@@ -51,4 +81,5 @@ class QtCompositeKeyModelEditor(
         pass
 
     def get_id_of_record(self, record: "CompositeKeyModel") -> RecIdType:
-        return record.id
+        """Return this table's composite primary key as ``(key_part1, key_part2)``."""
+        return (record.key_part1, record.key_part2)

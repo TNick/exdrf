@@ -6,6 +6,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import exdrf_gen_al2pd  # noqa: F401
+from exdrf.field import ExField
 from exdrf.field_types.int_field import IntField
 from exdrf.field_types.str_field import StrField
 from exdrf.label_dsl import parse_expr
@@ -68,16 +69,24 @@ def test_cli_al2pd_writes_modules(tmp_path: Path) -> None:
 def test_cli_al2pd_writes_category_api(tmp_path: Path) -> None:
     """Nested ``categories`` get a local ``api.py`` with relative imports."""
 
-    common = dict(
-        fields=[
-            IntField(name="id", primary=True, nullable=False),
-            StrField(name="title", nullable=False),
-        ],
-        label_ast=parse_expr("title"),
-        categories=["l18"],
+    fields: list[ExField] = [
+        IntField(name="id", primary=True, nullable=False),
+        StrField(name="title", nullable=False),
+    ]
+    label_ast = parse_expr("title")
+    categories = ["l18"]
+    r1 = ExResource(
+        name="Alpha",
+        fields=fields,
+        label_ast=label_ast,
+        categories=categories,
     )
-    r1 = ExResource(name="Alpha", **common)
-    r2 = ExResource(name="Beta", **common)
+    r2 = ExResource(
+        name="Beta",
+        fields=fields,
+        label_ast=label_ast,
+        categories=categories,
+    )
     d_set = _minimal_dataset([r1, r2])
 
     ctx = SimpleNamespace(obj={"jinja_env": jinja_env})

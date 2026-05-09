@@ -91,7 +91,7 @@ class BridgeAdapter(BaseAdapter):
     ) -> Any:
         mock_db_class = self.mock_db_class
 
-        values = []
+        values: List[Any] = []
         if self.list_pk:
             values.append(list_item_id)
         if self.edit_pk:
@@ -160,8 +160,7 @@ class BridgeAdapter(BaseAdapter):
             # Add these values to the top.
             bridge_model.insert_new_records(new_items)
 
-        # Update the field value.
-        self.core.field_value = id(other_pk_keys)
+        self.core._change_field_value(id(other_pk_keys), force=True)
 
     def add_records(self, records: Sequence["QtRecord"]) -> None:
         # Get the list of IDs to add.
@@ -193,8 +192,7 @@ class BridgeAdapter(BaseAdapter):
                 ]
             )
 
-        # Update the field value.
-        self.core.field_value = id(remove_from_top)
+        self.core._change_field_value(id(remove_from_top), force=True)
 
     def change_field_value(self, new_value) -> None:
         print(new_value)
@@ -202,8 +200,13 @@ class BridgeAdapter(BaseAdapter):
     def load_value_from(self, record: Any):
         model: "QtModel" = self.core.dst_model
 
-        # Get the ID of the record being loaded.
-        db_id = self.core.form.get_id_of_record(record)
+        form = self.core.form
+        if form is None:
+            raise RuntimeError(
+                "DrfRelated form is not set for load_value_from."
+            )
+
+        db_id = form.get_id_of_record(record)
 
         # Remove any top level (dynamically added) record.
         model.top_cache.clear()
@@ -286,7 +289,7 @@ class BridgeAdapter(BaseAdapter):
             if result is not None:
                 return result
 
-        for reg_r in self.core.dst_model.cache:
+        for _, reg_r in self.core.dst_model.cache.iter_existing():
             result = check_row_data(reg_r)
             if result is not None:
                 return result

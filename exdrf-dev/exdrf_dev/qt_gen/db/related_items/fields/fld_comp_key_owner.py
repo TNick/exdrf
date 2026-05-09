@@ -2,7 +2,7 @@
 # Source: exdrf_gen_al2qt.creator -> c/m/field.py.j2
 # Don't change it manually.
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional
 
 from attrs import define, field
 from sqlalchemy.orm import aliased
@@ -55,7 +55,12 @@ class CompKeyOwnerField(QtRefManyToOneField["RelatedItem"]):
         """Compute the label for one of the components of the field."""
         return str("Description:") + str(record.description)
 
-    def apply_filter(self, item: "FieldFilter", selector: "Selector") -> Any:
+    def apply_filter(
+        self,
+        item: "FieldFilter",
+        selector: "Selector",
+        no_dia: Optional[str] = None,
+    ) -> Any:
         from exdrf_dev.db.api import CompositeKeyModel as DbCompositeKeyModel
 
         predicate = filter_op_registry[item.op].predicate

@@ -103,3 +103,6 @@ class PdfRenderService(QObject):
             self.renderFinished.emit(rendered)
         except Exception as e:
             self.error.emit(str(e))
+
+
+PdfRenderWorker = PdfRenderService

@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, cast
 
 from exdrf_qt.comparator.logic.manager import ComparatorManager
 from exdrf_qt.comparator.logic.nodes import LeafNode, ParentNode
@@ -9,7 +9,7 @@ def _find_child_by_key(
 ) -> Optional[LeafNode | ParentNode]:
     for ch in parent.children:
         if ch.key == key:
-            return ch
+            return cast(Optional[LeafNode | ParentNode], ch)
     return None
 
 

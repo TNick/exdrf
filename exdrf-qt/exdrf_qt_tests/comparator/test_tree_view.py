@@ -1,3 +1,5 @@
+from typing import cast
+
 from PyQt5.QtCore import QItemSelectionModel, QModelIndex
 from PyQt5.QtWidgets import QApplication
 
@@ -8,6 +10,7 @@ def _find_row_by_label(
     view: ComparatorTreeView, parent: QModelIndex, label: str
 ) -> int:
     model = view.model()
+    assert model is not None
     rows = model.rowCount(parent)
     for r in range(rows):
         idx = model.index(r, 0, parent)
@@ -23,6 +26,7 @@ def test_expand_and_copy_yaml(manager_factory, qt_app: QApplication):
     # Expand only branches with differences
     view.expand_diff_branches()
     model = view.model()
+    assert model is not None
     root = QModelIndex()
 
     # "Group" has a nested_missing difference -> its index should be expanded
@@ -33,21 +37,29 @@ def test_expand_and_copy_yaml(manager_factory, qt_app: QApplication):
 
     # Copy ALL
     view.copy_all_as_yaml()
-    text_all = QApplication.clipboard().text()
+    clipboard = QApplication.clipboard()
+    assert clipboard is not None
+    text_all = clipboard.text()
     assert "type: parent" in text_all
     assert "label: Group" in text_all
     assert "label: Nested Missing" in text_all
 
     # Select only "Group" and copy selection
     sel = view.selectionModel()
+    assert sel is not None
     sel.select(
         grp_idx,
-        QItemSelectionModel.Select
-        | QItemSelectionModel.Rows
-        | QItemSelectionModel.Current,
+        cast(
+            QItemSelectionModel.SelectionFlags,
+            QItemSelectionModel.SelectionFlag.Select
+            | QItemSelectionModel.SelectionFlag.Rows
+            | QItemSelectionModel.SelectionFlag.Current,
+        ),
     )
     view.copy_selection_as_yaml()
-    text_sel = QApplication.clipboard().text()
+    clipboard = QApplication.clipboard()
+    assert clipboard is not None
+    text_sel = clipboard.text()
     assert "label: Group" in text_sel
     # Root-only fields should not appear in the group-only export
     assert "label: Partial Field" not in text_sel
@@ -58,6 +70,7 @@ def test_merge_mode_columns_and_payload(manager_factory, qt_app):
     mgr = manager_factory()
     view = ComparatorTreeView(manager=mgr, merge_enabled=True)
     model = view.model()
+    assert model is not None
 
     assert model.columnCount() == 1 + len(mgr.sources) + 2
     payload = view.get_merged_payload()

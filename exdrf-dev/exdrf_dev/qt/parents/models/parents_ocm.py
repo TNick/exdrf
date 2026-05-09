@@ -2,7 +2,7 @@
 # Source: db2qt.database_to_qt
 # Don't change it manually.
 
-from typing import TYPE_CHECKING, Tuple, Union
+from typing import TYPE_CHECKING, Any, List, Tuple, Type, Union
 
 from exdrf_dev.qt.parents.fields.children_field import ChildrenField
 from exdrf_dev.qt.parents.fields.created_at_field import CreatedAtField
@@ -18,6 +18,7 @@ if TYPE_CHECKING:
 
     from exdrf_dev.db.models import Parent  # noqa: F401
     from exdrf_qt.context import QtContext  # noqa: F401
+    from exdrf_qt.models.field import QtField  # noqa: F401
 
 
 class QtParentNaMo(QtModel["Parent"]):
@@ -28,7 +29,7 @@ class QtParentNaMo(QtModel["Parent"]):
     def __init__(self, ctx: "QtContext", **kwargs):
         from exdrf_dev.db.models import Parent as DbParent
 
-        fields = [
+        fields: List[Type["QtField[Any]"]] = [
             IdField,
             NameField,
             CreatedAtField,

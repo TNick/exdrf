@@ -37,7 +37,7 @@ class DrfDateEditor(DateBase):
         else:
             if isinstance(new_value, datetime):
                 new_value = new_value.date()
-            self.field_value = new_value
+            self._change_field_value(new_value)
             self.set_line_normal()
             self.setText(self.formatter.moment_to_string(new_value))
             if self.nullable:

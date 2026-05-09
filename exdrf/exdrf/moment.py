@@ -1,8 +1,8 @@
 from datetime import date, datetime, time
-from typing import Any, List, TypeVar
+from typing import Any, List, TypeVar, cast
 
 from attrs import define, field
-from dateutil.relativedelta import relativedelta
+from dateutil.relativedelta import relativedelta  # type: ignore[import-untyped]
 
 from exdrf.validator import ValidationResult
 
@@ -406,10 +406,9 @@ class MomentFormat:
                 return result
 
             if component.validate(content):
-                result.value = component.set_part(
-                    result.value,
-                    content,  # type: ignore[assignment]
-                )
+                cur_dt = cast(datetime, result.value)
+                cur_dt = component.set_part(cur_dt, content)
+                result.value = cur_dt
                 continue
 
             trk, def_lbl = labels[component.pattern]

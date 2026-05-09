@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Generator, Type
+from typing import TYPE_CHECKING, Any, Generator, Type, cast
 
 from sqlalchemy.ext.hybrid import HybridExtensionType
 from sqlalchemy.inspection import inspect as sa_inspect
@@ -18,7 +18,8 @@ class _RegistryVisitorMixin:
     @classmethod
     def all_models(cls) -> Generator[Type[Any], None, None]:
         """Yield each ORM class registered on this declarative base."""
-        for mapper in cls.registry.mappers:
+        reg_base = cast(Type[DeclarativeBase], cls)
+        for mapper in reg_base.registry.mappers:
             yield mapper.class_
 
     @classmethod

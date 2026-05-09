@@ -92,7 +92,10 @@ class QtParentTagAssociationTv(RecordTemplViewer):
         safe_hook_call(exdrf_qt_pm.hook.parent_tag_association_tv_created, widget=self)
 
     def read_record(self, session: "Session") -> Union[None, "ParentTagAssociation"]:
-        from .db.parent_tag_association import parent_tag_association_label
+        def _pta_label(
+            row: "ParentTagAssociation",
+        ) -> str:
+            return "%s / %s" % (row.parent_id, row.tag_id)
 
         result = session.scalar(
             select(self.db_model).where(
@@ -112,7 +115,7 @@ class QtParentTagAssociationTv(RecordTemplViewer):
                 label = self.t(
                     "parent_tag_association.tv.title-found",
                     "Parent tag association: view {name}",
-                    name=parent_tag_association_label(result),
+                    name=_pta_label(result),
                 )
             except Exception as e:
                 logger.error("Error getting label: %s", e, exc_info=True)

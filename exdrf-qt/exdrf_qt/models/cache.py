@@ -1,6 +1,15 @@
 """Cache module providing sparse list implementation."""
 
-from typing import Callable, Dict, Generic, Iterator, KeysView, Tuple, TypeVar
+from typing import (
+    Callable,
+    Dict,
+    Generic,
+    Iterator,
+    KeysView,
+    Optional,
+    Tuple,
+    TypeVar,
+)
 
 T = TypeVar("T")
 
@@ -96,6 +105,33 @@ class SparseList(Generic[T]):
             set plus one, or the size that has been explicitly set.
         """
         return self._size
+
+    def __iter__(self) -> Iterator[T]:
+        """Yield one entry per logical index (materializing slots on demand)."""
+        for i in range(self._size):
+            yield self[i]
+
+    def index(
+        self, value: T, start: int = 0, stop: Optional[int] = None
+    ) -> int:
+        """Return the index of the first existing slot matching ``value``.
+
+        Args:
+            value: Object to locate (equality via ``==``).
+            start: Lowest index (inclusive) to inspect.
+            stop: Upper bound (exclusive); defaults to the logical length.
+
+        Returns:
+            Lowest matching index among stored rows.
+
+        Raises:
+            ValueError: If ``value`` is not found among stored indices in range.
+        """
+        lim = self._size if stop is None else stop
+        for i in sorted(k for k in self._data if start <= k < lim):
+            if self._data[i] == value:
+                return i
+        raise ValueError("%r is not in SparseList" % (value,))
 
     def keys(self) -> KeysView[int]:
         """Get the keys of all stored items.

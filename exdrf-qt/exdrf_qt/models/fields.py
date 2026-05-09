@@ -97,29 +97,31 @@ def _resolve_ref_item(session: "Session", model_cls: Any, value: Any) -> Any:
 def save_multi_value_to(
     self, record: Any, name: str, value: Any, session: "Session"
 ) -> None:
-    db_field = getattr(record.__class__, self.name)
-    db_model = getattr(record.__class__, self.name)
+    db_field = getattr(record.__class__, name)
+    db_model = getattr(record.__class__, name)
 
-    db_values = session.scalars(select(db_model).where(db_model.id.in_(value)))
+    scalar_rows = session.scalars(
+        select(db_model).where(db_model.id.in_(value))
+    )
 
     if isinstance(db_field, InstrumentedList):
-        db_values = list(db_values)
+        resolved_values: Any = list(scalar_rows)
     elif isinstance(db_field, InstrumentedSet):
-        db_values = set(db_values)
+        resolved_values = set(scalar_rows)
     else:
         logger.error(
-            "Invalid field type for %s.%s", record.__class__.__name__, self.name
+            "Invalid field type for %s.%s", record.__class__.__name__, name
         )
         return
 
-    if len(db_values) != len(value):
+    if len(resolved_values) != len(value):
         logger.error(
             "Invalid number of values for %s.%s",
             record.__class__.__name__,
-            self.name,
+            name,
         )
 
-    setattr(record, self.name, db_values)
+    setattr(record, name, resolved_values)
 
 
 def _resolve_ref_list(session, model_cls, values: Any) -> List[Any]:
@@ -148,37 +150,6 @@ def _resolve_ref_list(session, model_cls, values: Any) -> List[Any]:
         result.append(record)
     return result
 
-    def save_value_to(
-        self, record: DBM, value: Any, session: "Session"
-    ) -> None:
-        db_field = getattr(record.__class__, self.name)
-        db_model = getattr(record.__class__, self.name)
-        with self.ctx.same_session() as session:
-            db_values = session.scalars(
-                select(db_model).where(db_model.id.in_(value))
-            )
-
-            if isinstance(db_field, InstrumentedList):
-                db_values = list(db_values)
-            elif isinstance(db_field, InstrumentedSet):
-                db_values = set(db_values)
-            else:
-                logger.error(
-                    "Invalid field type for %s.%s",
-                    record.__class__.__name__,
-                    self.name,
-                )
-                return
-
-            if len(db_values) != len(value):
-                logger.error(
-                    "Invalid number of values for %s.%s",
-                    record.__class__.__name__,
-                    self.name,
-                )
-
-            setattr(record, self.name, db_values)
-
 
 def _finalize_editor(
     editor: DrfFieldEd,
@@ -195,8 +166,7 @@ def _finalize_editor(
     """
     if description is not None:
         editor.description = description
-        if hasattr(editor, "apply_description"):
-            editor.apply_description()  # type: ignore[attr-defined]
+        editor.apply_description()
     editor.nullable = nullable
     editor.read_only = read_only
 
@@ -973,17 +943,11 @@ class RefFilterByPart:
         if len(path) == 0:
             raise ValueError("Path is empty")
 
-        # Resolve the base relationship for this reference field.
-        base_mapper = class_mapper(
-            self.resource.db_model  # type: ignore[attr-defined]
-        )
-        base_property = base_mapper.get_property(
-            self.name  # type: ignore[attr-defined]
-        )
-        related_entity = getattr(
-            self.resource.db_model,
-            self.name,  # type: ignore[attr-defined]
-        )
+        # Resolve the base relationship for this reference field (mixin on QtField).
+        qt_field = cast(QtField[Any], self)
+        base_mapper = class_mapper(qt_field.resource.db_model)
+        base_property = base_mapper.get_property(qt_field.name)
+        related_entity = getattr(qt_field.resource.db_model, qt_field.name)
 
         # Build the chain of relationships to reach the target column.
         relationship_chain = [(related_entity, base_property.uselist)]
@@ -1224,11 +1188,12 @@ class QtRefOneToManyField(RefOneToManyField, RefFilterByPart, QtField[DBM]):
 
     def apply_sorting(self, ascending: bool) -> Any:
         """Skip sorting for collection relationships."""
+        qt_field = cast(QtField[Any], self)
         logger.log(
             VERBOSE,
             "Skipping sorting for collection field %s.%s",
-            self.resource.name,
-            self.name,
+            qt_field.resource.exdrf_model_name(),
+            qt_field.name,
         )
         return None
 
@@ -1359,11 +1324,13 @@ class QtRefOneToOneField(RefOneToOneField, RefFilterByPart, QtField[DBM]):
             logger.log(
                 VERBOSE,
                 "No fk_from for %s.%s; skipping sorting.",
-                self.resource.name,
+                self.resource.exdrf_model_name(),
                 self.name,
             )
             return None
-        column = getattr(self.resource.db_model, self.fk_from.name)
+        fk = self.fk_from
+        fk_col = fk.name if hasattr(fk, "name") else fk
+        column = getattr(self.resource.db_model, fk_col)
         return column.asc() if ascending else column.desc()
 
     def values(self, record) -> Dict[Qt.ItemDataRole, Any]:
@@ -1392,7 +1359,9 @@ class QtRefOneToOneField(RefOneToOneField, RefFilterByPart, QtField[DBM]):
         self, record: DBM, value: Any, session: "Session"
     ) -> None:
         assert self.fk_from is not None
-        setattr(record, self.fk_from, value)
+        fk = self.fk_from
+        fk_col = fk.name if hasattr(fk, "name") else fk
+        setattr(record, fk_col, value)
 
 
 @define
@@ -1466,11 +1435,12 @@ class QtRefManyToManyField(RefManyToManyField, RefFilterByPart, QtField[DBM]):
 
     def apply_sorting(self, ascending: bool) -> Any:
         """Skip sorting for collection relationships."""
+        qt_field = cast(QtField[Any], self)
         logger.log(
             VERBOSE,
             "Skipping sorting for collection field %s.%s",
-            self.resource.name,
-            self.name,
+            qt_field.resource.exdrf_model_name(),
+            qt_field.name,
         )
         return None
 

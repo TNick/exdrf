@@ -25,7 +25,7 @@ class AvailableChecksDelegate(QStyledItemDelegate):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
 
-    def paint(
+    def paint(  # type: ignore[override]
         self,
         painter: QPainter,
         option: QStyleOptionViewItem,

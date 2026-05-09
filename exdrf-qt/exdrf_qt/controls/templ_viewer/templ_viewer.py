@@ -39,6 +39,7 @@ from PyQt5.QtWidgets import (
     QFileDialog,
     QMenu,
     QMessageBox,
+    QTreeView,
     QWidget,
 )
 from sqlalchemy.orm.collections import InstrumentedList, InstrumentedSet
@@ -370,7 +371,7 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
         # Prepare the variables list.
         if prevent_var_list:
             self.c_vars.deleteLater()
-            self.c_vars = None
+            self.c_vars = None  # type: ignore[assignment]
         else:
             self.prepare_vars_list()
 
@@ -594,7 +595,10 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
     @property
     def current_field(self) -> Optional["ExField"]:
         """The currently selected field in the variable list."""
-        crt_item = self.c_vars.currentIndex()
+        vars_tree = cast(Optional[QTreeView], self.c_vars)
+        if vars_tree is None:
+            return None
+        crt_item = vars_tree.currentIndex()
         if crt_item.isValid():
             return self.model.var_bag.fields[crt_item.row()]
         return None
@@ -939,7 +943,11 @@ class TemplViewer(QWidget, Ui_TemplViewer, QtUseContext, RouteProvider):
         menu.addSeparator()
         menu.addAction(self.ac_toggle_vars)
 
-        menu.exec_(self.c_vars.mapToGlobal(pos))
+        vars_tree = cast(Optional[QTreeView], self.c_vars)
+        if vars_tree is None:
+            return
+
+        menu.exec_(vars_tree.mapToGlobal(pos))
 
     def add_other_view_actions(self, menu: QMenu):
         """Add the other actions to the context menu."""

@@ -35,7 +35,7 @@ class SelectedChecksDelegate(QStyledItemDelegate):
         super().__init__(parent)
         self._text_delegate = AvailableChecksDelegate(parent)
 
-    def paint(
+    def paint(  # type: ignore[override]
         self,
         painter: QPainter,
         option: QStyleOptionViewItem,

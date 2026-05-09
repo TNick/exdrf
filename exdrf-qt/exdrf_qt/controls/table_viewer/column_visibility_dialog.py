@@ -74,9 +74,10 @@ class ColumnVisibilityDialog(QDialog, QtUseContext):
         self._list.setAlternatingRowColors(True)
         layout.addWidget(self._list)
 
-        bbox = QDialogButtonBox(
+        bbox = QDialogButtonBox(self)
+        bbox.setStandardButtons(
             QDialogButtonBox.StandardButton.Ok
-            | QDialogButtonBox.StandardButton.Cancel
+            | QDialogButtonBox.StandardButton.Cancel,  # type: ignore[arg-type]
         )
         bbox.accepted.connect(self.accept)
         bbox.rejected.connect(self.reject)

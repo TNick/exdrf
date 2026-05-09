@@ -1,5 +1,8 @@
+from typing import cast
+
 import pytest
 from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QWidget
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -17,7 +20,7 @@ class SyncQtContext(QtContext):
         super().__init__(c_string=c_string)
         self.engine = engine
         self.s_stack = s_stack
-        self.top_widget = None
+        self.top_widget = cast(QWidget, None)
 
     def push_work(
         self,

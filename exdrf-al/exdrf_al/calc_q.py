@@ -1,4 +1,4 @@
-from typing import List, Optional, Union, cast
+from typing import Dict, List, Optional, Union, cast
 
 from attrs import define, field
 
@@ -287,7 +287,7 @@ def all_related_paths(model: "ExResource"):
 
 
 def all_related_models(model: "ExResource"):
-    result = list()
+    result: List["ExResource"] = []
     for jn in all_related_paths(model):
         jn.collect_resources(result)
 
@@ -296,14 +296,14 @@ def all_related_models(model: "ExResource"):
 
 
 def all_related_label_paths(model: "ExResource"):
-    result = []
+    result: List[JoinLoad] = []
 
     root_join = RootJoinLoad(
         container=FieldRef(resource=model, name=model.name, is_list=False),
     )
     result.append(root_join)
 
-    top_parts = {}
+    top_parts: Dict[str, JoinLoad] = {}
 
     # Go through all the fields that point to other resources
     for f_name in model.minimum_field_set:

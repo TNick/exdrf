@@ -139,7 +139,7 @@ class DateBase(LineBase):
             self.set_line_error(result.error)
         else:
             self.set_line_normal()
-            self.field_value = result.value
+            self._change_field_value(result.value)
 
     def on_editing_finished(self) -> None:
         """Handles the editing finished signal."""
@@ -163,7 +163,7 @@ class DateBase(LineBase):
         If the control does not support null values, the control will enter
         the error state.
         """
-        self.field_value = None
+        self._change_field_value(None)
         self.set_line_empty()
         if self.nullable:
             assert self.ac_clear is not None

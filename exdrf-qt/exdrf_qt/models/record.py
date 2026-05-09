@@ -198,7 +198,7 @@ class QtRecord:
         """
         return self.model.index(
             self.model.cache.index(self),
-            col,  # type: ignore
+            col,
         )
 
     def get_row_data(self, role=Qt.ItemDataRole.DisplayRole) -> List[Any]:

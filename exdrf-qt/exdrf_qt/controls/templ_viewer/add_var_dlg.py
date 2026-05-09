@@ -156,7 +156,8 @@ class NewVariableDialog(QDialog, QtUseContext):
     Attributes:
         field_types: A dictionary of field types and their display names.
         type_editors: A dictionary of type keys to editor factory methods.
-        current_value_widget: The current value editor widget.
+        current_value_widget: Active value editor, or None before the first
+            ``update_value_editor`` run.
         name_edit: The name editor widget.
         type_combo: The type combo box.
         type_keys: The list of type keys.
@@ -166,7 +167,7 @@ class NewVariableDialog(QDialog, QtUseContext):
     invalid_names: Set[str]
     field_types: Dict[str, Tuple[str, Type["ExField"]]]
     type_editors: Dict[str, Callable[[], QWidget]]
-    current_value_widget: QWidget
+    current_value_widget: Optional[QWidget]
     name_edit: QLineEdit
     type_combo: QComboBox
     type_keys: List[str]

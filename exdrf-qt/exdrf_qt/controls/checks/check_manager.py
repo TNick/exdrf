@@ -472,9 +472,12 @@ class CheckManager(
         # Result type (state) filtering.
         menu.addSeparator()
         types_menu = menu.addMenu(self.t("results.types.t", "Types"))
-        self._populate_results_type_menu(types_menu)
+        if types_menu is not None:
+            self._populate_results_type_menu(types_menu)
 
-        menu.exec_(self.c_results.viewport().mapToGlobal(pos))
+        viewport = self.c_results.viewport()
+        assert viewport is not None
+        menu.exec_(viewport.mapToGlobal(pos))
 
     def _rebuild_results_type_menu(self) -> None:
         """Rebuild the toolbutton menu for filtering result types."""
@@ -589,9 +592,10 @@ class CheckManager(
                 **dict(entry.result.get("params", {}) or {}),
             )
         if not res_text:
-            res_text = entry.result.get("description", None)
-            if not res_text:
-                res_text = self.t("checks.result.unknown", "No description")
+            desc_any = entry.result.get("description", None)
+            res_text = str(desc_any) if desc_any is not None else ""
+        if not res_text:
+            res_text = self.t("checks.result.unknown", "No description")
 
         params_lines = []
         for k, v in entry.params_values.items():
@@ -1290,7 +1294,9 @@ class CheckManager(
         menu.addAction(act_sort_asc)
         menu.addAction(act_sort_desc)
 
-        menu.exec_(self.c_available.viewport().mapToGlobal(pos))
+        viewport = self.c_available.viewport()
+        assert viewport is not None
+        menu.exec_(viewport.mapToGlobal(pos))
 
     def _on_selected_context_menu(self, pos) -> None:
         """Show context menu for the selected checks view.
@@ -1364,7 +1370,9 @@ class CheckManager(
         menu.addAction(act_sort_asc)
         menu.addAction(act_sort_desc)
 
-        menu.exec_(self.c_selected.viewport().mapToGlobal(pos))
+        viewport = self.c_selected.viewport()
+        assert viewport is not None
+        menu.exec_(viewport.mapToGlobal(pos))
 
     def _on_refresh_available(self) -> None:
         """Reload available checks and re-apply exclusions."""
@@ -1673,9 +1681,6 @@ class CheckManager(
             default_categ.update(categories[default_name])
             del categories[default_name]
 
-        if None in categories:  # type: ignore[comparison-overlap]
-            default_categ.update(categories[None])  # type: ignore[index]
-            del categories[None]  # type: ignore[index]
         if "" in categories:
             default_categ.update(categories[""])
             del categories[""]

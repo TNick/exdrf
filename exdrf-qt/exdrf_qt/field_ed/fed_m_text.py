@@ -11,7 +11,6 @@ if TYPE_CHECKING:
 class DrfTextEditor(QPlainTextEdit, DrfFieldEd):
     """Editor for short strings."""
 
-    ac_clear: QAction
     min_len: Optional[int] = None
     max_len: Optional[int] = None
 
@@ -61,7 +60,7 @@ class DrfTextEditor(QPlainTextEdit, DrfFieldEd):
         if new_value is None:
             self.set_line_null()
         else:
-            self.field_value = str(new_value)
+            self._change_field_value(str(new_value))
             self.setPlainText(str(new_value))
 
     def check_value(self, text: Any) -> Optional[str]:
@@ -104,7 +103,7 @@ class DrfTextEditor(QPlainTextEdit, DrfFieldEd):
             self.set_line_normal()
         if final:
             # Change the value and signal the change.
-            self.field_value = result
+            self._change_field_value(result)
 
     def on_text_changed(self) -> None:
         self._on_text_changed(self.toPlainText(), True)
@@ -115,7 +114,7 @@ class DrfTextEditor(QPlainTextEdit, DrfFieldEd):
         If the control does not support null values, the control will enter
         the error state.
         """
-        self.field_value = None
+        self._change_field_value(None)
         self.set_line_empty()
         if self.nullable:
             self.ac_clear.setEnabled(False)

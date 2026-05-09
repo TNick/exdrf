@@ -64,8 +64,7 @@ class SimpleAdapter(BaseAdapter):
             self.db_map.update({r.db_id: "added" for r in to_add})
             model.insert_new_records(to_add)
 
-        # Update the field value.
-        self.core.field_value = list(self.db_map.keys())
+        self.core._change_field_value(list(self.db_map.keys()), force=True)
 
     def remove_records(self, records: Sequence[Tuple["QtRecord", int]]) -> None:
         # Get the destination model.
@@ -106,15 +105,20 @@ class SimpleAdapter(BaseAdapter):
                 [r for r in model.top_cache if r.db_id not in remove_from_top]
             )
 
-        # Update the field value.
-        self.core.field_value = list(self.db_map.keys())
+        self.core._change_field_value(list(self.db_map.keys()), force=True)
 
     def load_value_from(self, record: Any):
         # Get the destination model.
         model: "QtModel" = self.core.dst_model
 
         # Get the ID of the record being loaded.
-        db_id = self.core.form.get_id_of_record(record)
+        form = self.core.form
+        if form is None:
+            raise RuntimeError(
+                "DrfRelated form is not set for load_value_from."
+            )
+
+        db_id = form.get_id_of_record(record)
 
         # Remove any top level (dynamically added) record.
         model.top_cache.clear()

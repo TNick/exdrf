@@ -2,13 +2,14 @@
 # Source: db2qt.database_to_qt
 # Don't change it manually.
 
-from typing import TYPE_CHECKING, Tuple, Union
+from typing import TYPE_CHECKING, Any, Tuple, Type, Union
 
 from exdrf_dev.qt.children.fields.data_field import DataField
 from exdrf_dev.qt.children.fields.id_field import IdField
 from exdrf_dev.qt.children.fields.parent_field import ParentField
 from exdrf_dev.qt.children.fields.parent_id_field import ParentIdField
 from exdrf_qt.models import QtModel
+from exdrf_qt.models.field import QtField
 
 if TYPE_CHECKING:
     from sqlalchemy import Select  # noqa: F401
@@ -25,7 +26,7 @@ class QtChildNaMo(QtModel["Child"]):
     def __init__(self, ctx: "QtContext", **kwargs):
         from exdrf_dev.db.models import Child as DbChild
 
-        fields = [
+        fields: list[Union[QtField[Any], Type[QtField[Any]]]] = [
             IdField,
             DataField,
             ParentIdField,
