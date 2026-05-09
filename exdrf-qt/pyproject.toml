@@ -16,6 +16,7 @@ readme = "README.md"
 requires-python = ">=3.12.2"
 dependencies = [
   "exdrf",
+  "appdirs>=1.4.4",
   "PyQt5>=5.15.11",
   "python-dateutil>=2.9.0",
   "humanize>=4.12.3",

@@ -31,12 +31,14 @@ from exdrf_al.ua_companion import apply_ua_companion_fields
 {%- endif %}
 from exdrf_al.al2r_read import (
     RelationListSpec,
-    ex_model_from_orm_columns,
     hydrate_ex_inner_lists,
     list_relation_subresource_page,
     list_root_ex_page,
 )
+from exdrf_pd.filter_item import FilterItem
 from exdrf_pd.paged import PagedList
+from exdrf_pd.sort_item import SortItem
+from exdrf.sa_filter_op import filter_op_registry
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
@@ -79,8 +81,8 @@ from {{ al2r_get_db_module }} import {{ al2r_get_db_attr }} as get_db
 {%- endif %}
 {%- endif %}
 
-from {% if categories %}.{% endif %}.al2r_route_utils import (
-    get_one_or_404,
+from {% if categories %}..{% else %}.{% endif %}al2r_route_utils import get_one_or_404
+from {% if categories %}..{% else %}.{% endif %}al2r_route_utils import (
     parse_filter_items_json,
     parse_inner_filters_json,
     parse_inner_sort_json,
@@ -90,6 +92,10 @@ from {% if categories %}.{% endif %}.al2r_route_utils import (
     _INNER_FILTERS_JSON_DESC,
     _INNER_SORT_JSON_DESC,
 )
+{%- if categories %}
+
+from . import {{ al2r_category_router_name }}
+{%- endif %}
 {%- if al2pd_payload_list_fields and not al2r_all_list_relations_supported %}
 
 
@@ -384,7 +390,7 @@ def get_{{ model.snake_case_name }}(
         ("{{ n }}", {{ n }}),
 {%- endfor %}
     )
-    ex = ex_model_from_orm_columns(row, {{ model.name }}Ex)
+    ex = {{ model.name }}Ex.model_validate(row)
     if inner_list_page_size > 0 and _INNER_REL_SPECS:
         ex = hydrate_ex_inner_lists(
             db,
