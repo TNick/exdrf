@@ -4,7 +4,6 @@
 
 from typing import TYPE_CHECKING
 
-from exdrf_qt.models import QtModel
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload
 
@@ -12,12 +11,13 @@ from exdrf_dev.qt.children.fields.data_field import DataField
 from exdrf_dev.qt.children.fields.id_field import IdField
 from exdrf_dev.qt.children.fields.parent_field import ParentField
 from exdrf_dev.qt.children.fields.parent_id_field import ParentIdField
+from exdrf_qt.models import QtModel
 
 if TYPE_CHECKING:
-    from exdrf_qt.context import QtContext  # noqa: F401
     from sqlalchemy import Select  # noqa: F401
 
     from exdrf_dev.db.models import Child  # noqa: F401
+    from exdrf_qt.context import QtContext  # noqa: F401
 
 
 class QtChildFuMo(QtModel["Child"]):

@@ -1,6 +1,7 @@
 from typing import List
 
 from attrs import define, field
+
 from exdrf_qt.utils.router import ExdrfRouter as BaseRouter
 from exdrf_qt.utils.router import Route
 

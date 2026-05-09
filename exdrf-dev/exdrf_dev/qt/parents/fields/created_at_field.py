@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 from attrs import define, field
+
 from exdrf_qt.models.fields import QtDateTimeField
 
 if TYPE_CHECKING:

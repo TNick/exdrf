@@ -4,10 +4,11 @@ from __future__ import annotations
 
 from typing import Optional
 
+from pydantic import BaseModel
+
 from exdrf.field_types.str_field import StrField
 from exdrf.resource import ExResource
 from exdrf_pd.loader import field_from_pydantic
-from pydantic import BaseModel
 
 
 class TestFieldFromPydanticOptional:

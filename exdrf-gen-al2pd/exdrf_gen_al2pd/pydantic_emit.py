@@ -24,14 +24,13 @@ from exdrf.field_types.ref_base import RefBaseField
 from exdrf.field_types.str_field import StrField
 from exdrf.field_types.str_list import StrListField
 from exdrf.field_types.time_field import TimeField
-from exdrf_pd.schema_extra import wrap_exdrf_props
-
 from exdrf_gen_al2pd.field_partition import (
     depends_on_fk_field_names,
     format_db2m_class_doc_body,
     optionalize,
     partition_fields,
 )
+from exdrf_pd.schema_extra import wrap_exdrf_props
 
 # Module tuning: audit columns, flake8 width, and description-line budgets for
 # emitted ``Field(...)`` and class docstrings.

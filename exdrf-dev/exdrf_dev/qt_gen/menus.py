@@ -4,9 +4,10 @@
 import logging
 from typing import TYPE_CHECKING
 
+from PyQt5.QtWidgets import QAction, QMenu
+
 from exdrf_qt.controls.crud_actions import OpenListAc
 from exdrf_qt.controls.seldb.sel_db import SelectDatabaseDlg
-from PyQt5.QtWidgets import QAction, QMenu
 
 # exdrf-keep-start other_imports ----------------------------------------------
 

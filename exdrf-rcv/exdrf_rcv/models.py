@@ -10,6 +10,8 @@ from __future__ import annotations
 from datetime import date, datetime, time
 from typing import Annotated, Any, Literal, Union
 
+from pydantic import BaseModel, ConfigDict, Field
+
 from exdrf.constants import (
     FIELD_TYPE_BLOB,
     FIELD_TYPE_BOOL,
@@ -33,7 +35,6 @@ from exdrf.constants import (
     FIELD_TYPE_TIME,
     RelType,
 )
-from pydantic import BaseModel, ConfigDict, Field
 
 
 class RcvFieldBase(BaseModel):

@@ -10,8 +10,8 @@ from typing import TYPE_CHECKING, Any, Mapping
 
 import click
 from attrs import define, field
-from exdrf_gen.fs_support import Base, Dir, File
 
+from exdrf_gen.fs_support import Base, Dir, File
 from exdrf_gen_openapi2rtk.endpoint_keys import assert_unique_rtk_endpoint_keys
 from exdrf_gen_openapi2rtk.openapi_cache import (
     fetch_openapi_url_cached,

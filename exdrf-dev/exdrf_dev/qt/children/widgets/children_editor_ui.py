@@ -3,9 +3,8 @@ from typing import TYPE_CHECKING
 from PyQt5 import QtCore, QtWidgets
 
 if TYPE_CHECKING:
-    from exdrf_qt.field_ed.fed_m_text import DrfTextEditor
-
     from exdrf_dev.qt.parents.widgets.parents_selector import QtParentSiSe
+    from exdrf_qt.field_ed.fed_m_text import DrfTextEditor
 
 
 class Ui_QtChildEditor:
@@ -42,9 +41,8 @@ class Ui_QtChildEditor:
     verticalLayout: "QtWidgets.QVBoxLayout"
 
     def setup_ui(self, QtChildEditor):
-        from exdrf_qt.field_ed.fed_m_text import DrfTextEditor
-
         from exdrf_dev.qt.parents.widgets.parents_selector import QtParentSiSe
+        from exdrf_qt.field_ed.fed_m_text import DrfTextEditor
 
         QtChildEditor.setObjectName("QtChildEditor")
         QtChildEditor.resize(480, 640)

@@ -1,9 +1,10 @@
 from unittest.mock import MagicMock
 
 import pytest
-from exdrf_al.connection import DbConn
 from sqlalchemy import Engine, Integer, inspect
 from sqlalchemy.orm import Mapped, mapped_column
+
+from exdrf_al.connection import DbConn
 
 
 class TestDbConnConnect:

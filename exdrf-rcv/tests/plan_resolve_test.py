@@ -3,9 +3,11 @@
 import shutil
 import sys
 import textwrap
+from collections.abc import Generator
 from pathlib import Path
 
 import pytest
+
 from exdrf_rcv.models import RcvPlan
 from exdrf_rcv.plan_resolve import (
     RcvPlanCache,
@@ -19,7 +21,7 @@ from exdrf_rcv.plan_resolve import (
 
 
 @pytest.fixture()
-def tmp_rcv_pkg(tmp_path: Path) -> Path:
+def tmp_rcv_pkg(tmp_path: Path) -> Generator[Path, None, None]:
     """Lay out ``dyn_rcv_pkg.cat`` with ``res_rcv_paths.get_def``."""
 
     root = tmp_path / "dyn_rcv_pkg"

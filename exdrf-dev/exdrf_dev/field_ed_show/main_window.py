@@ -1,9 +1,9 @@
 import logging
 
-from exdrf_qt.context import QtContext
 from PyQt5.QtWidgets import QApplication, QMainWindow
 
 from exdrf_dev.field_ed_show.main_window_ui import Ui_MainWindow
+from exdrf_qt.context import QtContext
 
 logger = logging.getLogger(__name__)
 

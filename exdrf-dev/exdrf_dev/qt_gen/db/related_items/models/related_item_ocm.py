@@ -4,6 +4,9 @@
 
 from typing import TYPE_CHECKING, Union
 
+from sqlalchemy import select
+from sqlalchemy.orm import load_only
+
 from exdrf_dev.qt_gen.db.related_items.fields.fld_comp_key_owner import (
     CompKeyOwnerField,
 )
@@ -22,8 +25,6 @@ from exdrf_dev.qt_gen.db.related_items.models.related_item_ful import (
 )
 from exdrf_qt.plugins import exdrf_qt_pm
 from exdrf_qt.utils.plugins import safe_hook_call
-from sqlalchemy import select
-from sqlalchemy.orm import load_only
 
 # exdrf-keep-start other_imports ----------------------------------------------
 

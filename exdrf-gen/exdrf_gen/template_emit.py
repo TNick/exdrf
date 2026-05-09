@@ -6,9 +6,10 @@ import os
 from typing import TYPE_CHECKING, Any, Optional
 
 if TYPE_CHECKING:
+    from jinja2 import Template
+
     from exdrf.dataset import ExDataset
     from exdrf.resource import ExResource
-    from jinja2 import Template
 
 
 def write_resource_template_file(

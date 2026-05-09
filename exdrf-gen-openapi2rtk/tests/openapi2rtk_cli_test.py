@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 from click.testing import CliRunner
+
 from exdrf_gen.cli_base import cli
 from exdrf_gen.plugin_support import load_plugins
 

@@ -1,12 +1,12 @@
 import logging
 
-from exdrf_qt.context import QtContext
 from PyQt5.QtWidgets import (
     QApplication,
     QMainWindow,
 )
 
 import exdrf_dev.db.models  # noqa: F401
+from exdrf_qt.context import QtContext
 
 logger = logging.getLogger(__name__)
 

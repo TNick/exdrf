@@ -1,4 +1,5 @@
 import pytest
+
 from exdrf_al.calc_q import FieldRef, JoinLoad
 
 

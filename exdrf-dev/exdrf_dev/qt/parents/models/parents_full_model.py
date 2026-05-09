@@ -4,7 +4,6 @@
 
 from typing import TYPE_CHECKING
 
-from exdrf_qt.models import QtModel
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload, selectinload
 
@@ -15,12 +14,13 @@ from exdrf_dev.qt.parents.fields.is_active_field import IsActiveField
 from exdrf_dev.qt.parents.fields.name_field import NameField
 from exdrf_dev.qt.parents.fields.profile_field import ProfileField
 from exdrf_dev.qt.parents.fields.tags_field import TagsField
+from exdrf_qt.models import QtModel
 
 if TYPE_CHECKING:
-    from exdrf_qt.context import QtContext  # noqa: F401
     from sqlalchemy import Select  # noqa: F401
 
     from exdrf_dev.db.models import Parent  # noqa: F401
+    from exdrf_qt.context import QtContext  # noqa: F401
 
 
 class QtParentFuMo(QtModel["Parent"]):

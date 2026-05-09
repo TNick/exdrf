@@ -1,7 +1,8 @@
 from typing import Any, Optional
 
-from exdrf.filter import FieldFilter
 from pydantic import BaseModel
+
+from exdrf.filter import FieldFilter
 
 
 class FilterItem(BaseModel):

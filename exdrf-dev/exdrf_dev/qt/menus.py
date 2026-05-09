@@ -1,8 +1,6 @@
 import logging
 from typing import TYPE_CHECKING, Type
 
-from exdrf_qt.context_use import QtUseContext
-from exdrf_qt.controls.table_list import ListDb
 from PyQt5.QtWidgets import QAction, QMenu
 
 from exdrf_dev.qt.children.api import QtChildList
@@ -12,6 +10,8 @@ from exdrf_dev.qt.parents.api import QtParentList
 from exdrf_dev.qt.profiles.api import QtProfileList
 from exdrf_dev.qt.related_items.api import QtRelatedItemList
 from exdrf_dev.qt.tags.api import QtTagList
+from exdrf_qt.context_use import QtUseContext
+from exdrf_qt.controls.table_list import ListDb
 
 if TYPE_CHECKING:
     from exdrf_qt.context import QtContext  # noqa: F401

@@ -14,7 +14,7 @@ repos:
         language: system
         files: (^|.*/)file$
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: v6.0.0
     hooks:
     -   id: check-docstring-first
     -   id: check-json
@@ -38,7 +38,7 @@ repos:
     hooks:
     -   id: ruff
         name: ruff
-        entry: ruff check --select E,F,I --ignore E203,E501
+        entry: ruff check --select E,F,I --ignore E203,E501 --fix
         language: system
         types: [python]
     -   id: ruff-format

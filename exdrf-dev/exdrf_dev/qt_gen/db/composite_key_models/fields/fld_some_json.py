@@ -5,6 +5,7 @@
 from typing import TYPE_CHECKING, List, Tuple
 
 from attrs import define, field
+
 from exdrf_qt.models.fields import QtFormattedField
 
 # exdrf-keep-start other_imports ----------------------------------------------

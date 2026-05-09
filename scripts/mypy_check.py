@@ -70,13 +70,14 @@ def _run_mypy_in_dir(
     env = dict(os.environ)
     env["PYTHONPATH"] = _pythonpath_for_mono_repo(root, all_dirs)
 
-    # Exclude generated UI files and setup scripts from strict typing checks.
+    # Exclude generated UI files, setup scripts, and setuptools build trees that
+    # duplicate package sources under ``build/lib/...``.
     cmd = [
         python_executable,
         "-m",
         "mypy",
         "--exclude",
-        r"(^|\\|/)setup\.py$|_ui\.py$",
+        r"(^|\\|/)setup\.py$|_ui\.py$|(^|\\|/)build(\\|/)",
         ".",
     ]
     print(f"=== Running mypy in {dir_name} ===", flush=True)

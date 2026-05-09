@@ -5,8 +5,9 @@
 from typing import TYPE_CHECKING, Any, Dict
 
 from attrs import define, field
-from exdrf_qt.models.fields import QtStringField
 from PyQt5.QtCore import Qt
+
+from exdrf_qt.models.fields import QtStringField
 
 # exdrf-keep-start other_imports ----------------------------------------------
 

@@ -9,8 +9,9 @@ from sqlalchemy.orm import (
 )
 
 if TYPE_CHECKING:
-    from exdrf.constants import RecIdType
     from sqlalchemy.orm.session import Session
+
+    from exdrf.constants import RecIdType
 
 
 logger = logging.getLogger(__name__)

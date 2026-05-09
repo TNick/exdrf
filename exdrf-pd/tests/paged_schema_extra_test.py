@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import pytest
+from pydantic import BaseModel, ValidationError
+
 from exdrf_pd.paged import PagedList, paged_list_empty_factory
 from exdrf_pd.schema_extra import (
     EXDRF_JSON_SCHEMA_EXTRA_KEY,
     wrap_exdrf_props,
 )
-from pydantic import BaseModel, ValidationError
 
 
 class TestPagedList:

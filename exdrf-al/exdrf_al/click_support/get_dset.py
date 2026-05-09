@@ -1,7 +1,7 @@
 import click
+
 from exdrf.dataset import ExDataset
 from exdrf.py_support import get_symbol_from_path
-
 from exdrf_al.loader import dataset_from_sqlalchemy
 
 

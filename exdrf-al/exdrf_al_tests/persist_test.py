@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import pytest
+from sqlalchemy import ForeignKey, Integer, String, create_engine
+from sqlalchemy.orm import Mapped, Session, mapped_column
+
 from exdrf_al.persist import (
     RowNotFound,
     apply_payload_attrs,
@@ -11,8 +14,6 @@ from exdrf_al.persist import (
     sync_m2m_list_replace,
     sync_o2m_fk_list_replace,
 )
-from sqlalchemy import ForeignKey, Integer, String, create_engine
-from sqlalchemy.orm import Mapped, Session, mapped_column
 
 
 @pytest.fixture

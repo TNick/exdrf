@@ -15,8 +15,10 @@ from typing import (
 )
 
 import click
-import exdrf_qt.models.fields as base_classes
 from attrs import Attribute
+from jinja2.runtime import Undefined
+
+import exdrf_qt.models.fields as base_classes
 from exdrf_gen.fs_support import (
     CategDir,
     Dir,
@@ -25,16 +27,16 @@ from exdrf_gen.fs_support import (
     ResDir,
     TopDir,
 )
-from jinja2.runtime import Undefined
 
 if TYPE_CHECKING:
+    from jinja2 import Environment
+
     from exdrf.dataset import ExDataset
     from exdrf.field import ExField
     from exdrf.field_types.ref_m2m import RefManyToManyField
     from exdrf.field_types.ref_o2m import RefOneToManyField
     from exdrf.field_types.str_field import StrField
     from exdrf.resource import ExResource
-    from jinja2 import Environment
 
 logger = logging.getLogger(__name__)
 VERBOSE = 1

@@ -1,0 +1,32 @@
+# Monorepo root: keeps import sorting aligned when ``ruff`` runs from here
+# (e.g. pre-commit) versus ``cd`` per package (``make lint``). Each package
+# may still extend via its own ``pyproject.toml``.
+
+extend-exclude = [
+    ".git",
+    "venv",
+    "venv-qt5",
+    "venv-qt6",
+]
+
+[lint.isort]
+known-first-party = [
+    "exdrf",
+    "exdrf_al",
+    "exdrf_dev",
+    "exdrf_gen",
+    "exdrf_gen_al2at",
+    "exdrf_gen_al2pd",
+    "exdrf_gen_al2qt",
+    "exdrf_gen_al2r",
+    "exdrf_gen_al2rcv",
+    "exdrf_gen_al2xl",
+    "exdrf_gen_openapi2rtk",
+    "exdrf_gen_pd2dare",
+    "exdrf_pd",
+    "exdrf_qt",
+    "exdrf_rcv",
+    "exdrf_ts",
+    "exdrf_util",
+    "exdrf_xl",
+]

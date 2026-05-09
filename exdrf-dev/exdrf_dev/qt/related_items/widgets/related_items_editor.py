@@ -5,17 +5,16 @@
 from typing import TYPE_CHECKING, Union
 
 from exdrf.constants import RecIdType
-from exdrf_qt.controls.base_editor import ExdrfEditor
-
 from exdrf_dev.qt.related_items.widgets.related_items_editor_ui import (
     Ui_QtRelatedItemEditor,
 )
+from exdrf_qt.controls.base_editor import ExdrfEditor
 
 if TYPE_CHECKING:
-    from exdrf_qt.context import QtContext  # noqa: F401
     from sqlalchemy.orm import Session  # noqa: F401
 
     from exdrf_dev.db.models import RelatedItem  # noqa: F401
+    from exdrf_qt.context import QtContext  # noqa: F401
 
 
 class QtRelatedItemEditor(ExdrfEditor["RelatedItem"], Ui_QtRelatedItemEditor):

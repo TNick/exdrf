@@ -4,11 +4,11 @@
 from typing import TYPE_CHECKING
 
 from attrs import define, field
+
 from exdrf_qt.models.fields import QtRefManyToOneField
 
 if TYPE_CHECKING:
     from exdrf.resource import ExResource  # noqa: F401
-
     from exdrf_dev.db.models import RelatedItem  # noqa: F401
 
 

@@ -4,6 +4,9 @@
 
 from typing import TYPE_CHECKING, Union
 
+from sqlalchemy import select
+from sqlalchemy.orm import load_only
+
 from exdrf_dev.qt_gen.db.parents.fields.fld_children import ChildrenField
 from exdrf_dev.qt_gen.db.parents.fields.fld_created_at import CreatedAtField
 from exdrf_dev.qt_gen.db.parents.fields.fld_id import IdField
@@ -15,8 +18,6 @@ from exdrf_dev.qt_gen.db.parents.fields.single_f import LabelField
 from exdrf_dev.qt_gen.db.parents.models.parent_ful import QtParentFuMo
 from exdrf_qt.plugins import exdrf_qt_pm
 from exdrf_qt.utils.plugins import safe_hook_call
-from sqlalchemy import select
-from sqlalchemy.orm import load_only
 
 # exdrf-keep-start other_imports ----------------------------------------------
 

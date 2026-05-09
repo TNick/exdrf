@@ -5,10 +5,11 @@
 from typing import TYPE_CHECKING, Any
 
 from attrs import define, field
+from sqlalchemy.orm import aliased
+
 from exdrf.constants import RecIdType
 from exdrf_qt.models.fi_op import filter_op_registry
 from exdrf_qt.models.fields import QtRefOneToManyField
-from sqlalchemy.orm import aliased
 
 # exdrf-keep-start other_imports ----------------------------------------------
 

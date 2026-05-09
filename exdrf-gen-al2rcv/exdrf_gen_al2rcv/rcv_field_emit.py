@@ -16,6 +16,8 @@ from __future__ import annotations
 import datetime
 from typing import TYPE_CHECKING, Any, Final, Mapping
 
+from pydantic import TypeAdapter
+
 from exdrf.constants import (
     FIELD_TYPE_BLOB,
     FIELD_TYPE_BOOL,
@@ -39,7 +41,6 @@ from exdrf.constants import (
     FIELD_TYPE_TIME,
 )
 from exdrf_rcv.models import RcvField
-from pydantic import TypeAdapter
 
 if TYPE_CHECKING:
     from exdrf.field import ExField
@@ -185,7 +186,7 @@ _KIND_DATA_KEYS: Final[Mapping[str, frozenset[str]]] = {
 
 
 # Shared adapter used for fail-fast validation during generation and in tests.
-_rcv_field_adapter = TypeAdapter(RcvField)
+_rcv_field_adapter: Final[TypeAdapter[RcvField]] = TypeAdapter(RcvField)
 
 
 def _normalize_enum_values_for_rcv_enum(raw: Any) -> list[str]:
@@ -525,7 +526,7 @@ def _emit_py_literal(value: Any, indent: int) -> str:
     if isinstance(value, dict):
         if not value:
             return sp + "{}"
-        lines: list[str] = [sp + "{"]
+        dict_lines: list[str] = [sp + "{"]
         child = indent + 4
         csp = " " * child
         for k, v in value.items():
@@ -533,20 +534,20 @@ def _emit_py_literal(value: Any, indent: int) -> str:
             hang = len(csp + kt)
             if isinstance(v, str):
                 body = _emit_str_py_literal(v, hang)
-                lines.append(csp + kt + body + ",")
+                dict_lines.append(csp + kt + body + ",")
             else:
                 sub = _emit_py_literal(v, child)
                 sub_lines = sub.split("\n")
                 head = sub_lines[0]
                 merged = csp + kt + head[len(csp) :]
                 if len(sub_lines) == 1:
-                    lines.append(merged + ",")
+                    dict_lines.append(merged + ",")
                 else:
-                    lines.append(merged)
-                    lines.extend(sub_lines[1:-1])
-                    lines.append(sub_lines[-1] + ",")
-        lines.append(sp + "}")
-        return "\n".join(lines)
+                    dict_lines.append(merged)
+                    dict_lines.extend(sub_lines[1:-1])
+                    dict_lines.append(sub_lines[-1] + ",")
+        dict_lines.append(sp + "}")
+        return "\n".join(dict_lines)
 
     raise TypeError("unsupported literal type: %s" % type(value).__name__)
 

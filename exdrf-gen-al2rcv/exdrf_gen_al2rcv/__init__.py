@@ -6,10 +6,10 @@ import os
 
 import click
 from click import Context
+
 from exdrf_al.click_support import GetDataset
 from exdrf_gen.cli_base import cli
 from exdrf_gen.plugin_support import install_plugin
-
 from exdrf_gen_al2rcv.creator import generate_rcv_path_scaffolds_from_alchemy
 
 install_plugin(
@@ -80,7 +80,8 @@ def al2rcv(
         raise click.UsageError(
             "OUT-PATH is required (or set EXDRF_AL2RCV_PATH).",
         )
-    if not (get_db_import or "").strip():
+    normalized_get_db_import = (get_db_import or "").strip()
+    if not normalized_get_db_import:
         raise click.UsageError(
             "--get-db is required (or set EXDRF_AL2RCV_GET_DB), e.g. "
             "resi_fapi.deps.al2r_db:get_db.",
@@ -90,6 +91,6 @@ def al2rcv(
         d_set=d_set,
         out_path=out_path,
         env=context.obj["jinja_env"],
-        get_db_import=get_db_import,
+        get_db_import=normalized_get_db_import,
         rcv_import_root=rcv_import_root,
     )

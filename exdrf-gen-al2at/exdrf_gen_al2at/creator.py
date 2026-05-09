@@ -1,5 +1,7 @@
 from typing import TYPE_CHECKING, Any
 
+from jinja2 import Environment
+
 from exdrf.constants import (
     FIELD_TYPE_BLOB,
     FIELD_TYPE_BOOL,
@@ -27,7 +29,6 @@ from exdrf_gen.fs_support import (
     ResFile,
     TopDir,
 )
-from jinja2 import Environment
 
 if TYPE_CHECKING:
     from exdrf.dataset import ExDataset

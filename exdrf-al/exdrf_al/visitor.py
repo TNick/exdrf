@@ -2,10 +2,11 @@ import textwrap
 from typing import TYPE_CHECKING, Any, List, Optional, Type
 
 from attrs import define, field
-from exdrf.resource import ResExtraInfo
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm.relationships import RelationshipProperty
 from sqlalchemy.sql.elements import KeyedColumnElement
+
+from exdrf.resource import ResExtraInfo
 
 if TYPE_CHECKING:
     from exdrf_al.base import Base

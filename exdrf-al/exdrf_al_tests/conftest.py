@@ -50,12 +50,13 @@ Available fixtures:
 import os
 
 import pytest
+from sqlalchemy import Integer
+from sqlalchemy.orm import Mapped, mapped_column
+
 from exdrf.dataset import ExDataset
 from exdrf.resource import ExResource
 from exdrf_al.base import isolated_declarative_base
 from exdrf_al.connection import DbConn
-from sqlalchemy import Integer
-from sqlalchemy.orm import Mapped, mapped_column
 
 
 @pytest.fixture(scope="session", autouse=True)

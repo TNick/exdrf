@@ -1,6 +1,9 @@
 from unittest.mock import MagicMock
 
 import pytest
+from sqlalchemy import Integer
+from sqlalchemy.orm import mapped_column
+
 from exdrf.resource import ExResource
 from exdrf_al.loader import (
     dataset_from_sqlalchemy,
@@ -9,8 +12,6 @@ from exdrf_al.loader import (
     res_by_table_name,
     sql_col_to_type,
 )
-from sqlalchemy import Integer
-from sqlalchemy.orm import mapped_column
 
 
 class TestResByTableName:

@@ -7,10 +7,10 @@ from typing import TYPE_CHECKING
 
 import click
 from click import Context
+
 from exdrf_al.click_support import GetDataset
 from exdrf_gen.cli_base import cli
 from exdrf_gen.plugin_support import install_plugin
-
 from exdrf_gen_al2pd.creator import generate_pydantic_from_alchemy
 
 if TYPE_CHECKING:

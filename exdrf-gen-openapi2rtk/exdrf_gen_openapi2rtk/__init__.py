@@ -6,9 +6,9 @@ import os
 
 import click
 from click import Context
+
 from exdrf_gen.cli_base import cli
 from exdrf_gen.plugin_support import install_plugin
-
 from exdrf_gen_openapi2rtk.creator import run_openapi2rtk
 
 install_plugin(

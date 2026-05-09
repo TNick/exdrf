@@ -1,9 +1,10 @@
 from unittest import mock
 
-from exdrf_al.visitor import DbVisitor
 from sqlalchemy import ForeignKey, Integer
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from exdrf_al.visitor import DbVisitor
 
 
 def test_all_models_returns_registered_model_classes(LocalBase):

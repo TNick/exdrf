@@ -5,15 +5,14 @@
 from typing import TYPE_CHECKING, Union
 
 from exdrf.constants import RecIdType
+from exdrf_dev.qt.parents.widgets.parents_editor_ui import Ui_QtParentEditor
 from exdrf_qt.controls.base_editor import ExdrfEditor
 
-from exdrf_dev.qt.parents.widgets.parents_editor_ui import Ui_QtParentEditor
-
 if TYPE_CHECKING:
-    from exdrf_qt.context import QtContext  # noqa: F401
     from sqlalchemy.orm import Session  # noqa: F401
 
     from exdrf_dev.db.models import Parent  # noqa: F401
+    from exdrf_qt.context import QtContext  # noqa: F401
 
 
 class QtParentEditor(ExdrfEditor["Parent"], Ui_QtParentEditor):

@@ -2,7 +2,6 @@ import datetime
 import enum
 from typing import Any, Dict, List, Optional
 
-from exdrf_al.base import Base
 from sqlalchemy import (
     JSON,
     Boolean,
@@ -25,6 +24,8 @@ from sqlalchemy.orm import (
     relationship,
     sessionmaker,
 )
+
+from exdrf_al.base import Base
 
 
 class StatusEnum(enum.Enum):

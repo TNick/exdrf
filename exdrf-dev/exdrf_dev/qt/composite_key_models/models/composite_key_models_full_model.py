@@ -4,7 +4,6 @@
 
 from typing import TYPE_CHECKING
 
-from exdrf_qt.models import QtModel
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
@@ -38,12 +37,13 @@ from exdrf_dev.qt.composite_key_models.fields.some_json_field import (
 from exdrf_dev.qt.composite_key_models.fields.some_time_field import (
     SomeTimeField,
 )
+from exdrf_qt.models import QtModel
 
 if TYPE_CHECKING:
-    from exdrf_qt.context import QtContext  # noqa: F401
     from sqlalchemy import Select  # noqa: F401
 
     from exdrf_dev.db.models import CompositeKeyModel  # noqa: F401
+    from exdrf_qt.context import QtContext  # noqa: F401
 
 
 class QtCompositeKeyModelFuMo(QtModel["CompositeKeyModel"]):

@@ -14,7 +14,7 @@ from pydantic import TypeAdapter
 
 from exdrf_rcv.models import RcvField, RcvPlan, RcvResourceDataAccess
 
-_rcv_field_adapter: Final = TypeAdapter(RcvField)
+_rcv_field_adapter: Final[TypeAdapter[RcvField]] = TypeAdapter(RcvField)
 
 
 def _resource_data_access_from_module(mod: Any) -> RcvResourceDataAccess | None:

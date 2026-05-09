@@ -43,6 +43,9 @@ requires = ["setuptools>=67.0", "setuptools_scm[toml]>=8.3.0"]
 [tool.setuptools]
 include-package-data = true
 
+[tool.setuptools.package-data]
+exdrf_gen_al2xl = ["py.typed"]
+
 [tool.setuptools.packages.find]
 exclude = ["venv*", "playground*"]
 

@@ -4,12 +4,12 @@ import subprocess
 
 import click
 from dotenv import load_dotenv
+
 from exdrf_al.click_support.auto_db_migration import auto_db_migration
 from exdrf_al.click_support.downgrade_db import downgrade_db
 from exdrf_al.click_support.list_db_version import list_db_versions
 from exdrf_al.click_support.set_db_version import set_db_version
 from exdrf_al.click_support.upgrade_db import upgrade_db
-
 from exdrf_dev.__version__ import __version__
 
 

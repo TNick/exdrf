@@ -4,12 +4,12 @@
 from typing import TYPE_CHECKING
 
 from attrs import define, field
+
 from exdrf.constants import RecIdType
 from exdrf_qt.models.fields import QtRefOneToManyField
 
 if TYPE_CHECKING:
     from exdrf.resource import ExResource  # noqa: F401
-
     from exdrf_dev.db.models import CompositeKeyModel, RelatedItem  # noqa: F401
 
 

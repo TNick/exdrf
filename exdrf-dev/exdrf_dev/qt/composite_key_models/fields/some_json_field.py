@@ -4,6 +4,7 @@
 from typing import TYPE_CHECKING
 
 from attrs import define, field
+
 from exdrf_qt.models.fields import QtFormattedField
 
 if TYPE_CHECKING:

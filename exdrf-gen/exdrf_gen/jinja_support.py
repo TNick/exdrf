@@ -8,7 +8,6 @@ from datetime import datetime
 from os.path import getmtime, isfile, join
 from typing import Any
 
-from exdrf.utils import inflect_e
 from jinja2 import (
     BaseLoader,
     Environment,
@@ -16,6 +15,8 @@ from jinja2 import (
     Undefined,
     select_autoescape,
 )
+
+from exdrf.utils import inflect_e
 
 logger = logging.getLogger(__name__)
 

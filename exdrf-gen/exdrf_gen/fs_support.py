@@ -10,13 +10,14 @@ import re
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, cast
 
 from attrs import define, field
+from jinja2 import Environment
+
 from exdrf_al.calc_q import (
     all_related_label_models,
     all_related_label_paths,
     all_related_models,
     all_related_paths,
 )
-from jinja2 import Environment
 
 if TYPE_CHECKING:
     from exdrf.dataset import ExDataset  # noqa: F401

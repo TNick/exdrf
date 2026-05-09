@@ -5,6 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 from types import SimpleNamespace
 
+from jinja2 import Environment, FileSystemLoader
+
 from exdrf.field_types.int_field import IntField
 from exdrf.field_types.str_field import StrField
 from exdrf.label_dsl import parse_expr
@@ -18,7 +20,6 @@ from exdrf_gen_al2r.creator import (
     primary_key_names_for_routes,
     schema_module_dotted,
 )
-from jinja2 import Environment, FileSystemLoader
 
 
 def _minimal_dataset(resources: list) -> SimpleNamespace:

@@ -4,7 +4,6 @@
 
 from typing import TYPE_CHECKING
 
-from exdrf_qt.models import QtModel
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload
 
@@ -20,12 +19,13 @@ from exdrf_dev.qt.related_items.fields.comp_key_part2_field import (
 from exdrf_dev.qt.related_items.fields.id_field import IdField
 from exdrf_dev.qt.related_items.fields.item_data_field import ItemDataField
 from exdrf_dev.qt.related_items.fields.some_int_field import SomeIntField
+from exdrf_qt.models import QtModel
 
 if TYPE_CHECKING:
-    from exdrf_qt.context import QtContext  # noqa: F401
     from sqlalchemy import Select  # noqa: F401
 
     from exdrf_dev.db.models import RelatedItem  # noqa: F401
+    from exdrf_qt.context import QtContext  # noqa: F401
 
 
 class QtRelatedItemFuMo(QtModel["RelatedItem"]):

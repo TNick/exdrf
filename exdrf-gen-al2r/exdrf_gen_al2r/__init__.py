@@ -6,10 +6,10 @@ import os
 
 import click
 from click import Context
+
 from exdrf_al.click_support import GetDataset
 from exdrf_gen.cli_base import cli
 from exdrf_gen.plugin_support import install_plugin
-
 from exdrf_gen_al2r.creator import generate_fastapi_routes_from_alchemy
 
 install_plugin(

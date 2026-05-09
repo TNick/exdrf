@@ -5,6 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 from types import SimpleNamespace
 
+from jinja2 import Environment, FileSystemLoader
+
 from exdrf.field_types.int_field import IntField
 from exdrf.label_dsl import parse_expr
 from exdrf.resource import ExResource
@@ -12,7 +14,6 @@ from exdrf_gen_al2rcv.creator import (
     generate_rcv_path_scaffolds_from_alchemy,
     parse_get_db_import,
 )
-from jinja2 import Environment, FileSystemLoader
 
 
 def _minimal_dataset(resources: list) -> SimpleNamespace:

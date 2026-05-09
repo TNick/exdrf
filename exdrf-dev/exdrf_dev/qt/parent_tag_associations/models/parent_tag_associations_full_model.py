@@ -4,19 +4,19 @@
 
 from typing import TYPE_CHECKING
 
-from exdrf_qt.models import QtModel
 from sqlalchemy import select
 
 from exdrf_dev.qt.parent_tag_associations.fields.parent_id_field import (
     ParentIdField,
 )
 from exdrf_dev.qt.parent_tag_associations.fields.tag_id_field import TagIdField
+from exdrf_qt.models import QtModel
 
 if TYPE_CHECKING:
-    from exdrf_qt.context import QtContext  # noqa: F401
     from sqlalchemy import Select  # noqa: F401
 
     from exdrf_dev.db.models import ParentTagAssociation  # noqa: F401
+    from exdrf_qt.context import QtContext  # noqa: F401
 
 
 class QtParentTagAssociationFuMo(QtModel["ParentTagAssociation"]):

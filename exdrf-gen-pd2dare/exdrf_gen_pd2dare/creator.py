@@ -8,13 +8,14 @@ from typing import Any, Dict, List, cast
 
 import click
 from attrs import define, field
+from jinja2 import Environment
+
 from exdrf.dataset import ExDataset
 from exdrf.resource import ExResource
 from exdrf_gen.fs_support import Base, TopDir, resource_to_args
 from exdrf_pd.loader import dataset_from_pydantic
 from exdrf_pd.model_import import load_pydantic_modules_from_env
 from exdrf_ts import type_to_field_class
-from jinja2 import Environment
 
 
 def _restrict_loader_to_pd2dare_templates(env: Environment) -> None:

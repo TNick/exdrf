@@ -7,10 +7,10 @@ from typing import TYPE_CHECKING
 from exdrf_qt.models import QtModel
 
 if TYPE_CHECKING:
-    from exdrf_qt.context import QtContext  # noqa: F401
     from sqlalchemy import Select  # noqa: F401
 
     from exdrf_dev.db.models import ParentTagAssociation  # noqa: F401
+    from exdrf_qt.context import QtContext  # noqa: F401
 
 
 class QtParentTagAssociationNaMo(QtModel["ParentTagAssociation"]):

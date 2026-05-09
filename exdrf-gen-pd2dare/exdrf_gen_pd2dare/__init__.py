@@ -5,11 +5,11 @@ from __future__ import annotations
 import os
 
 import click
+
 from exdrf_gen.cli_base import cli
 from exdrf_gen.plugin_support import install_plugin
-from exdrf_ts import py_type_to_ts
-
 from exdrf_gen_pd2dare.creator import run_pd2dare
+from exdrf_ts import py_type_to_ts
 
 
 def _f_title(field: object) -> str:

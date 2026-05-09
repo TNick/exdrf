@@ -42,14 +42,14 @@ from exdrf.api import (
     StrField,
     StrListField,
 )
-
 from exdrf_pd.visitor import ExModelVisitor
 
 if TYPE_CHECKING:
+    from pydantic.fields import FieldInfo as PdFieldInfo  # noqa: F401
+
     from exdrf.dataset import ExDataset
     from exdrf.field import ExField
     from exdrf.resource import ExResource
-    from pydantic.fields import FieldInfo as PdFieldInfo  # noqa: F401
 
 
 def _optional_inner_type(annotation: Any) -> Any | None:

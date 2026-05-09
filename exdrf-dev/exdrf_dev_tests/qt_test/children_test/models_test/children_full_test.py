@@ -1,12 +1,13 @@
 import pytest
+from PyQt5.QtCore import Qt
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
 from exdrf.filter import FilterType
 from exdrf_dev.db.models import Base, Child, Parent
 from exdrf_dev.qt_gen.db.children.models.child_ful import QtChildFuMo
 from exdrf_qt.context import QtContext
 from exdrf_qt.worker import Work
-from PyQt5.QtCore import Qt
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 
 
 class SyncQtContext(QtContext):

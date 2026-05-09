@@ -5,6 +5,7 @@
 from typing import TYPE_CHECKING
 
 from attrs import define, field
+
 from exdrf_qt.models.fields import QtBlobField
 
 # exdrf-keep-start other_imports ----------------------------------------------

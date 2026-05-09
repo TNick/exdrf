@@ -4,6 +4,9 @@
 
 from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Union
 
+from sqlalchemy import select
+from sqlalchemy.orm import joinedload
+
 from exdrf.constants import RecIdType
 from exdrf_dev.qt_gen.db.children.fields.fld_data import DataField
 from exdrf_dev.qt_gen.db.children.fields.fld_id import IdField
@@ -12,18 +15,17 @@ from exdrf_dev.qt_gen.db.children.fields.fld_parent_id import ParentIdField
 from exdrf_qt.models import QtModel
 from exdrf_qt.plugins import exdrf_qt_pm
 from exdrf_qt.utils.plugins import safe_hook_call
-from sqlalchemy import select
-from sqlalchemy.orm import joinedload
 
 # exdrf-keep-start other_imports ----------------------------------------------
 
 # exdrf-keep-end other_imports ------------------------------------------------
 
 if TYPE_CHECKING:
+    from sqlalchemy import Select  # noqa: F401
+
     from exdrf.filter import FilterType  # noqa: F401
     from exdrf_dev.db.api import Child  # noqa: F401
     from exdrf_qt.context import QtContext  # noqa: F401
-    from sqlalchemy import Select  # noqa: F401
 
 # exdrf-keep-start other_globals ----------------------------------------------
 

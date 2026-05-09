@@ -1,6 +1,7 @@
 from unittest.mock import Mock
 
 import pytest
+
 from exdrf.resource import ExResource
 
 

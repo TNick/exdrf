@@ -2,8 +2,8 @@ import logging
 
 import click
 from dotenv import load_dotenv
-from exdrf.utils import inflect_e
 
+from exdrf.utils import inflect_e
 from exdrf_gen.__version__ import __version__
 from exdrf_gen.jinja_support import jinja_env
 

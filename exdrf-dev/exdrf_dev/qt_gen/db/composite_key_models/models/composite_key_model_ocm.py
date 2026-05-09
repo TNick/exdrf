@@ -4,6 +4,9 @@
 
 from typing import TYPE_CHECKING, Union
 
+from sqlalchemy import select
+from sqlalchemy.orm import load_only
+
 from exdrf_dev.qt_gen.db.composite_key_models.fields.fld_description import (
     DescriptionField,
 )
@@ -40,8 +43,6 @@ from exdrf_dev.qt_gen.db.composite_key_models.models.composite_key_model_ful imp
 )
 from exdrf_qt.plugins import exdrf_qt_pm
 from exdrf_qt.utils.plugins import safe_hook_call
-from sqlalchemy import select
-from sqlalchemy.orm import load_only
 
 # exdrf-keep-start other_imports ----------------------------------------------
 

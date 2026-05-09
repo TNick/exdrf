@@ -5,17 +5,16 @@
 from typing import TYPE_CHECKING, Union
 
 from exdrf.constants import RecIdType
-from exdrf_qt.controls.base_editor import ExdrfEditor
-
 from exdrf_dev.qt.composite_key_models.widgets.composite_key_models_editor_ui import (
     Ui_QtCompositeKeyModelEditor,
 )
+from exdrf_qt.controls.base_editor import ExdrfEditor
 
 if TYPE_CHECKING:
-    from exdrf_qt.context import QtContext  # noqa: F401
     from sqlalchemy.orm import Session  # noqa: F401
 
     from exdrf_dev.db.models import CompositeKeyModel  # noqa: F401
+    from exdrf_qt.context import QtContext  # noqa: F401
 
 
 class QtCompositeKeyModelEditor(

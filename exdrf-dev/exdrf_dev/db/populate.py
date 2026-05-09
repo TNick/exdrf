@@ -231,8 +231,9 @@ def populate_database(
             use a file-based DB
     """
     # Create engine and session
-    from exdrf_al.base import Base
     from sqlalchemy import create_engine
+
+    from exdrf_al.base import Base
 
     engine = create_engine(conn_string)
     Base.metadata.create_all(engine)

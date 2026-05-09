@@ -14,6 +14,7 @@ from typing import (
 )
 
 from attrs import define, field
+
 from exdrf.api import (
     BlobField,
     BlobInfo,
@@ -42,17 +43,16 @@ from exdrf.api import (
     TimeInfo,
 )
 from exdrf.constants import RelType
-
 from exdrf_al.visitor import DbVisitor
 
 if TYPE_CHECKING:
-    from exdrf.dataset import ExDataset
-    from exdrf.field import ExField, FieldInfo
-    from exdrf.resource import ExResource
     from sqlalchemy.ext.hybrid import hybrid_property as HybridProperty
     from sqlalchemy.orm.relationships import RelationshipProperty  # noqa: F401
     from sqlalchemy.sql.elements import KeyedColumnElement  # noqa: F401
 
+    from exdrf.dataset import ExDataset
+    from exdrf.field import ExField, FieldInfo
+    from exdrf.resource import ExResource
     from exdrf_al.base import Base
 
 logger = logging.getLogger(__name__)

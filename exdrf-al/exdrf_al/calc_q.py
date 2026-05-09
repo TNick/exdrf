@@ -1,6 +1,7 @@
 from typing import List, Optional, Union, cast
 
 from attrs import define, field
+
 from exdrf.field_types.api import RefBaseField
 from exdrf.resource import ExResource
 
