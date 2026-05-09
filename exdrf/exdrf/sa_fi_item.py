@@ -61,7 +61,7 @@ class SqFiItem(SqBaseFiItem):
         Returns:
             A new select statement with the filter applied.
         """
-        return self.op.apply_filter(
+        return self.op.apply_filter(  # type: ignore[attr-defined]
             selector=self.field,
             value=self.value,
             selection=selection,

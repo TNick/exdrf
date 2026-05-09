@@ -16,6 +16,7 @@ from typing import (
 
 import click
 from attrs import Attribute
+from jinja2.loaders import FileSystemLoader
 from jinja2.runtime import Undefined
 
 import exdrf_qt.models.fields as base_classes
@@ -406,10 +407,15 @@ def generate_qt_from_alchemy(
             kwargs.pop("use_selectinload_for_nested_scalars")
         )
     # Only allow our templates to be used.
-    paths_obj = env.loader.paths  # type: ignore[attr-defined]
-    paths_list = list(paths_obj)
-    env.loader.paths = [  # type: ignore[attr-defined, assignment]
-        p for p in paths_list if str(p).endswith("al2qt_templates")
+    loader = getattr(env, "loader", None)
+    if not isinstance(loader, FileSystemLoader):
+        raise TypeError(
+            "Expected FileSystemLoader, got %s" % type(loader).__name__,
+        )
+    loader.searchpath = [
+        p
+        for p in loader.searchpath
+        if str(p).replace("\\", "/").endswith("al2qt_templates")
     ]
 
     # Allow the caller to update field categories.

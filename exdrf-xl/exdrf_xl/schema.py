@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import logging
 import os.path
-from typing import Any, Callable, TypeAlias
+from typing import Any, Callable, TypeAlias, cast
 
 from attrs import define, field
 from exdrf_util.rotate_backups import rotate_backups
 from openpyxl import Workbook, load_workbook  # type: ignore[import]
+from openpyxl.worksheet.worksheet import Worksheet  # type: ignore[import]
 from sqlalchemy.orm import Session
 
 from exdrf_xl.ingest.apply_import_plan import apply_import_plan
@@ -65,7 +66,9 @@ class XlSchema:
             for table in self.tables:
                 sheet = wb.create_sheet(title=table.sheet_name[0:31])
                 table.write_to_sheet(
-                    sheet, session, col_widths=widths_map.get(table.xl_name, {})
+                    cast(Worksheet, sheet),
+                    session,
+                    col_widths=widths_map.get(table.xl_name, {}),
                 )
             self.after_export(wb, session)
         wb.calculation.fullCalcOnLoad = True  # type: ignore

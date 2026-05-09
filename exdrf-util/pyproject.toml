@@ -2,12 +2,11 @@
 authors = [
     { name = "Nicu Tofan", email = "nicu.tofan@gmail.com" },
 ]
-license = { text = "MIT" }
+license = "MIT"
 classifiers = [
   "Operating System :: OS Independent",
   "Programming Language :: Python :: 3 :: Only",
   "Development Status :: 3 - Alpha",
-  "License :: OSI Approved :: MIT License",
   "Typing :: Typed",
 ]
 description = "Utilities for Ex-DRF."

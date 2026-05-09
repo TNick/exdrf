@@ -59,6 +59,7 @@ class ParentsField(QtRefManyToManyField["Tag"]):
         selector: "Selector",
         no_dia: Optional[str] = None,
     ) -> Any:
+        _ = no_dia
         from exdrf_dev.db.api import Parent as DbParent
 
         predicate = filter_op_registry[item.op].predicate

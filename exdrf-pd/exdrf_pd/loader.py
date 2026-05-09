@@ -253,13 +253,13 @@ def field_from_pydantic(
     paged_item = _paged_list_item_type(annotation)
     if paged_item is not None and _is_exmodel_type(paged_item):
         ds = resource.dataset
-        result = RefOneToManyField(
+        paged_ref = RefOneToManyField(
             ref=ds[paged_item.__name__],
             expect_lots=True,
             **extra,
         )
-        resource.add_field(result)
-        return result
+        resource.add_field(paged_ref)
+        return paged_ref
 
     if _is_exmodel_type(annotation):
         ds = resource.dataset

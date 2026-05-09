@@ -2,7 +2,7 @@
 # Source: db2qt.database_to_qt
 # Don't change it manually.
 
-from typing import TYPE_CHECKING, Any, List, Tuple, Type, Union
+from typing import TYPE_CHECKING, Any, List, Tuple, Type, Union, cast
 
 from exdrf_dev.qt.parents.fields.children_field import ChildrenField
 from exdrf_dev.qt.parents.fields.created_at_field import CreatedAtField
@@ -41,7 +41,10 @@ class QtParentNaMo(QtModel["Parent"]):
         super().__init__(
             ctx=ctx,
             db_model=DbParent,
-            fields=fields,
+            fields=cast(
+                List[Union["QtField[Any]", Type["QtField[Any]"]]],
+                fields,
+            ),
             **kwargs,
         )
         self.column_fields = ["name"]

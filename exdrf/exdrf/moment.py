@@ -1,5 +1,5 @@
 from datetime import date, datetime, time
-from typing import Any, List, TypeVar, cast
+from typing import Any, List, TypeVar
 
 from attrs import define, field
 from dateutil.relativedelta import relativedelta  # type: ignore[import-untyped]
@@ -406,8 +406,8 @@ class MomentFormat:
                 return result
 
             if component.validate(content):
-                cur_dt = cast(datetime, result.value)
-                cur_dt = component.set_part(cur_dt, content)
+                assert result.value is not None
+                cur_dt = component.set_part(result.value, content)
                 result.value = cur_dt
                 continue
 

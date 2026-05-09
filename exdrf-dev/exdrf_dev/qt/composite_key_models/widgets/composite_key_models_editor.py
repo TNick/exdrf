@@ -35,7 +35,7 @@ class QtCompositeKeyModelEditor(
     def editing_changed(self, value: bool):
         pass
 
-    def read_record(
+    def read_record(  # type: ignore[override]
         self, session: "Session", record_id: RecIdType
     ) -> Union["CompositeKeyModel", None]:
         """Load the CompositeKeyModel row for the structured ``record_id``."""

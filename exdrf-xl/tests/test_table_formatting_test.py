@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from io import BytesIO
-from typing import Any, Iterator
+from typing import Any, Generator
 from zipfile import ZipFile
 
 import pytest
@@ -28,7 +28,7 @@ class _Table(XlTable[dict[str, Any]]):
     def get_selector(self):  # pragma: no cover
         raise NotImplementedError
 
-    def get_rows(self, session) -> Iterator[dict[str, Any]]:
+    def get_rows(self, session) -> Generator[dict[str, Any], None, None]:
         yield from self.records
 
 

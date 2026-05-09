@@ -33,31 +33,22 @@ class QtCompositeKeyModelList(ListDb["CompositeKeyModel"]):
             QtCompositeKeyModelFuMo,
         )
 
-        _list_pass_kw = {
-            k: kwargs[k]
-            for k in (
-                "parent",
-                "menu_handler",
-                "compare_merge_enabled",
-                "compare_merge_max_selection",
-            )
-            if k in kwargs
-        }
-        _other = (
-            kwargs["other_actions"]
-            if "other_actions" in kwargs
-            else ctx.get_ovr(
+        kwargs.pop("ctx", None)
+        other_actions = kwargs.pop(
+            "other_actions",
+            ctx.get_ovr(
                 "exdrf_dev.qt_gen.db.composite_key_models.list.extra-menus",
                 None,
-            )
+            ),
         )
 
         super().__init__(
             ctx=ctx,
             *args,
-            other_actions=_other,
-            **_list_pass_kw,
-        )
+            other_actions=other_actions,
+            **kwargs,
+        )  # type: ignore[misc]
+
         self.setModel(
             ctx.get_c_ovr(
                 "exdrf_dev.qt_gen.db.composite_key_models.list.model",

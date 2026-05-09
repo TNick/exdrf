@@ -33,26 +33,25 @@ class QtChildList(ListDb["Child"]):
             QtChildFuMo,
         )
 
-        _list_pass_kw = {
-            k: kwargs[k]
-            for k in (
-                "parent",
-                "menu_handler",
-                "compare_merge_enabled",
-                "compare_merge_max_selection",
-            )
-            if k in kwargs
-        }
-        _other = (
-            kwargs["other_actions"]
-            if "other_actions" in kwargs
-            else ctx.get_ovr("exdrf_dev.qt_gen.db.children.list.extra-menus", None)
+        kw_extra = dict(kwargs)
+        parent_kw = kw_extra.pop("parent", None)
+        other_actions = kw_extra.pop(
+            "other_actions",
+            ctx.get_ovr("exdrf_dev.qt_gen.db.children.list.extra-menus", None),
         )
+        menu_handler = kw_extra.pop("menu_handler", None)
+        merge_enabled = kw_extra.pop("compare_merge_enabled", None)
+        merge_max = kw_extra.pop("compare_merge_max_selection", None)
+
+        positional_parent = args[0] if args else parent_kw
+
         super().__init__(
-            ctx=ctx,
-            *args,
-            other_actions=_other,
-            **_list_pass_kw,
+            ctx,
+            positional_parent,
+            menu_handler=menu_handler,
+            other_actions=other_actions,
+            compare_merge_enabled=merge_enabled,
+            compare_merge_max_selection=merge_max,
         )
         self.setModel(
             ctx.get_c_ovr(

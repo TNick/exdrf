@@ -10,7 +10,6 @@ from typing import (
     Generic,
     Mapping,
     TypeVar,
-    Union,
     cast,
 )
 
@@ -45,7 +44,6 @@ from exdrf_xl.utils.write_cell import install_custom_lxml_writer
 
 if TYPE_CHECKING:
     from openpyxl.cell import Cell
-    from openpyxl.worksheet._write_only import WriteOnlyWorksheet
     from openpyxl.worksheet.worksheet import Worksheet
     from sqlalchemy.orm import Session
 
@@ -267,7 +265,7 @@ class XlTable(Generic[T]):
 
     def write_to_sheet(
         self,
-        sheet: Union["Worksheet", "WriteOnlyWorksheet"],
+        sheet: "Worksheet",
         session: "Session",
         col_widths: Mapping[str, float | None],
     ):

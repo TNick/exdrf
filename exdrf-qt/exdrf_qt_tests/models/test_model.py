@@ -4,6 +4,7 @@ import unittest
 from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
+from exdrf.constants import RecIdType
 from exdrf.filter import FieldFilter, FilterType
 from PyQt5.QtCore import QModelIndex, Qt
 
@@ -351,13 +352,13 @@ class TestQtModelCheckedIds(unittest.TestCase):
 
     def test_checked_ids_returns_set(self) -> None:
         """Test checked_ids returns the set when in checkable mode."""
-        checked_set = {1, 2, 3}
+        checked_set = cast(set[RecIdType], {1, 2, 3})
         self.model._checked = checked_set
         self.assertEqual(self.model.checked_ids, checked_set)
 
     def test_checked_ids_setter(self) -> None:
         """Test setting checked_ids."""
-        checked_set = {1, 2, 3}
+        checked_set = cast(set[RecIdType], {1, 2, 3})
         self.model.checked_ids = checked_set
         self.assertEqual(self.model._checked, checked_set)
 
@@ -482,7 +483,7 @@ class TestQtModelSetPrioritizedIds(unittest.TestCase):
         self, mock_reset: MagicMock
     ) -> None:
         """Test set_prioritized_ids sets value and resets model."""
-        ids = [1, 2, 3]
+        ids = cast(list[RecIdType], [1, 2, 3])
         self.model.set_prioritized_ids(ids)
         self.assertEqual(self.model.prioritized_ids, ids)
         mock_reset.assert_called_once()
@@ -493,7 +494,7 @@ class TestQtModelSetPrioritizedIds(unittest.TestCase):
     ) -> None:
         """Test set_prioritized_ids does not reset if same value."""
         self.model._total_count = 0
-        ids = [1, 2, 3]
+        ids = cast(list[RecIdType], [1, 2, 3])
         self.model.prioritized_ids = ids
         self.model.set_prioritized_ids(ids)
         mock_reset.assert_not_called()
