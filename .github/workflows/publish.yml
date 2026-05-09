@@ -6,14 +6,14 @@ on:
       - "v*.*.*"
   workflow_dispatch:
 
-permissions:
-  contents: read
-  id-token: write
-
 jobs:
   build-test-publish-testpypi:
     runs-on: ubuntu-latest
     environment: testpypi
+
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
       - name: Checkout
@@ -26,16 +26,13 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install packages (editable, dev)
+      - name: Install packages editable with dev dependencies
         run: make init-d
 
-      - name: Lint
-        run: make lint
-
-      - name: Test
+      - name: Check
         env:
           QT_QPA_PLATFORM: offscreen
-        run: make test
+        run: make check
 
       - name: Build wheels and sdists
         run: make build-packages
@@ -60,6 +57,10 @@ jobs:
     needs: build-test-publish-testpypi
     environment: pypi
 
+    permissions:
+      contents: read
+      id-token: write
+
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -71,7 +72,7 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install packages (editable, dev)
+      - name: Install packages editable with dev dependencies
         run: make init-d
 
       - name: Build wheels and sdists
