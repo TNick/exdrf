@@ -1,13 +1,8 @@
 import logging
-import sys
+from importlib.metadata import entry_points
 from typing import Any, Dict, List, Optional, cast
 
 from exdrf_gen.jinja_support import Loader, jinja_env
-
-if sys.version_info < (3, 10):
-    from importlib_metadata import entry_points
-else:
-    from importlib.metadata import entry_points
 
 logger = logging.getLogger(__name__)
 

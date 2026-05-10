@@ -20,11 +20,16 @@ dependencies = [
   "click>=8.1.8,<8.2.0",
 ]
 
+[tool.deptry]
+package_module_name_map = { "factory-boy" = ["factory"] }
+
 [project.optional-dependencies]
 dev = [
   "autoflake",
   "black",
   "build",
+  "factory-boy>=3.3.1",
+  "Faker>=33.0.0",
   "flake8",
   "isort",
   "mypy",
