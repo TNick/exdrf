@@ -119,6 +119,7 @@ def main() -> None:
             "-m",
             "twine",
             "upload",
+            "--verbose",
             "--repository",
             args.repository,
         ]
