@@ -8,6 +8,14 @@ import subprocess
 import sys
 from pathlib import Path
 
+from packaging.utils import (
+    InvalidSdistFilename,
+    InvalidWheelFilename,
+    parse_sdist_filename,
+    parse_wheel_filename,
+)
+from packaging.version import Version
+
 _SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
@@ -52,6 +60,59 @@ def _artifacts(dist_dir: Path) -> list[Path]:
     return wheels + tars
 
 
+def _version_from_artifact(artifact: Path) -> Version | None:
+    """Return the PEP 440 ``Version`` parsed from an artifact filename.
+
+    Args:
+        artifact: Path to a built wheel (``.whl``) or sdist (``.tar.gz``).
+
+    Returns:
+        Parsed ``Version`` instance, or ``None`` when the filename does not
+        match either format.
+    """
+
+    name = artifact.name
+    if name.endswith(".whl"):
+        try:
+            _dist, version, _build, _tags = parse_wheel_filename(name)
+        except InvalidWheelFilename:
+            logger.log(1, "Skipping unparseable wheel %s", name, exc_info=True)
+            return None
+        return version
+    if name.endswith(".tar.gz"):
+        try:
+            _dist, version = parse_sdist_filename(name)
+        except InvalidSdistFilename:
+            logger.log(1, "Skipping unparseable sdist %s", name, exc_info=True)
+            return None
+        return version
+    return None
+
+
+def _local_version_artifacts(files: list[Path]) -> list[tuple[Path, Version]]:
+    """Return artifacts whose version contains a PEP 440 ``+local`` segment.
+
+    PyPI and TestPyPI reject local versions (see PEP 440 and
+    https://packaging.python.org/en/latest/specifications/version-specifiers/
+    #local-version-identifiers). ``setuptools_scm`` produces such versions
+    whenever ``HEAD`` is not exactly at a release tag or the tree is dirty.
+
+    Args:
+        files: Built artifacts about to be uploaded.
+
+    Returns:
+        List of ``(path, version)`` pairs for artifacts with a non-empty
+        ``Version.local`` attribute.
+    """
+
+    bad: list[tuple[Path, Version]] = []
+    for f in files:
+        version = _version_from_artifact(f)
+        if version is not None and version.local:
+            bad.append((f, version))
+    return bad
+
+
 def main() -> None:
     """Parse CLI arguments and upload all artifacts with Twine."""
 
@@ -79,6 +140,16 @@ def main() -> None:
         help=(
             "If set, upload all ``.whl`` and ``.tar.gz`` in this directory once "
             "instead of per-package ``dist/``."
+        ),
+    )
+    parser.add_argument(
+        "--allow-local-version",
+        action="store_true",
+        help=(
+            "Allow uploading artifacts whose version contains a PEP 440 "
+            "``+local`` identifier. By default such uploads are refused "
+            "because PyPI and TestPyPI reject local versions; this flag "
+            "exists for debugging mirrors that accept them."
         ),
     )
     args = parser.parse_args()
@@ -112,6 +183,27 @@ def main() -> None:
                 logger.error("No artifacts to upload in %s", dist_dir)
                 raise SystemExit(1)
             upload_sets.append((pkg.name, files))
+
+    # Refuse PEP 440 ``+local`` versions early; PyPI/TestPyPI reject them at
+    # upload time, so failing here saves a slow doomed twine round-trip.
+    if not args.allow_local_version:
+        all_files = [f for _, files in upload_sets for f in files]
+        bad = _local_version_artifacts(all_files)
+        if bad:
+            bad_versions = sorted({str(v) for _, v in bad})
+            logger.error(
+                "Refusing to upload artifacts with PEP 440 local version "
+                "identifiers (forbidden by PyPI/TestPyPI): %s",
+                ", ".join(bad_versions),
+            )
+            logger.error(
+                "Tag a real release first (e.g. ``make release "
+                'EXDRF_RELEASE_ARGS="--bump patch"``) and rebuild, or pass '
+                "``--allow-local-version`` to override.",
+            )
+            for path, version in bad:
+                logger.error("  %s -> %s", path.name, version)
+            raise SystemExit(1)
 
     for label, files in upload_sets:
         cmd = [

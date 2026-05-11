@@ -263,14 +263,20 @@ collect-dist:
 	$(PYTHON) "$(CURDIR)/scripts/collect_dist.py"
 
 
+# Extra args forwarded to ``scripts/publish_packages.py`` for ``publish``/``publish-test``.
+# Use this to opt out of safety checks, e.g.:
+#   ``make publish EXDRF_PUBLISH_ARGS="--allow-local-version"``
+EXDRF_PUBLISH_ARGS ?=
+
+
 # Upload merged artifacts to TestPyPI (run ``build-packages`` and ``collect-dist`` first).
 publish-test: build-packages collect-dist
-	$(PYTHON) "$(CURDIR)/scripts/publish_packages.py" --artifacts-dir "$(CURDIR)/release_dist" --repository testpypi --non-interactive
+	$(PYTHON) "$(CURDIR)/scripts/publish_packages.py" --artifacts-dir "$(CURDIR)/release_dist" --repository testpypi --non-interactive $(EXDRF_PUBLISH_ARGS)
 
 
 # Upload merged artifacts to PyPI (run ``build-packages`` and ``collect-dist`` first).
 publish: build-packages collect-dist
-	$(PYTHON) "$(CURDIR)/scripts/publish_packages.py" --artifacts-dir "$(CURDIR)/release_dist" --repository pypi --non-interactive
+	$(PYTHON) "$(CURDIR)/scripts/publish_packages.py" --artifacts-dir "$(CURDIR)/release_dist" --repository pypi --non-interactive $(EXDRF_PUBLISH_ARGS)
 
 
 # Build, upload to TestPyPI, and verify installs in a clean venv (release rehearsal).
