@@ -9,7 +9,9 @@ __pycache__/
 # Distribution / packaging
 .Python
 build/
-develop-eggs/
+_setuptools_staging/
+# Accidental copies from bad ``--build-base`` paths (legacy; preclean also removes)
+prog__py_libs__*/
 dist/
 release_dist/
 downloads/

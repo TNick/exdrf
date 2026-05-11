@@ -17,6 +17,26 @@ from exdrf_repo_paths import discover_package_dirs  # noqa: E402
 logger = logging.getLogger(__name__)
 
 
+def _maybe_load_dotenv(repo_root: Path) -> None:
+    """Load ``.env`` from the repository root so Twine can read credentials.
+
+    Expects ``TWINE_USERNAME`` (often ``__token__``) and ``TWINE_PASSWORD`` (the
+    PyPI API token value). If ``python-dotenv`` is not installed, does nothing.
+
+    Args:
+        repo_root: Root of the exdrf monorepo.
+    """
+
+    try:
+        from dotenv import load_dotenv
+    except ImportError:
+        return
+
+    env_path = repo_root / ".env"
+    if env_path.is_file():
+        load_dotenv(env_path)
+
+
 def _artifacts(dist_dir: Path) -> list[Path]:
     """List wheel and sdist files under ``dist_dir``.
 
@@ -69,6 +89,8 @@ def main() -> None:
     if repo_root is None:
         repo_root = Path(__file__).resolve().parent.parent
     repo_root = repo_root.resolve()
+
+    _maybe_load_dotenv(repo_root)
 
     if args.artifacts_dir is not None:
         dist_dir = args.artifacts_dir.resolve()
