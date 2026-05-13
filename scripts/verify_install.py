@@ -12,6 +12,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 import tomllib
@@ -85,6 +86,23 @@ def main() -> None:
         default="https://pypi.org/simple/",
         help="Extra index URL for transitive dependencies (default: PyPI).",
     )
+    parser.add_argument(
+        "--install-attempts",
+        type=int,
+        default=1,
+        metavar="N",
+        help=(
+            "Retry ``pip install`` up to N times (TestPyPI often lags right "
+            "after upload). Default: 1 (no retries)."
+        ),
+    )
+    parser.add_argument(
+        "--install-retry-delay-seconds",
+        type=int,
+        default=15,
+        metavar="SEC",
+        help="Wait SEC seconds between pip install attempts (default: 15).",
+    )
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
@@ -146,10 +164,30 @@ def main() -> None:
         ]
         install_cmd.extend(specs)
         logger.info("Installing %d packages at ==%s", len(specs), args.version)
-        proc_in = subprocess.run(install_cmd, check=False)
-        if proc_in.returncode != 0:
-            logger.error("pip install failed with code %s", proc_in.returncode)
-            raise SystemExit(proc_in.returncode)
+
+        proc_in: subprocess.CompletedProcess[str] | None = None
+        for attempt in range(1, args.install_attempts + 1):
+            proc_in = subprocess.run(install_cmd, check=False)
+            if proc_in.returncode == 0:
+                break
+            logger.warning(
+                "pip install attempt %d/%d failed with code %s",
+                attempt,
+                args.install_attempts,
+                proc_in.returncode,
+            )
+            if attempt < args.install_attempts:
+                logger.info(
+                    "Retrying pip install in %d s (index may lag after upload)",
+                    args.install_retry_delay_seconds,
+                )
+                time.sleep(args.install_retry_delay_seconds)
+        else:
+            logger.error(
+                "pip install failed after %d attempt(s)",
+                args.install_attempts,
+            )
+            raise SystemExit(proc_in.returncode if proc_in else 1)
 
         if args.package_dir:
             check_src = (

@@ -87,7 +87,9 @@ jobs:
         run: |
           python scripts/verify_install.py --root "${GITHUB_WORKSPACE}" \
             --package-dir "${{ steps.meta.outputs.pkg_dir }}" \
-            --version "${{ steps.meta.outputs.pep_ver }}"
+            --version "${{ steps.meta.outputs.pep_ver }}" \
+            --install-attempts 12 \
+            --install-retry-delay-seconds 15
 
   publish-pypi:
     runs-on: ubuntu-latest
