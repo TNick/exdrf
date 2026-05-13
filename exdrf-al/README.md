@@ -1,19 +1,26 @@
-# SqlAlchemy Support for Ex-DRF
+# SqlAlchemy support for Ex-DRF
+
+**exdrf-al** is the **SQLAlchemy 2.x** bridge for **exdrf**: declarative
+metadata is turned into **`ExDataset` / `ExResource` / `ExField`** trees used by
+generators (**al2pd**, **al2qt**, **al2r**, …), Qt (**exdrf-qt**), and Alembic
+helpers (Click commands in this package). It depends on **exdrf** and
+**exdrf-pd**.
 
 The library provides guidance and support code for using SQLAlchemy with Ex-DRF.
 
 ## Usage
 
 Start by basing your models off `Base` from `exdrf_al.base` module.
-It is a rather simple class that allows for model andd fields
+It is a rather simple class that allows for model and fields
 iteration. If you don't want to use it, take a look at the
 implementation of that class for how to extract the information
 you need from your models.
 
 ### Models
 
-The library reads the description of models from the sqlAlchemy metadata. On top of that you cad add additional information by adding
-members to the `info` key in the `__table_args__` model attribute.
+The library reads the description of models from the sqlAlchemy metadata. On
+top of that you can add additional information by adding members to the `info`
+key in the `__table_args__` model attribute.
 
 The keys that are used inside the `info` dictionary are documented
 in `exdrf.resource.ResExtraInfo`, which is the pydantic class that
@@ -42,13 +49,14 @@ class Example(Base):
 
 ### Fields
 
-Just like with the models, the model field metadata is used to
-extract the information. Additionally, we use values in the dictionary assigned to the `info` attribute to add additional information.
+Just like with the models, the model field metadata is used to extract the
+information. Additionally, we use values in the dictionary assigned to the
+`info` attribute to add additional information.
 
-The keys that are used inside the `info` consist of a common subset
-for all field types and specific keys for each field type. The common keys parsed by the `exdrf.field.FieldInfo` class are documented with
-that class, and each field type is described in its own module under
-`exdrf.field_types`.
+The keys that are used inside the `info` consist of a common subset for all
+field types and specific keys for each field type. The common keys parsed by the
+`exdrf.field.FieldInfo` class are documented with that class, and each field
+type is described in its own module under `exdrf.field_types`.
 
 Example:
 
@@ -74,9 +82,10 @@ class Example(Base):
 
 ### Relationships
 
-`relationship(..., info={...})` is validated with `exdrf.field_types.ref_base.RelExtraInfo`,
-which extends `exdrf.field.FieldInfo`. Keys such as `direction` and `doc` are
-required or conventional; optional keys from `FieldInfo` apply as well.
+`relationship(..., info={...})` is validated with
+`exdrf.field_types.ref_base.RelExtraInfo`, which extends
+`exdrf.field.FieldInfo`. Keys such as `direction` and `doc` are required or
+conventional; optional keys from `FieldInfo` apply as well.
 
 When `use_rel` is true on a **non-bridge** `OneToMany` relationship, Qt code
 generation (`exdrf-gen-al2qt`) emits a dedicated editor tab with a

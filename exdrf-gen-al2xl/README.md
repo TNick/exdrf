@@ -1,6 +1,6 @@
 # exdrf-gen-al2xl
 
-**exdrf-gen-al2xl** is an **`exdrf-gen`** plugin that generates **Python helpers
+**exdrf-gen-al2xl** is an `exdrf-gen` plugin that generates **Python helpers
 for Excel-oriented workflows** (import/export style) from SQLAlchemy-backed
 **`ExDataset`** metadata. It mirrors the **category / resource** tree used by
 **al2at**, and adds **`schema_from_text.py`** for parsing structured text into

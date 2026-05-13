@@ -4,7 +4,8 @@
 `APIRouter` stubs from SQLAlchemy-backed **`ExDataset`** metadata. List and
 read handlers are typed with **`XxxEx`**; create uses **`XxxCreate`**. Patch
 is emitted only when **`exdrf-gen-al2pd`** would emit **`XxxEdit`** (composite
-PK–only link tables skip PATCH).
+PK–only link tables skip PATCH). The **`SCHEMAS-PKG`** argument must point at
+the package tree produced by **`al2pd`**.
 
 Python **3.12.2+** is required.
 

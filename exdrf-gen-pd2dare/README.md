@@ -1,8 +1,10 @@
 # exdrf-gen-pd2dare
 
 **exdrf-gen-pd2dare** is an **`exdrf-gen`** plugin that emits **DARE**
-TypeScript resources (`*.ts`), a per-category **`index.ts`**, and a root
+TypeScript resources (`*.ts`), per-category **`index.ts`**, and root
 **`dataset.ts`** from **Pydantic `ExModel`** subclasses (names ending in `Ex`).
+Use the **`pd2dare`** command once **`exdrf_pd`** models are importable (see
+environment variables below).
 
 The PyPI distribution name is **`exdrf-gen-pd2dare`**; the import package is
 **`exdrf_gen_pd2dare`**.

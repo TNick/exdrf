@@ -1,16 +1,20 @@
 # exdrf-rcv
 
-The RCV project aims to create a system for rendering resources
-(as described in the exdrf repo) and other data into the user interface.
+The **remote-controlled-view (RCV)** stack renders **exdrf** resources and
+related data into a user interface that the front end drives over HTTP.
 
-**exdrf-rcv** holds **shared Python runtime** for **remote-controlled-view**
-(RCV) backends: types and helpers consumed by code emitted by
-**`exdrf-gen-al2rcv`** (and by hand-written route modules next to that output).
-**`RcvPlan`** and discriminated **`RcvField`** models live in.
+**exdrf-rcv** is the **shared Python runtime** for RCV *backends*. It defines
+**`RcvPlan`**, discriminated **`RcvField`** types, and helpers that
+**`exdrf-gen-al2rcv`**-generated route modules import next to your FastAPI app.
 
-The customer-facing RCV UI lives in the **`fr-one`** repo at
-**`libs/rcv`**; this package is the exdrf-side counterpart for server logic
-and generated stubs.
+The browser UI that consumes those endpoints lives in **fr-one** under
+**`libs/rcv`**; this package stays on the **exdrf** / API side of that boundary.
 
-Python **3.12.2+** is required. Install next to **`exdrf`** in the same
-environment as **`exdrf-gen-al2rcv`**.
+Python **3.12.2+** is required. Install next to **exdrf** in the same
+environment as **exdrf-gen-al2rcv** output.
+
+## Related packages
+
+- **exdrf-gen-al2rcv** — emits `{resource}_rcv_paths.py` scaffolds and root
+  **`api.py`** wired to your **`--get-db`** callable.
+- **exdrf-gen-al2r** — sibling FastAPI router codegen; similar category layout.

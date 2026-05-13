@@ -1,15 +1,15 @@
 # exdrf-gen-al2rcv
 
+The **remote-controlled-view (RCV)** stack renders **exdrf** resources and
+companion data into UI shapes the SPA requests from the API.
 
-The remote-controlled-view project aims to create a system for rendering
-resources (as described in the exdrf repo) and other data into the
-user interface.
-
-This current package an **`exdrf-gen`** plugin that emits the backend
-code needed for servicing the requests made by the frontend.
+**exdrf-gen-al2rcv** is an **`exdrf-gen`** plugin that emits FastAPI-oriented
+**backend** modules: a root **`api.py`**, per-resource
+**`{res_snake}_rcv_paths.py`** files under the category tree, and
+**`exdrf-rcv`**-compatible plans derived from SQLAlchemy models.
 
 We generate a plan for each resource type based on the information extracted
-from sqlAlchemy database models.
+from SQLAlchemy database models.
 
 Emitted layout includes a root **`__init__.py`** (imports **`api`**) and root
 **`api.py`** (scaffold), one **`{res_snake}_rcv_paths.py`** per resource under

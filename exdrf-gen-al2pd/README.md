@@ -2,7 +2,8 @@
 
 **exdrf-gen-al2pd** is an **`exdrf-gen`** plugin that generates **Pydantic**
 `ExModel` classes from SQLAlchemy-backed **`ExDataset`** metadata (same field
-partitioning idea as bk-one **`db2m`**).
+partitioning idea as **bk-one** **`db2m`**). Generated modules pair with
+**`exdrf-gen-al2r`** when you want matching FastAPI routers.
 
 Python **3.12.2+** is required.
 
@@ -41,8 +42,8 @@ Or: `python -m exdrf_gen al2pd DATASET OUT-PATH`.
 
 ## Dependencies
 
-See `pyproject.toml`: **`exdrf`**, **`exdrf-al`**, **`exdrf-gen`**, **`exdrf-pd`**,
-**`click`**, **`pydantic`**.
+See `pyproject.toml`: **`exdrf`**, **`exdrf-al`**, **`exdrf-gen`**,
+**`exdrf-pd`**, **`click`**, **`pydantic`**.
 
 ## Plugin registration
 

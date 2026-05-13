@@ -1,7 +1,13 @@
 # exdrf-gen
 
-`exdrf-gen` is a Python library for **generating text and project structure from
-Jinja2 templates**, built around the **`exdrf`** dataset model (resources,
+**exdrf-gen** orchestrates **Jinja2** rendering and optional **filesystem
+tree** generation for the **exdrf** domain model. One **`exdrf-gen`** CLI loads
+all **`exdrf.plugins` → `exdrf_gen`** entry points (sibling **`exdrf-gen-*`**
+packages) so commands such as **`al2pd`**, **`al2qt`**, **`pd2dare`**, and
+**`openapi2rtk`** appear together after you install the matching plugins.
+
+`exdrf-gen` is a Python library for **generating text and project structure
+from Jinja2 templates**, built around the **`exdrf`** dataset model (resources,
 fields, categories). It supplies a shared Jinja environment tuned for that
 domain, optional **composite file-tree builders** that iterate over an
 `ExDataset`, a small **Click-based CLI scaffold**, and a **plugin hook** so other

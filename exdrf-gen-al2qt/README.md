@@ -4,7 +4,8 @@
 model scaffolding from an **`ExDataset`** derived from SQLAlchemy declarative
 models. **`generate_qt_from_alchemy`** walks a deep template tree (menus,
 plugins, routers, per-category and per-resource widgets, editors, lists,
-selectors, field classes, and HTML viewers).
+selectors, field classes, and HTML viewers). Runtime code depends on
+**`exdrf-qt`**.
 
 Python **3.12.2+** is required.
 
@@ -48,10 +49,10 @@ generate_qt_from_alchemy(
 
 ## Templates and regeneration
 
-Jinja sources live under **`exdrf_gen_al2qt/al2qt_templates/`**. Regenerated files
-support **preserve regions** (`exdrf-keep-start` / `exdrf-keep-end`) as described
-in **`exdrf-gen`**’s **`fs_support`** documentation; see also *Preserving custom
-content* at the end of this file.
+Jinja sources live under **`exdrf_gen_al2qt/al2qt_templates/`**. Regenerated
+files support **preserve regions** (`exdrf-keep-start` / `exdrf-keep-end`) as
+described in **`exdrf-gen`**’s **`fs_support`** documentation; see also
+*Preserving custom content* at the end of this file.
 
 ## Plugin registration
 
@@ -391,9 +392,9 @@ field-specific variables below.
 
 - **`base_ui_class(field)`**: A function that returns the Qt widget class name
   that should be used for editing this field. By default, it maps field types
-  to widget classes (e.g., "string" → "DrfLineEditor", "integer" → "DrfIntEditor",
-  "many-to-one" → "Qt{ResourceName}SiSe"). Can be customized via the
-  `base_ui_class` parameter.
+  to widget classes (e.g., "string" → "DrfLineEditor", "integer" →
+  "DrfIntEditor", "many-to-one" →
+  "Qt{ResourceName}SiSe"). Can be customized via the `base_ui_class` parameter.
 
 ##### Field Methods (via `field` object)
 

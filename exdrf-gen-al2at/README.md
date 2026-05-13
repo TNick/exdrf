@@ -1,6 +1,6 @@
 # exdrf-gen-al2at
 
-**exdrf-gen-al2at** is an **`exdrf-gen`** plugin that generates **attrs-based
+**exdrf-gen-al2at** is an `exdrf-gen` plugin that generates **attrs-based
 Python modules** from an **`ExDataset`** built from your SQLAlchemy declarative
 models. Output is driven by Jinja2 templates under `al2at_templates/` and the
 composite tree in `exdrf_gen.fs_support` (`TopDir`, `CategDir`, `ResFile`, …).

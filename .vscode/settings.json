@@ -127,6 +127,7 @@
         "PYQTDESIGNERPATH",
         "pysqlite",
         "pytestconfig",
+        "PYTHONPATH",
         "QICON",
         "qimage",
         "qsearch",
