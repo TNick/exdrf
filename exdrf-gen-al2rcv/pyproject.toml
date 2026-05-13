@@ -16,7 +16,7 @@ dependencies = [
   "exdrf-rcv",
 ]
 description = "Generate remote-controlled-view path module scaffolds from SQLAlchemy-backed ExDataset metadata."
-dynamic = ["version"]
+version = "0.1.14"
 name = "exdrf-gen-al2rcv"
 readme = "README.md"
 requires-python = ">=3.12.2"
@@ -40,7 +40,7 @@ dev = [
 
 [build-system]
 build-backend = "setuptools.build_meta"
-requires = ["setuptools>=67.0", "setuptools_scm[toml]>=8.3.0"]
+requires = ["setuptools>=67.0"]
 
 [tool.setuptools]
 include-package-data = true
@@ -51,18 +51,12 @@ exdrf_gen_al2rcv = ["al2rcv_templates/**/*.j2", "py.typed"]
 [tool.setuptools.packages.find]
 exclude = ["venv*", "playground*"]
 
-[tool.setuptools_scm]
-root = ".."
-fallback_version = "0.0.1-dev"
-version_file = "exdrf_gen_al2rcv/__version__.py"
-
 [tool.isort]
 profile = "black"
 
 [tool.black]
 line-length = 80
 target-version = ['py312']
-extend-exclude = "__version__\\.py"
 
 [tool.flake8]
 docstring-convention = "google"

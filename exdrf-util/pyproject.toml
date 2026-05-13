@@ -10,12 +10,12 @@ classifiers = [
   "Typing :: Typed",
 ]
 description = "Utilities for Ex-DRF."
-dynamic = ["version"]
+version = "0.1.14"
 name = "exdrf-util"
 readme = "README.md"
 requires-python = ">=3.12.2"
 dependencies = [
-
+  "exdrf",
 ]
 
 [project.optional-dependencies]
@@ -39,7 +39,7 @@ dev = [
 
 [build-system]
 build-backend = "setuptools.build_meta"
-requires = ["setuptools>=67.0", "setuptools_scm[toml]>=8"]
+requires = ["setuptools>=67.0"]
 
 [tool.setuptools]
 include-package-data = true
@@ -50,10 +50,6 @@ exdrf_util = ["py.typed"]
 [tool.setuptools.packages.find]
 exclude = ["venv*", "playground*"]
 
-[tool.setuptools_scm]
-root = ".."
-fallback_version = "0.0.1-dev"
-write_to = "exdrf_util/__version__.py"
 
 [tool.isort]
 profile = "black"

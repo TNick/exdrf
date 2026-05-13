@@ -132,9 +132,6 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# setuptools_scm will put the version here.
-__version__.py
-
 # Your local stuff:
 playground/
 !playground/publish.md

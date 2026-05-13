@@ -11,9 +11,10 @@ classifiers = [
 ]
 dependencies = [
   "PyQt5>=5.15.11",
+  "exdrf",
 ]
 description = "Generate Qt-related classes content using DRF from sqlalchemy models."
-dynamic = ["version"]
+version = "0.1.14"
 name = "exdrf-gen-al2qt"
 readme = "README.md"
 requires-python = ">=3.12.2"
@@ -38,7 +39,7 @@ dev = [
 
 [build-system]
 build-backend = "setuptools.build_meta"
-requires = ["setuptools>=67.0", "setuptools_scm[toml]>=8.3.0"]
+requires = ["setuptools>=67.0"]
 
 [tool.setuptools]
 include-package-data = true
@@ -49,10 +50,6 @@ exdrf_gen_al2qt = ["py.typed"]
 [tool.setuptools.packages.find]
 exclude = ["venv*", "playground*"]
 
-[tool.setuptools_scm]
-root = ".."
-fallback_version = "0.0.1-dev"
-version_file = "exdrf_gen_al2qt/__version__.py"
 
 [tool.isort]
 profile = "black"

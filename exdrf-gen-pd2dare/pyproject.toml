@@ -16,7 +16,7 @@ dependencies = [
   "exdrf-ts",
 ]
 description = "Generate DARE TypeScript resources from Pydantic Ex models."
-dynamic = ["version"]
+version = "0.1.14"
 name = "exdrf-gen-pd2dare"
 readme = "README.md"
 requires-python = ">=3.12.2"
@@ -41,7 +41,7 @@ dev = [
 
 [build-system]
 build-backend = "setuptools.build_meta"
-requires = ["setuptools>=67.0", "setuptools_scm[toml]>=8.3.0"]
+requires = ["setuptools>=67.0"]
 
 [tool.setuptools]
 include-package-data = true
@@ -52,10 +52,6 @@ exdrf_gen_pd2dare = ["py.typed"]
 [tool.setuptools.packages.find]
 exclude = ["venv*", "playground*"]
 
-[tool.setuptools_scm]
-root = ".."
-fallback_version = "0.0.1-dev"
-version_file = "exdrf_gen_pd2dare/__version__.py"
 
 [tool.isort]
 profile = "black"

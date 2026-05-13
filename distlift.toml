@@ -1,0 +1,45 @@
+# distlift configuration
+#
+# All keys are optional; defaults shown in comments. Uncomment and edit
+# the ones you want to override.
+#
+# Precedence (highest first):
+#   1. CLI flags
+#   2. DISTLIFT_* environment variables
+#   3. Local repo config (distlift.toml, .distlift.toml, [tool.distlift])
+#   4. User config (this file, when in the user location)
+#   5. System config (this file, when in the system location)
+#   6. Built-in defaults
+#
+# Release-related keys (language, editor, remotes, …) may appear at the
+# top level below, or only under `[release]`. If you add `[release]`, put
+# those fields inside it—top-level duplicates are ignored by the parser.
+
+# language = "python"                 # python | javascript
+# mode = "simple"                     # simple | monorepo
+# default_version = "0.1.0"
+# version_format = "major-minor-patch"  # major | major-minor | (default)
+# tag_template = "v{version}"
+# version_source = "manifest"         # manifest | tag
+# manifest_path = "pyproject.toml"
+# remotes = ["origin"]
+
+# Optional: default external editor for this machine (user or system file).
+# Used when GIT_EDITOR, VISUAL, and EDITOR are all unset—for example
+# ``distlift config edit-*`` and changelog entry editing. Same value can be
+# set via DISTLIFT_EDITOR instead of this file.
+# editor = "code --wait"
+
+# [changelog]
+# enabled = true
+# path = "CHANGELOG.md"
+# title = "Changelog"
+# prompt_editor = true
+# compare_url_template = ""           # auto-derived from origin when empty
+
+# [plugins]
+# enable_environment = true
+# enable_builtin = true
+# allow_override = true
+# paths = []
+# directories = []
