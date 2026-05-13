@@ -107,8 +107,7 @@ class Ui_QtChildEditor:
         )
         self.lbl_id.setText(_translate("QtChildEditor", "Id "))
         self.main_tab.setTabText(
-            self.main_tab.indexOf(self.tab_info),
-            _translate("QtChildEditor", "Info"),
+            self.main_tab.indexOf(self.tab_info), _translate("QtChildEditor", "Info")
         )
 
     def enum_controls(self):

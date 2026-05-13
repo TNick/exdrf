@@ -3,11 +3,12 @@ from bisect import bisect_right
 from collections import namedtuple
 from enum import StrEnum
 from typing import (
-    TYPE_CHECKING,
     Any,
     Generic,
     List,
     Optional,
+    Protocol,
+    Sequence,
     TypeVar,
     Union,
     cast,
@@ -23,25 +24,47 @@ from exdrf.filter_op_catalog import (
     normalize_filter_op,
 )
 
-try:
-    from exdrf_qt.context_use import QtUseContext
-    from exdrf_qt.models.model import DBM, QtModel  # noqa: F401
+DBM = TypeVar("DBM")
 
-    _HAS_EXDRF_QT = True
-except ImportError:
-    # Fallback when exdrf_qt is not available
-    class QtUseContext:  # type: ignore
-        """Fallback base class when exdrf_qt is not available."""
 
-    DBM = TypeVar("DBM")  # type: ignore
-    QtModel = Any  # type: ignore
-    _HAS_EXDRF_QT = False
+class RunContext(Protocol):
+    """Execution context for filter DSL validation.
 
-if TYPE_CHECKING:
-    try:
-        from exdrf_qt.context import QtContext  # noqa: F401
-    except ImportError:
-        QtContext = Any  # type: ignore
+    ``FieldValidator.validate`` only inspects ``qt_model``; ``ctx`` is kept so
+    callers and subclasses can attach shared runtime state (configuration,
+    database handles, services) without importing Qt types here.
+
+    This protocol defines no required members; any object satisfies it for
+    typing purposes. Subclasses of ``FieldValidator`` may narrow the type.
+    """
+
+
+CTX = TypeVar("CTX", bound=RunContext)
+
+
+class FilterFieldSpec(Protocol):
+    """Metadata for one filterable field.
+
+    Attributes:
+        name: Field name as it appears in the DSL.
+        type_name: Name passed to ``filter_op_allowed_for_type``.
+    """
+
+    name: str
+    type_name: str
+
+
+class SupportsFilterFields(Protocol):
+    """Model-like object that exposes filterable field metadata.
+
+    Attributes:
+        filter_fields: Ordered field specs used to validate identifiers and ops.
+    """
+
+    @property
+    def filter_fields(self) -> Sequence[FilterFieldSpec]:
+        """Fields allowed in filter expressions."""
+        ...
 
 
 class FltErrCode(StrEnum):
@@ -411,15 +434,20 @@ def infer_value_type(value: Any) -> str:
 
 
 @define
-class FieldValidator(QtUseContext, Generic[DBM]):
+class FieldValidator(Generic[DBM, CTX]):
     """Validate fields in the DSL.
 
+    Type parameters:
+        DBM: Carried for model typings (e.g. ORM entity type on ``QtModel``).
+        CTX: Concrete context type; must satisfy ``RunContext``.
+
     Attributes:
-        field_map: A dictionary of fields.
+        ctx: Runtime context instance of type ``CTX``.
+        qt_model: Source of ``filter_fields`` metadata for validation.
     """
 
-    ctx: "QtContext"
-    qt_model: "QtModel[DBM]"
+    ctx: CTX
+    qt_model: SupportsFilterFields
 
     def validate(
         self,
@@ -745,14 +773,18 @@ class DSLParser:
 
 
 @define
-class DSLParserWithValidation(DSLParser):
+class DSLParserWithValidation(DSLParser, Generic[DBM, CTX]):
     """Parse the DSL with validation.
 
+    Type parameters:
+        DBM: Same as on ``FieldValidator``.
+        CTX: Same as on ``FieldValidator``.
+
     Attributes:
-        validator: The validator.
+        validator: The field validator (shared ``DBM`` / ``CTX``).
     """
 
-    validator: FieldValidator
+    validator: FieldValidator[DBM, CTX]
 
     def parse_field_expr(self) -> ParsedFieldFilter:
         """Parse a field expression.

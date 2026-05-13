@@ -99,8 +99,7 @@ class Ui_QtProfileEditor:
         )
         self.lbl_id.setText(_translate("QtProfileEditor", "Id "))
         self.main_tab.setTabText(
-            self.main_tab.indexOf(self.tab_keys),
-            _translate("QtProfileEditor", "Keys"),
+            self.main_tab.indexOf(self.tab_keys), _translate("QtProfileEditor", "Keys")
         )
 
     def enum_controls(self):

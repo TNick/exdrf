@@ -166,8 +166,7 @@ class Ui_QtParentEditor:
         )
         self.lbl_id.setText(_translate("QtParentEditor", "Id "))
         self.main_tab.setTabText(
-            self.main_tab.indexOf(self.tab_keys),
-            _translate("QtParentEditor", "Keys"),
+            self.main_tab.indexOf(self.tab_keys), _translate("QtParentEditor", "Keys")
         )
 
     def enum_controls(self):

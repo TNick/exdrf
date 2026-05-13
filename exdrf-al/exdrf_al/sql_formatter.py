@@ -1,14 +1,8 @@
 import logging
-import logging.config
 from contextlib import contextmanager
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import sqlparse  # type: ignore
-
-if TYPE_CHECKING:
-    from PyQt5.QtWidgets import QWidget  # noqa: F401
-    from sqlalchemy import Select  # noqa: F401
-
 
 DISABLED = False
 
@@ -63,9 +57,7 @@ class SQLPrettyFormatter(logging.Formatter):
 
         msg = record.getMessage()
 
-        if record.name == "sqlalchemy.engine.Engine" and isinstance(
-            record.msg, str
-        ):
+        if record.name == "sqlalchemy.engine.Engine" and isinstance(record.msg, str):
             try:
                 if is_dict_arg(record):
                     record.msg = "[%s]\n%s"

@@ -157,7 +157,7 @@ class DbVer:
             engine: The database engine.
             migrations: The migrations module (`myapp:migrations`).
         """
-        from exdrf_qt.utils.sql_formatter import disable_sql_formatter
+        from exdrf_al.sql_formatter import disable_sql_formatter
 
         with disable_sql_formatter():
             with self.alembic_config() as alembic_cfg:

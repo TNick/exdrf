@@ -66,10 +66,10 @@ class FilterEditor(QPlainTextEdit, QtUseContext, Generic[DBM]):
     completer_model: QStringListModel
     completer: QCompleter
     l_error: Optional[QLabel]
-    parser: Optional[DSLParserWithValidation]
+    parser: Optional[DSLParserWithValidation[DBM, "QtContext"]]
     qt_model: "QtModel[DBM]"
     tokenizer: Optional[DSLTokenizer]
-    validator: Optional[FieldValidator]
+    validator: Optional[FieldValidator[DBM, "QtContext"]]
 
     errorChanged = pyqtSignal(bool)
 
@@ -92,8 +92,8 @@ class FilterEditor(QPlainTextEdit, QtUseContext, Generic[DBM]):
         self.validator = None
         self.l_error = None
         self.err_start = -1
-        self.parser: Optional[DSLParserWithValidation] = None
-        self.tokenizer: Optional[DSLTokenizer] = None
+        self.parser = None
+        self.tokenizer = None
         self.all_field_names_cache = []
 
         # Setup formats
@@ -111,7 +111,7 @@ class FilterEditor(QPlainTextEdit, QtUseContext, Generic[DBM]):
 
     def prepare(
         self,
-        validator: FieldValidator,
+        validator: FieldValidator[DBM, "QtContext"],
         l_error: QLabel,
         qt_model: "QtModel[DBM]",
     ) -> None:
@@ -132,7 +132,9 @@ class FilterEditor(QPlainTextEdit, QtUseContext, Generic[DBM]):
         """
         self.setPlainText(raw_filter_to_text(filter))
 
-    def set_validator(self, validator: FieldValidator) -> None:
+    def set_validator(
+        self, validator: FieldValidator[DBM, "QtContext"]
+    ) -> None:
         """Set the field validator and update field cache for completer."""
         self.validator = validator
         if self.qt_model:
@@ -702,7 +704,7 @@ class FilterEditor(QPlainTextEdit, QtUseContext, Generic[DBM]):
             return []
 
         current_tokenizer = DSLTokenizer(text=full_text)
-        _validator = (
+        _validator: FieldValidator[DBM, "QtContext"] = (
             self.validator
             if self.validator
             else FieldValidator(
@@ -711,7 +713,7 @@ class FilterEditor(QPlainTextEdit, QtUseContext, Generic[DBM]):
             )
         )
 
-        self.parser = DSLParserWithValidation(
+        self.parser = DSLParserWithValidation[DBM, "QtContext"](
             src_text=full_text,
             tokens=[],
             index=0,

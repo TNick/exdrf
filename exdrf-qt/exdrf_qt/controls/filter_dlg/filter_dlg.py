@@ -23,11 +23,12 @@ class FilterDlg(QDialog, Ui_FilterDlg, QtUseContext, Generic[DBM]):
         self.qt_model = qt_model
         self.setup_ui(self)
 
+        _validator: FieldValidator[DBM, "QtContext"] = FieldValidator(
+            ctx=self.ctx,
+            qt_model=self.qt_model,
+        )
         self.c_text.prepare(
-            validator=FieldValidator(
-                ctx=self.ctx,
-                qt_model=self.qt_model,
-            ),
+            validator=_validator,
             l_error=self.l_error,
             qt_model=self.qt_model,
         )

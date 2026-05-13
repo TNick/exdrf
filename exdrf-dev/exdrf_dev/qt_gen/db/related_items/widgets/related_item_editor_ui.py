@@ -3,9 +3,7 @@ from typing import TYPE_CHECKING
 from PyQt5 import QtCore, QtWidgets
 
 if TYPE_CHECKING:
-    from exdrf_dev.qt_gen.db.composite_key_models.api import (
-        QtCompositeKeyModelSiSe,
-    )
+    from exdrf_dev.qt_gen.db.composite_key_models.api import QtCompositeKeyModelSiSe
     from exdrf_qt.field_ed.api import DrfIntEditor, DrfLineEditor
 
 
@@ -48,9 +46,7 @@ class Ui_QtRelatedItemEditor:
     verticalLayout: "QtWidgets.QVBoxLayout"
 
     def setup_ui(self, QtRelatedItemEditor):
-        from exdrf_dev.qt_gen.db.composite_key_models.api import (
-            QtCompositeKeyModelSiSe,
-        )
+        from exdrf_dev.qt_gen.db.composite_key_models.api import QtCompositeKeyModelSiSe
         from exdrf_qt.field_ed.api import DrfIntEditor, DrfLineEditor
 
         QtRelatedItemEditor.setObjectName("QtRelatedItemEditor")

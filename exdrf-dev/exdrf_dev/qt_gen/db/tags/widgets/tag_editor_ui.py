@@ -98,8 +98,7 @@ class Ui_QtTagEditor:
         )
         self.lbl_id.setText(_translate("QtTagEditor", "Id "))
         self.main_tab.setTabText(
-            self.main_tab.indexOf(self.tab_keys),
-            _translate("QtTagEditor", "Keys"),
+            self.main_tab.indexOf(self.tab_keys), _translate("QtTagEditor", "Keys")
         )
 
     def enum_controls(self):

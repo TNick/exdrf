@@ -28,7 +28,6 @@ from exdrf_qt.plugins import exdrf_qt_pm
 from exdrf_qt.utils.attr_dict import AttrDict
 from exdrf_qt.utils.plugins import safe_hook_call
 from exdrf_qt.utils.router import ExdrfRouter
-from exdrf_qt.utils.sql_formatter import SQLPrettyFormatter  # noqa: F401
 from exdrf_qt.worker import Relay, Work
 
 if TYPE_CHECKING:
