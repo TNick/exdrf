@@ -44,7 +44,7 @@ DEFAULT_LOGGING = {
     "disable_existing_loggers": False,
     "formatters": {
         "sql-pretty": {
-            "()": "exdrf_qt.context.SQLPrettyFormatter",
+            "()": "exdrf_al.sql_formatter.SQLPrettyFormatter",
             "format": (
                 "%(asctime)s [%(levelname)s] %(name)s:%(lineno)d: %(message)s"
             ),
@@ -114,8 +114,16 @@ class QtMinContext(DbConn):
             )
             self.stg.set_setting("logging", log_stg)
 
-        # Apply the configuration
-        logging.config.dictConfig(thaw(log_stg))
+        # Apply the configuration (thaw first; migrate legacy formatter paths
+        # that pointed at this module before SQLPrettyFormatter moved to exdrf_al).
+        log_cfg = thaw(log_stg)
+        _legacy_sql_fmt = "exdrf_qt.context.SQLPrettyFormatter"
+        _sql_fmt = "exdrf_al.sql_formatter.SQLPrettyFormatter"
+        for _fmt in (log_cfg.get("formatters") or {}).values():
+            if isinstance(_fmt, dict) and _fmt.get("()") == _legacy_sql_fmt:
+                _fmt["()"] = _sql_fmt
+
+        logging.config.dictConfig(log_cfg)
 
         logger = logging.getLogger(__name__)
         logger.debug("Logging has been setup")
