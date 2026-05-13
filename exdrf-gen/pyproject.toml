@@ -10,7 +10,7 @@ classifiers = [
   "Typing :: Typed",
 ]
 description = "Generate content using DRF."
-version = "0.1.14"
+version = "0.1.15"
 name = "exdrf-gen"
 readme = "README.md"
 requires-python = ">=3.12.2"

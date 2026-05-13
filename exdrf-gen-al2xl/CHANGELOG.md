@@ -1,6 +1,14 @@
 # Changelog
 
+
+
 ## [Unreleased]
+
+## [0.1.15] - 2026-05-13
+
+### Changed
+
+- Update description
 
 ## [0.1.14] - 2026-05-13
 
@@ -21,4 +29,5 @@
 - remove dynamic versioning
 
 [0.1.14]: https://github.com/TNick/exdrf/compare/5c63497ca9407e723f6504245ac324094d46b6a6...v0.1.14-exdrf-gen-al2xl
-[unreleased]: https://github.com/TNick/exdrf/compare/v0.1.14-exdrf-gen-al2xl...HEAD
+[0.1.15]: https://github.com/TNick/exdrf/compare/v0.1.14-exdrf-gen-al2xl...v0.1.15-exdrf-gen-al2xl
+[unreleased]: https://github.com/TNick/exdrf/compare/v0.1.15-exdrf-gen-al2xl...HEAD

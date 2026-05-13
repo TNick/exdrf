@@ -14,7 +14,7 @@ dependencies = [
   "exdrf-pd",
 ]
 description = "Map exdrf field and Python types to TypeScript for codegen."
-version = "0.1.14"
+version = "0.1.15"
 name = "exdrf-ts"
 readme = "README.md"
 requires-python = ">=3.12.2"

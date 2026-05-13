@@ -16,7 +16,7 @@ dependencies = [
   "exdrf-gen-al2pd",
 ]
 description = "Generate FastAPI route modules from SQLAlchemy-backed ExDataset metadata."
-version = "0.1.14"
+version = "0.1.15"
 name = "exdrf-gen-al2r"
 readme = "README.md"
 requires-python = ">=3.12.2"

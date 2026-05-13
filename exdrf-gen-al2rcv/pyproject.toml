@@ -16,7 +16,7 @@ dependencies = [
   "exdrf-rcv",
 ]
 description = "Generate remote-controlled-view path module scaffolds from SQLAlchemy-backed ExDataset metadata."
-version = "0.1.14"
+version = "0.1.15"
 name = "exdrf-gen-al2rcv"
 readme = "README.md"
 requires-python = ">=3.12.2"
