@@ -1,4 +1,8 @@
-"""Verify that published exdrf distributions install from a package index."""
+"""Verify that published exdrf distributions install from a package index.
+
+With ``--package-dir``, only that workspace package is installed and checked
+via :func:`importlib.metadata.version`.
+"""
 
 from __future__ import annotations
 
@@ -16,7 +20,10 @@ _SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
 
-from exdrf_repo_paths import discover_package_dirs  # noqa: E402
+from exdrf_repo_paths import (  # noqa: E402
+    discover_package_dirs,
+    resolve_publish_package_dir,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +53,7 @@ def _project_name(pyproject_path: Path) -> str:
 
 
 def main() -> None:
-    """Create a clean venv and pip-install all exdrf packages at one version."""
+    """Create a clean venv and pip-install packages, then smoke-check."""
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -59,6 +66,14 @@ def main() -> None:
         "--version",
         required=True,
         help=("Exact PEP 440 version for every distribution (example: 1.2.3)."),
+    )
+    parser.add_argument(
+        "--package-dir",
+        default=None,
+        help=(
+            "Top-level monorepo directory (e.g. exdrf-qt). When set, install "
+            "only that project's [project].name at --version and verify metadata."
+        ),
     )
     parser.add_argument(
         "--index-url",
@@ -79,8 +94,12 @@ def main() -> None:
         repo_root = Path(__file__).resolve().parent.parent
     repo_root = repo_root.resolve()
 
-    package_dirs = discover_package_dirs(repo_root)
-    names = [_project_name(p / "pyproject.toml") for p in package_dirs]
+    if args.package_dir:
+        pkg_root = resolve_publish_package_dir(repo_root, args.package_dir)
+        names = [_project_name(pkg_root / "pyproject.toml")]
+    else:
+        package_dirs = discover_package_dirs(repo_root)
+        names = [_project_name(p / "pyproject.toml") for p in package_dirs]
     specs = [f"{n}=={args.version}" for n in names]
 
     tmp = Path(tempfile.mkdtemp(prefix="exdrf-verify-"))
@@ -132,12 +151,26 @@ def main() -> None:
             logger.error("pip install failed with code %s", proc_in.returncode)
             raise SystemExit(proc_in.returncode)
 
+        if args.package_dir:
+            check_src = (
+                "import importlib.metadata as m\n"
+                "n = %r\n"
+                "expected = %r\n"
+                "got = m.version(n)\n"
+                "assert got == expected, (n, got, expected)\n"
+            ) % (names[0], args.version)
+        else:
+            check_src = "import exdrf"
+
         proc_imp = subprocess.run(
-            [str(py), "-c", "import exdrf"],
+            [str(py), "-c", check_src],
             check=False,
         )
         if proc_imp.returncode != 0:
-            logger.error("Smoke import exdrf failed")
+            logger.error(
+                "Post-install verification failed with code %s",
+                proc_imp.returncode,
+            )
             raise SystemExit(proc_imp.returncode)
 
         logger.info("Verification succeeded in %s", venv_dir)

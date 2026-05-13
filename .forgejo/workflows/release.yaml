@@ -3,16 +3,14 @@ name: Release
 on:
   push:
     tags:
-      - "v*"
+      - "v*-*"
 
 jobs:
   build-and-publish:
+    if: ${{ startsWith(github.ref_name, 'v') && contains(github.ref_name, '-') }}
     runs-on: docker
     container:
       image: docker.advaita.ro/gitlab-ci-2026:py312-node20
-
-    env:
-      PYTHON_BIN: .venv/bin/python
 
     steps:
       - name: Check out repository
@@ -20,53 +18,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Export setuptools-scm version from tag
-        run: |
-          name="${GITHUB_REF_NAME:-}"
-          if [ -z "${name}" ] && [ -n "${GITHUB_REF:-}" ]; then
-            name="${GITHUB_REF#refs/tags/}"
-          fi
-          case "${name}" in
-            v*)
-              ver="${name#v}"
-              printf "SETUPTOOLS_SCM_PRETEND_VERSION=%s\n" "${ver}" >> "${GITHUB_ENV}"
-              echo "Release build using SETUPTOOLS_SCM_PRETEND_VERSION=${ver}"
-              ;;
-            [0-9]*.[0-9]*.[0-9]*)
-              printf "SETUPTOOLS_SCM_PRETEND_VERSION=%s\n" "${name}" >> "${GITHUB_ENV}"
-              echo "Release build using SETUPTOOLS_SCM_PRETEND_VERSION=${name}"
-              ;;
-            *)
-              echo "Tag ref not recognized as semver; setuptools-scm will use git only"
-              ;;
-          esac
-
-      - name: Create venv and tooling
-        run: |
-          python3 -m venv .venv
-          . .venv/bin/activate
-          python -m pip install --upgrade pip
-          python -m pip install --upgrade build twine
-
-      - name: Install editable dependencies
-        run: |
-          . .venv/bin/activate
-          make init-d PYTHON="${PYTHON_BIN}"
-
-      - name: Build and collect artifacts
-        run: |
-          . .venv/bin/activate
-          make build-packages collect-dist PYTHON="${PYTHON_BIN}"
-
-      - name: Publish packages to Forgejo PyPI registry
+      - name: Build and publish Python package
         env:
+          RELEASE_VERSION: ${{ github.ref_name }}
           TWINE_USERNAME: ${{ github.actor }}
           TWINE_PASSWORD: ${{ secrets.PUB_PACKAGES }}
           TWINE_REPOSITORY_URL: https://git.advaita.ro/api/packages/advpy/pypi
-        run: |
-          . .venv/bin/activate
-          python -m twine check release_dist/*
-          python -m twine upload --non-interactive release_dist/*
+        run: bash scripts/registry-release.sh
 
       - name: Upload release artifacts
         uses: https://data.forgejo.org/forgejo/upload-artifact@v4

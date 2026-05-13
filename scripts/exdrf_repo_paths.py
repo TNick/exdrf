@@ -9,6 +9,59 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 
+def resolve_publish_package_dir(repo_root: Path, name: str) -> Path:
+    """Return the absolute path to one top-level package directory.
+
+    The directory must lie directly under ``repo_root`` and contain
+    ``pyproject.toml``. Names with path separators or parent segments are
+    rejected.
+
+    Args:
+        repo_root: Absolute path to the exdrf repository root.
+        name: Directory basename (e.g. ``exdrf`` or ``exdrf-gen-al2qt``).
+
+    Returns:
+        Resolved directory path.
+
+    Raises:
+        ValueError: When ``name`` is empty, hidden, or unsafe.
+        FileNotFoundError: When ``repo_root`` is not a directory or there is no
+            ``pyproject.toml`` at the resolved path.
+    """
+
+    cleaned = name.strip().replace("\r", "")
+    if not cleaned or cleaned.startswith("."):
+        msg = "package directory name must be non-empty and not hidden, got %r"
+        logger.error(msg, name)
+        raise ValueError(msg % name)
+
+    if "/" in cleaned or "\\" in cleaned or ".." in cleaned:
+        msg = "package directory name must be a single basename, got %r"
+        logger.error(msg, name)
+        raise ValueError(msg % name)
+
+    if not repo_root.is_dir():
+        msg = "repo_root is not a directory: %s"
+        logger.error(msg, repo_root)
+        raise FileNotFoundError(msg % repo_root)
+
+    root = repo_root.resolve()
+    candidate = (root / cleaned).resolve()
+    try:
+        candidate.relative_to(root)
+    except ValueError:
+        msg = "package directory %r escapes repo root"
+        logger.error(msg, cleaned)
+        raise ValueError(msg % cleaned) from None
+
+    manifest = candidate / "pyproject.toml"
+    if not manifest.is_file():
+        msg = "no pyproject.toml at %s"
+        logger.error(msg, manifest)
+        raise FileNotFoundError(msg % manifest)
+    return candidate
+
+
 def discover_package_dirs(repo_root: Path) -> list[Path]:
     """Return sorted paths to each directory under ``repo_root`` that has a
     ``pyproject.toml``.

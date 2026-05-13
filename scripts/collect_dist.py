@@ -1,4 +1,4 @@
-"""Copy all built wheels and sdists into a single directory for upload."""
+"""Copy built wheels and sdists into a single directory for upload."""
 
 from __future__ import annotations
 
@@ -12,9 +12,51 @@ _SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
 
-from exdrf_repo_paths import discover_package_dirs  # noqa: E402
+from exdrf_repo_paths import (  # noqa: E402
+    discover_package_dirs,
+    resolve_publish_package_dir,
+)
 
 logger = logging.getLogger(__name__)
+
+
+def _normalize_exclude(names: list[str]) -> frozenset[str]:
+    """Strip whitespace from ``--exclude`` tokens.
+
+    Args:
+        names: Raw values from repeated ``--exclude`` CLI flags.
+
+    Returns:
+        Non-empty normalized package basenames to skip.
+    """
+
+    out: list[str] = []
+    for raw in names:
+        cleaned = raw.strip().replace("\r", "")
+        if cleaned:
+            out.append(cleaned)
+    return frozenset(out)
+
+
+def _normalize_include(names: list[str]) -> list[str]:
+    """Normalize ``--include`` tokens, preserve order, drop duplicates.
+
+    Args:
+        names: Raw values from repeated ``--include`` CLI flags.
+
+    Returns:
+        Ordered unique basenames to collect from.
+    """
+
+    seen: set[str] = set()
+    out: list[str] = []
+    for raw in names:
+        cleaned = raw.strip().replace("\r", "")
+        if not cleaned or cleaned in seen:
+            continue
+        seen.add(cleaned)
+        out.append(cleaned)
+    return out
 
 
 def main() -> None:
@@ -33,6 +75,20 @@ def main() -> None:
         default=None,
         help="Output directory (default: <root>/release_dist).",
     )
+    parser.add_argument(
+        "--exclude",
+        action="append",
+        default=[],
+        metavar="PKG",
+        help="Skip one or more package directory basenames. May be repeated.",
+    )
+    parser.add_argument(
+        "--include",
+        action="append",
+        default=[],
+        metavar="PKG",
+        help="Collect only these package directory basenames. May be repeated.",
+    )
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
@@ -41,6 +97,25 @@ def main() -> None:
     if repo_root is None:
         repo_root = Path(__file__).resolve().parent.parent
     repo_root = repo_root.resolve()
+
+    include_names = _normalize_include(args.include)
+    skip = _normalize_exclude(args.exclude)
+    if include_names and skip:
+        logger.error("Use either --include or --exclude, not both")
+        raise SystemExit(2)
+
+    if include_names:
+        package_dirs = [
+            resolve_publish_package_dir(repo_root, n) for n in include_names
+        ]
+    else:
+        package_dirs = [
+            p for p in discover_package_dirs(repo_root) if p.name not in skip
+        ]
+
+    if not package_dirs:
+        logger.error("No packages selected under %s", repo_root)
+        raise SystemExit(1)
 
     out_dir = args.out
     if out_dir is None:
@@ -52,7 +127,6 @@ def main() -> None:
         shutil.rmtree(out_dir)
     out_dir.mkdir(parents=True)
 
-    package_dirs = discover_package_dirs(repo_root)
     copied = 0
     for pkg in package_dirs:
         dist_dir = pkg / "dist"
