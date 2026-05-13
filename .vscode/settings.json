@@ -40,6 +40,8 @@
         "denoise",
         "Denoising",
         "deptry",
+        "distlift",
+        "DISTLIFT",
         "dmypy",
         "doctests",
         "dotenv",

@@ -11,35 +11,33 @@
 #   5. System config (this file, when in the system location)
 #   6. Built-in defaults
 #
-# Release-related keys (language, editor, remotes, …) may appear at the
-# top level below, or only under `[release]`. If you add `[release]`, put
-# those fields inside it—top-level duplicates are ignored by the parser.
 
-# language = "python"                 # python | javascript
-# mode = "simple"                     # simple | monorepo
-# default_version = "0.1.0"
-# version_format = "major-minor-patch"  # major | major-minor | (default)
-# tag_template = "v{version}"
-# version_source = "manifest"         # manifest | tag
-# manifest_path = "pyproject.toml"
-# remotes = ["origin"]
 
-# Optional: default external editor for this machine (user or system file).
-# Used when GIT_EDITOR, VISUAL, and EDITOR are all unset—for example
-# ``distlift config edit-*`` and changelog entry editing. Same value can be
-# set via DISTLIFT_EDITOR instead of this file.
-# editor = "code --wait"
+language = "python"                 # python | javascript
+mode = "monorepo"                   # simple | monorepo
+version_source = "tag"              # manifest | tag
+remotes = ["origin"]
 
-# [changelog]
-# enabled = true
-# path = "CHANGELOG.md"
-# title = "Changelog"
-# prompt_editor = true
-# compare_url_template = ""           # auto-derived from origin when empty
 
-# [plugins]
-# enable_environment = true
-# enable_builtin = true
-# allow_override = true
-# paths = []
-# directories = []
+[monorepo]
+
+packages = [
+    "exdrf",
+    "exdrf-al",
+    "exdrf-pd",
+    "exdrf-ts",
+    "exdrf-qt",
+    "exdrf-dev",
+    "exdrf-gen",
+    "exdrf-gen-openapi2rtk",
+    "exdrf-gen-al2qt",
+    "exdrf-gen-al2pd",
+    "exdrf-gen-al2rcv",
+    "exdrf-gen-al2at",
+    "exdrf-gen-al2xl",
+    "exdrf-gen-pd2dare",
+    "exdrf-gen-al2r",
+    "exdrf-util",
+    "exdrf-xl",
+    "exdrf-rcv",
+]
