@@ -16,7 +16,7 @@
 language = "python"                 # python | javascript
 mode = "monorepo"                   # simple | monorepo
 version_source = "tag"              # manifest | tag
-remotes = ["origin"]
+remotes = ["origin", "advaita"]
 
 
 [monorepo]

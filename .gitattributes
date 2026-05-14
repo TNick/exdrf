@@ -1,0 +1,6 @@
+# Bash and POSIX scripts run in Linux CI and on servers; CRLF breaks
+# options like `set -o pipefail` under bash.
+*.sh text eol=lf
+*.json text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
