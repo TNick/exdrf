@@ -16,7 +16,7 @@ dependencies = [
   "exdrf-ts",
 ]
 description = "Generate DARE TypeScript resources from Pydantic Ex models."
-version = "0.1.15"
+version = "0.1.16"
 name = "exdrf-gen-pd2dare"
 readme = "README.md"
 requires-python = ">=3.12.2"

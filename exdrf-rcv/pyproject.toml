@@ -13,7 +13,7 @@ dependencies = [
   "exdrf",
 ]
 description = "Shared Python runtime for remote-controlled-view backends and exdrf-gen-al2rcv-generated modules."
-version = "0.1.15"
+version = "0.1.16"
 name = "exdrf-rcv"
 readme = "README.md"
 requires-python = ">=3.12.2"
