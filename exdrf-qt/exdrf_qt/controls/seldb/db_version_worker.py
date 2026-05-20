@@ -100,7 +100,19 @@ class DbVersionCheckerWorker(PythonThread):
 
                         # Check if current version is in history
                         version_revisions = {rev[0] for rev in history}
-                        if current_version not in version_revisions:
+                        if mgh.needs_migration():
+                            version_info = {
+                                "status": "ok",
+                                "version": current_version,
+                                "color_status": "yellow",
+                                "tooltip": (
+                                    f"Version: {current_version}\n"
+                                    f"Latest: {latest_version}\n"
+                                    "Status: Behind current version "
+                                    "(can upgrade)"
+                                ),
+                            }
+                        elif current_version not in version_revisions:
                             # Version is not in the chain
                             version_info = {
                                 "status": "ok",
@@ -125,7 +137,7 @@ class DbVersionCheckerWorker(PythonThread):
                                 ),
                             }
                         else:
-                            # Behind current version
+                            # Behind current version on a linear chain
                             version_info = {
                                 "status": "ok",
                                 "version": current_version,

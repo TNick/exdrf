@@ -1,6 +1,8 @@
+import logging
 import os
+import re
 from contextlib import contextmanager
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from attrs import define, field
 from sqlalchemy import Engine, Select, create_engine, event
@@ -11,6 +13,8 @@ from sqlalchemy.pool import NullPool, StaticPool
 
 from exdrf_al.db_ver.db_ver import DbVer
 
+logger = logging.getLogger(__name__)
+
 dialects_with_schema = {"postgresql", "oracle", "mssql"}
 
 # Connection pool configuration constants
@@ -18,6 +22,72 @@ DEFAULT_POOL_SIZE = 16
 DEFAULT_MAX_OVERFLOW = 10
 DEFAULT_POOL_RECYCLE = 3600  # 1 hour in seconds
 DEFAULT_POOL_TIMEOUT = 30  # seconds
+
+_SCHEMA_IDENT_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+_PRE_AUTO_MIGRATE_HOOKS: List[Callable[["DbConn"], None]] = []
+
+
+def register_pre_auto_migrate_hook(
+    callback: Callable[["DbConn"], None],
+) -> None:
+    """Register a callback invoked before :meth:`DbConn.connect` auto-migrates.
+
+    Args:
+        callback: Callable receiving the :class:`DbConn` instance after the
+            engine is created and before Alembic upgrade runs.
+    """
+
+    _PRE_AUTO_MIGRATE_HOOKS.append(callback)
+
+
+def _schema_path_tokens(db_schema: str) -> List[str]:
+    """Parse and validate ``db_schema`` for PostgreSQL ``SET search_path``.
+
+    Args:
+        db_schema: Single schema name or comma-separated list.
+
+    Returns:
+        Ordered schema names safe as unquoted PostgreSQL identifiers.
+
+    Raises:
+        ValueError: When any segment contains invalid characters.
+    """
+
+    raw = (db_schema or "").strip()
+    if not raw:
+        return ["public"]
+    parts = [p.strip() for p in raw.split(",") if p.strip()]
+    for part in parts:
+        if not _SCHEMA_IDENT_RE.match(part):
+            raise ValueError(
+                "Invalid db_schema segment %r; use letters, digits, underscore"
+                % (part,)
+            )
+    return parts
+
+
+def _postgresql_search_path_sql(db_schema: str) -> str:
+    """Build ``SET SESSION search_path`` SQL for a PostgreSQL tenant schema.
+
+    PostGIS types and functions live in ``public``; tenant schemas must keep
+    ``public`` on the path so GeoAlchemy2 spatial SQL (e.g. ``ST_AsEWKB``)
+    resolves while unqualified table names still prefer the tenant schema.
+
+    Args:
+        db_schema: Configured schema (single name or comma-separated list).
+
+    Returns:
+        A ``SET SESSION search_path TO ...`` statement.
+    """
+
+    ordered: List[str] = []
+    for fragment in _schema_path_tokens(db_schema):
+        if fragment not in ordered:
+            ordered.append(fragment)
+    if "public" not in ordered:
+        ordered.append("public")
+    return "SET SESSION search_path TO " + ", ".join(ordered)
 
 
 @define
@@ -133,10 +203,23 @@ class DbConn:
 
         mgh = self.get_migration_handler()
         if self.auto_migrate:
-            current_version = mgh.get_current_version()
-            latest_version = mgh.get_latest_version()
-            if current_version != latest_version:
-                mgh.upgrade(target=latest_version or "heads")
+            for hook in _PRE_AUTO_MIGRATE_HOOKS:
+                try:
+                    hook(self)
+                except Exception:
+                    logger.error(
+                        "Pre-auto-migrate hook %s failed.",
+                        hook,
+                        exc_info=True,
+                    )
+        if self.auto_migrate:
+            if not mgh.get_head_revisions():
+                logger.warning(
+                    "auto_migrate is enabled but no Alembic scripts were "
+                    "found; skipping upgrade."
+                )
+            elif mgh.needs_migration():
+                mgh.upgrade(target="heads")
         self.db_version = mgh.get_current_version()
 
         return self.engine
@@ -159,8 +242,9 @@ class DbConn:
                 elif self.engine.dialect.name == "oracle":
                     # For Oracle, we need to set the schema in a different way
                     stm = f"ALTER SESSION SET CURRENT_SCHEMA = {self.schema}"
+                elif self.engine.dialect.name == "postgresql":
+                    stm = _postgresql_search_path_sql(self.schema)
                 else:
-                    # For PostgreSQL
                     stm = f"SET SESSION search_path='{self.schema}'"
                 cursor.execute(stm)
                 cursor.close()

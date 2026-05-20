@@ -114,7 +114,7 @@ class DbVisitor:
         #   A tuple of positional arguments (e.g., constraints, indexes),
         #       optionally ending in a dictionary of table options
 
-        args = model.__table_args__
+        args = getattr(model, "__table_args__", None)
         if args is None:
             args = {}
         elif not isinstance(args, dict):

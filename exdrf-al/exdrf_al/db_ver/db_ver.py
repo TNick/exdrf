@@ -271,46 +271,118 @@ class DbVer:
 
         return revisions
 
-    def get_current_version(self) -> Optional[str]:
-        """Get the current version of the database."""
+    def _alembic_version_table_sql(self, alembic_cfg: Config) -> str:
+        """Return the SQL identifier for the Alembic version table.
+
+        Args:
+            alembic_cfg: Active Alembic configuration.
+
+        Returns:
+            Qualified ``schema.table`` when a schema is configured.
+        """
+
+        alembic_version_table = (
+            alembic_cfg.get_main_option("version_table") or "alembic_version"
+        )
+        if self.schema:
+            quoted_schema = f'"{self.schema}"'
+            return f"{quoted_schema}.{alembic_version_table}"
+        return alembic_version_table
+
+    def get_head_revisions(self) -> List[str]:
+        """Return all head revision ids from configured Alembic scripts.
+
+        Returns:
+            Sorted head revision ids, or an empty list when no scripts exist.
+        """
+
+        with self.alembic_config() as alembic_cfg:
+            script_directory = ScriptDirectory.from_config(alembic_cfg)
+            return sorted(script_directory.get_heads())
+
+    def get_current_versions(self) -> List[str]:
+        """Return all revision ids stored in the Alembic version table.
+
+        Branched migration graphs may record one row per applied head.
+
+        Returns:
+            Sorted revision ids, or an empty list when the table is missing or
+            empty.
+        """
+
         try:
             with self.engine.connect() as conn:
                 with self.alembic_config() as alembic_cfg:
-                    alembic_version_table = (
-                        alembic_cfg.get_main_option("version_table")
-                        or "alembic_version"
-                    )
-                # Use schema-qualified table name if schema is set.
-                if self.schema:
-                    # Quote schema name to handle identifiers starting
-                    # with digits or special characters
-                    quoted_schema = f'"{self.schema}"'
-                    table_name = f"{quoted_schema}.{alembic_version_table}"
-                else:
-                    table_name = alembic_version_table
+                    table_name = self._alembic_version_table_sql(alembic_cfg)
                 try:
-                    result = conn.execute(text(f"SELECT version_num FROM {table_name}"))
+                    result = conn.execute(
+                        text(f"SELECT version_num FROM {table_name} ORDER BY 1")
+                    )
                 except Exception as exc:
                     logging.getLogger(__name__).debug(
-                        "Error getting current version of the database: %s.",
+                        "Error reading Alembic version rows: %s.",
                         exc,
                         exc_info=True,
                     )
-                    return None
-                row = result.fetchone()
-                if row is not None and len(row) > 0:
-                    return row[0]
-                else:
-                    return None
-        except Exception as e:
-            if "psycopg2.errors.UndefinedTable" not in str(e):
+                    return []
+                return [row[0] for row in result.fetchall()]
+        except Exception as exc:
+            if "psycopg2.errors.UndefinedTable" not in str(exc):
                 logging.getLogger(__name__).error(
-                    "Error getting current version of the database.",
+                    "Error getting current versions of the database.",
                     exc_info=True,
                 )
+            return []
+
+    def get_current_version(self) -> Optional[str]:
+        """Get the current database revision label for display.
+
+        When multiple heads are recorded, returns a comma-separated list in
+        sorted order.
+
+        Returns:
+            One revision id, a comma-separated list, or ``None``.
+        """
+
+        versions = self.get_current_versions()
+        if not versions:
             return None
+        if len(versions) == 1:
+            return versions[0]
+        return ", ".join(versions)
+
+    def needs_migration(self) -> bool:
+        """Return whether the database is missing any configured head revision.
+
+        Returns:
+            ``True`` when at least one Alembic head is not recorded in the
+            version table.
+        """
+
+        heads = set(self.get_head_revisions())
+        if not heads:
+            return False
+        return set(self.get_current_versions()) != heads
 
     def get_latest_version(self) -> Optional[str]:
-        """Get the latest version of the migrations."""
-        result = self.get_history()
-        return result[0][0]
+        """Return the configured Alembic head revision label for display.
+
+        When the script graph has multiple heads, returns a comma-separated list
+        in sorted order (same format as :meth:`get_current_version`).
+
+        Returns:
+            One head revision id, a comma-separated list, or ``None`` when no
+            scripts exist (for example empty ``version_locations``).
+        """
+
+        heads = self.get_head_revisions()
+        if not heads:
+            logging.getLogger(__name__).warning(
+                "No Alembic revision scripts were found; "
+                "check script_location and version_locations "
+                "(e.g. EXDRF_DB_MIGRATIONS_DIR)."
+            )
+            return None
+        if len(heads) == 1:
+            return heads[0]
+        return ", ".join(heads)

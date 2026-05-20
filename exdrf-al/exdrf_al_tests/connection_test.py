@@ -4,7 +4,43 @@ import pytest
 from sqlalchemy import Engine, Integer, inspect
 from sqlalchemy.orm import Mapped, mapped_column
 
-from exdrf_al.connection import DbConn
+from exdrf_al.connection import (
+    DbConn,
+    _postgresql_search_path_sql,
+    _schema_path_tokens,
+)
+
+
+class TestPostgreSQLSearchPath:
+    """Tests for PostgreSQL ``search_path`` helper functions."""
+
+    def test_single_tenant_schema_appends_public(self) -> None:
+        """Tenant-first path must include ``public`` for PostGIS symbols."""
+
+        assert _postgresql_search_path_sql("x2026lucru20") == (
+            "SET SESSION search_path TO x2026lucru20, public"
+        )
+
+    def test_schema_already_public(self) -> None:
+        """When schema is only ``public``, do not duplicate it."""
+
+        assert _postgresql_search_path_sql("public") == (
+            "SET SESSION search_path TO public"
+        )
+
+    def test_comma_separated_list_preserves_order(self) -> None:
+        """Explicit multi-schema config keeps caller order and adds ``public``."""
+
+        assert _schema_path_tokens("tenant, staging") == ["tenant", "staging"]
+        assert _postgresql_search_path_sql("tenant, staging") == (
+            "SET SESSION search_path TO tenant, staging, public"
+        )
+
+    def test_invalid_schema_segment_raises(self) -> None:
+        """Reject schema names that are not safe PostgreSQL identifiers."""
+
+        with pytest.raises(ValueError, match="Invalid db_schema segment"):
+            _schema_path_tokens("x2026;drop")
 
 
 class TestDbConnConnect:

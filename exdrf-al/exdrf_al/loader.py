@@ -137,6 +137,9 @@ def sql_col_to_type(
     elif str_type == "JSON":
         extra["format"] = "json"
         result = FormattedField, FormattedInfo  # type: ignore
+    elif re.match(r"geometry\(", str_type, re.IGNORECASE):
+        # GeoAlchemy2 / PostGIS (e.g. geometry(POINT,3844)).
+        result = StrField, StrInfo  # type: ignore
     else:
         varchar_m = re.match(r"VARCHAR\((\d+)\)", str_type)
         if varchar_m:

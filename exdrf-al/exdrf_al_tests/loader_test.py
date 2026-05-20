@@ -68,6 +68,12 @@ class TestSqlColToType:
             ("DATETIME", "DateTimeField", "DateTimeInfo", {}),
             ("VARCHAR", "StrField", "StrInfo", {}),
             ("JSON", "FormattedField", "FormattedInfo", {"format": "json"}),
+            (
+                "geometry(POINT,3844)",
+                "StrField",
+                "StrInfo",
+                {},
+            ),
             ("VARCHAR(255)", "StrField", "StrInfo", {"max_length": 255}),
         ],
     )
