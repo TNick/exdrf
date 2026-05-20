@@ -4,7 +4,15 @@
 
 
 
+
+
 ## [Unreleased]
+
+## [0.1.17] - 2026-05-20
+
+### Changed
+
+- Update the version system
 
 ## [0.1.16] - 2026-05-14
 
@@ -95,4 +103,5 @@
 [0.1.14]: https://github.com/TNick/exdrf/compare/5c63497ca9407e723f6504245ac324094d46b6a6...v0.1.14-exdrf-al
 [0.1.15]: https://github.com/TNick/exdrf/compare/v0.1.14-exdrf-al...v0.1.15-exdrf-al
 [0.1.16]: https://github.com/TNick/exdrf/compare/v0.1.15-exdrf-al...v0.1.16-exdrf-al
-[unreleased]: https://github.com/TNick/exdrf/compare/v0.1.16-exdrf-al...HEAD
+[0.1.17]: https://github.com/TNick/exdrf/compare/v0.1.16-exdrf-al...v0.1.17-exdrf-al
+[unreleased]: https://github.com/TNick/exdrf/compare/v0.1.17-exdrf-al...HEAD
