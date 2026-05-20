@@ -1,23 +1,18 @@
-# distlift configuration
+# distlift configuration for exdrf (exdrf-* monorepo).
 #
-# All keys are optional; defaults shown in comments. Uncomment and edit
-# the ones you want to override.
-#
-# Precedence (highest first):
-#   1. CLI flags
-#   2. DISTLIFT_* environment variables
-#   3. Local repo config (distlift.toml, .distlift.toml, [tool.distlift])
-#   4. User config (this file, when in the user location)
-#   5. System config (this file, when in the system location)
-#   6. Built-in defaults
-#
+# Per-package tag-only versioning; two remotes.
 
-
-language = "python"                 # python | javascript
-mode = "monorepo"                   # simple | monorepo
-version_source = "tag"              # manifest | tag
+mode = "monorepo"
+version_source = "tag"
 remotes = ["origin", "advaita"]
 
+[plugins]
+directories = ["playground/distlift-plugins"]
+
+[dependency_updates]
+enabled = true
+include_current_monorepo = true
+python_version_template = ">={version}"
 
 [monorepo]
 

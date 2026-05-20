@@ -11,7 +11,7 @@ classifiers = [
 ]
 dependencies = [
   "attrs",
-  "click>=8.1.8,<8.2.0",
+  "click>=8.2.1,<9",
   "exdrf-gen",
   "exdrf-ts",
 ]
@@ -36,7 +36,7 @@ dev = [
   "pytest",
   "twine",
   "wheel",
-  "click>=8.1.8,<8.2.0",
+  "click>=8.2.1,<9",
 ]
 
 [build-system]

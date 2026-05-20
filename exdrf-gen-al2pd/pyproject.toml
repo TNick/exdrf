@@ -10,7 +10,7 @@ classifiers = [
   "Typing :: Typed",
 ]
 dependencies = [
-  "click>=8.1.8,<8.2.0",
+  "click>=8.2.1,<9",
   "exdrf-al>=0.1.17",
   "exdrf-gen",
   "exdrf-pd",
@@ -38,7 +38,7 @@ dev = [
   "pytest",
   "twine",
   "wheel",
-  "click>=8.1.8,<8.2.0",
+  "click>=8.2.1,<9",
 ]
 
 [build-system]
