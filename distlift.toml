@@ -3,6 +3,7 @@
 # Per-package tag-only versioning; two remotes.
 
 mode = "monorepo"
+language = "python"
 version_source = "tag"
 remotes = ["origin", "advaita"]
 
