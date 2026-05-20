@@ -11,7 +11,7 @@ classifiers = [
 ]
 dependencies = [
   "click>=8.1.8,<8.2.0",
-  "exdrf-al",
+  "exdrf-al>=0.1.17",
   "exdrf-gen",
   "exdrf-pd",
   "exdrf",
