@@ -10,8 +10,8 @@ classifiers = [
   "Typing :: Typed",
 ]
 dependencies = [
-  "exdrf",
-  "exdrf-pd",
+  "exdrf>=0.1.17",
+  "exdrf-pd>=0.1.17",
 ]
 description = "Map exdrf field and Python types to TypeScript for codegen."
 version = "0.1.16"

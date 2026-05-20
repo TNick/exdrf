@@ -4,7 +4,15 @@
 
 
 
+
+
 ## [Unreleased]
+
+## [0.1.17] - 2026-05-20
+
+### Changed
+
+- use newer click
 
 ## [0.1.16] - 2026-05-14
 
@@ -98,4 +106,5 @@
 [0.1.14]: https://github.com/TNick/exdrf/compare/5c63497ca9407e723f6504245ac324094d46b6a6...v0.1.14-exdrf
 [0.1.15]: https://github.com/TNick/exdrf/compare/v0.1.14-exdrf...v0.1.15-exdrf
 [0.1.16]: https://github.com/TNick/exdrf/compare/v0.1.15-exdrf...v0.1.16-exdrf
-[unreleased]: https://github.com/TNick/exdrf/compare/v0.1.16-exdrf...HEAD
+[0.1.17]: https://github.com/TNick/exdrf/compare/v0.1.16-exdrf...v0.1.17-exdrf
+[unreleased]: https://github.com/TNick/exdrf/compare/v0.1.17-exdrf...HEAD

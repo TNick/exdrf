@@ -6,7 +6,16 @@
 
 
 
+
+
 ## [Unreleased]
+
+## [0.1.18] - 2026-05-20
+
+### Changed
+
+- Update dependencies
+- use newer click
 
 ## [0.1.17] - 2026-05-20
 
@@ -252,4 +261,5 @@
 [0.1.15]: https://github.com/TNick/exdrf/compare/v0.1.14-exdrf-qt...v0.1.15-exdrf-qt
 [0.1.16]: https://github.com/TNick/exdrf/compare/v0.1.15-exdrf-qt...v0.1.16-exdrf-qt
 [0.1.17]: https://github.com/TNick/exdrf/compare/v0.1.16-exdrf-qt...v0.1.17-exdrf-qt
-[unreleased]: https://github.com/TNick/exdrf/compare/v0.1.17-exdrf-qt...HEAD
+[0.1.18]: https://github.com/TNick/exdrf/compare/v0.1.17-exdrf-qt...v0.1.18-exdrf-qt
+[unreleased]: https://github.com/TNick/exdrf/compare/v0.1.18-exdrf-qt...HEAD

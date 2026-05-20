@@ -10,12 +10,12 @@ classifiers = [
   "Typing :: Typed",
 ]
 description = "Generate content using DRF."
-version = "0.1.16"
+version = "0.1.17"
 name = "exdrf-gen"
 readme = "README.md"
 requires-python = ">=3.12.2"
 dependencies = [
-  "exdrf",
+  "exdrf>=0.1.17",
   "click>=8.2.1,<9",
   "Jinja2>=3.1.5",
   "dotenv>=0.9.9",

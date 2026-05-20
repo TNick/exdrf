@@ -11,10 +11,10 @@ classifiers = [
 ]
 dependencies = [
   "PyQt5>=5.15.11",
-  "exdrf",
+  "exdrf>=0.1.17",
 ]
 description = "Generate Qt-related classes content using DRF from sqlalchemy models."
-version = "0.1.16"
+version = "0.1.17"
 name = "exdrf-gen-al2qt"
 readme = "README.md"
 requires-python = ">=3.12.2"

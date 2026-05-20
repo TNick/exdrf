@@ -10,12 +10,12 @@ classifiers = [
   "Typing :: Typed",
 ]
 description = "Use Pydantic with Ex-DRF."
-version = "0.1.16"
+version = "0.1.17"
 name = "exdrf-pd"
 readme = "README.md"
 requires-python = ">=3.12.2"
 dependencies = [
-  "exdrf",
+  "exdrf>=0.1.17",
   "pydantic>=2.10.6",
 ]
 

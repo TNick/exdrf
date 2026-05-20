@@ -11,12 +11,12 @@ classifiers = [
 ]
 dependencies = [
   "click>=8.2.1,<9",
-  "exdrf-al>=0.1.17",
-  "exdrf-gen",
-  "exdrf-gen-al2pd",
+  "exdrf-al>=0.1.18",
+  "exdrf-gen>=0.1.17",
+  "exdrf-gen-al2pd>=0.1.17",
 ]
 description = "Generate FastAPI route modules from SQLAlchemy-backed ExDataset metadata."
-version = "0.1.16"
+version = "0.1.17"
 name = "exdrf-gen-al2r"
 readme = "README.md"
 requires-python = ">=3.12.2"

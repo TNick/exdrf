@@ -15,7 +15,7 @@ name = "exdrf_xl"
 readme = "README.md"
 requires-python = ">=3.12.2"
 dependencies = [
-  "exdrf",
+  "exdrf>=0.1.17",
   "openpyxl>=3.1.5",
 ]
 

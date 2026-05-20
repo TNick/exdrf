@@ -4,7 +4,15 @@
 
 
 
+
+
 ## [Unreleased]
+
+## [0.1.17] - 2026-05-20
+
+### Changed
+
+- use newer click
 
 ## [0.1.16] - 2026-05-14
 
@@ -99,4 +107,5 @@
 [0.1.14]: https://github.com/TNick/exdrf/compare/5c63497ca9407e723f6504245ac324094d46b6a6...v0.1.14-exdrf-gen-al2qt
 [0.1.15]: https://github.com/TNick/exdrf/compare/v0.1.14-exdrf-gen-al2qt...v0.1.15-exdrf-gen-al2qt
 [0.1.16]: https://github.com/TNick/exdrf/compare/v0.1.15-exdrf-gen-al2qt...v0.1.16-exdrf-gen-al2qt
-[unreleased]: https://github.com/TNick/exdrf/compare/v0.1.16-exdrf-gen-al2qt...HEAD
+[0.1.17]: https://github.com/TNick/exdrf/compare/v0.1.16-exdrf-gen-al2qt...v0.1.17-exdrf-gen-al2qt
+[unreleased]: https://github.com/TNick/exdrf/compare/v0.1.17-exdrf-gen-al2qt...HEAD

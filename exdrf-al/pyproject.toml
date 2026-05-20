@@ -10,7 +10,7 @@ classifiers = [
   "Typing :: Typed",
 ]
 description = "Use SQLAlchemy with Ex-DRF."
-version = "0.1.17"
+version = "0.1.18"
 name = "exdrf-al"
 readme = "README.md"
 requires-python = ">=3.12.2"
@@ -19,8 +19,8 @@ dependencies = [
   "sqlparse>=0.5.3",
   "alembic>=1.16.1",
   "unidecode",
-  "exdrf",
-  "exdrf-pd",
+  "exdrf>=0.1.17",
+  "exdrf-pd>=0.1.17",
 ]
 
 [project.optional-dependencies]

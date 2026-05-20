@@ -10,7 +10,7 @@ classifiers = [
   "Typing :: Typed",
 ]
 dependencies = [
-  "exdrf",
+  "exdrf>=0.1.17",
 ]
 description = "Shared Python runtime for remote-controlled-view backends and exdrf-gen-al2rcv-generated modules."
 version = "0.1.16"
