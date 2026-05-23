@@ -6,7 +6,11 @@
 
 
 
+
+
 ## [Unreleased]
+
+## [0.1.18] - 2026-05-23
 
 ## [0.1.17] - 2026-05-20
 
@@ -49,4 +53,5 @@
 [0.1.15]: https://github.com/TNick/exdrf/compare/v0.1.14-exdrf-gen-al2r...v0.1.15-exdrf-gen-al2r
 [0.1.16]: https://github.com/TNick/exdrf/compare/v0.1.15-exdrf-gen-al2r...v0.1.16-exdrf-gen-al2r
 [0.1.17]: https://github.com/TNick/exdrf/compare/v0.1.16-exdrf-gen-al2r...v0.1.17-exdrf-gen-al2r
-[unreleased]: https://github.com/TNick/exdrf/compare/v0.1.17-exdrf-gen-al2r...HEAD
+[0.1.18]: https://github.com/TNick/exdrf/compare/v0.1.17-exdrf-gen-al2r...v0.1.18-exdrf-gen-al2r
+[unreleased]: https://github.com/TNick/exdrf/compare/v0.1.18-exdrf-gen-al2r...HEAD

@@ -10,7 +10,15 @@
 
 
 
+
+
 ## [Unreleased]
+
+## [0.1.20] - 2026-05-23
+
+### Changed
+
+- Log connection string at info level. Fix some Qt flag errors
 
 ## [0.1.19] - 2026-05-23
 
@@ -122,4 +130,5 @@
 [0.1.17]: https://github.com/TNick/exdrf/compare/v0.1.16-exdrf-al...v0.1.17-exdrf-al
 [0.1.18]: https://github.com/TNick/exdrf/compare/v0.1.17-exdrf-al...v0.1.18-exdrf-al
 [0.1.19]: https://github.com/TNick/exdrf/compare/v0.1.18-exdrf-al...v0.1.19-exdrf-al
-[unreleased]: https://github.com/TNick/exdrf/compare/v0.1.19-exdrf-al...HEAD
+[0.1.20]: https://github.com/TNick/exdrf/compare/v0.1.19-exdrf-al...v0.1.20-exdrf-al
+[unreleased]: https://github.com/TNick/exdrf/compare/v0.1.20-exdrf-al...HEAD
