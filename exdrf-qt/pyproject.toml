@@ -30,7 +30,7 @@ dependencies = [
   "PyQtWebEngine==5.15.7",
   "pluggy>=1.6.0",
   "pyrsistent>=0.20.0",
-  "exdrf-al>=0.1.18",
+  "exdrf-al>=0.1.19",
   "SQLAlchemy>=2.0.38",
   "sqlparse>=0.5.3",
   "unidecode",
