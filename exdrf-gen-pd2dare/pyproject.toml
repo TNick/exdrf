@@ -12,8 +12,8 @@ classifiers = [
 dependencies = [
   "click>=8.2.1,<9",
   "exdrf-gen>=0.1.17",
-  "exdrf-pd>=0.1.17",
-  "exdrf-ts",
+  "exdrf-pd>=0.1.18",
+  "exdrf-ts>=0.1.17",
 ]
 description = "Generate DARE TypeScript resources from Pydantic Ex models."
 version = "0.1.18"

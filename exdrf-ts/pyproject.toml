@@ -11,10 +11,10 @@ classifiers = [
 ]
 dependencies = [
   "exdrf>=0.1.17",
-  "exdrf-pd>=0.1.17",
+  "exdrf-pd>=0.1.18",
 ]
 description = "Map exdrf field and Python types to TypeScript for codegen."
-version = "0.1.16"
+version = "0.1.17"
 name = "exdrf-ts"
 readme = "README.md"
 requires-python = ">=3.12.2"

@@ -13,7 +13,7 @@ dependencies = [
   "attrs",
   "click>=8.2.1,<9",
   "exdrf-gen>=0.1.17",
-  "exdrf-ts",
+  "exdrf-ts>=0.1.17",
 ]
 description = "Generate RTK Query TypeScript from OpenAPI (cached JSON)."
 version = "0.1.17"

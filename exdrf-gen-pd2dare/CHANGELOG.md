@@ -6,7 +6,15 @@
 
 
 
+
+
 ## [Unreleased]
+
+## [0.1.18] - 2026-05-23
+
+### Changed
+
+- fix missing template
 
 ## [0.1.17] - 2026-05-20
 
@@ -41,4 +49,5 @@
 [0.1.15]: https://github.com/TNick/exdrf/compare/v0.1.14-exdrf-gen-pd2dare...v0.1.15-exdrf-gen-pd2dare
 [0.1.16]: https://github.com/TNick/exdrf/compare/v0.1.15-exdrf-gen-pd2dare...v0.1.16-exdrf-gen-pd2dare
 [0.1.17]: https://github.com/TNick/exdrf/compare/v0.1.16-exdrf-gen-pd2dare...v0.1.17-exdrf-gen-pd2dare
-[unreleased]: https://github.com/TNick/exdrf/compare/v0.1.17-exdrf-gen-pd2dare...HEAD
+[0.1.18]: https://github.com/TNick/exdrf/compare/v0.1.17-exdrf-gen-pd2dare...v0.1.18-exdrf-gen-pd2dare
+[unreleased]: https://github.com/TNick/exdrf/compare/v0.1.18-exdrf-gen-pd2dare...HEAD

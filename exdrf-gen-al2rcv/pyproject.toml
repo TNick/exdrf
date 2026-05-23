@@ -13,7 +13,7 @@ dependencies = [
   "click>=8.2.1,<9",
   "exdrf-al>=0.1.18",
   "exdrf-gen>=0.1.17",
-  "exdrf-rcv",
+  "exdrf-rcv>=0.1.17",
 ]
 description = "Generate remote-controlled-view path module scaffolds from SQLAlchemy-backed ExDataset metadata."
 version = "0.1.17"

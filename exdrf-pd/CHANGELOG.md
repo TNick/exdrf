@@ -6,7 +6,15 @@
 
 
 
+
+
 ## [Unreleased]
+
+## [0.1.18] - 2026-05-23
+
+### Changed
+
+- fix missing template
 
 ## [0.1.17] - 2026-05-20
 
@@ -55,4 +63,5 @@
 [0.1.15]: https://github.com/TNick/exdrf/compare/v0.1.14-exdrf-pd...v0.1.15-exdrf-pd
 [0.1.16]: https://github.com/TNick/exdrf/compare/v0.1.15-exdrf-pd...v0.1.16-exdrf-pd
 [0.1.17]: https://github.com/TNick/exdrf/compare/v0.1.16-exdrf-pd...v0.1.17-exdrf-pd
-[unreleased]: https://github.com/TNick/exdrf/compare/v0.1.17-exdrf-pd...HEAD
+[0.1.18]: https://github.com/TNick/exdrf/compare/v0.1.17-exdrf-pd...v0.1.18-exdrf-pd
+[unreleased]: https://github.com/TNick/exdrf/compare/v0.1.18-exdrf-pd...HEAD
