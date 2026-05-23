@@ -92,6 +92,7 @@ class TestDbConnConnect:
         db_conn = DbConn(c_string=uri)
         try:
             engine = db_conn.connect()
+            assert engine.url.query.get("uri") == "true"
             with engine.connect() as conn:
                 conn.exec_driver_sql("SELECT 1")
         finally:
