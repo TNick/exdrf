@@ -168,8 +168,8 @@ class QtMinContext(DbConn):
 
         self.c_string = c_string  # type: ignore
         self.schema = schema  # type: ignore
-        logging.getLogger(__name__).debug(
-            "Database connection string set to %s with schema %s",
+        logging.getLogger(__name__).info(
+            "Database connection string set to %r with schema %r",
             self.c_string,
             self.schema,
         )
@@ -339,8 +339,8 @@ class QtContext(QtMinContext):
 
         self.c_string = c_string  # type: ignore
         self.schema = schema  # type: ignore
-        logging.getLogger(__name__).debug(
-            "Database connection string set to %s with schema %s",
+        logging.getLogger(__name__).info(
+            "Database connection string set to %r with schema %r",
             self.c_string,
             self.schema,
         )

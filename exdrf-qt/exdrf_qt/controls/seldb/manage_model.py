@@ -799,20 +799,13 @@ class DatabaseConfigModel(QAbstractItemModel):
             The item flags, including ItemIsEditable.
         """
         if not index.isValid():
-            return cast(Qt.ItemFlags, Qt.ItemFlag.NoItemFlags)
+            return Qt.ItemFlag.NoItemFlags
 
-        flags = cast(Qt.ItemFlags, Qt.ItemFlag.ItemIsEnabled)
-        flags = cast(
-            Qt.ItemFlags,
-            int(flags) | int(Qt.ItemFlag.ItemIsSelectable),
-        )
+        flags = Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable
         # Created date and DB version columns are not editable
         if index.column() not in (COL_CREATED, COL_DB_VERSION):
-            flags = cast(
-                Qt.ItemFlags,
-                int(flags) | int(Qt.ItemFlag.ItemIsEditable),
-            )
-        return cast(Qt.ItemFlags, flags)
+            flags |= Qt.ItemFlag.ItemIsEditable
+        return flags
 
     def headerData(
         self,

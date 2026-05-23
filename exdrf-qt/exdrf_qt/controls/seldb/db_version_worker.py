@@ -60,6 +60,13 @@ class DbVersionCheckerWorker(PythonThread):
                 continue
 
             try:
+                logger.info(
+                    "DbVersionCheckerWorker connecting config_id=%s "
+                    "c_string=%r schema=%r",
+                    config_id,
+                    c_string,
+                    schema,
+                )
                 # Create a connection
                 db_conn = DbConn(c_string=c_string, schema=schema)
                 db_conn.connect()
