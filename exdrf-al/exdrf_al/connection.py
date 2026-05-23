@@ -6,7 +6,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 from attrs import define, field
 from sqlalchemy import Engine, Select, create_engine, event
-from sqlalchemy.engine.url import make_url
+from sqlalchemy.engine.url import URL, make_url
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.session import Session
 from sqlalchemy.pool import NullPool, StaticPool
@@ -112,6 +112,55 @@ class AutoCacheEntry:
     loaded: bool
 
 
+def _sqlite_engine_url(c_string: str) -> URL:
+    """Normalize SQLite URLs before ``create_engine``.
+
+    Shared in-memory databases use URIs such as
+    ``sqlite:///file:name?mode=memory&cache=shared``. SQLAlchemy only enables
+    SQLite URI mode when ``uri=true`` is present in the URL query string;
+    otherwise ``file:...`` is resolved as a relative filesystem path.
+
+    Args:
+        c_string: Raw SQLAlchemy database URL.
+
+    Returns:
+        A URL object, with ``uri=true`` added for ``file:`` databases when
+        missing.
+    """
+
+    url = make_url(c_string)
+    if not url.drivername.startswith("sqlite"):
+        return url
+
+    database = url.database or ""
+    if database.startswith("file:") and url.query.get("uri") not in (
+        "true",
+        "True",
+        "1",
+    ):
+        query = dict(url.query)
+        query["uri"] = "true"
+        url = url.set(query=query)
+    return url
+
+
+def _sqlite_uses_static_pool(url: URL, c_string: str) -> bool:
+    """Return True when SQLite should use StaticPool.
+
+    Args:
+        url: Parsed SQLAlchemy URL.
+        c_string: Original connection string (for ``:memory:`` substring checks).
+
+    Returns:
+        True for in-memory and shared ``file:`` SQLite databases.
+    """
+
+    database = url.database or ""
+    if database == ":memory:" or ":memory:" in c_string:
+        return True
+    return database.startswith("file:")
+
+
 def react_on_c_string(instance, attribute, value):
     """React to the change of the c_string attribute."""
     old = getattr(instance, attribute.name, None)
@@ -154,7 +203,8 @@ class DbConn:
             return self.engine
 
         # Parse connection string to determine dialect
-        url = make_url(self.c_string)
+        url = _sqlite_engine_url(self.c_string)
+        engine_c_string = str(url)
 
         # Configure pool parameters: apply defaults first, then kwargs override
         engine_kwargs: Dict[str, Any] = {}
@@ -181,8 +231,8 @@ class DbConn:
                 }
             )
         elif url.drivername.startswith("sqlite"):
-            # SQLite: use StaticPool for :memory:, NullPool for file-based
-            if ":memory:" in self.c_string or url.database == ":memory:":
+            # SQLite: StaticPool for in-memory / shared file: URIs; else NullPool
+            if _sqlite_uses_static_pool(url, self.c_string):
                 engine_kwargs["poolclass"] = StaticPool
                 engine_kwargs["connect_args"] = {"check_same_thread": False}
             else:
@@ -195,7 +245,7 @@ class DbConn:
         # Remove engine_kwargs whose values are None
         engine_kwargs = {k: v for k, v in engine_kwargs.items() if v is not None}
 
-        self.engine = create_engine(self.c_string, **engine_kwargs)
+        self.engine = create_engine(engine_c_string, **engine_kwargs)
         dialect_name = self.engine.dialect.name
         supports_schema = dialect_name in dialects_with_schema
         if supports_schema:

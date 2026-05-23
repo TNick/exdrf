@@ -1,3 +1,5 @@
+import os
+import uuid
 from unittest.mock import MagicMock
 
 import pytest
@@ -8,6 +10,7 @@ from exdrf_al.connection import (
     DbConn,
     _postgresql_search_path_sql,
     _schema_path_tokens,
+    _sqlite_engine_url,
 )
 
 
@@ -43,6 +46,27 @@ class TestPostgreSQLSearchPath:
             _schema_path_tokens("x2026;drop")
 
 
+class TestSQLiteEngineUrl:
+    """Tests for SQLite shared in-memory URI normalization."""
+
+    def test_file_uri_adds_uri_true_query_param(self) -> None:
+        """``file:`` databases must enable SQLAlchemy SQLite URI mode."""
+
+        url = _sqlite_engine_url(
+            "sqlite:///file:resi_test?mode=memory&cache=shared",
+        )
+        assert url.query["uri"] == "true"
+        assert url.database == "file:resi_test"
+
+    def test_file_uri_keeps_existing_uri_true(self) -> None:
+        """Do not duplicate ``uri=true`` when already present."""
+
+        url = _sqlite_engine_url(
+            "sqlite:///file:resi_test?mode=memory&cache=shared&uri=true",
+        )
+        assert url.query.get("uri") == "true"
+
+
 class TestDbConnConnect:
     def test_no_engine(self):
         db_conn = DbConn(c_string="sqlite:///:memory:")
@@ -57,6 +81,22 @@ class TestDbConnConnect:
         assert db_conn.engine is not None
         engine = db_conn.connect()
         assert db_conn.engine is engine
+
+    def test_shared_file_uri_from_subdirectory(self, tmp_path) -> None:
+        """Shared ``file:`` URIs must not depend on the process cwd."""
+
+        db_name = "subdir_%s" % uuid.uuid4().hex
+        uri = "sqlite:///file:%s?mode=memory&cache=shared" % db_name
+        prev = os.getcwd()
+        os.chdir(tmp_path)
+        db_conn = DbConn(c_string=uri)
+        try:
+            engine = db_conn.connect()
+            with engine.connect() as conn:
+                conn.exec_driver_sql("SELECT 1")
+        finally:
+            os.chdir(prev)
+            db_conn.close()
 
 
 class TestDbConnClose:
