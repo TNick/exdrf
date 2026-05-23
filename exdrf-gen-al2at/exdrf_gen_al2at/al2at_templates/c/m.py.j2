@@ -2,10 +2,13 @@
 # Source: {{ source_module }} -> {{ source_templ }}
 # Don't change it manually.
 
-from attrs import define, field
-from typing import Optional, TYPE_CHECKING
+from __future__ import annotations
+
 from datetime import date, datetime, time, timedelta
 from enum import StrEnum
+from typing import TYPE_CHECKING, Optional
+
+from attrs import define, field as attr_field
 
 {%- set ns = namespace(have_if=False) %}
 {% for field in fields %}
@@ -57,20 +60,20 @@ class {{ ResPascal }}:{%- if r.description %}
 
     {%- for field in fields %}
     {%- if field.type_name == "enum" %}
-    {{ field.name }}: Optional[{{ field.pascal_case_name }}] = field(
+    {{ field.name }}: Optional[{{ field.pascal_case_name }}] = attr_field(
     {%- elif field.type_name == 'one-to-many' %}
-    {{ field.name }}: Optional[list[{{ field.ref.pascal_case_name }}]] = field(
+    {{ field.name }}: Optional[list[{{ field.ref.pascal_case_name }}]] = attr_field(
     {%- elif field.type_name == 'many-to-many' %}
-    {{ field.name }}_i: Optional[list[{{ field.ref_intermediate.pascal_case_name }}]] = field(
+    {{ field.name }}_i: Optional[list[{{ field.ref_intermediate.pascal_case_name }}]] = attr_field(
         default=None,
     )
-    {{ field.name }}: Optional[list[{{ field.ref.pascal_case_name }}]] = field(
+    {{ field.name }}: Optional[list[{{ field.ref.pascal_case_name }}]] = attr_field(
     {%- elif field.type_name == 'many-to-one' %}
-    {{ field.name }}: Optional[{{ field.ref.pascal_case_name }}] = field(
+    {{ field.name }}: Optional[{{ field.ref.pascal_case_name }}] = attr_field(
     {%- elif field.type_name == 'one-to-one' %}
-    {{ field.name }}: Optional[{{ field.ref.pascal_case_name }}] = field(
+    {{ field.name }}: Optional[{{ field.ref.pascal_case_name }}] = attr_field(
     {%- else %}
-    {{ field.name }}: Optional[{{ type_to_attrs(field.type_name) }}] = field(
+    {{ field.name }}: Optional[{{ type_to_attrs(field.type_name) }}] = attr_field(
     {%- endif %}
         default=None,
         metadata={

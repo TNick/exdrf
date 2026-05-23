@@ -15,6 +15,11 @@ from exdrf.resource import ExResource
 from exdrf_gen.fs_support import Base, TopDir, resource_to_args
 from exdrf_pd.loader import dataset_from_pydantic
 from exdrf_pd.model_import import load_pydantic_modules_from_env
+
+try:
+    from resi_gen.pydantic_models import load_pydantic_models_for_codegen
+except ImportError:  # pragma: no cover - exdrf_gen_pd2dare without resi_gen
+    load_pydantic_models_for_codegen = None  # type: ignore[misc, assignment]
 from exdrf_ts import type_to_field_class
 
 
@@ -25,7 +30,9 @@ def _restrict_loader_to_pd2dare_templates(env: Environment) -> None:
     if loader is None:
         return
     paths = list(getattr(loader, "paths", []))
-    filtered = [p for p in paths if str(p).endswith("pd2dare_templates")]
+    filtered = [
+        p for p in paths if os.path.basename(os.path.normpath(p)) == "pd2dare_templates"
+    ]
     setattr(loader, "paths", filtered)
 
 
@@ -179,7 +186,10 @@ def generate_pd2dare(context: click.Context, path: str) -> None:
     env = context.obj["jinja_env"]
     _restrict_loader_to_pd2dare_templates(env)
 
-    load_pydantic_modules_from_env()
+    if load_pydantic_models_for_codegen is not None:
+        load_pydantic_models_for_codegen()
+    else:
+        load_pydantic_modules_from_env()
     d_set = ExDataset(res_class=ExResource)
     dataset_from_pydantic(d_set)
 

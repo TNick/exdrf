@@ -2,6 +2,8 @@
 # Source: {{ source_module }} -> {{ source_templ }}
 # Don't change it manually.
 
+from __future__ import annotations
+
 {% for categ, resources in categ_zero %}
 {%- for res in resources %}
 from {{ out_module }}.{{categ }}.{{ res.snake_case_name }} import {{ res.pascal_case_name }}  # noqa: F401

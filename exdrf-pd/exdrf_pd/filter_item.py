@@ -1,6 +1,6 @@
 from typing import Any, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from exdrf.filter import FieldFilter
 
@@ -29,9 +29,10 @@ class FilterItem(BaseModel):
     op: str
     vl: Optional[Any] = None
 
-    class Config:
-        from_attributes = True
-        populate_by_name = True
+    model_config = ConfigDict(
+        from_attributes=True,
+        populate_by_name=True,
+    )
 
     @property
     def as_op(self):
