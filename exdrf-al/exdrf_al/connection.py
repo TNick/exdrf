@@ -250,9 +250,7 @@ class DbConn:
         # Remove engine_kwargs whose values are None
         engine_kwargs = {k: v for k, v in engine_kwargs.items() if v is not None}
 
-        # This next line will not use engine_c_string because it has
-        # the password replaced by *** characters.
-        self.engine = create_engine(self.c_string, **engine_kwargs)
+        self.engine = create_engine(engine_c_string, **engine_kwargs)
         dialect_name = self.engine.dialect.name
         supports_schema = dialect_name in dialects_with_schema
         if supports_schema:
