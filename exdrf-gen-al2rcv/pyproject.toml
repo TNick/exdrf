@@ -11,12 +11,12 @@ classifiers = [
 ]
 dependencies = [
   "click>=8.2.1,<9",
-  "exdrf-al>=0.1.20",
+  "exdrf-al>=0.1.21",
   "exdrf-gen>=0.1.17",
   "exdrf-rcv>=0.1.17",
 ]
 description = "Generate remote-controlled-view path module scaffolds from SQLAlchemy-backed ExDataset metadata."
-version = "0.1.18"
+version = "0.1.19"
 name = "exdrf-gen-al2rcv"
 readme = "README.md"
 requires-python = ">=3.12.2"

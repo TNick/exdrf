@@ -6,7 +6,15 @@
 
 
 
+
+
 ## [Unreleased]
+
+## [0.1.18] - 2026-05-26
+
+### Changed
+
+- New tests for exdrf-util
 
 ## [0.1.17] - 2026-05-23
 
@@ -51,4 +59,5 @@
 [0.1.15]: https://github.com/TNick/exdrf/compare/v0.1.14-exdrf-util...v0.1.15-exdrf-util
 [0.1.16]: https://github.com/TNick/exdrf/compare/v0.1.15-exdrf-util...v0.1.16-exdrf-util
 [0.1.17]: https://github.com/TNick/exdrf/compare/v0.1.16-exdrf-util...v0.1.17-exdrf-util
-[unreleased]: https://github.com/TNick/exdrf/compare/v0.1.17-exdrf-util...HEAD
+[0.1.18]: https://github.com/TNick/exdrf/compare/v0.1.17-exdrf-util...v0.1.18-exdrf-util
+[unreleased]: https://github.com/TNick/exdrf/compare/v0.1.18-exdrf-util...HEAD
