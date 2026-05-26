@@ -6,12 +6,13 @@
 
 ## DbConn.connect — create_engine argument
 
-In `exdrf-al/exdrf_al/connection.py`, `DbConn.connect` must call:
+In `exdrf-al/exdrf_al/connection.py`, `DbConn.connect` must pass
+`self.c_string` verbatim to `create_engine` for non-SQLite databases (so URL
+components such as passwords are not altered). For SQLite, use the URL returned
+by `_sqlite_engine_url` (rendered with `hide_password=False`) so shared
+``file:`` in-memory URIs include ``uri=true``. `_c_string_for_log` is for
+logging only.
 
-    self.engine = create_engine(self.c_string, **engine_kwargs)
-
-Do not pass `engine_c_string`, `str(url)`, or any SQLAlchemy-rendered URL string to
-`create_engine`. `_c_string_for_log` is for logging only.
-
-This is enforced by `TestDbConnConnectCString` in
-`exdrf-al/exdrf_al_tests/connection_test.py`.
+`TestDbConnConnectCString` enforces verbatim PostgreSQL URLs.
+`TestDbConnConnect.test_shared_file_uri_from_subdirectory` enforces SQLite
+``file:`` normalization.

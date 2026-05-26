@@ -6,11 +6,12 @@ alwaysApply: false
 
 # DbConn.connect — create_engine argument
 
-In `DbConn.connect`, the call MUST be:
+In `DbConn.connect`:
 
-    self.engine = create_engine(self.c_string, **engine_kwargs)
+- Non-SQLite: `create_engine(self.c_string, **engine_kwargs)` — verbatim URL
+  (password and other components unchanged). Enforced by `TestDbConnConnectCString`.
+- SQLite: `create_engine(url.render_as_string(hide_password=False), ...)`
+  where `url = _sqlite_engine_url(self.c_string)` so shared `file:` URIs get
+  `uri=true`. Enforced by `test_shared_file_uri_from_subdirectory`.
 
-Do NOT pass `engine_c_string`, `str(url)`, or any URL rendered from SQLAlchemy.
-`_c_string_for_log` exists only for logging; it must not be used for `create_engine`.
-
-Enforced by `TestDbConnConnectCString` in `exdrf_al_tests/connection_test.py`.
+Do not use `_c_string_for_log` for `create_engine`.

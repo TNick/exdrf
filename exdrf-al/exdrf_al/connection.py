@@ -249,8 +249,14 @@ class DbConn:
         # Remove engine_kwargs whose values are None
         engine_kwargs = {k: v for k, v in engine_kwargs.items() if v is not None}
 
-        # Pass self.c_string verbatim; see TestDbConnConnectCString.
-        self.engine = create_engine(self.c_string, **engine_kwargs)
+        # Pass self.c_string verbatim for non-SQLite (see TestDbConnConnectCString).
+        # SQLite ``file:`` shared-memory URIs need ``uri=true`` on the URL passed to
+        # create_engine; pool selection already uses the normalized ``url`` above.
+        if url.drivername.startswith("sqlite"):
+            engine_c_string = url.render_as_string(hide_password=False)
+        else:
+            engine_c_string = self.c_string
+        self.engine = create_engine(engine_c_string, **engine_kwargs)
 
         dialect_name = self.engine.dialect.name
         supports_schema = dialect_name in dialects_with_schema
