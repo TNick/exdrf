@@ -64,6 +64,7 @@ include-package-data = true
 
 [tool.setuptools.package-data]
 exdrf_qt = ["py.typed"]
+"exdrf_qt.assets" = ["*.png"]
 
 [tool.setuptools.packages.find]
 exclude = ["venv*", "playground*"]
