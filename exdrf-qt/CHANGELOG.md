@@ -10,7 +10,15 @@
 
 
 
+
+
 ## [Unreleased]
+
+## [0.1.20] - 2026-05-26
+
+### Changed
+
+- Package icons along with code
 
 ## [0.1.19] - 2026-05-23
 
@@ -271,4 +279,5 @@
 [0.1.17]: https://github.com/TNick/exdrf/compare/v0.1.16-exdrf-qt...v0.1.17-exdrf-qt
 [0.1.18]: https://github.com/TNick/exdrf/compare/v0.1.17-exdrf-qt...v0.1.18-exdrf-qt
 [0.1.19]: https://github.com/TNick/exdrf/compare/v0.1.18-exdrf-qt...v0.1.19-exdrf-qt
-[unreleased]: https://github.com/TNick/exdrf/compare/v0.1.19-exdrf-qt...HEAD
+[0.1.20]: https://github.com/TNick/exdrf/compare/v0.1.19-exdrf-qt...v0.1.20-exdrf-qt
+[unreleased]: https://github.com/TNick/exdrf/compare/v0.1.20-exdrf-qt...HEAD

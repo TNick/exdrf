@@ -10,7 +10,7 @@ classifiers = [
   "Typing :: Typed",
 ]
 description = "Use Qt5 with Ex-DRF."
-version = "0.1.19"
+version = "0.1.20"
 name = "exdrf-qt"
 readme = "README.md"
 requires-python = ">=3.12.2"
@@ -30,7 +30,7 @@ dependencies = [
   "PyQtWebEngine==5.15.7",
   "pluggy>=1.6.0",
   "pyrsistent>=0.20.0",
-  "exdrf-al>=0.1.21",
+  "exdrf-al>=0.1.22",
   "SQLAlchemy>=2.0.38",
   "sqlparse>=0.5.3",
   "unidecode",

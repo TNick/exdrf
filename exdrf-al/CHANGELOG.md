@@ -14,7 +14,15 @@
 
 
 
+
+
 ## [Unreleased]
+
+## [0.1.22] - 2026-05-26
+
+### Changed
+
+- Create engine split for sqlite/non-sqlite
 
 ## [0.1.21] - 2026-05-26
 
@@ -142,4 +150,5 @@
 [0.1.19]: https://github.com/TNick/exdrf/compare/v0.1.18-exdrf-al...v0.1.19-exdrf-al
 [0.1.20]: https://github.com/TNick/exdrf/compare/v0.1.19-exdrf-al...v0.1.20-exdrf-al
 [0.1.21]: https://github.com/TNick/exdrf/compare/v0.1.20-exdrf-al...v0.1.21-exdrf-al
-[unreleased]: https://github.com/TNick/exdrf/compare/v0.1.21-exdrf-al...HEAD
+[0.1.22]: https://github.com/TNick/exdrf/compare/v0.1.21-exdrf-al...v0.1.22-exdrf-al
+[unreleased]: https://github.com/TNick/exdrf/compare/v0.1.22-exdrf-al...HEAD
