@@ -1,9 +1,10 @@
 import os
 import uuid
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 from sqlalchemy import Engine, Integer, inspect
+from sqlalchemy.engine.url import make_url
 from sqlalchemy.orm import Mapped, mapped_column
 
 from exdrf_al.connection import (
@@ -65,6 +66,73 @@ class TestSQLiteEngineUrl:
             "sqlite:///file:resi_test?mode=memory&cache=shared&uri=true",
         )
         assert url.query.get("uri") == "true"
+
+
+_PG_URL = "postgresql+psycopg2://myuser:s3cr3t@db.example.com:5432/mydb"
+
+
+class TestDbConnConnectCString:
+    """Verify that connect() forwards c_string to create_engine unchanged.
+
+    The source passes ``self.c_string`` directly (not a str(url) masked copy),
+    so every URL component — including the plain-text password — must survive.
+    create_engine is mocked so no real PostgreSQL server is required.
+    """
+
+    def _run(self) -> make_url:
+        """Instantiate DbConn with a full PostgreSQL URL, call connect(), and
+        return the URL parsed from the first argument that reached create_engine.
+        """
+        mock_engine = MagicMock()
+        mock_engine.dialect.name = "postgresql"
+        mock_mgh = MagicMock()
+        mock_mgh.get_current_version.return_value = None
+
+        conn = DbConn(c_string=_PG_URL)
+        with (
+            patch(
+                "exdrf_al.connection.create_engine", return_value=mock_engine
+            ) as mock_ce,
+            patch.object(DbConn, "get_migration_handler", return_value=mock_mgh),
+            patch("exdrf_al.connection.event"),
+        ):
+            conn.connect()
+
+        return make_url(mock_ce.call_args.args[0])
+
+    def test_c_string_passed_verbatim(self) -> None:
+        """create_engine receives the exact c_string set on the instance."""
+        conn = DbConn(c_string=_PG_URL)
+        mock_engine = MagicMock()
+        mock_engine.dialect.name = "postgresql"
+        mock_mgh = MagicMock()
+        mock_mgh.get_current_version.return_value = None
+
+        with (
+            patch(
+                "exdrf_al.connection.create_engine", return_value=mock_engine
+            ) as mock_ce,
+            patch.object(DbConn, "get_migration_handler", return_value=mock_mgh),
+            patch("exdrf_al.connection.event"),
+        ):
+            conn.connect()
+
+        assert mock_ce.call_args.args[0] == _PG_URL
+
+    def test_username(self) -> None:
+        assert self._run().username == "myuser"
+
+    def test_password(self) -> None:
+        assert self._run().password == "s3cr3t"
+
+    def test_host(self) -> None:
+        assert self._run().host == "db.example.com"
+
+    def test_port(self) -> None:
+        assert self._run().port == 5432
+
+    def test_database(self) -> None:
+        assert self._run().database == "mydb"
 
 
 class TestDbConnConnect:

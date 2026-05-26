@@ -1,0 +1,16 @@
+---
+description: Do not change DbConn.connect create_engine argument
+globs: exdrf-al/exdrf_al/connection.py
+alwaysApply: false
+---
+
+# DbConn.connect — create_engine argument
+
+In `DbConn.connect`, the call MUST be:
+
+    self.engine = create_engine(self.c_string, **engine_kwargs)
+
+Do NOT pass `engine_c_string`, `str(url)`, or any URL rendered from SQLAlchemy.
+`_c_string_for_log` exists only for logging; it must not be used for `create_engine`.
+
+Enforced by `TestDbConnConnectCString` in `exdrf_al_tests/connection_test.py`.

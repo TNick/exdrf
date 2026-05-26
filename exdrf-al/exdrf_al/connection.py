@@ -204,11 +204,10 @@ class DbConn:
 
         # Parse connection string to determine dialect
         url = _sqlite_engine_url(self.c_string)
-        engine_c_string = str(url)
-
+        _c_string_for_log = url.render_as_string(hide_password=False)
         logger.info(
             "DbConn.connect: self.c_string=%r",
-            engine_c_string,
+            _c_string_for_log,
         )
 
         # Configure pool parameters: apply defaults first, then kwargs override
@@ -250,7 +249,9 @@ class DbConn:
         # Remove engine_kwargs whose values are None
         engine_kwargs = {k: v for k, v in engine_kwargs.items() if v is not None}
 
-        self.engine = create_engine(engine_c_string, **engine_kwargs)
+        # Pass self.c_string verbatim; see TestDbConnConnectCString.
+        self.engine = create_engine(self.c_string, **engine_kwargs)
+
         dialect_name = self.engine.dialect.name
         supports_schema = dialect_name in dialects_with_schema
         if supports_schema:
