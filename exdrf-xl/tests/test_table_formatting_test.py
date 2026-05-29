@@ -144,3 +144,33 @@ class TestXlTableFormatting:
         assert 'conditionalFormatting sqref="C2:C3"' in sheet_xml
         assert 'cfRule type="duplicateValues"' in sheet_xml
         assert "<formula>" not in sheet_xml
+
+    def test_skips_geoalchemy_geometry_values(self):
+        schema = XlSchema()
+
+        class WKBElement:  # noqa: N801
+            def __repr__(self) -> str:
+                return "<WKBElement fake>"
+
+        table = _Table(
+            schema=schema,
+            sheet_name="Sheet1",
+            xl_name="T1",
+            records=[
+                {"a": WKBElement()},
+            ],
+            columns=[
+                _Col(
+                    xl_name="A",
+                    key="a",
+                ),
+            ],
+        )
+
+        wb = Workbook()
+        ws = wb.active
+
+        table.write_to_sheet(ws, session=None, col_widths={})  # type: ignore[arg-type]
+
+        # Geometry values must be ignored on export (empty cell).
+        assert ws["A2"].value is None

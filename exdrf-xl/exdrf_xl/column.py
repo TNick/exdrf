@@ -20,6 +20,38 @@ DB = TypeVar("DB")
 logger = logging.getLogger(__name__)
 
 
+def _coerce_to_excel_value(value: Any) -> Any:
+    """Convert common non-Excel values to openpyxl-safe cell values.
+
+    Args:
+        value: A value returned from `XlColumn.value_from_record()`.
+
+    Returns:
+        A value acceptable by openpyxl (str/int/float/bool/datetime/None), or
+        `None` when the value must be skipped on export.
+    """
+    if value is None:
+        return None
+
+    # Serialize structured data as JSON.
+    if isinstance(value, (list, dict)):
+        return json.dumps(value)
+
+    # Convert common binary-like values to a stable hex string.
+    if isinstance(value, (bytes, bytearray, memoryview)):
+        return bytes(value).hex()
+
+    # Handle GeoAlchemy geometries (e.g. WKBElement/WKTElement).
+    #
+    # We avoid importing geoalchemy2 unconditionally to keep exdrf-xl usable in
+    # minimal environments; instead we rely on duck-typing and type names.
+    tname = type(value).__name__
+    if tname in ("WKBElement", "WKTElement"):
+        return None
+
+    return value
+
+
 @define(slots=True, kw_only=True)
 class XlColumn(Generic[T, DB]):
     """A column in an Excel table.
@@ -109,11 +141,15 @@ class XlColumn(Generic[T, DB]):
             row_index: 0-based index of the data row in the table.
             record: Source record.
         """
+        # Extract the raw value from the record.
         value = self.value_from_record(record)
         if value is None:
             return
-        if isinstance(value, (list, dict)):
-            value = json.dumps(value)
+
+        # Coerce to an openpyxl-compatible value.
+        value = _coerce_to_excel_value(value)
+        if value is None:
+            return
 
         # Render unknown date-time sentinel outside Excel range as "x".
         if (
