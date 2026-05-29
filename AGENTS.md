@@ -1,5 +1,18 @@
 # Repository Guidelines
 
+## Changelog
+
+Log changes only for **production code** edits (not tests). Before finishing a
+task that changed application or library source, update the nearest
+`CHANGELOG.md` (walk up from edited paths). If none exists, create one at the
+repository root with `## [Unreleased]` and Added/Changed/Fixed sections. Add at
+least one bullet describing what changed for users.
+
+**Do not** update the changelog when: the task was read-only; you are in **Plan
+mode** or only writing/updating plans (including `.cursor/plans/`); changes are
+**tests only** (`tests/`, `*_test.py`, test fixtures); or the user asked not to
+update it.
+
 ## Build, Test, and Development Commands
 
 - Activate and use `venv-qt5` for command execution in this repository.

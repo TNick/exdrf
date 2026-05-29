@@ -1,0 +1,20 @@
+---
+description: Require changelog updates for production code edits only
+alwaysApply: true
+---
+
+# Changelog (mandatory)
+
+Before finishing a task that changed **production code** (not tests), update the
+nearest `CHANGELOG.md` (walk up from edited paths). In monorepos use the
+package-level file when present.
+
+Under `## [Unreleased]`, add bullets in `### Added`, `### Changed`, or `###
+Fixed`. Summarize what changed for users, not file lists.
+
+**Do not** update the changelog when: read-only work; **Plan mode** or plan-only
+tasks (including `.cursor/plans/`); **tests-only** edits (`tests/`, `*_test.py`,
+spec/fixture files); or the user asked not to.
+
+When creating a new project, add `AGENTS.md` with a Changelog section and seed
+`CHANGELOG.md` if missing.
