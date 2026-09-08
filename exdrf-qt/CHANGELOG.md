@@ -14,6 +14,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Redact database passwords when logging the active connection string.
+
 ## [0.1.20] - 2026-05-26
 
 ### Changed

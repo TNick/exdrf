@@ -23,8 +23,8 @@ In `exdrf-al/exdrf_al/connection.py`, `DbConn.connect` must pass
 `self.c_string` verbatim to `create_engine` for non-SQLite databases (so URL
 components such as passwords are not altered). For SQLite, use the URL returned
 by `_sqlite_engine_url` (rendered with `hide_password=False`) so shared
-``file:`` in-memory URIs include ``uri=true``. `_c_string_for_log` is for
-logging only.
+``file:`` in-memory URIs include ``uri=true``. Use ``c_string_for_log`` for
+logging only, not ``create_engine``.
 
 `TestDbConnConnectCString` enforces verbatim PostgreSQL URLs.
 `TestDbConnConnect.test_shared_file_uri_from_subdirectory` enforces SQLite

@@ -144,6 +144,28 @@ def _sqlite_engine_url(c_string: str) -> URL:
     return url
 
 
+def c_string_for_log(c_string: str) -> str:
+    """Return a database URL safe to write to logs.
+
+    Args:
+        c_string: Raw SQLAlchemy database URL.
+
+    Returns:
+        The URL with credentials redacted, or a placeholder when parsing fails.
+    """
+
+    try:
+        url = _sqlite_engine_url(c_string)
+        return url.render_as_string(hide_password=True)
+    except Exception:
+        logger.log(
+            1,
+            "Could not parse connection string for log redaction",
+            exc_info=True,
+        )
+        return "<connection string>"
+
+
 def _sqlite_uses_static_pool(url: URL, c_string: str) -> bool:
     """Return True when SQLite should use StaticPool.
 
@@ -204,10 +226,9 @@ class DbConn:
 
         # Parse connection string to determine dialect
         url = _sqlite_engine_url(self.c_string)
-        _c_string_for_log = url.render_as_string(hide_password=False)
         logger.info(
             "DbConn.connect: self.c_string=%r",
-            _c_string_for_log,
+            c_string_for_log(self.c_string),
         )
 
         # Configure pool parameters: apply defaults first, then kwargs override

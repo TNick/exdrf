@@ -136,16 +136,16 @@ class Qt{{ ResPascal }}FuMo(QtModel["{{ ResPascal }}"]):
         # the the foreign key fields that are already represented by
         # a resource field and derived fields (e.g. diacritic-less values):
         {%- for field in sorted_fields_for_ui(dset, r, fields) %}
-        {%- if not (field.visible and not field.is_derived and not field.fk_to) %}
+        {%- if not (field.visible and not field.is_derived and not field.fk_to) or field.name == "geom" %}
         # - {{ field.name }}
         {%- endif %}
         {%- endfor %}
         self.column_fields = [
-            {%- for field in sorted_fields_for_ui(dset, r, fields) %}
-            {%- if field.visible and not field.is_derived and not field.fk_to %}
+        {%- for field in sorted_fields_for_ui(dset, r, fields) %}
+        {%- if field.visible and not field.is_derived and not field.fk_to and field.name != "geom" %}
             "{{ field.name }}",
-            {%- endif %}
-            {%- endfor %}
+        {%- endif %}
+        {%- endfor %}
         ]
 
         # Inform plugins that the model has been created.

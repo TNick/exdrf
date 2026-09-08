@@ -18,6 +18,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Redact database passwords in connection-string log messages.
+
 ## [0.1.22] - 2026-05-26
 
 ### Changed

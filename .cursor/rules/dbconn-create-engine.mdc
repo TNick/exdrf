@@ -14,4 +14,4 @@ In `DbConn.connect`:
   where `url = _sqlite_engine_url(self.c_string)` so shared `file:` URIs get
   `uri=true`. Enforced by `test_shared_file_uri_from_subdirectory`.
 
-Do not use `_c_string_for_log` for `create_engine`.
+Do not use ``c_string_for_log`` for ``create_engine``.

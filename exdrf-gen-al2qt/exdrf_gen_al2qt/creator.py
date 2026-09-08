@@ -441,6 +441,10 @@ def generate_qt_from_alchemy(
             field.resource.name,
         )
 
+        # PostGIS geometry is edited on the map, not in table lists.
+        if field.name == "geom":
+            yield ("visible", "bool", "False")
+
         # Get the base class name.
         model = getattr(base_classes, f"Qt{fld_base_class}Field")
 

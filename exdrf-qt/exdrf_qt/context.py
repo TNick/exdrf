@@ -16,7 +16,7 @@ from typing import (
 )
 
 from attrs import define, field
-from exdrf_al.connection import DbConn
+from exdrf_al.connection import DbConn, c_string_for_log
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QMessageBox
@@ -170,7 +170,7 @@ class QtMinContext(DbConn):
         self.schema = schema  # type: ignore
         logging.getLogger(__name__).info(
             "Database connection string set to %r with schema %r",
-            self.c_string,
+            c_string_for_log(self.c_string),
             self.schema,
         )
 
@@ -341,7 +341,7 @@ class QtContext(QtMinContext):
         self.schema = schema  # type: ignore
         logging.getLogger(__name__).info(
             "Database connection string set to %r with schema %r",
-            self.c_string,
+            c_string_for_log(self.c_string),
             self.schema,
         )
 

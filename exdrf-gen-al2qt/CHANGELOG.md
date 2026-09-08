@@ -8,6 +8,11 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Qt full-list models no longer include PostGIS ``geom`` in generated
+  ``column_fields``; ``GeomField`` is generated with ``visible=False``.
+
 ## [0.1.17] - 2026-05-20
 
 ### Changed
